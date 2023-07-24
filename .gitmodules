@@ -1,0 +1,18 @@
+[submodule "external/solanaceae_toxcore"]
+	path = external/solanaceae_toxcore
+	url = https://github.com/Green-Sky/solanaceae_toxcore.git
+[submodule "external/solanaceae_util"]
+	path = external/solanaceae_util
+	url = https://github.com/Green-Sky/solanaceae_util.git
+[submodule "external/solanaceae_contact"]
+	path = external/solanaceae_contact
+	url = https://github.com/Green-Sky/solanaceae_contact.git
+[submodule "external/solanaceae_message3"]
+	path = external/solanaceae_message3
+	url = https://github.com/Green-Sky/solanaceae_message3.git
+[submodule "external/solanaceae_tox"]
+	path = external/solanaceae_tox
+	url = https://github.com/Green-Sky/solanaceae_tox.git
+[submodule "external/solanaceae_plugin"]
+	path = external/solanaceae_plugin
+	url = https://github.com/Green-Sky/solanaceae_plugin.git
