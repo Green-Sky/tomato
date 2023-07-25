@@ -1,0 +1,43 @@
+name: ContinuousDelivery
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  windows:
+    timeout-minutes: 15
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install Dependencies
+      run: vcpkg install libsodium:x64-windows-static pthreads:x64-windows-static
+
+    # setup vs env
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+
+    - name: Configure CMake
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: windows_msvc_x86-64
+        # TODO: do propper packing
+        path: |
+          ${{github.workspace}}/build/bin/
+
