@@ -1,0 +1,70 @@
+---
+_extends: .github
+
+repository:
+  name: c-toxcore
+  description: The future of online communications.
+  homepage: https://tox.chat/
+  topics: toxcore, network, p2p, security, encryption, cryptography
+
+branches:
+  - name: "master"
+    protection:
+      required_status_checks:
+        contexts:
+          - "bazel-asan"
+          - "bazel-dbg"
+          - "bazel-opt"
+          - "bazel-tsan"
+          - "build-compcert"
+          - "build-macos"
+          - "build-nacl"
+          - "build-tcc"
+          - "build-win32"
+          - "build-win64"
+          - "CodeFactor"
+          - "common / buildifier"
+          - "coverage-linux"
+          - "ci/circleci: asan"
+          - "ci/circleci: clang-analyze"
+          - "ci/circleci: clang-tidy"
+          - "ci/circleci: cpplint"
+          - "ci/circleci: infer"
+          - "ci/circleci: msan"
+          - "ci/circleci: static-analysis"
+          - "ci/circleci: tsan"
+          - "ci/circleci: ubsan"
+          - "cimple"
+          - "code-review/reviewable"
+          - "continuous-integration/appveyor/pr"
+          - "docker-bootstrap-node"
+          - "docker-bootstrap-node-websocket"
+          - "docker-toxcore-js"
+          - "mypy"
+          - "sonar-scan"
+
+# Labels specific to c-toxcore.
+labels:
+  - name: "bootstrap"
+    color: "#01707f"
+    description: "Bootstrap"
+
+  - name: "crypto"
+    color: "#1d76db"
+    description: "Crypto"
+
+  - name: "file transfers"
+    color: "#e02abf"
+    description: "File Transfers"
+
+  - name: "messenger"
+    color: "#d93f0b"
+    description: "Messenger"
+
+  - name: "network"
+    color: "#d4c5f9"
+    description: "Network"
+
+  - name: "toxav"
+    color: "#0052cc"
+    description: "Audio/video"
