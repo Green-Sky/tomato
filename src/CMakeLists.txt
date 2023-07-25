@@ -18,7 +18,8 @@ target_link_libraries(tomato PUBLIC
 
 	SDL3::SDL3
 
-	#imgui
-	#imgui_backend_opengl3
+	imgui
+	imgui_backend_sdl3
+	imgui_backend_sdlrenderer3
 )
 

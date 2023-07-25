@@ -13,4 +13,5 @@ add_subdirectory(./solanaceae_toxcore)
 add_subdirectory(./solanaceae_tox)
 
 add_subdirectory(./sdl)
+add_subdirectory(./imgui)
 
