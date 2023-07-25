@@ -1,0 +1,15 @@
+#!/bin/bash
+
+. other/analysis/gen-file.sh
+
+set -e
+
+run() {
+  echo "Running Clang static analyzer in variant '$*'"
+  clang++ --analyze amalgamation.cc \
+    "${CPPFLAGS[@]}" \
+    "$@" \
+    -std=c++11
+}
+
+. other/analysis/variants.sh

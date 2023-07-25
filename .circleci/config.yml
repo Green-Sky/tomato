@@ -1,0 +1,170 @@
+---
+version: 2
+
+workflows:
+  version: 2
+  program-analysis:
+    jobs:
+      # Dynamic analysis
+      - asan
+      - tsan
+      - msan
+      - ubsan
+      # Static analysis
+      - clang-analyze
+      - clang-tidy
+      - cpplint
+      - infer
+      - static-analysis
+
+jobs:
+  asan:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: &apt_install
+          apt-get update &&
+          DEBIAN_FRONTEND=noninteractive
+          apt-get install -y --no-install-recommends
+            ca-certificates
+            clang
+            cmake
+            git
+            libconfig-dev
+            libgtest-dev
+            libopus-dev
+            libsodium-dev
+            libvpx-dev
+            llvm-dev
+            ninja-build
+            pkg-config
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: CC=clang .circleci/cmake-asan
+
+  tsan:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: CC=clang .circleci/cmake-tsan
+
+  ubsan:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: CC=clang .circleci/cmake-ubsan
+
+  msan:
+    working_directory: ~/work
+    docker:
+      - image: toxchat/toktok-stack:latest-msan
+
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: rm -rf /src/workspace/c-toxcore/* && mv * /src/workspace/c-toxcore/
+      - run:
+          cd /src/workspace && bazel test
+            //c-toxcore/auto_tests:lossless_packet_test
+            //c-toxcore/toxav/...
+            //c-toxcore/toxcore/...
+
+  infer:
+    working_directory: ~/work
+    docker:
+      - image: toxchat/infer
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: infer --no-progress-bar -- cc
+          auto_tests/auto_test_support.c
+          auto_tests/lossless_packet_test.c
+          testing/misc_tools.c
+          toxav/*.c
+          toxcore/*.c
+          toxcore/*/*.c
+          toxencryptsave/*.c
+          third_party/cmp/*.c
+          -lpthread
+          $(pkg-config --cflags --libs libsodium opus vpx)
+
+  static-analysis:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - run:
+          apt-get install -y --no-install-recommends
+            ca-certificates
+            cppcheck
+            g++
+            llvm-dev
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: other/analysis/check_includes
+      - run: other/analysis/check_logger_levels
+      - run: other/analysis/run-clang
+      - run: other/analysis/run-cppcheck
+      - run: other/analysis/run-gcc
+
+  clang-analyze:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: other/analysis/run-clang-analyze
+
+  clang-tidy:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - run:
+          apt-get install -y --no-install-recommends
+            ca-certificates
+            clang-tidy-12
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: cmake . -B_build -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - run:
+          other/analysis/run-clang-tidy ||
+          other/analysis/run-clang-tidy ||
+          other/analysis/run-clang-tidy
+
+  cpplint:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - run:
+          apt-get install -y --no-install-recommends
+            ca-certificates
+            python3-pip
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: pip install cpplint
+      - run: other/analysis/run-cpplint

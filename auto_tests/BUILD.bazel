@@ -1,0 +1,72 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(features = ["layering_check"])
+
+cc_library(
+    name = "check_compat",
+    testonly = True,
+    hdrs = ["check_compat.h"],
+)
+
+cc_library(
+    name = "auto_test_support",
+    testonly = True,
+    srcs = ["auto_test_support.c"],
+    hdrs = ["auto_test_support.h"],
+    deps = [
+        ":check_compat",
+        "//c-toxcore/testing:misc_tools",
+        "//c-toxcore/toxcore:Messenger",
+        "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:tox",
+    ],
+)
+
+flaky_tests = {
+    "crypto_core_test": True,
+    "lan_discovery_test": True,
+    "save_load_test": True,
+    "tox_many_tcp_test": True,
+}
+
+[cc_test(
+    name = src[:-2],
+    size = "small",
+    srcs = [src],
+    args = ["$(location %s)" % src] + ["$(location //c-toxcore/other/proxy)"],
+    data = glob(["data/*"]) + ["//c-toxcore/other/proxy"],
+    flaky = flaky_tests.get(
+        src[:-2],
+        False,
+    ),
+    deps = [
+        ":auto_test_support",
+        ":check_compat",
+        "//c-toxcore/testing:misc_tools",
+        "//c-toxcore/toxav",
+        "//c-toxcore/toxcore:Messenger",
+        "//c-toxcore/toxcore:TCP_client",
+        "//c-toxcore/toxcore:TCP_common",
+        "//c-toxcore/toxcore:TCP_connection",
+        "//c-toxcore/toxcore:TCP_server",
+        "//c-toxcore/toxcore:announce",
+        "//c-toxcore/toxcore:ccompat",
+        "//c-toxcore/toxcore:crypto_core",
+        "//c-toxcore/toxcore:forwarding",
+        "//c-toxcore/toxcore:friend_connection",
+        "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:net_crypto",
+        "//c-toxcore/toxcore:network",
+        "//c-toxcore/toxcore:onion",
+        "//c-toxcore/toxcore:onion_announce",
+        "//c-toxcore/toxcore:onion_client",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_dispatch",
+        "//c-toxcore/toxcore:tox_events",
+        "//c-toxcore/toxcore:util",
+        "//c-toxcore/toxencryptsave",
+        "@libsodium",
+        "@libvpx",
+    ],
+) for src in glob(["*_test.c"])]

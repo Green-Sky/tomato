@@ -1,0 +1,34 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("//tools:no_undefined.bzl", "cc_library")
+
+package(features = ["layering_check"])
+
+cc_library(
+    name = "bootstrap_node_packets",
+    srcs = ["bootstrap_node_packets.c"],
+    hdrs = ["bootstrap_node_packets.h"],
+    visibility = ["//c-toxcore/other/bootstrap_daemon:__pkg__"],
+    deps = ["//c-toxcore/toxcore:network"],
+)
+
+cc_binary(
+    name = "DHT_bootstrap",
+    testonly = 1,
+    srcs = ["DHT_bootstrap.c"],
+    deps = [
+        "//c-toxcore/testing:misc_tools",
+        "//c-toxcore/toxcore:DHT",
+        "//c-toxcore/toxcore:LAN_discovery",
+        "//c-toxcore/toxcore:Messenger",
+        "//c-toxcore/toxcore:TCP_server",
+        "//c-toxcore/toxcore:ccompat",
+        "//c-toxcore/toxcore:friend_requests",
+        "//c-toxcore/toxcore:group_onion_announce",
+        "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:network",
+        "//c-toxcore/toxcore:onion_announce",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:util",
+    ],
+)
