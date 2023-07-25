@@ -16,6 +16,8 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_tox_contacts
 	solanaceae_tox_messages
 
+	SDL3::SDL3
+
 	#imgui
 	#imgui_backend_opengl3
 )
