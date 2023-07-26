@@ -6,6 +6,7 @@
 #include <imgui/backends/imgui_impl_sdlrenderer3.h>
 
 #include "./theme.hpp"
+#include "./sdlrenderer_texture_uploader.hpp"
 
 #include "./start_screen.hpp"
 
@@ -33,7 +34,7 @@ int main(int argc, char** argv) {
 	}
 
 	std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)> renderer {
-		SDL_CreateRenderer(window.get(), nullptr, 0),
+		SDL_CreateRenderer(window.get(), nullptr, SDL_RENDERER_PRESENTVSYNC),
 		&SDL_DestroyRenderer
 	};
 	if (!renderer) {
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
 	auto imgui_sdlrenderer_scope = std::async(std::launch::deferred, &ImGui_ImplSDLRenderer3_Shutdown);
 
-	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>();
+	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(renderer.get());
 
 	bool quit = false;
 	while (!quit) {

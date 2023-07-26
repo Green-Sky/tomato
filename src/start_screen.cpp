@@ -4,7 +4,7 @@
 
 #include <memory>
 
-StartScreen::StartScreen(void) {
+StartScreen::StartScreen(SDL_Renderer* renderer) : _renderer(renderer) {
 }
 
 Screen* StartScreen::poll(bool&) {
@@ -18,7 +18,7 @@ Screen* StartScreen::poll(bool&) {
 	// | +------+ +--------
 	// +----------------------------
 
-	auto new_screen = std::make_unique<MainScreen>("tomato.tox");
+	auto new_screen = std::make_unique<MainScreen>(_renderer, "tomato.tox");
 	return new_screen.release();
 }
 

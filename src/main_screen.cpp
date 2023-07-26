@@ -2,9 +2,19 @@
 
 #include <imgui/imgui.h>
 
+#include <SDL3/SDL.h>
+
 #include <memory>
 
-MainScreen::MainScreen(std::string save_path) : rmm(cr), tc(save_path) {
+MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
+	renderer(renderer_),
+	rmm(cr),
+	tc(save_path),
+	tcm(cr, tc, tc),
+	tmm(rmm, cr, tcm, tc, tc),
+	ttm(rmm, cr, tcm, tc, tc),
+	sdlrtu(renderer_)
+{
 	tel.subscribeAll(tc);
 
 	conf.set("tox", "save_file_path", save_path);
@@ -33,10 +43,13 @@ MainScreen::MainScreen(std::string save_path) : rmm(cr), tc(save_path) {
 
 		// graphics
 		g_provideInstance("ImGuiContext", "host", ImGui::GetCurrentContext());
-		//g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &ogltu);
+		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
 	}
 
 	conf.dump();
+}
+
+MainScreen::~MainScreen(void) {
 }
 
 Screen* MainScreen::poll(bool& quit) {
@@ -52,6 +65,33 @@ Screen* MainScreen::poll(bool& quit) {
 		bool open = !quit;
 		ImGui::ShowDemoWindow(&open);
 		quit = !open;
+	}
+
+	{ // texture tests
+		const size_t width = 8;
+		const size_t height = 8;
+#define W 0xff, 0xff, 0xff, 0xff
+#define B 0x00, 0x00, 0x00, 0xff
+#define P 0xff, 0x00, 0xff, 0xff
+		static uint8_t raw_pixel[width*height*4] {
+			P, W, W, W, W, W, W, P,
+			W, W, W, W, W, W, W, W,
+			W, W, W, W, W, W, W, W,
+			W, W, W, B, B, W, W, W,
+			W, W, W, B, B, W, W, W,
+			W, W, W, W, W, W, W, W,
+			W, W, W, W, W, W, W, W,
+			P, W, W, W, W, W, W, P,
+		};
+
+		static uint64_t texture = sdlrtu.uploadRGBA(raw_pixel, width, height);
+
+		if (ImGui::Begin("test texture")) {
+			ImGui::Text("test texture windoajsdf");
+
+			ImGui::Image(reinterpret_cast<void*>(texture), {width*10, height*10});
+		}
+		ImGui::End();
 	}
 
 	return nullptr;

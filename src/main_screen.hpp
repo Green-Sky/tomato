@@ -8,13 +8,26 @@
 #include <solanaceae/plugin/plugin_manager.hpp>
 #include <solanaceae/toxcore/tox_event_logger.hpp>
 
+#include <solanaceae/tox_contacts/tox_contact_model2.hpp>
+#include <solanaceae/tox_messages/tox_message_manager.hpp>
+#include <solanaceae/tox_messages/tox_transfer_manager.hpp>
+
 #include "./tox_client.hpp"
+
+#include "./sdlrenderer_texture_uploader.hpp"
 
 #include <string>
 #include <iostream>
 #include <chrono>
 
+// fwd
+extern "C" {
+	struct SDL_Renderer;
+} // C
+
 struct MainScreen final : public Screen {
+	SDL_Renderer* renderer;
+
 	std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
 
 	SimpleConfigModel conf;
@@ -25,12 +38,16 @@ struct MainScreen final : public Screen {
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;
+	ToxContactModel2 tcm;
+	ToxMessageManager tmm;
+	ToxTransferManager ttm;
 
+	SDLRendererTextureUploader sdlrtu;
 	//OpenGLTextureUploader ogltu;
 
 
-	MainScreen(std::string save_path);
-	~MainScreen(void) = default;
+	MainScreen(SDL_Renderer* renderer_, std::string save_path);
+	~MainScreen(void);
 
 	// return nullptr if not next
 	// sets bool quit to true if exit

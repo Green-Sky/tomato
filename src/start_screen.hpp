@@ -2,8 +2,16 @@
 
 #include "./screen.hpp"
 
+// fwd
+extern "C" {
+	struct SDL_Renderer;
+} // C
+
 struct StartScreen final : public Screen {
-	StartScreen(void);
+	SDL_Renderer* _renderer;
+
+	StartScreen(void) = delete;
+	StartScreen(SDL_Renderer* renderer);
 	~StartScreen(void) = default;
 
 	// return nullptr if not next

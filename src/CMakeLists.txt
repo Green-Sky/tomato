@@ -12,6 +12,11 @@ add_executable(tomato
 
 	tox_client.hpp
 	tox_client.cpp
+
+	theme.hpp
+	texture_uploader.hpp
+	./sdlrenderer_texture_uploader.hpp
+	./sdlrenderer_texture_uploader.cpp
 )
 
 target_compile_features(tomato PUBLIC cxx_std_17)
