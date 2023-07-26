@@ -1,0 +1,133 @@
+#include "./tox_client.hpp"
+
+#include <sodium.h>
+
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <cassert>
+
+ToxClient::ToxClient(std::string_view save_path) :
+	_tox_profile_path(save_path)
+{
+	TOX_ERR_OPTIONS_NEW err_opt_new;
+	Tox_Options* options = tox_options_new(&err_opt_new);
+	assert(err_opt_new == TOX_ERR_OPTIONS_NEW::TOX_ERR_OPTIONS_NEW_OK);
+
+	std::vector<uint8_t> profile_data{};
+	if (!_tox_profile_path.empty()) {
+		std::ifstream ifile{_tox_profile_path, std::ios::binary};
+
+		if (ifile.is_open()) {
+			std::cout << "TOX loading save " << _tox_profile_path << "\n";
+			// fill savedata
+			while (ifile.good()) {
+				auto ch = ifile.get();
+				if (ch == EOF) {
+					break;
+				} else {
+					profile_data.push_back(ch);
+				}
+			}
+
+			if (profile_data.empty()) {
+				std::cerr << "empty tox save\n";
+			} else {
+				// set options
+				tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
+				tox_options_set_savedata_data(options, profile_data.data(), profile_data.size());
+			}
+
+			ifile.close(); // do i need this?
+		}
+	}
+
+	TOX_ERR_NEW err_new;
+	_tox = tox_new(options, &err_new);
+	tox_options_free(options);
+	if (err_new != TOX_ERR_NEW_OK) {
+		std::cerr << "tox_new failed with error code " << err_new << "\n";
+		throw std::runtime_error{"tox failed"};
+	}
+
+	// no callbacks, use events
+	tox_events_init(_tox);
+
+	// dht bootstrap
+	{
+		struct DHT_node {
+			const char *ip;
+			uint16_t port;
+			const char key_hex[TOX_PUBLIC_KEY_SIZE*2 + 1]; // 1 for null terminator
+			unsigned char key_bin[TOX_PUBLIC_KEY_SIZE];
+		};
+
+		DHT_node nodes[] =
+		{
+			// TODO: more/diff nodes
+			// you can change or add your own bs and tcprelays here, ideally closer to you
+			{"tox.plastiras.org",	443,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
+			{"tox2.plastiras.org",	33445,	"B6626D386BE7E3ACA107B46F48A5C4D522D29281750D44A0CBA6A2721E79C951", {}}, // DE tha14
+
+		};
+
+		for (size_t i = 0; i < sizeof(nodes)/sizeof(DHT_node); i ++) {
+			sodium_hex2bin(
+				nodes[i].key_bin, sizeof(nodes[i].key_bin),
+				nodes[i].key_hex, sizeof(nodes[i].key_hex)-1,
+				NULL, NULL, NULL
+			);
+			tox_bootstrap(_tox, nodes[i].ip, nodes[i].port, nodes[i].key_bin, NULL);
+			// TODO: use extra tcp option to avoid error msgs
+			// ... this is hardcore
+			tox_add_tcp_relay(_tox, nodes[i].ip, nodes[i].port, nodes[i].key_bin, NULL);
+		}
+	}
+}
+
+ToxClient::~ToxClient(void) {
+	tox_kill(_tox);
+}
+
+bool ToxClient::iterate(void) {
+	Tox_Err_Events_Iterate err_e_it = TOX_ERR_EVENTS_ITERATE_OK;
+	auto* events = tox_events_iterate(_tox, false, &err_e_it);
+	if (err_e_it == TOX_ERR_EVENTS_ITERATE_OK && events != nullptr) {
+		_subscriber_raw(events);
+
+		// forward events to event handlers
+		dispatchEvents(events);
+	}
+
+	tox_events_free(events);
+
+	if (_tox_profile_dirty) {
+		saveToxProfile();
+	}
+
+	return true;
+}
+
+void ToxClient::subscribeRaw(std::function<void(const Tox_Events*)> fn) {
+	_subscriber_raw = fn;
+}
+
+void ToxClient::saveToxProfile(void) {
+	if (_tox_profile_path.empty()) {
+		return;
+	}
+	std::cout << "TOX saving\n";
+
+	std::vector<uint8_t> data{};
+	data.resize(tox_get_savedata_size(_tox));
+	tox_get_savedata(_tox, data.data());
+
+	std::ofstream ofile{_tox_profile_path, std::ios::binary};
+	// TODO: improve
+	for (const auto& ch : data) {
+		ofile.put(ch);
+	}
+
+	_tox_profile_dirty = false;
+}
+

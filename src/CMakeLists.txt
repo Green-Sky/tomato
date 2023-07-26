@@ -9,6 +9,9 @@ add_executable(tomato
 	start_screen.cpp
 	main_screen.hpp
 	main_screen.cpp
+
+	tox_client.hpp
+	tox_client.cpp
 )
 
 target_compile_features(tomato PUBLIC cxx_std_17)
@@ -17,7 +20,7 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_contact
 	solanaceae_message3
 
-	#solanaceae_plugin
+	solanaceae_plugin
 
 	solanaceae_toxcore
 	solanaceae_tox_contacts
