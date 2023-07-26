@@ -3,6 +3,12 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 add_executable(tomato
 	main.cpp
 	icon.rc
+
+	screen.hpp
+	start_screen.hpp
+	start_screen.cpp
+	main_screen.hpp
+	main_screen.cpp
 )
 
 target_compile_features(tomato PUBLIC cxx_std_17)

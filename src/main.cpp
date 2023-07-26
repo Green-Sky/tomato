@@ -7,6 +7,8 @@
 
 #include "./theme.hpp"
 
+#include "./start_screen.hpp"
+
 #include <memory>
 #include <future>
 #include <iostream>
@@ -50,6 +52,8 @@ int main(int argc, char** argv) {
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
 	auto imgui_sdlrenderer_scope = std::async(std::launch::deferred, &ImGui_ImplSDLRenderer3_Shutdown);
 
+	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>();
+
 	bool quit = false;
 	while (!quit) {
 		SDL_Event event;
@@ -68,7 +72,12 @@ int main(int argc, char** argv) {
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
+
+		Screen* ret_screen = screen->poll(quit);
+		if (ret_screen != nullptr) {
+			screen.reset(ret_screen);
+		}
 
 		ImGui::Render();
 		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
