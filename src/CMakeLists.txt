@@ -17,6 +17,8 @@ add_executable(tomato
 	texture_uploader.hpp
 	./sdlrenderer_texture_uploader.hpp
 	./sdlrenderer_texture_uploader.cpp
+	./file_selector.hpp
+	./file_selector.cpp
 )
 
 target_compile_features(tomato PUBLIC cxx_std_17)
