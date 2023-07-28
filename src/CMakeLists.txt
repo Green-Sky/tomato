@@ -19,6 +19,9 @@ add_executable(tomato
 	./sdlrenderer_texture_uploader.cpp
 	./file_selector.hpp
 	./file_selector.cpp
+
+	./chat_gui4.hpp
+	./chat_gui4.cpp
 )
 
 target_compile_features(tomato PUBLIC cxx_std_17)

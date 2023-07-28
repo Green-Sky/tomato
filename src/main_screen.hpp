@@ -15,6 +15,7 @@
 #include "./tox_client.hpp"
 
 #include "./sdlrenderer_texture_uploader.hpp"
+#include "./chat_gui4.hpp"
 
 #include <string>
 #include <iostream>
@@ -45,6 +46,7 @@ struct MainScreen final : public Screen {
 	SDLRendererTextureUploader sdlrtu;
 	//OpenGLTextureUploader ogltu;
 
+	ChatGui4 cg;
 
 	MainScreen(SDL_Renderer* renderer_, std::string save_path);
 	~MainScreen(void);

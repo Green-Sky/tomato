@@ -13,7 +13,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
-	sdlrtu(renderer_)
+	sdlrtu(renderer_),
+	cg(rmm, cr, sdlrtu)
 {
 	tel.subscribeAll(tc);
 
@@ -60,6 +61,8 @@ Screen* MainScreen::poll(bool& quit) {
 	quit = !tc.iterate();
 
 	pm.tick(time_delta);
+
+	cg.render();
 
 	{
 		bool open = !quit;
