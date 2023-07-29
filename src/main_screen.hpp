@@ -13,6 +13,7 @@
 #include <solanaceae/tox_messages/tox_transfer_manager.hpp>
 
 #include "./tox_client.hpp"
+#include "./auto_dirty.hpp"
 
 #include "./sdlrenderer_texture_uploader.hpp"
 #include "./chat_gui4.hpp"
@@ -39,6 +40,7 @@ struct MainScreen final : public Screen {
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;
+	AutoDirty ad;
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
 	ToxTransferManager ttm;

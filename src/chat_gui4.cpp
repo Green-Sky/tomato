@@ -88,14 +88,16 @@ void ChatGui4::render(void) {
 							if (ri.name) {
 								ImGui::InputText("name to join with", &self_name);
 							} else {
-								ImGui::TextUnformatted("");
+								//ImGui::TextUnformatted("");
+								ImGui::Dummy({0, TEXT_BASE_HEIGHT});
 							}
 
 							static std::string password;
 							if (ri.password) {
 								ImGui::InputText("password to join with", &password);
 							} else {
-								ImGui::TextUnformatted("");
+								////ImGui::TextUnformatted("");
+								ImGui::Dummy({0, TEXT_BASE_HEIGHT});
 							}
 
 							if (ImGui::Button("Accept")) {
@@ -515,12 +517,11 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	{
+		ImGui::Text("%s", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
 		if (request_incoming) {
 			ImGui::TextUnformatted("Incoming request/invite");
 		} else if (request_outgoing) {
 			ImGui::TextUnformatted("Outgoing request/invite");
-		} else {
-			ImGui::Text("%s", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
 		}
 		//ImGui::Text("status message...");
 		//ImGui::TextDisabled("hi");

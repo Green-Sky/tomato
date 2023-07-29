@@ -10,8 +10,10 @@ add_executable(tomato
 	main_screen.hpp
 	main_screen.cpp
 
-	tox_client.hpp
-	tox_client.cpp
+	./tox_client.hpp
+	./tox_client.cpp
+	./auto_dirty.hpp
+	./auto_dirty.cpp
 
 	theme.hpp
 	texture_uploader.hpp

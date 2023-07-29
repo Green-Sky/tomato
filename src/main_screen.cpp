@@ -10,6 +10,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 	renderer(renderer_),
 	rmm(cr),
 	tc(save_path),
+	ad(tc),
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
