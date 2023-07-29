@@ -1,10 +1,10 @@
 #include "./file_selector.hpp"
 
-#include <filesystem>
 #include <imgui/imgui.h>
 
 #include <chrono>
 #include <iostream>
+#include <vector>
 
 void FileSelector::reset(void) {
 	_is_valid = [](auto){ return true; };
