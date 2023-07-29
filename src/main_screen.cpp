@@ -14,7 +14,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
 	sdlrtu(renderer_),
-	cg(rmm, cr, sdlrtu)
+	cg(conf, rmm, cr, sdlrtu)
 {
 	tel.subscribeAll(tc);
 
@@ -70,6 +70,7 @@ Screen* MainScreen::poll(bool& quit) {
 		quit = !open;
 	}
 
+#if 0
 	{ // texture tests
 		const size_t width = 8;
 		const size_t height = 8;
@@ -96,6 +97,7 @@ Screen* MainScreen::poll(bool& quit) {
 		}
 		ImGui::End();
 	}
+#endif
 
 	return nullptr;
 }

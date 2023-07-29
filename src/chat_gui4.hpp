@@ -1,6 +1,7 @@
 #pragma once
 
 #include <solanaceae/message3/registry_message_model.hpp>
+#include <solanaceae/util/config_model.hpp>
 
 #include "./texture_uploader.hpp"
 #include "./file_selector.hpp"
@@ -9,6 +10,7 @@
 #include <set>
 
 class ChatGui4 {
+	ConfigModelI& _conf;
 	RegistryMessageModel& _rmm;
 	Contact3Registry& _cr;
 
@@ -23,6 +25,7 @@ class ChatGui4 {
 
 	public:
 		ChatGui4(
+			ConfigModelI& conf,
 			RegistryMessageModel& rmm,
 			Contact3Registry& cr,
 			TextureUploaderI& tu

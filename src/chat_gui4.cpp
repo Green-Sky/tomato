@@ -19,10 +19,11 @@
 #include <ctime>
 
 ChatGui4::ChatGui4(
+	ConfigModelI& conf,
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu
-) : _rmm(rmm), _cr(cr) {
+) : _conf(conf), _rmm(rmm), _cr(cr) {
 }
 
 void ChatGui4::render(void) {
@@ -71,6 +72,45 @@ void ChatGui4::render(void) {
 						ImGui::EndChild();
 						ImGui::SameLine();
 					}
+				}
+
+				const bool request_incoming = _cr.all_of<Contact::Components::RequestIncoming>(*_selected_contact);
+				const bool request_outgoing = _cr.all_of<Contact::Components::TagRequestOutgoing>(*_selected_contact);
+				if (request_incoming || request_outgoing) {
+					// TODO: theming
+					ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.90f, 0.70f, 0.00f, 0.32f});
+					if (ImGui::BeginChild("request", {0, TEXT_BASE_HEIGHT*6.1f}, true, ImGuiWindowFlags_NoScrollbar)) {
+						if (request_incoming) {
+							const auto& ri = _cr.get<Contact::Components::RequestIncoming>(*_selected_contact);
+							ImGui::TextUnformatted("You got a request to add this contact.");
+
+							static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
+							if (ri.name) {
+								ImGui::InputText("name to join with", &self_name);
+							} else {
+								ImGui::TextUnformatted("");
+							}
+
+							static std::string password;
+							if (ri.password) {
+								ImGui::InputText("password to join with", &password);
+							} else {
+								ImGui::TextUnformatted("");
+							}
+
+							if (ImGui::Button("Accept")) {
+								_cr.get<Contact::Components::ContactModel>(*_selected_contact)->acceptRequest(*_selected_contact, self_name, password);
+								password.clear();
+							}
+							ImGui::SameLine();
+							if (ImGui::Button("Decline")) {
+							}
+						} else {
+							ImGui::TextUnformatted("You sent a reqeust to add this contact.");
+						}
+					}
+					ImGui::PopStyleColor();
+					ImGui::EndChild();
 				}
 
 				if (ImGui::BeginChild("message_log", {0, -100}, false, ImGuiWindowFlags_MenuBar)) {
@@ -411,8 +451,25 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 
 	auto label = "###" + std::to_string(entt::to_integral(c));
 
+	const bool request_incoming = _cr.all_of<Contact::Components::RequestIncoming>(c);
+	const bool request_outgoing = _cr.all_of<Contact::Components::TagRequestOutgoing>(c);
+
 	ImVec2 orig_curser_pos = ImGui::GetCursorPos();
-	bool selected = ImGui::Selectable(label.c_str(), _selected_contact.has_value() && *_selected_contact == c, 0, {0,3*TEXT_BASE_HEIGHT});
+	// HACK: fake selected to make it draw a box for us
+	const bool show_selected = request_incoming || request_outgoing || (_selected_contact.has_value() && *_selected_contact == c);
+	if (request_incoming) {
+		// TODO: theming
+		ImGui::PushStyleColor(ImGuiCol_Header, {0.98f, 0.41f, 0.26f, 0.52f});
+	} else if (request_outgoing) {
+		// TODO: theming
+		ImGui::PushStyleColor(ImGuiCol_Header, {0.98f, 0.26f, 0.41f, 0.52f});
+	}
+
+	const bool selected = ImGui::Selectable(label.c_str(), show_selected, 0, {0,3*TEXT_BASE_HEIGHT});
+
+	if (request_incoming || request_outgoing) {
+		ImGui::PopStyleColor();
+	}
 	ImVec2 post_curser_pos = ImGui::GetCursorPos();
 
 	ImVec2 img_curser {
@@ -458,7 +515,13 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	{
-		ImGui::Text("%s", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
+		if (request_incoming) {
+			ImGui::TextUnformatted("Incoming request/invite");
+		} else if (request_outgoing) {
+			ImGui::TextUnformatted("Outgoing request/invite");
+		} else {
+			ImGui::Text("%s", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
+		}
 		//ImGui::Text("status message...");
 		//ImGui::TextDisabled("hi");
 		//ImGui::RenderTextEllipsis
