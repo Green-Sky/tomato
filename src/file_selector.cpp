@@ -183,7 +183,13 @@ void FileSelector::render(void) {
 				}
 
 				if (ImGui::TableNextColumn()) {
-					const auto ctime = std::chrono::system_clock::to_time_t(dir_entry.last_write_time() - decltype(dir_entry.last_write_time())::clock::now() + std::chrono::system_clock::now());
+					const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+						dir_entry.last_write_time()
+						- decltype(dir_entry.last_write_time())::clock::now()
+						+ std::chrono::system_clock::now()
+					);
+					const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+
 					const auto ltime = std::localtime(&ctime);
 					ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
 				}
@@ -208,7 +214,13 @@ void FileSelector::render(void) {
 				}
 
 				if (ImGui::TableNextColumn()) {
-					const auto ctime = std::chrono::system_clock::to_time_t(dir_entry.last_write_time() - decltype(dir_entry.last_write_time())::clock::now() + std::chrono::system_clock::now());
+					const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+						dir_entry.last_write_time()
+						- decltype(dir_entry.last_write_time())::clock::now()
+						+ std::chrono::system_clock::now()
+					);
+					const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+
 					const auto ltime = std::localtime(&ctime);
 					ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
 				}
