@@ -9,6 +9,7 @@
 MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 	renderer(renderer_),
 	rmm(cr),
+	mts(rmm),
 	tc(save_path),
 	ad(tc),
 	tcm(cr, tc, tc),
@@ -62,6 +63,8 @@ Screen* MainScreen::poll(bool& quit) {
 	quit = !tc.iterate();
 
 	pm.tick(time_delta);
+
+	mts.iterate();
 
 	cg.render();
 
