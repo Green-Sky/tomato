@@ -249,7 +249,7 @@ void ChatGui4::render(void) {
 						_fss.requestFile(
 							[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
 							[this](const auto& path){
-								_rmm.sendFilePath(*_selected_contact, path.filename().c_str(), path.c_str());
+								_rmm.sendFilePath(*_selected_contact, path.filename().u8string(), path.u8string());
 							},
 							[](){}
 						);
@@ -272,6 +272,7 @@ void ChatGui4::render(void) {
 void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	const auto& msgtext = reg.get<Message::Components::MessageText>(e).text;
 
+	// TODO: set word wrap
 	ImVec2 text_size = ImGui::CalcTextSize(msgtext.c_str(), msgtext.c_str()+msgtext.size());
 	text_size.x = -FLT_MIN; // fill width (suppresses label)
 	text_size.y += ImGui::GetStyle().FramePadding.y; // single pad

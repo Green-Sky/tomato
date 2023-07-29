@@ -46,7 +46,7 @@ void FileSelector::render(void) {
 		std::filesystem::path current_path = _current_file_path;
 		current_path.remove_filename();
 
-		ImGui::Text("path: %s", _current_file_path.c_str());
+		ImGui::Text("path: %s", _current_file_path.u8string().c_str());
 
 		// begin table with selectables
 		constexpr ImGuiTableFlags table_flags =
@@ -174,7 +174,7 @@ void FileSelector::render(void) {
 				}
 
 				if (ImGui::TableNextColumn()) {
-					ImGui::TextUnformatted((dir_entry.path().filename().string() + "/").c_str());
+					ImGui::TextUnformatted((dir_entry.path().filename().u8string() + "/").c_str());
 				}
 
 				if (ImGui::TableNextColumn()) {
@@ -199,7 +199,7 @@ void FileSelector::render(void) {
 				}
 
 				if (ImGui::TableNextColumn()) {
-					ImGui::TextUnformatted(dir_entry.path().filename().c_str());
+					ImGui::TextUnformatted(dir_entry.path().filename().u8string().c_str());
 				}
 
 				if (ImGui::TableNextColumn()) {
