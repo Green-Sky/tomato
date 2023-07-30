@@ -55,6 +55,10 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 MainScreen::~MainScreen(void) {
 }
 
+bool MainScreen::handleEvent(SDL_Event& e) {
+	return false;
+}
+
 Screen* MainScreen::poll(bool& quit) {
 	auto new_time = std::chrono::high_resolution_clock::now();
 	const float time_delta {std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time).count()};

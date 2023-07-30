@@ -55,6 +55,8 @@ struct MainScreen final : public Screen {
 	MainScreen(SDL_Renderer* renderer_, std::string save_path);
 	~MainScreen(void);
 
+	bool handleEvent(SDL_Event& e) override;
+
 	// return nullptr if not next
 	// sets bool quit to true if exit
 	Screen* poll(bool&) override;

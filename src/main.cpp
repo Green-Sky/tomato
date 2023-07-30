@@ -6,7 +6,6 @@
 #include <imgui/backends/imgui_impl_sdlrenderer3.h>
 
 #include "./theme.hpp"
-#include "./sdlrenderer_texture_uploader.hpp"
 
 #include "./start_screen.hpp"
 
@@ -63,6 +62,11 @@ int main(int argc, char** argv) {
 				quit = true;
 				break;
 			}
+
+			if (screen->handleEvent(event)) {
+				continue;
+			}
+
 			ImGui_ImplSDL3_ProcessEvent(&event);
 		}
 		if (quit) {

@@ -19,6 +19,8 @@ add_executable(tomato
 	texture_uploader.hpp
 	./sdlrenderer_texture_uploader.hpp
 	./sdlrenderer_texture_uploader.cpp
+	./sdl_clipboard_utils.hpp
+	./sdl_clipboard_utils.cpp
 	./file_selector.hpp
 	./file_selector.cpp
 

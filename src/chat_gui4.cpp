@@ -11,6 +11,11 @@
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
+#include <SDL3/SDL.h>
+
+#include "./sdl_clipboard_utils.hpp"
+#include "SDL_clipboard.h"
+
 #include <string>
 #include <variant>
 #include <vector>
@@ -256,6 +261,14 @@ void ChatGui4::render(void) {
 					}
 				}
 				ImGui::EndChild();
+
+				if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyPressed(ImGuiMod_Shortcut)) {
+					if (const auto* mime_type = clipboardHasImage(); mime_type != nullptr) {
+						size_t data_size = 0;
+						const auto* data = SDL_GetClipboardData(mime_type, &data_size);
+						// open file send preview.rawpixels
+					}
+				}
 			}
 			ImGui::EndChild();
 		}
