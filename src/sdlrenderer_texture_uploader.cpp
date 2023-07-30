@@ -13,8 +13,7 @@ uint64_t SDLRendererTextureUploader::uploadRGBA(const uint8_t* data, uint32_t wi
 		(void*)data,
 		width, height,
 		4*width,
-		//SDL_PIXELFORMAT_RGBA8888
-		SDL_PIXELFORMAT_ABGR8888 // little endian
+		SDL_PIXELFORMAT_RGBA32 // auto big/little
 	);
 	assert(surf); // TODO: add error reporting
 

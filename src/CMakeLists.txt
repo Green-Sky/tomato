@@ -1,22 +1,26 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 add_executable(tomato
-	main.cpp
-	icon.rc
+	./main.cpp
+	./icon.rc
 
-	screen.hpp
-	start_screen.hpp
-	start_screen.cpp
-	main_screen.hpp
-	main_screen.cpp
+	./screen.hpp
+	./start_screen.hpp
+	./start_screen.cpp
+	./main_screen.hpp
+	./main_screen.cpp
 
 	./tox_client.hpp
 	./tox_client.cpp
 	./auto_dirty.hpp
 	./auto_dirty.cpp
 
-	theme.hpp
-	texture_uploader.hpp
+	./image_loader.hpp
+	./image_loader_sdl_bmp.hpp
+	./image_loader_sdl_bmp.cpp
+
+	./theme.hpp
+	./texture_uploader.hpp
 	./sdlrenderer_texture_uploader.hpp
 	./sdlrenderer_texture_uploader.cpp
 	./sdl_clipboard_utils.hpp
