@@ -4,6 +4,7 @@
 #include <solanaceae/util/config_model.hpp>
 
 #include "./texture_uploader.hpp"
+#include "./texture_cache.hpp"
 #include "./file_selector.hpp"
 
 #include <vector>
@@ -13,6 +14,9 @@ class ChatGui4 {
 	ConfigModelI& _conf;
 	RegistryMessageModel& _rmm;
 	Contact3Registry& _cr;
+
+	TextureCache<void*, Contact3> _contact_tc;
+	//TextureCache<Message3Handle> _msg_tc;
 
 	FileSelector _fss;
 

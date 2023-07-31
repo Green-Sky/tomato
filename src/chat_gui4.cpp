@@ -14,7 +14,6 @@
 #include <SDL3/SDL.h>
 
 #include "./sdl_clipboard_utils.hpp"
-#include "SDL_clipboard.h"
 
 #include <string>
 #include <variant>
@@ -28,7 +27,7 @@ ChatGui4::ChatGui4(
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu
-) : _conf(conf), _rmm(rmm), _cr(cr) {
+) : _conf(conf), _rmm(rmm), _cr(cr), _contact_tc(tu) {
 }
 
 void ChatGui4::render(void) {
@@ -277,7 +276,7 @@ void ChatGui4::render(void) {
 
 	_fss.render();
 
-	//_tc.update();
+	_contact_tc.update();
 	//_tc.workLoadQueue();
 }
 
@@ -514,8 +513,8 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 	}
 
 	// avatar
-#if 0
-	const auto [id, width, height] = _tc.get("test");
+#if 1
+	const auto [id, width, height] = _contact_tc.get(c);
 	ImGui::Image(
 		id,
 		ImVec2{img_y, img_y},
