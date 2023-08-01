@@ -135,7 +135,7 @@ void ChatGui4::render(void) {
 					if (ImGui::BeginMenuBar()) {
 						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
 						if (ImGui::SmallButton("test")) {
-							_cr.emplace_or_replace<Contact::Components::AvatarFile>(*_selected_contact, "tomato_v1_256.bmp");
+							_cr.emplace_or_replace<Contact::Components::AvatarFile>(*_selected_contact, "tomato_v1_256.png");
 							_cr.emplace_or_replace<Contact::Components::TagAvatarInvalidate>(*_selected_contact);
 							std::cout << "DEBUG: added AvatarFile comp to contact\n";
 						}
