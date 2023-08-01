@@ -71,15 +71,17 @@ struct TextureEntry {
 
 TextureEntry generateTestAnim(TextureUploaderI& tu);
 
+// TODO: move to utils or something
 uint64_t getNowMS(void);
 
-template<typename TextureType, typename KeyType>
+template<typename TextureType, typename KeyType, class Loader>
 struct TextureCache {
 	static_assert(
 		sizeof(TextureType) == sizeof(uint64_t) ||
 		sizeof(TextureType) == sizeof(uint32_t)
 	);
 
+	Loader& _l;
 	TextureUploaderI& _tu;
 
 	TextureEntry _default_texture;
@@ -90,7 +92,7 @@ struct TextureCache {
 	const uint64_t ms_before_purge {60 * 1000ull};
 	const size_t min_count_before_purge {0}; // starts purging after that
 
-	TextureCache(TextureUploaderI& tu) : _tu(tu) {
+	TextureCache(Loader& l, TextureUploaderI& tu) : _l(l), _tu(tu) {
 		//_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 		//_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 		_default_texture = generateTestAnim(_tu);
@@ -142,6 +144,18 @@ struct TextureCache {
 		}
 
 		_default_texture.doAnimation(ts_now);
+	}
+
+	void workLoadQueue(void) {
+		for (auto it = _to_load.begin(); it != _to_load.end(); it++) {
+			auto new_entry_opt = _l.load(_tu, *it);
+			if (new_entry_opt.has_value()) {
+				_cache.emplace(*it, new_entry_opt.value());
+				_to_load.erase(it);
+				// TODO: not a good idea
+				break; // end load from queue/onlyload 1 per update
+			}
+		}
 	}
 };
 

@@ -25,6 +25,8 @@ add_executable(tomato
 	./sdlrenderer_texture_uploader.cpp
 	./texture_cache.hpp
 	./texture_cache.cpp
+	./tox_avatar_loader.hpp
+	./tox_avatar_loader.cpp
 	./sdl_clipboard_utils.hpp
 	./sdl_clipboard_utils.cpp
 	./file_selector.hpp
