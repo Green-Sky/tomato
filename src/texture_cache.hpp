@@ -136,14 +136,18 @@ struct TextureCache {
 			}
 		}
 
+		invalidate(to_purge);
+
+		_default_texture.doAnimation(ts_now);
+	}
+
+	void invalidate(const std::vector<KeyType>& to_purge) {
 		for (const auto& key : to_purge) {
 			for (const auto& tex_id : _cache.at(key).textures) {
 				_tu.destroy(tex_id);
 			}
 			_cache.erase(key);
 		}
-
-		_default_texture.doAnimation(ts_now);
 	}
 
 	void workLoadQueue(void) {

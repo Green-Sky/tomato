@@ -31,6 +31,18 @@ ChatGui4::ChatGui4(
 }
 
 void ChatGui4::render(void) {
+	if (!_cr.storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
+		std::vector<Contact3> to_purge;
+		_cr.view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact3 c) {
+			to_purge.push_back(c);
+		});
+		_cr.remove<Contact::Components::TagAvatarInvalidate>(to_purge.cbegin(), to_purge.cend());
+		_contact_tc.invalidate(to_purge);
+	}
+	// ACTUALLY NOT IF RENDERED, MOVED LOGIC TO ABOVE
+	// it might unload textures, so it needs to be done before rendering
+	_contact_tc.update();
+
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
 	ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -122,6 +134,11 @@ void ChatGui4::render(void) {
 				if (ImGui::BeginChild("message_log", {0, -100}, false, ImGuiWindowFlags_MenuBar)) {
 					if (ImGui::BeginMenuBar()) {
 						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
+						if (ImGui::SmallButton("test")) {
+							_cr.emplace_or_replace<Contact::Components::AvatarFile>(*_selected_contact, "tomato_v1_256.bmp");
+							_cr.emplace_or_replace<Contact::Components::TagAvatarInvalidate>(*_selected_contact);
+							std::cout << "DEBUG: added AvatarFile comp to contact\n";
+						}
 						ImGui::EndMenuBar();
 					}
 
@@ -276,7 +293,6 @@ void ChatGui4::render(void) {
 
 	_fss.render();
 
-	_contact_tc.update();
 	_contact_tc.workLoadQueue();
 }
 
