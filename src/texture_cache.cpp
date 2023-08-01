@@ -1,6 +1,7 @@
 #include "./texture_cache.hpp"
 
 #include <chrono>
+#include <array>
 
 void TextureEntry::doAnimation(const uint64_t ts_now) {
 	if (frame_duration.size() > 1) { // is animation
