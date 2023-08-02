@@ -22,6 +22,8 @@ class MediaMetaInfoLoader : public RegistryMessageModelEventI {
 
 		std::vector<std::unique_ptr<ImageLoaderI>> _image_loaders;
 
+		void handleMessage(const Message3Handle& m);
+
 	public:
 		MediaMetaInfoLoader(RegistryMessageModel& rmm);
 		virtual ~MediaMetaInfoLoader(void);

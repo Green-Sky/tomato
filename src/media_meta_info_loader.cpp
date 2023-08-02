@@ -9,35 +9,18 @@
 #include <fstream>
 #include <iostream>
 
-MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModel& rmm) : _rmm(rmm) {
-	// HACK: make them be added externally?
-	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
-	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
-	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
-
-	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
-	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
-}
-
-MediaMetaInfoLoader::~MediaMetaInfoLoader(void) {
-}
-
-bool MediaMetaInfoLoader::onEvent(const Message::Events::MessageConstruct& e) {
-	return false;
-}
-
-bool MediaMetaInfoLoader::onEvent(const Message::Events::MessageUpdated& e) {
-	if (e.e.any_of<Message::Components::TagNotImage, Message::Components::FrameDims>()) {
-		return false;
+void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
+	if (m.any_of<Message::Components::TagNotImage, Message::Components::FrameDims>()) {
+		return;
 	}
 
-	if (!e.e.all_of<Message::Components::Transfer::FileInfoLocal, Message::Components::Transfer::TagHaveAll>()) {
-		return false;
+	if (!m.all_of<Message::Components::Transfer::FileInfoLocal, Message::Components::Transfer::TagHaveAll>()) {
+		return;
 	}
 
-	const auto& fil = e.e.get<Message::Components::Transfer::FileInfoLocal>();
+	const auto& fil = m.get<Message::Components::Transfer::FileInfoLocal>();
 	if (fil.file_list.size() != 1) {
-		return false;
+		return;
 	}
 
 	std::ifstream file(fil.file_list.front(), std::ios::binary);
@@ -60,25 +43,46 @@ bool MediaMetaInfoLoader::onEvent(const Message::Events::MessageUpdated& e) {
 				continue;
 			}
 
-			e.e.emplace<Message::Components::FrameDims>(res.width, res.height);
+			m.emplace<Message::Components::FrameDims>(res.width, res.height);
 
 			could_load = true;
 
 			std::cout << "MMIL loaded image info " << fil.file_list.front() << "\n";
 
-			_rmm.throwEventUpdate(e.e);
+			_rmm.throwEventUpdate(m);
 			break;
 		}
 
 		if (!could_load) {
-			e.e.emplace<Message::Components::TagNotImage>();
+			m.emplace<Message::Components::TagNotImage>();
 
 			std::cout << "MMIL loading failed image info " << fil.file_list.front() << "\n";
 
-			_rmm.throwEventUpdate(e.e);
+			_rmm.throwEventUpdate(m);
 		}
 	}
+}
 
+MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModel& rmm) : _rmm(rmm) {
+	// HACK: make them be added externally?
+	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
+
+	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
+	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
+}
+
+MediaMetaInfoLoader::~MediaMetaInfoLoader(void) {
+}
+
+bool MediaMetaInfoLoader::onEvent(const Message::Events::MessageConstruct& e) {
+	handleMessage(e.e);
+	return false;
+}
+
+bool MediaMetaInfoLoader::onEvent(const Message::Events::MessageUpdated& e) {
+	handleMessage(e.e);
 	return false;
 }
 
