@@ -16,6 +16,8 @@
 #include "./tox_client.hpp"
 #include "./auto_dirty.hpp"
 
+#include "./media_meta_info_loader.hpp"
+
 #include "./sdlrenderer_texture_uploader.hpp"
 #include "./chat_gui4.hpp"
 
@@ -46,6 +48,8 @@ struct MainScreen final : public Screen {
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
 	ToxTransferManager ttm;
+
+	MediaMetaInfoLoader mmil;
 
 	SDLRendererTextureUploader sdlrtu;
 	//OpenGLTextureUploader ogltu;

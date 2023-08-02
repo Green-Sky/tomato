@@ -49,8 +49,8 @@ TextureEntry generateTestAnim(TextureUploaderI& tu) {
 		new_entry.textures.emplace_back(n_t);
 		new_entry.frame_duration.emplace_back(250);
 	}
-	new_entry.width = 2;
-	new_entry.height = 2;
+	new_entry.width = 0;
+	new_entry.height = 0;
 	return new_entry;
 }
 

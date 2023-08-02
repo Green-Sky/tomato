@@ -65,6 +65,8 @@ std::optional<TextureEntry> MessageImageLoader::load(TextureUploaderI& tu, Messa
 		}
 	}
 
+	std::cerr << "MIL: failed to load message\n";
+
 	return std::nullopt;
 }
 

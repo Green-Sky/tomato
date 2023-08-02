@@ -2,6 +2,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <iostream>
+
 ImageLoaderSDLBMP::ImageInfo ImageLoaderSDLBMP::loadInfoFromMemory(const uint8_t* data, uint64_t data_size) {
 	ImageInfo res;
 
@@ -47,6 +49,8 @@ ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8
 
 	SDL_UnlockSurface(conv_surf);
 	SDL_DestroySurface(conv_surf);
+
+	std::cout << "IL_SDLBMP: loaded img " << res.width << "x" << res.height << "\n";
 
 	return res;
 }

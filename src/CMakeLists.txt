@@ -15,6 +15,8 @@ add_executable(tomato
 	./auto_dirty.hpp
 	./auto_dirty.cpp
 
+	./theme.hpp
+
 	./image_loader.hpp
 	./image_loader_sdl_bmp.hpp
 	./image_loader_sdl_bmp.cpp
@@ -23,18 +25,23 @@ add_executable(tomato
 	./image_loader_webp.hpp
 	./image_loader_webp.cpp
 
-	./theme.hpp
 	./texture_uploader.hpp
 	./sdlrenderer_texture_uploader.hpp
 	./sdlrenderer_texture_uploader.cpp
+
 	./texture_cache.hpp
 	./texture_cache.cpp
 	./tox_avatar_loader.hpp
 	./tox_avatar_loader.cpp
 	./message_image_loader.hpp
 	./message_image_loader.cpp
+
+	./media_meta_info_loader.hpp
+	./media_meta_info_loader.cpp
+
 	./sdl_clipboard_utils.hpp
 	./sdl_clipboard_utils.cpp
+
 	./file_selector.hpp
 	./file_selector.cpp
 

@@ -15,6 +15,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
+	mmil(rmm),
 	sdlrtu(renderer_),
 	cg(conf, rmm, cr, sdlrtu)
 {

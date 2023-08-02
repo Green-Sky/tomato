@@ -6,13 +6,13 @@
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
 
-//#include "./media_meta_info_loader.hpp"
 
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
 #include <SDL3/SDL.h>
 
+#include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
 
 #include <string>
@@ -42,6 +42,7 @@ void ChatGui4::render(void) {
 	// ACTUALLY NOT IF RENDERED, MOVED LOGIC TO ABOVE
 	// it might unload textures, so it needs to be done before rendering
 	_contact_tc.update();
+	_msg_tc.update();
 
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -294,6 +295,7 @@ void ChatGui4::render(void) {
 	_fss.render();
 
 	_contact_tc.workLoadQueue();
+	_msg_tc.workLoadQueue();
 }
 
 // has MessageText
@@ -400,14 +402,11 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		ImGui::Bullet(); ImGui::Text("%s (%lu)", file_list[i].file_name.c_str(), file_list[i].file_size);
 	}
 
-#if 0
-
-	// TODO: use frame dims
 	if (file_list.size() == 1 && reg.all_of<Message::Components::Transfer::FileInfoLocal, Message::Components::FrameDims>(e)) {
-		auto [id, width, height] = _tc.get(reg.get<Message::Components::Transfer::FileInfoLocal>(e).file_list.front());
+		auto [id, width, height] = _msg_tc.get(Message3Handle{reg, e});
 
 		// if cache gives 0s, fall back to frame dims (eg if pic not loaded yet)
-		if (width > 0 || height > 0) {
+		if (width == 0 || height == 0) {
 			const auto& frame_dims = reg.get<Message::Components::FrameDims>(e);
 			width = frame_dims.width;
 			height = frame_dims.height;
@@ -420,9 +419,9 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			height = max_inline_height;
 			width *= scale;
 		}
+
 		ImGui::Image(id, ImVec2{static_cast<float>(width), static_cast<float>(height)});
 	}
-#endif
 }
 
 void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
@@ -529,7 +528,6 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 	}
 
 	// avatar
-#if 1
 	const auto [id, width, height] = _contact_tc.get(c);
 	ImGui::Image(
 		id,
@@ -539,9 +537,6 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 		{1, 1, 1, 1},
 		color_current
 	);
-#else
-	ImGui::Dummy({img_y, img_y});
-#endif
 
 	ImGui::SameLine();
 	ImGui::BeginGroup();
