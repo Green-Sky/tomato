@@ -6,6 +6,7 @@
 #include "./texture_uploader.hpp"
 #include "./texture_cache.hpp"
 #include "./tox_avatar_loader.hpp"
+#include "./message_image_loader.hpp"
 #include "./file_selector.hpp"
 
 #include <vector>
@@ -18,7 +19,8 @@ class ChatGui4 {
 
 	ToxAvatarLoader _tal;
 	TextureCache<void*, Contact3, ToxAvatarLoader> _contact_tc;
-	//TextureCache<Message3Handle> _msg_tc;
+	MessageImageLoader _mil;
+	TextureCache<void*, Message3Handle, MessageImageLoader> _msg_tc;
 
 	FileSelector _fss;
 

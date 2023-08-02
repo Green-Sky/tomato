@@ -31,6 +31,8 @@ add_executable(tomato
 	./texture_cache.cpp
 	./tox_avatar_loader.hpp
 	./tox_avatar_loader.cpp
+	./message_image_loader.hpp
+	./message_image_loader.cpp
 	./sdl_clipboard_utils.hpp
 	./sdl_clipboard_utils.cpp
 	./file_selector.hpp

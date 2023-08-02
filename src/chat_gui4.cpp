@@ -27,7 +27,7 @@ ChatGui4::ChatGui4(
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu
-) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu) {
+) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu), _msg_tc(_mil, tu) {
 }
 
 void ChatGui4::render(void) {
