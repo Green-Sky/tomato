@@ -99,6 +99,14 @@ struct TextureCache {
 		//_default_texture = loadTestWebPAnim();
 	}
 
+	~TextureCache(void) {
+		for (const auto& it : _cache) {
+			for (const auto& tex_id : it.second.textures) {
+				_tu.destroy(tex_id);
+			}
+		}
+	}
+
 	struct GetInfo {
 		TextureType id;
 		uint32_t width;
