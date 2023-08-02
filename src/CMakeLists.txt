@@ -20,6 +20,8 @@ add_executable(tomato
 	./image_loader_sdl_bmp.cpp
 	./image_loader_stb.hpp
 	./image_loader_stb.cpp
+	./image_loader_webp.hpp
+	./image_loader_webp.cpp
 
 	./theme.hpp
 	./texture_uploader.hpp
@@ -57,5 +59,6 @@ target_link_libraries(tomato PUBLIC
 	imgui_backend_sdlrenderer3
 
 	stb_image
+	webpdemux
 )
 
