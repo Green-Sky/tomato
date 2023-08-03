@@ -24,8 +24,20 @@ Screen* StartScreen::poll(bool&) {
 
 	if (ImGui::BeginTabBar("view")) {
 		if (ImGui::BeginTabItem("load profile")) {
-			ImGui::Text("TODO: profile path");
+			if (ImGui::Button("select")) {
+				_fss.requestFile(
+					[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
+					[this](const auto& path) {
+						tox_profile_path = path.string();
+					},
+					[](){}
+				);
+			}
+			ImGui::SameLine();
+			ImGui::Text("profile: %s", tox_profile_path.c_str());
+
 			ImGui::Text("TODO: profile password");
+
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("create profile")) {
@@ -66,7 +78,7 @@ Screen* StartScreen::poll(bool&) {
 	ImGui::Separator();
 
 	if (ImGui::Button("load", {60, 25})) {
-		auto new_screen = std::make_unique<MainScreen>(_renderer, "tomato.tox", queued_plugin_paths);
+		auto new_screen = std::make_unique<MainScreen>(_renderer, tox_profile_path, queued_plugin_paths);
 		return new_screen.release();
 	}
 
