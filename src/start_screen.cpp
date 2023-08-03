@@ -2,7 +2,10 @@
 
 #include "./main_screen.hpp"
 
+#include <imgui/imgui.h>
+
 #include <memory>
+#include <filesystem>
 
 StartScreen::StartScreen(SDL_Renderer* renderer) : _renderer(renderer) {
 }
@@ -10,6 +13,7 @@ StartScreen::StartScreen(SDL_Renderer* renderer) : _renderer(renderer) {
 Screen* StartScreen::poll(bool&) {
 
 	// TODO: imgui tox profile selector?
+
 	// +----------------------------
 	// | |*tox profile*| plugins |
 	// | +------+ +--------
@@ -18,7 +22,56 @@ Screen* StartScreen::poll(bool&) {
 	// | +------+ +--------
 	// +----------------------------
 
-	auto new_screen = std::make_unique<MainScreen>(_renderer, "tomato.tox");
-	return new_screen.release();
+	if (ImGui::BeginTabBar("view")) {
+		if (ImGui::BeginTabItem("load profile")) {
+			ImGui::Text("TODO: profile path");
+			ImGui::Text("TODO: profile password");
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("create profile")) {
+			ImGui::Text("TODO: profile path");
+			ImGui::Text("TODO: profile name");
+			ImGui::Text("TODO: profile password");
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("plugins")) {
+			// list of selected plugins (in order)
+			for (auto it = queued_plugin_paths.begin(); it != queued_plugin_paths.end();) {
+				if (ImGui::SmallButton("-")) {
+					it = queued_plugin_paths.erase(it);
+					continue;
+				}
+				ImGui::SameLine();
+
+				ImGui::TextUnformatted(it->c_str());
+
+				it++;
+			}
+
+			if (ImGui::Button("+")) {
+				_fss.requestFile(
+					[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
+					[this](const auto& path) {
+						queued_plugin_paths.push_back(path.string());
+					},
+					[](){}
+				);
+			}
+
+			ImGui::EndTabItem();
+		}
+		ImGui::EndTabBar();
+	}
+
+	ImGui::Separator();
+
+	if (ImGui::Button("load", {60, 25})) {
+		auto new_screen = std::make_unique<MainScreen>(_renderer, "tomato.tox", queued_plugin_paths);
+		return new_screen.release();
+	}
+
+	_fss.render();
+
+	return nullptr;
 }
 

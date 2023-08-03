@@ -56,7 +56,7 @@ struct MainScreen final : public Screen {
 
 	ChatGui4 cg;
 
-	MainScreen(SDL_Renderer* renderer_, std::string save_path);
+	MainScreen(SDL_Renderer* renderer_, std::string save_path, std::vector<std::string> plugins);
 	~MainScreen(void);
 
 	bool handleEvent(SDL_Event& e) override;

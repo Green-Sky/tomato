@@ -2,6 +2,11 @@
 
 #include "./screen.hpp"
 
+#include "./file_selector.hpp"
+
+#include <vector>
+#include <string>
+
 // fwd
 extern "C" {
 	struct SDL_Renderer;
@@ -9,6 +14,9 @@ extern "C" {
 
 struct StartScreen final : public Screen {
 	SDL_Renderer* _renderer;
+	FileSelector _fss;
+
+	std::vector<std::string> queued_plugin_paths;
 
 	StartScreen(void) = delete;
 	StartScreen(SDL_Renderer* renderer);

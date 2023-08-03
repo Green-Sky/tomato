@@ -6,7 +6,7 @@
 
 #include <memory>
 
-MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
+MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	rmm(cr),
 	mts(rmm),
@@ -42,12 +42,21 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path) :
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxEventProviderI>("ToxEventProviderI", "host", &tc);
+		g_provideInstance<ToxContactModel2>("ToxContactModel2", "host", &tcm);
 
 		// TODO: pm?
 
 		// graphics
 		g_provideInstance("ImGuiContext", "host", ImGui::GetCurrentContext());
 		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
+	}
+
+	for (const auto& ppath : plugins) {
+		if (!pm.add(ppath)) {
+			std::cerr << "MS error: loading plugin '" << ppath << "' failed!\n";
+			// thow?
+			assert(false && "failed to load plugin");
+		}
 	}
 
 	conf.dump();
