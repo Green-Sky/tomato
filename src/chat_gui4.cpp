@@ -81,7 +81,8 @@ void ChatGui4::render(void) {
 							ImGui::Text("subs: %zu", sub_contacts.size());
 							ImGui::Separator();
 							for (const auto& c : sub_contacts) {
-								if (renderSubContactListContact(c)) {
+								// TODO: can a sub be selected? no
+								if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
 									text_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 								}
 							}
@@ -279,11 +280,14 @@ void ChatGui4::render(void) {
 				}
 				ImGui::EndChild();
 
-				if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyPressed(ImGuiMod_Shortcut)) {
+				// if preview window not open?
+				if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyPressed(ImGuiMod_Shortcut, false)) {
+					std::cout << "CG: paste?\n";
 					if (const auto* mime_type = clipboardHasImage(); mime_type != nullptr) {
 						size_t data_size = 0;
 						const auto* data = SDL_GetClipboardData(mime_type, &data_size);
 						// open file send preview.rawpixels
+						std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
 					}
 				}
 			}
@@ -338,9 +342,34 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// TODO: better way to display state
 	if (reg.all_of<Message::Components::Transfer::TagPaused>(e)) {
 		ImGui::TextUnformatted("paused");
+	} else if (reg.all_of<Message::Components::Transfer::TagReceiving, Message::Components::Transfer::TagHaveAll>(e)) {
+		ImGui::TextUnformatted("done");
 	} else {
-		// TODO: missing other staes
+		// TODO: missing other states
 		ImGui::TextUnformatted("running");
+	}
+
+	if (reg.all_of<Message::Components::Transfer::TagHaveAll, Message::Components::Transfer::FileInfoLocal>(e)) {
+		// hack lul
+		ImGui::SameLine();
+		if (ImGui::SmallButton("forward")) {
+			ImGui::OpenPopup("forward to contact");
+		}
+
+		if (ImGui::BeginPopup("forward to contact")) {
+			// TODO: make exclusion work
+			//for (const auto& c : _cr.view<entt::get_t<Contact::Components::TagBig>, entt::exclude_t<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>>()) {
+			for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
+				if (renderContactListContactSmall(c, false)) {
+					//_rmm.sendFilePath(*_selected_contact, path.filename().u8string(), path.u8string());
+					const auto& fil = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
+					for (const auto& path : fil.file_list) {
+						_rmm.sendFilePath(c, std::filesystem::path{path}.filename().u8string(), path);
+					}
+				}
+			}
+			ImGui::EndPopup();
+		}
 	}
 
 	// if in offered state
@@ -456,7 +485,7 @@ void ChatGui4::renderContactList(void) {
 	if (ImGui::BeginChild("contacts", {TEXT_BASE_WIDTH*35, 0})) {
 		//for (const auto& c : _cm.getBigContacts()) {
 		for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
-			if (renderContactListContactBig(c)) {
+			if (renderContactListContactBig(c, _selected_contact.has_value() && *_selected_contact == c)) {
 				_selected_contact = c;
 			}
 		}
@@ -464,7 +493,7 @@ void ChatGui4::renderContactList(void) {
 	ImGui::EndChild();
 }
 
-bool ChatGui4::renderContactListContactBig(const Contact3 c) {
+bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected) {
 	// TODO:
 	// - unread message
 	// - avatar img
@@ -486,7 +515,7 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 
 	ImVec2 orig_curser_pos = ImGui::GetCursorPos();
 	// HACK: fake selected to make it draw a box for us
-	const bool show_selected = request_incoming || request_outgoing || (_selected_contact.has_value() && *_selected_contact == c);
+	const bool show_selected = request_incoming || request_outgoing || selected;
 	if (request_incoming) {
 		// TODO: theming
 		ImGui::PushStyleColor(ImGuiCol_Header, {0.98f, 0.41f, 0.26f, 0.52f});
@@ -495,7 +524,7 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 		ImGui::PushStyleColor(ImGuiCol_Header, {0.98f, 0.26f, 0.41f, 0.52f});
 	}
 
-	const bool selected = ImGui::Selectable(label.c_str(), show_selected, 0, {0,3*TEXT_BASE_HEIGHT});
+	const bool got_selected = ImGui::Selectable(label.c_str(), show_selected, 0, {0,3*TEXT_BASE_HEIGHT});
 
 	if (request_incoming || request_outgoing) {
 		ImGui::PopStyleColor();
@@ -554,20 +583,20 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c) {
 	ImGui::EndGroup();
 
 	ImGui::SetCursorPos(post_curser_pos);
-	return selected;
+	return got_selected;
 }
 
-bool ChatGui4::renderContactListContactSmall(const Contact3 c) {
+bool ChatGui4::renderContactListContactSmall(const Contact3 c, const bool selected) const {
 	std::string label;
 
 	label += (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>");
 	label += "###";
 	label += std::to_string(entt::to_integral(c));
 
-	return ImGui::Selectable(label.c_str(), _selected_contact.has_value() && *_selected_contact == c);
+	return ImGui::Selectable(label.c_str(), selected);
 }
 
-bool ChatGui4::renderSubContactListContact(const Contact3 c) {
+bool ChatGui4::renderSubContactListContact(const Contact3 c, const bool selected) const {
 	std::string label;
 
 	if (_cr.all_of<Contact::Components::ConnectionState>(c)) {
@@ -587,6 +616,6 @@ bool ChatGui4::renderSubContactListContact(const Contact3 c) {
 	label += "###";
 	label += std::to_string(entt::to_integral(c));
 
-	return ImGui::Selectable(label.c_str(), _selected_contact.has_value() && *_selected_contact == c);
+	return ImGui::Selectable(label.c_str(), selected);
 }
 

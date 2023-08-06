@@ -48,9 +48,9 @@ class ChatGui4 {
 		void renderMessageExtra(Message3Registry& reg, const Message3 e);
 
 		void renderContactList(void);
-		bool renderContactListContactBig(const Contact3 c);
-		bool renderContactListContactSmall(const Contact3 c);
-		bool renderSubContactListContact(const Contact3 c);
+		bool renderContactListContactBig(const Contact3 c, const bool selected);
+		bool renderContactListContactSmall(const Contact3 c, const bool selected) const;
+		bool renderSubContactListContact(const Contact3 c, const bool selected) const;
 };
 
 
