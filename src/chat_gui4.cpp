@@ -210,7 +210,7 @@ void ChatGui4::render(void) {
 							} else if (msg_reg.any_of<Message::Components::Transfer::FileInfo>(e)) { // add more comps?
 								renderMessageBodyFile(msg_reg, e);
 							} else {
-								ImGui::TextUnformatted("---");
+								ImGui::TextDisabled("---");
 							}
 
 							// ts
