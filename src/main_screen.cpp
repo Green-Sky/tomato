@@ -76,6 +76,8 @@ Screen* MainScreen::poll(bool& quit) {
 
 	quit = !tc.iterate();
 
+	tcm.iterate(time_delta);
+
 	pm.tick(time_delta);
 
 	mts.iterate();

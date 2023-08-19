@@ -25,6 +25,15 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 
 	std::ifstream file(fil.file_list.front(), std::ios::binary);
 	if (file.is_open()) {
+		// figure out size
+		file.seekg(0, file.end);
+		if (file.tellg() > 50*1024*1024) {
+			// TODO: conf
+			// dont try load files larger 50mb
+			return;
+		}
+		file.seekg(0, file.beg);
+
 		std::vector<uint8_t> tmp_buffer;
 		while (file.good()) {
 			auto ch = file.get();
@@ -38,6 +47,7 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		bool could_load {false};
 		// try all loaders after another
 		for (auto& il : _image_loaders) {
+			// TODO: impl callback based load
 			auto res = il->loadInfoFromMemory(tmp_buffer.data(), tmp_buffer.size());
 			if (res.height == 0 || res.width == 0) {
 				continue;
