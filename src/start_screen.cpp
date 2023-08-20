@@ -49,14 +49,17 @@ Screen* StartScreen::poll(bool&) {
 		if (ImGui::BeginTabItem("plugins")) {
 			// list of selected plugins (in order)
 			for (auto it = queued_plugin_paths.begin(); it != queued_plugin_paths.end();) {
+				ImGui::PushID(it->c_str());
 				if (ImGui::SmallButton("-")) {
 					it = queued_plugin_paths.erase(it);
+					ImGui::PopID();
 					continue;
 				}
 				ImGui::SameLine();
 
 				ImGui::TextUnformatted(it->c_str());
 
+				ImGui::PopID();
 				it++;
 			}
 
