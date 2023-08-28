@@ -386,6 +386,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				[](const auto& path) -> bool { return std::filesystem::is_directory(path); },
 				[this, &reg, e](const auto& path) {
 					if (reg.valid(e)) { // still valid
+						// TODO: trim file?
 						reg.emplace<Message::Components::Transfer::ActionAccept>(e, path.string());
 						_rmm.throwEventUpdate(reg, e);
 					}

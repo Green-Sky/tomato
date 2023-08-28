@@ -84,7 +84,7 @@ Screen* MainScreen::poll(bool& quit) {
 
 	cg.render();
 
-	{
+	if constexpr (false) {
 		bool open = !quit;
 		ImGui::ShowDemoWindow(&open);
 		quit = !open;
