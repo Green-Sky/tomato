@@ -20,11 +20,12 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 		std::string _self_name;
 
 		std::string _tox_profile_path;
+		std::string _tox_profile_password;
 		bool _tox_profile_dirty {true}; // set in callbacks
 
 	public:
 		//ToxClient(/*const CommandLine& cl*/);
-		ToxClient(std::string_view save_path);
+		ToxClient(std::string_view save_path, std::string_view save_password);
 		~ToxClient(void);
 
 	public: // tox stuff

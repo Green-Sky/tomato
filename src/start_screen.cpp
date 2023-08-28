@@ -3,6 +3,7 @@
 #include "./main_screen.hpp"
 
 #include <imgui/imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
 
 #include <memory>
 #include <filesystem>
@@ -24,6 +25,10 @@ Screen* StartScreen::poll(bool&) {
 
 	if (ImGui::BeginTabBar("view")) {
 		if (ImGui::BeginTabItem("load profile")) {
+			_new_save = false;
+
+			ImGui::TextUnformatted("profile :");
+			ImGui::SameLine();
 			if (ImGui::Button("select")) {
 				_fss.requestFile(
 					[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
@@ -34,16 +39,36 @@ Screen* StartScreen::poll(bool&) {
 				);
 			}
 			ImGui::SameLine();
-			ImGui::Text("profile: %s", tox_profile_path.c_str());
+			ImGui::TextUnformatted(tox_profile_path.c_str());
 
-			ImGui::Text("TODO: profile password");
+			ImGui::TextUnformatted("password:");
+			ImGui::SameLine();
+			if (_show_password) {
+				ImGui::InputText("##password", &_password);
+			} else {
+				ImGui::InputText("##password", &_password, ImGuiInputTextFlags_Password);
+			}
+			ImGui::SameLine();
+			ImGui::Checkbox("show password", &_show_password);
 
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("create profile")) {
-			ImGui::Text("TODO: profile path");
-			ImGui::Text("TODO: profile name");
-			ImGui::Text("TODO: profile password");
+			_new_save = true;
+
+			ImGui::TextUnformatted("TODO: profile path");
+			ImGui::TextUnformatted("TODO: profile name");
+
+			ImGui::TextUnformatted("password:");
+			ImGui::SameLine();
+			if (_show_password) {
+				ImGui::InputText("##password", &_password);
+			} else {
+				ImGui::InputText("##password", &_password, ImGuiInputTextFlags_Password);
+			}
+			ImGui::SameLine();
+			ImGui::Checkbox("show password", &_show_password);
+
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("plugins")) {
@@ -80,9 +105,31 @@ Screen* StartScreen::poll(bool&) {
 
 	ImGui::Separator();
 
-	if (ImGui::Button("load", {60, 25})) {
-		auto new_screen = std::make_unique<MainScreen>(_renderer, tox_profile_path, queued_plugin_paths);
-		return new_screen.release();
+	if (!_new_save && !std::filesystem::is_regular_file(tox_profile_path)) {
+		// load but file missing
+
+		ImGui::BeginDisabled();
+		ImGui::Button("load", {60, 25});
+		ImGui::EndDisabled();
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_AllowWhenDisabled)) {
+			ImGui::SetTooltip("file does not exist");
+		}
+	} else if (_new_save && std::filesystem::exists(tox_profile_path)) {
+		// new but file exists
+
+		ImGui::BeginDisabled();
+		ImGui::Button("load", {60, 25});
+		ImGui::EndDisabled();
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_AllowWhenDisabled)) {
+			ImGui::SetTooltip("file already exists");
+		}
+	} else {
+		if (ImGui::Button("load", {60, 25})) {
+			auto new_screen = std::make_unique<MainScreen>(_renderer, tox_profile_path, _password, queued_plugin_paths);
+			return new_screen.release();
+		}
 	}
 
 	_fss.render();

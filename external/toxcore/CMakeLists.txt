@@ -134,6 +134,10 @@ add_library(toxcore STATIC
 	${TOX_DIR}toxcore/tox_unpack.h
 	${TOX_DIR}toxcore/util.c
 	${TOX_DIR}toxcore/util.h
+
+	${TOX_DIR}toxencryptsave/defines.h
+	${TOX_DIR}toxencryptsave/toxencryptsave.c
+	${TOX_DIR}toxencryptsave/toxencryptsave.h
 )
 
 # HACK: "install" api headers into self

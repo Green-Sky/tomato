@@ -1,5 +1,10 @@
 #include "./tox_client.hpp"
 
+// meh, change this
+#include <exception>
+#include <system_error>
+#include <toxencryptsave/toxencryptsave.h>
+
 #include <sodium.h>
 
 #include <vector>
@@ -7,8 +12,8 @@
 #include <iostream>
 #include <cassert>
 
-ToxClient::ToxClient(std::string_view save_path) :
-	_tox_profile_path(save_path)
+ToxClient::ToxClient(std::string_view save_path, std::string_view save_password) :
+	_tox_profile_path(save_path), _tox_profile_password(save_password)
 {
 	TOX_ERR_OPTIONS_NEW err_opt_new;
 	Tox_Options* options = tox_options_new(&err_opt_new);
@@ -34,6 +39,19 @@ ToxClient::ToxClient(std::string_view save_path) :
 				std::cerr << "empty tox save\n";
 			} else {
 				// set options
+				if (!save_password.empty()) {
+					std::vector<uint8_t> encrypted_copy(profile_data.begin(), profile_data.end());
+					//profile_data.clear();
+					profile_data.resize(encrypted_copy.size() - TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
+					if (!tox_pass_decrypt(
+						encrypted_copy.data(), encrypted_copy.size(),
+						reinterpret_cast<const uint8_t*>(save_password.data()), save_password.size(),
+						profile_data.data(),
+						nullptr // TODO: error checking
+					)) {
+						throw std::runtime_error("FAILED to decrypt save file!!!!");
+					}
+				}
 				tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 				tox_options_set_savedata_data(options, profile_data.data(), profile_data.size());
 			}
@@ -122,6 +140,19 @@ void ToxClient::saveToxProfile(void) {
 	data.resize(tox_get_savedata_size(_tox));
 	tox_get_savedata(_tox, data.data());
 
+	if (!_tox_profile_password.empty()) {
+		std::vector<uint8_t> unencrypted_copy(data.begin(), data.end());
+		//profile_data.clear();
+		data.resize(unencrypted_copy.size() + TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
+		if (!tox_pass_encrypt(
+			unencrypted_copy.data(), unencrypted_copy.size(),
+			reinterpret_cast<const uint8_t*>(_tox_profile_password.data()), _tox_profile_password.size(),
+			data.data(),
+			nullptr // TODO: error checking
+		)) {
+			throw std::runtime_error("FAILED to encrypt save file!!!!");
+		}
+	}
 	std::ofstream ofile{_tox_profile_path, std::ios::binary};
 	// TODO: improve
 	for (const auto& ch : data) {

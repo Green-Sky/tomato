@@ -16,6 +16,11 @@ struct StartScreen final : public Screen {
 	SDL_Renderer* _renderer;
 	FileSelector _fss;
 
+	bool _new_save {false};
+
+	bool _show_password {false};
+	std::string _password;
+
 	std::string tox_profile_path {"tomato.tox"};
 	std::vector<std::string> queued_plugin_paths;
 

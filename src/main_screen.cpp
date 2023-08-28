@@ -6,11 +6,11 @@
 
 #include <memory>
 
-MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::vector<std::string> plugins) :
+MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	rmm(cr),
 	mts(rmm),
-	tc(save_path),
+	tc(save_path, save_password),
 	ad(tc),
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
