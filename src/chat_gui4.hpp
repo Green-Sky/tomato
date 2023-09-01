@@ -26,6 +26,9 @@ class ChatGui4 {
 
 	std::optional<Contact3> _selected_contact;
 
+	// TODO: per contact
+	std::string _text_input_buffer;
+
 	bool _show_chat_extra_info {true};
 
 	float TEXT_BASE_WIDTH {1};

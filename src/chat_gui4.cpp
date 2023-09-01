@@ -72,8 +72,6 @@ void ChatGui4::render(void) {
 		if (_selected_contact) {
 			const std::string chat_label = "chat " + std::to_string(entt::to_integral(*_selected_contact));
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, true)) {
-				static std::string text_buffer;
-
 				if (_cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
 					const auto sub_contacts = _cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
 					if (!sub_contacts.empty()) {
@@ -83,7 +81,7 @@ void ChatGui4::render(void) {
 							for (const auto& c : sub_contacts) {
 								// TODO: can a sub be selected? no
 								if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
-									text_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+									_text_input_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 								}
 							}
 						}
@@ -257,10 +255,10 @@ void ChatGui4::render(void) {
 						ImGuiInputTextFlags_NoHorizontalScroll |
 						ImGuiInputTextFlags_CtrlEnterForNewLine;
 
-					if (ImGui::InputTextMultiline("##text_input", &text_buffer, {-0.001f, -0.001f}, input_flags)) {
+					if (ImGui::InputTextMultiline("##text_input", &_text_input_buffer, {-0.001f, -0.001f}, input_flags)) {
 						//_mm.sendMessage(*_selected_contact, MessageType::TEXT, text_buffer);
-						_rmm.sendText(*_selected_contact, text_buffer);
-						text_buffer.clear();
+						_rmm.sendText(*_selected_contact, _text_input_buffer);
+						_text_input_buffer.clear();
 						evil_enter_looses_focus_hack = true;
 					}
 				}
@@ -315,12 +313,31 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, {0.f, 0.f, 0.f, 0.f}); // remove text input box
 
 	ImGui::InputTextMultiline(
-		"",
+		"##text",
 		const_cast<char*>(msgtext.c_str()), // ugly const cast
 		msgtext.size() + 1, // needs to include '\0'
 		text_size,
 		ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll
 	);
+	if (ImGui::BeginPopupContextItem("##text")) {
+		if (ImGui::MenuItem("quote")) {
+			//text_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+			if (!_text_input_buffer.empty()) {
+				_text_input_buffer += "\n";
+			}
+
+			_text_input_buffer += "> ";
+
+			for (const char c : msgtext) {
+				_text_input_buffer += c;
+
+				if (c == '\n') {
+					_text_input_buffer += "> ";
+				}
+			}
+		}
+		ImGui::EndPopup();
+	}
 
 	ImGui::PopStyleColor();
 	ImGui::PopStyleVar();
