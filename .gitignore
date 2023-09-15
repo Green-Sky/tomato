@@ -11,6 +11,7 @@ cmake-build-release/
 *.coredump
 compile_commands.json
 /build*
+/result*
 .clangd
 .cache
 
@@ -20,3 +21,6 @@ compile_commands.json
 
 CMakeLists.txt.user*
 CMakeCache.txt
+
+*.tox
+imgui.ini
