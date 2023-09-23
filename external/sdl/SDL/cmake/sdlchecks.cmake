@@ -1019,8 +1019,8 @@ endmacro()
 
 # Check for HIDAPI support
 macro(CheckHIDAPI)
-  set(HAVE_HIDAPI TRUE)
   if(SDL_HIDAPI)
+    set(HAVE_HIDAPI ON)
     if(SDL_HIDAPI_LIBUSB)
       set(HAVE_LIBUSB FALSE)
 
@@ -1029,24 +1029,26 @@ macro(CheckHIDAPI)
       if(PC_LIBUSB_FOUND)
         cmake_push_check_state()
         list(APPEND CMAKE_REQUIRED_INCLUDES ${PC_LIBUSB_INCLUDE_DIRS})
-        check_include_file(libusb.h HAVE_LIBUSB_H)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES PkgConfig::PC_LIBUSB)
+        check_c_source_compiles("
+          #include <stddef.h>
+          #include <libusb.h>
+          int main(int argc, char **argv) {
+            libusb_close(NULL);
+            return 0;
+          }" HAVE_LIBUSB_H)
         cmake_pop_check_state()
         if(HAVE_LIBUSB_H)
           set(HAVE_LIBUSB TRUE)
-          if(HIDAPI_ONLY_LIBUSB)
-            sdl_link_dependency(hidapi LIBS PkgConfig::PC_LIBUSB PKG_CONFIG_PREFIX PC_LIBUSB PKG_CONFIG_SPECS ${LibUSB_PKG_CONFIG_SPEC})
-          else()
-            # libusb is loaded dynamically, so don't add link to it
-            FindLibraryAndSONAME("usb-1.0" LIBDIRS ${PC_LIBUSB_LIBRARY_DIRS})
-            if(USB_1.0_LIB)
-              set(SDL_LIBUSB_DYNAMIC "\"${USB_1.0_LIB_SONAME}\"")
-            endif()
+          FindLibraryAndSONAME("usb-1.0" LIBDIRS ${PC_LIBUSB_LIBRARY_DIRS})
+          if(SDL_HIDAPI_LIBUSB_SHARED AND USB_1.0_LIB_SONAME)
+            set(HAVE_HIDAPI_LIBUSB_SHARED ON)
+            set(SDL_LIBUSB_DYNAMIC "\"${USB_1.0_LIB_SONAME}\"")
             sdl_link_dependency(hidapi INCLUDES $<TARGET_PROPERTY:PkgConfig::PC_LIBUSB,INTERFACE_INCLUDE_DIRECTORIES>)
+          else()
+            sdl_link_dependency(hidapi LIBS PkgConfig::PC_LIBUSB PKG_CONFIG_PREFIX PC_LIBUSB PKG_CONFIG_SPECS ${LibUSB_PKG_CONFIG_SPEC})
           endif()
         endif()
-      endif()
-      if(HIDAPI_ONLY_LIBUSB AND NOT HAVE_LIBUSB)
-        set(HAVE_HIDAPI FALSE)
       endif()
       set(HAVE_HIDAPI_LIBUSB ${HAVE_LIBUSB})
     endif()

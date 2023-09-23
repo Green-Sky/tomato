@@ -403,22 +403,22 @@ static Uint8 *WASAPI_GetDeviceBuf(SDL_AudioDevice *device, int *buffer_size)
     // get an endpoint buffer from WASAPI.
     BYTE *buffer = NULL;
 
-    while (RecoverWasapiIfLost(device) && device->hidden->render) {
-        if (!WasapiFailed(device, IAudioRenderClient_GetBuffer(device->hidden->render, device->sample_frames, &buffer))) {
-            return (Uint8 *)buffer;
+    if (RecoverWasapiIfLost(device) && device->hidden->render) {
+        if (WasapiFailed(device, IAudioRenderClient_GetBuffer(device->hidden->render, device->sample_frames, &buffer))) {
+            SDL_assert(buffer == NULL);
         }
-        SDL_assert(buffer == NULL);
     }
 
     return (Uint8 *)buffer;
 }
 
-static void WASAPI_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int buflen)
+static int WASAPI_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int buflen)
 {
     if (device->hidden->render != NULL) { // definitely activated?
         // WasapiFailed() will mark the device for reacquisition or removal elsewhere.
         WasapiFailed(device, IAudioRenderClient_ReleaseBuffer(device->hidden->render, device->sample_frames, 0));
     }
+    return 0;
 }
 
 static void WASAPI_WaitDevice(SDL_AudioDevice *device)
@@ -620,7 +620,7 @@ static int mgmtthrtask_PrepDevice(void *userdata)
         return -1;
     }
 
-    device->hidden->framesize = (SDL_AUDIO_BITSIZE(device->spec.format) / 8) * device->spec.channels;
+    device->hidden->framesize = SDL_AUDIO_FRAMESIZE(device->spec);
 
     if (device->iscapture) {
         IAudioCaptureClient *capture = NULL;

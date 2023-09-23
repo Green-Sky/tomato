@@ -233,13 +233,31 @@ void SDL_SetDefaultCursor(SDL_Cursor *cursor)
 
     if (mouse->def_cursor) {
         SDL_Cursor *default_cursor = mouse->def_cursor;
+        SDL_Cursor *prev, *curr;
 
         if (mouse->cur_cursor == mouse->def_cursor) {
             mouse->cur_cursor = NULL;
         }
         mouse->def_cursor = NULL;
 
-        SDL_DestroyCursor(default_cursor);
+        for (prev = NULL, curr = mouse->cursors; curr;
+             prev = curr, curr = curr->next) {
+            if (curr == default_cursor) {
+                if (prev) {
+                    prev->next = curr->next;
+                } else {
+                    mouse->cursors = curr->next;
+                }
+
+                break;
+            }
+        }
+
+        if (mouse->FreeCursor && default_cursor->driverdata) {
+            mouse->FreeCursor(default_cursor);
+        } else {
+            SDL_free(default_cursor);
+        }
     }
 
     mouse->def_cursor = cursor;
@@ -591,6 +609,13 @@ static int SDL_PrivateSendMouseMotion(Uint64 timestamp, SDL_Window *window, SDL_
         }
     }
 
+    if (mouse->has_position && xrel == 0.0f && yrel == 0.0f) { /* Drop events that don't change state */
+#ifdef DEBUG_MOUSE
+        SDL_Log("Mouse event didn't change state - dropped!\n");
+#endif
+        return 0;
+    }
+
     /* Ignore relative motion positioning the first touch */
     if (mouseID == SDL_TOUCH_MOUSEID && !GetButtonState(mouse, SDL_TRUE)) {
         xrel = 0.0f;
@@ -598,13 +623,6 @@ static int SDL_PrivateSendMouseMotion(Uint64 timestamp, SDL_Window *window, SDL_
     }
 
     if (mouse->has_position) {
-        if (xrel == 0.0f && yrel == 0.0f) { /* Drop events that don't change state */
-#ifdef DEBUG_MOUSE
-            SDL_Log("Mouse event didn't change state - dropped!\n");
-#endif
-            return 0;
-        }
-
         /* Update internal mouse coordinates */
         if (!mouse->relative_mode) {
             mouse->x = x;

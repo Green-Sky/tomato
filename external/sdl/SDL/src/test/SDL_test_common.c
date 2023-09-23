@@ -25,6 +25,7 @@
 static const char *common_usage[] = {
     "[-h | --help]",
     "[--trackmem]",
+    "[--randmem]",
     "[--log all|error|system|audio|video|render|input]",
 };
 
@@ -70,7 +71,7 @@ static const char *video_usage[] = {
 
 /* !!! FIXME: Float32? Sint32? */
 static const char *audio_usage[] = {
-    "[--audio driver]", "[--rate N]", "[--format U8|S8|S16|S16LE|S16BE]",
+    "[--audio driver]", "[--rate N]", "[--format U8|S8|S16|S16LE|S16BE|S32|S32LE|S32BE|F32|F32LE|F32BE]",
     "[--channels N]"
 };
 
@@ -95,7 +96,8 @@ SDLTest_CommonState *SDLTest_CommonCreateState(char **argv, Uint32 flags)
     for (i = 1; argv[i]; ++i) {
         if (SDL_strcasecmp(argv[i], "--trackmem") == 0) {
             SDLTest_TrackAllocations();
-            break;
+        } else if (SDL_strcasecmp(argv[i], "--randmem") == 0) {
+            SDLTest_RandFillAllocations();
         }
     }
 
@@ -145,8 +147,8 @@ SDLTest_CommonState *SDLTest_CommonCreateState(char **argv, Uint32 flags)
 }
 
 void SDLTest_CommonDestroyState(SDLTest_CommonState *state) {
-    SDLTest_LogAllocations();
     SDL_free(state);
+    SDLTest_LogAllocations();
 }
 
 #define SEARCHARG(dim)                  \
@@ -167,6 +169,10 @@ int SDLTest_CommonArg(SDLTest_CommonState *state, int index)
         return -1;
     }
     if (SDL_strcasecmp(argv[index], "--trackmem") == 0) {
+        /* Already handled in SDLTest_CommonCreateState() */
+        return 1;
+    }
+    if (SDL_strcasecmp(argv[index], "--randmem") == 0) {
         /* Already handled in SDLTest_CommonCreateState() */
         return 1;
     }
@@ -624,16 +630,37 @@ int SDLTest_CommonArg(SDLTest_CommonState *state, int index)
                 return 2;
             }
             if (SDL_strcasecmp(argv[index], "S16LE") == 0) {
-                state->audio_format = SDL_AUDIO_S16LSB;
+                state->audio_format = SDL_AUDIO_S16LE;
                 return 2;
             }
             if (SDL_strcasecmp(argv[index], "S16BE") == 0) {
-                state->audio_format = SDL_AUDIO_S16MSB;
+                state->audio_format = SDL_AUDIO_S16BE;
                 return 2;
             }
-
-            /* !!! FIXME: Float32? Sint32? */
-
+            if (SDL_strcasecmp(argv[index], "S32") == 0) {
+                state->audio_format = SDL_AUDIO_S32;
+                return 2;
+            }
+            if (SDL_strcasecmp(argv[index], "S32LE") == 0) {
+                state->audio_format = SDL_AUDIO_S32LE;
+                return 2;
+            }
+            if (SDL_strcasecmp(argv[index], "S32BE") == 0) {
+                state->audio_format = SDL_AUDIO_S32BE;
+                return 2;
+            }
+            if (SDL_strcasecmp(argv[index], "F32") == 0) {
+                state->audio_format = SDL_AUDIO_F32;
+                return 2;
+            }
+            if (SDL_strcasecmp(argv[index], "F32LE") == 0) {
+                state->audio_format = SDL_AUDIO_F32LE;
+                return 2;
+            }
+            if (SDL_strcasecmp(argv[index], "F32BE") == 0) {
+                state->audio_format = SDL_AUDIO_F32BE;
+                return 2;
+            }
             return -1;
         }
         if (SDL_strcasecmp(argv[index], "--channels") == 0) {
@@ -2019,6 +2046,8 @@ void SDLTest_CommonEvent(SDLTest_CommonState *state, SDL_Event *event, int *done
     {
         SDL_Window *window = SDL_GetWindowFromID(event->window.windowID);
         if (window) {
+            /* Clear cache to avoid stale textures */
+            SDLTest_CleanupTextDrawing();
             for (i = 0; i < state->num_windows; ++i) {
                 if (window == state->windows[i]) {
                     if (state->targets[i]) {
@@ -2408,7 +2437,6 @@ void SDLTest_CommonQuit(SDLTest_CommonState *state)
     common_usage_audio = NULL;
     common_usage_videoaudio = NULL;
 
-    SDL_free(state->windows);
     if (state->targets) {
         for (i = 0; i < state->num_windows; ++i) {
             if (state->targets[i]) {
@@ -2424,6 +2452,12 @@ void SDLTest_CommonQuit(SDLTest_CommonState *state)
             }
         }
         SDL_free(state->renderers);
+    }
+    if (state->windows) {
+        for (i = 0; i < state->num_windows; i++) {
+            SDL_DestroyWindow(state->windows[i]);
+        }
+        SDL_free(state->windows);
     }
     if (state->flags & SDL_INIT_VIDEO) {
         SDL_QuitSubSystem(SDL_INIT_VIDEO);

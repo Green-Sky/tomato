@@ -46,6 +46,22 @@
 #endif
 typedef HRESULT (WINAPI *DwmSetWindowAttribute_t)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
 
+/* Transparent window support */
+#ifndef DWM_BB_ENABLE
+#define DWM_BB_ENABLE 0x00000001
+#endif
+#ifndef DWM_BB_BLURREGION
+#define DWM_BB_BLURREGION 0x00000002
+#endif
+typedef struct
+{
+    DWORD flags;
+    BOOL enable;
+    HRGN blur_region;
+    BOOL transition_on_maxed;
+} DWM_BLURBEHIND;
+typedef HRESULT(WINAPI *DwmEnableBlurBehindWindow_t)(HWND hwnd, const DWM_BLURBEHIND *pBlurBehind);
+
 /* Windows CE compatibility */
 #ifndef SWP_NOCOPYBITS
 #define SWP_NOCOPYBITS 0
@@ -128,10 +144,11 @@ static DWORD GetWindowStyleEx(SDL_Window *window)
 {
     DWORD style = 0;
 
-    if (SDL_WINDOW_IS_POPUP(window)) {
-        style = WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
-    } else if (window->flags & SDL_WINDOW_UTILITY) {
-        style = WS_EX_TOOLWINDOW;
+    if (SDL_WINDOW_IS_POPUP(window) || (window->flags & SDL_WINDOW_UTILITY)) {
+        style |= WS_EX_TOOLWINDOW;
+    }
+    if (SDL_WINDOW_IS_POPUP(window) || (window->flags & SDL_WINDOW_NOT_FOCUSABLE)) {
+        style |= WS_EX_NOACTIVATE;
     }
     return style;
 }
@@ -173,23 +190,9 @@ static int WIN_AdjustWindowRectWithStyle(SDL_Window *window, DWORD style, BOOL m
         if (WIN_IsPerMonitorV2DPIAware(SDL_GetVideoDevice())) {
             /* With per-monitor v2, the window border/titlebar size depend on the DPI, so we need to call AdjustWindowRectExForDpi instead of
                AdjustWindowRectEx. */
-            UINT unused;
-            RECT screen_rect;
-            HMONITOR mon;
-
-            screen_rect.left = *x;
-            screen_rect.top = *y;
-            screen_rect.right = (LONG)*x + *width;
-            screen_rect.bottom = (LONG)*y + *height;
-
-            mon = MonitorFromRect(&screen_rect, MONITOR_DEFAULTTONEAREST);
-
             if (videodata != NULL) {
-                /* GetDpiForMonitor docs promise to return the same hdpi / vdpi */
-                if (videodata->GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &frame_dpi, &unused) != S_OK) {
-                    frame_dpi = 96;
-                }
-
+                SDL_WindowData *data = window->driverdata;
+                frame_dpi = (data && videodata->GetDpiForWindow) ? videodata->GetDpiForWindow(data->hwnd) : 96;
                 if (videodata->AdjustWindowRectExForDpi(&rect, style, menu, 0, frame_dpi) == 0) {
                     return WIN_SetError("AdjustWindowRectExForDpi()");
                 }
@@ -581,6 +584,25 @@ int WIN_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window)
         */
         window->flags &= ~SDL_WINDOW_HIDDEN;
         ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
+    }
+
+    /* FIXME: does not work on all hardware configurations with different renders (i.e. hybrid GPUs) */
+    if (window->flags & SDL_WINDOW_TRANSPARENT) {
+        void *handle = SDL_LoadObject("dwmapi.dll");
+        if (handle) {
+            DwmEnableBlurBehindWindow_t DwmEnableBlurBehindWindowFunc = (DwmEnableBlurBehindWindow_t)SDL_LoadFunction(handle, "DwmEnableBlurBehindWindow");
+            if (DwmEnableBlurBehindWindowFunc) {
+                /* The region indicates which part of the window will be blurred and rest will be transparent. This
+                   is because the alpha value of the window will be used for non-blurred areas
+                   We can use (-1, -1, 0, 0) boundary to make sure no pixels are being blurred
+                */
+                HRGN rgn = CreateRectRgn(-1, -1, 0, 0);
+                DWM_BLURBEHIND bb = {DWM_BB_ENABLE | DWM_BB_BLURREGION, TRUE, rgn, FALSE};
+                DwmEnableBlurBehindWindowFunc(hwnd, &bb);
+                DeleteObject(rgn);
+            }
+            SDL_UnloadObject(handle);
+        }
     }
 
     if (!(window->flags & SDL_WINDOW_OPENGL)) {
@@ -1503,6 +1525,31 @@ void WIN_ShowWindowSystemMenu(SDL_Window *window, int x, int y)
     pt.y = y;
     ClientToScreen(data->hwnd, &pt);
     SendMessage(data->hwnd, WM_POPUPSYSTEMMENU, 0, MAKELPARAM(pt.x, pt.y));
+}
+
+int WIN_SetWindowFocusable(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool focusable)
+{
+    SDL_WindowData *data = window->driverdata;
+    HWND hwnd = data->hwnd;
+    const LONG style = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+    SDL_assert(style != 0);
+
+    if (focusable) {
+        if (style & WS_EX_NOACTIVATE) {
+            if (SetWindowLong(hwnd, GWL_EXSTYLE, style & ~WS_EX_NOACTIVATE) == 0) {
+                return WIN_SetError("SetWindowLong()");
+            }
+        }
+    } else {
+        if (!(style & WS_EX_NOACTIVATE)) {
+            if (SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_NOACTIVATE) == 0) {
+                return WIN_SetError("SetWindowLong()");
+            }
+        }
+    }
+
+    return 0;
 }
 #endif /*!defined(__XBOXONE__) && !defined(__XBOXSERIES__)*/
 

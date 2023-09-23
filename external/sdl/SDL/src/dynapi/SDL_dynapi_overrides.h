@@ -196,6 +196,7 @@
 #define SDL_GetGamepadAppleSFSymbolsNameForButton SDL_GetGamepadAppleSFSymbolsNameForButton_REAL
 #define SDL_GetGamepadAxis SDL_GetGamepadAxis_REAL
 #define SDL_GetGamepadAxisFromString SDL_GetGamepadAxisFromString_REAL
+#define SDL_GetGamepadBindings SDL_GetGamepadBindings_REAL
 #define SDL_GetGamepadButton SDL_GetGamepadButton_REAL
 #define SDL_GetGamepadButtonFromString SDL_GetGamepadButtonFromString_REAL
 #define SDL_GetGamepadFirmwareVersion SDL_GetGamepadFirmwareVersion_REAL
@@ -901,7 +902,7 @@
 #define SDL_SetAudioStreamGetCallback SDL_SetAudioStreamGetCallback_REAL
 #define SDL_SetAudioStreamPutCallback SDL_SetAudioStreamPutCallback_REAL
 #define SDL_DestroyAudioStream SDL_DestroyAudioStream_REAL
-#define SDL_CreateAndBindAudioStream SDL_CreateAndBindAudioStream_REAL
+#define SDL_OpenAudioDeviceStream SDL_OpenAudioDeviceStream_REAL
 #define SDL_LoadWAV_RW SDL_LoadWAV_RW_REAL
 #define SDL_LoadWAV SDL_LoadWAV_REAL
 #define SDL_MixAudioFormat SDL_MixAudioFormat_REAL
@@ -910,8 +911,8 @@
 #define SDL_LoadWAV SDL_LoadWAV_REAL
 #define SDL_PauseAudioDevice SDL_PauseAudioDevice_REAL
 #define SDL_ResumeAudioDevice SDL_ResumeAudioDevice_REAL
-#define SDL_IsAudioDevicePaused SDL_IsAudioDevicePaused_REAL
-#define SDL_GetAudioStreamBinding SDL_GetAudioStreamBinding_REAL
+#define SDL_AudioDevicePaused SDL_AudioDevicePaused_REAL
+#define SDL_GetAudioStreamDevice SDL_GetAudioStreamDevice_REAL
 #define SDL_ShowWindowSystemMenu SDL_ShowWindowSystemMenu_REAL
 #define SDL_ReadS16LE SDL_ReadS16LE_REAL
 #define SDL_ReadS16BE SDL_ReadS16BE_REAL
@@ -924,3 +925,10 @@
 #define SDL_WriteS32LE SDL_WriteS32LE_REAL
 #define SDL_WriteS32BE SDL_WriteS32BE_REAL
 #define SDL_WriteS64LE SDL_WriteS64LE_REAL
+#define SDL_WriteS64BE SDL_WriteS64BE_REAL
+#define SDL_GDKGetDefaultUser SDL_GDKGetDefaultUser_REAL
+#define SDL_SetWindowFocusable SDL_SetWindowFocusable_REAL
+#define SDL_GetAudioStreamFrequencyRatio SDL_GetAudioStreamFrequencyRatio_REAL
+#define SDL_SetAudioStreamFrequencyRatio SDL_SetAudioStreamFrequencyRatio_REAL
+#define SDL_SetAudioPostmixCallback SDL_SetAudioPostmixCallback_REAL
+#define SDL_GetAudioStreamQueued SDL_GetAudioStreamQueued_REAL

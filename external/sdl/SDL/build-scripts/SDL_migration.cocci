@@ -1069,11 +1069,6 @@ typedef SDL_GameControllerButton, SDL_GamepadButton;
 - SDL_GameControllerButton
 + SDL_GamepadButton
 @@
-typedef SDL_GameControllerButtonBind, SDL_GamepadBinding;
-@@
-- SDL_GameControllerButtonBind
-+ SDL_GamepadBinding
-@@
 @@
 - SDL_GameControllerClose
 + SDL_CloseGamepad
@@ -1112,16 +1107,6 @@ typedef SDL_GameControllerButtonBind, SDL_GamepadBinding;
 @@
 - SDL_GameControllerGetAxisFromString
 + SDL_GetGamepadAxisFromString
-  (...)
-@@
-@@
-- SDL_GameControllerGetBindForAxis
-+ SDL_GetGamepadBindForAxis
-  (...)
-@@
-@@
-- SDL_GameControllerGetBindForButton
-+ SDL_GetGamepadBindForButton
   (...)
 @@
 @@
@@ -2591,51 +2576,51 @@ typedef SDL_cond, SDL_Condition;
 @@
 @@
 - AUDIO_F32
-+ SDL_AUDIO_F32
++ SDL_AUDIO_F32LE
 @@
 @@
 - AUDIO_F32LSB
-+ SDL_AUDIO_F32LSB
++ SDL_AUDIO_F32LE
 @@
 @@
 - AUDIO_F32MSB
-+ SDL_AUDIO_F32MSB
++ SDL_AUDIO_F32BE
 @@
 @@
 - AUDIO_F32SYS
-+ SDL_AUDIO_F32SYS
++ SDL_AUDIO_F32
 @@
 @@
 - AUDIO_S16
-+ SDL_AUDIO_S16
++ SDL_AUDIO_S16LE
 @@
 @@
 - AUDIO_S16LSB
-+ SDL_AUDIO_S16LSB
++ SDL_AUDIO_S16LE
 @@
 @@
 - AUDIO_S16MSB
-+ SDL_AUDIO_S16MSB
++ SDL_AUDIO_S16BE
 @@
 @@
 - AUDIO_S16SYS
-+ SDL_AUDIO_S16SYS
++ SDL_AUDIO_S16
 @@
 @@
 - AUDIO_S32
-+ SDL_AUDIO_S32
++ SDL_AUDIO_S32LE
 @@
 @@
 - AUDIO_S32LSB
-+ SDL_AUDIO_S32LSB
++ SDL_AUDIO_S32LE
 @@
 @@
 - AUDIO_S32MSB
-+ SDL_AUDIO_S32MSB
++ SDL_AUDIO_S32BE
 @@
 @@
 - AUDIO_S32SYS
-+ SDL_AUDIO_S32SYS
++ SDL_AUDIO_S32
 @@
 @@
 - AUDIO_S8

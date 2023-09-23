@@ -172,6 +172,7 @@ SDL3_0.0.0 {
     SDL_GetGamepadAppleSFSymbolsNameForButton;
     SDL_GetGamepadAxis;
     SDL_GetGamepadAxisFromString;
+    SDL_GetGamepadBindings;
     SDL_GetGamepadButton;
     SDL_GetGamepadButtonFromString;
     SDL_GetGamepadFirmwareVersion;
@@ -876,7 +877,7 @@ SDL3_0.0.0 {
     SDL_SetAudioStreamGetCallback;
     SDL_SetAudioStreamPutCallback;
     SDL_DestroyAudioStream;
-    SDL_CreateAndBindAudioStream;
+    SDL_OpenAudioDeviceStream;
     SDL_LoadWAV_RW;
     SDL_LoadWAV;
     SDL_MixAudioFormat;
@@ -885,8 +886,8 @@ SDL3_0.0.0 {
     SDL_LoadWAV;
     SDL_PauseAudioDevice;
     SDL_ResumeAudioDevice;
-    SDL_IsAudioDevicePaused;
-    SDL_GetAudioStreamBinding;
+    SDL_AudioDevicePaused;
+    SDL_GetAudioStreamDevice;
     SDL_ShowWindowSystemMenu;
     SDL_ReadS16LE;
     SDL_ReadS16BE;
@@ -899,6 +900,13 @@ SDL3_0.0.0 {
     SDL_WriteS32LE;
     SDL_WriteS32BE;
     SDL_WriteS64LE;
+    SDL_WriteS64BE;
+    SDL_GDKGetDefaultUser;
+    SDL_SetWindowFocusable;
+    SDL_GetAudioStreamFrequencyRatio;
+    SDL_SetAudioStreamFrequencyRatio;
+    SDL_SetAudioPostmixCallback;
+    SDL_GetAudioStreamQueued;
     # extra symbols go here (don't modify this line)
   local: *;
 };

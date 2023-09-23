@@ -582,7 +582,16 @@ extern DECLSPEC SDL_WinRT_DeviceFamily SDLCALL SDL_WinRTGetDeviceFamily();
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_IsTablet(void);
 
-/* Functions used by iOS application delegates to notify SDL about state changes */
+/* Functions used by iOS app delegates to notify SDL about state changes.
+ *
+ * These functions allow iOS apps that have their own event handling to hook
+ * into SDL to generate SDL events. These map directly to iOS-specific
+ * events, but since they don't do anything iOS-specific internally, they
+ * are available on all platforms, in case they might be useful for some
+ * specific paradigm. Most apps do not need to use these directly; SDL's
+ * internal event code will handle all this for windows created by
+ * SDL_CreateWindow!
+ */
 
 /*
  * \since This function is available since SDL 3.0.0.
@@ -623,7 +632,8 @@ extern DECLSPEC void SDLCALL SDL_OnApplicationDidChangeStatusBarOrientation(void
 
 /* Functions used only by GDK */
 #ifdef __GDK__
-typedef struct XTaskQueueObject * XTaskQueueHandle;
+typedef struct XTaskQueueObject *XTaskQueueHandle;
+typedef struct XUser *XUserHandle;
 
 /**
  * Gets a reference to the global async task queue handle for GDK,
@@ -640,6 +650,20 @@ typedef struct XTaskQueueObject * XTaskQueueHandle;
  * \since This function is available since SDL 3.0.0.
  */
 extern DECLSPEC int SDLCALL SDL_GDKGetTaskQueue(XTaskQueueHandle * outTaskQueue);
+
+/**
+ * Gets a reference to the default user handle for GDK.
+ *
+ * This is effectively a synchronous version of XUserAddAsync, which always
+ * prefers the default user and allows a sign-in UI.
+ *
+ * \param outUserHandle a pointer to be filled in with the default user
+ *                      handle.
+ * \returns 0 if success, -1 if any error occurs.
+ *
+ * \since This function is available since SDL 2.28.0.
+ */
+extern DECLSPEC int SDLCALL SDL_GDKGetDefaultUser(XUserHandle * outUserHandle);
 
 #endif
 

@@ -238,7 +238,7 @@ Uint32 X11_GetNetWMState(SDL_VideoDevice *_this, SDL_Window *window, Window xwin
 
         for (i = 0; i < numItems; ++i) {
             if (atoms[i] == _NET_WM_STATE_HIDDEN) {
-                flags |= SDL_WINDOW_HIDDEN;
+                flags |= SDL_WINDOW_MINIMIZED | SDL_WINDOW_OCCLUDED;
             } else if (atoms[i] == _NET_WM_STATE_FOCUSED) {
                 flags |= SDL_WINDOW_INPUT_FOCUS;
             } else if (atoms[i] == _NET_WM_STATE_MAXIMIZED_VERT) {
@@ -604,8 +604,14 @@ int X11_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window)
         return SDL_SetError("Couldn't create window");
     }
 
-    SetWindowBordered(display, screen, w,
-                      !(window->flags & SDL_WINDOW_BORDERLESS));
+    /* Do not set borderless window if in desktop fullscreen, this causes
+       flickering in multi-monitor setups */
+    if (!((window->pending_flags & SDL_WINDOW_FULLSCREEN) &&
+          (window->flags & SDL_WINDOW_BORDERLESS) &&
+          !window->fullscreen_exclusive)) {
+        SetWindowBordered(display, screen, w,
+                          !(window->flags & SDL_WINDOW_BORDERLESS));
+    }
 
     sizehints = X11_XAllocSizeHints();
     /* Setup the normal size hints */
@@ -623,7 +629,7 @@ int X11_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window)
 
     /* Setup the input hints so we get keyboard input */
     wmhints = X11_XAllocWMHints();
-    wmhints->input = True;
+    wmhints->input = !(window->flags & SDL_WINDOW_NOT_FOCUSABLE) ? True : False;
     wmhints->window_group = data->window_group;
     wmhints->flags = InputHint | WindowGroupHint;
 
@@ -1980,6 +1986,26 @@ void X11_ShowWindowSystemMenu(SDL_Window *window, int x, int y)
 
     X11_XSendEvent(display, root, False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent *)&e);
     X11_XFlush(display);
+}
+
+int X11_SetWindowFocusable(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool focusable)
+{
+    SDL_WindowData *data = window->driverdata;
+    Display *display = data->videodata->display;
+    XWMHints *wmhints;
+
+    wmhints = X11_XGetWMHints(display, data->xwindow);
+    if (wmhints == NULL) {
+        return SDL_SetError("Couldn't get WM hints");
+    }
+
+    wmhints->input = focusable ? True : False;
+    wmhints->flags |= InputHint;
+
+    X11_XSetWMHints(display, data->xwindow, wmhints);
+    X11_XFree(wmhints);
+
+    return 0;
 }
 
 #endif /* SDL_VIDEO_DRIVER_X11 */
