@@ -639,7 +639,7 @@ static void handle_configure_xdg_toplevel(void *data,
     SDL_bool fullscreen = SDL_FALSE;
     SDL_bool maximized = SDL_FALSE;
     SDL_bool floating = SDL_TRUE;
-    SDL_bool focused = SDL_FALSE;
+    SDL_bool active = SDL_FALSE;
     SDL_bool suspended = SDL_FALSE;
     wl_array_for_each (state, states) {
         switch (*state) {
@@ -652,7 +652,7 @@ static void handle_configure_xdg_toplevel(void *data,
             floating = SDL_FALSE;
             break;
         case XDG_TOPLEVEL_STATE_ACTIVATED:
-            focused = SDL_TRUE;
+            active = SDL_TRUE;
             break;
         case XDG_TOPLEVEL_STATE_TILED_LEFT:
         case XDG_TOPLEVEL_STATE_TILED_RIGHT:
@@ -715,7 +715,7 @@ static void handle_configure_xdg_toplevel(void *data,
          * dependent, but in general, we can assume that the flag should remain set until
          * the next focused configure event occurs.
          */
-        if (focused || !(window->flags & SDL_WINDOW_MINIMIZED)) {
+        if (active || !(window->flags & SDL_WINDOW_MINIMIZED)) {
             SDL_SendWindowEvent(window,
                                 maximized ? SDL_EVENT_WINDOW_MAXIMIZED : SDL_EVENT_WINDOW_RESTORED,
                                 0, 0);
@@ -745,15 +745,11 @@ static void handle_configure_xdg_toplevel(void *data,
         }
     }
 
-    /* Similar to maximized/restore events above, send focus events too! */
-    SDL_SendWindowEvent(window,
-                        focused ? SDL_EVENT_WINDOW_FOCUS_GAINED : SDL_EVENT_WINDOW_FOCUS_LOST,
-                        0, 0);
-
     wind->requested_window_width = width;
     wind->requested_window_height = height;
     wind->floating = floating;
     wind->suspended = suspended;
+    wind->active = active;
     if (wind->surface_status == WAYLAND_SURFACE_STATUS_WAITING_FOR_CONFIGURE) {
         wind->surface_status = WAYLAND_SURFACE_STATUS_WAITING_FOR_FRAME;
     }
@@ -855,11 +851,10 @@ static void handle_configure_zxdg_decoration(void *data,
         WAYLAND_wl_display_roundtrip(driverdata->waylandData->display);
 
         Wayland_HideWindow(device, window);
+        SDL_zero(driverdata->shell_surface);
         driverdata->shell_surface_type = WAYLAND_SURFACE_LIBDECOR;
 
-        if (!window->is_hiding && !(window->flags & SDL_WINDOW_HIDDEN)) {
-            Wayland_ShowWindow(device, window);
-        }
+        Wayland_ShowWindow(device, window);
     }
 }
 
@@ -921,7 +916,7 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
     int width, height;
 
     SDL_bool prev_fullscreen = wind->is_fullscreen;
-    SDL_bool focused = SDL_FALSE;
+    SDL_bool active = SDL_FALSE;
     SDL_bool fullscreen = SDL_FALSE;
     SDL_bool maximized = SDL_FALSE;
     SDL_bool tiled = SDL_FALSE;
@@ -935,7 +930,7 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
     if (libdecor_configuration_get_window_state(configuration, &window_state)) {
         fullscreen = (window_state & LIBDECOR_WINDOW_STATE_FULLSCREEN) != 0;
         maximized = (window_state & LIBDECOR_WINDOW_STATE_MAXIMIZED) != 0;
-        focused = (window_state & LIBDECOR_WINDOW_STATE_ACTIVE) != 0;
+        active = (window_state & LIBDECOR_WINDOW_STATE_ACTIVE) != 0;
         tiled = (window_state & tiled_states) != 0;
 #ifdef SDL_HAVE_LIBDECOR_VER_0_1_2
         suspended = (window_state & LIBDECOR_WINDOW_STATE_SUSPENDED) != 0;
@@ -954,17 +949,12 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
          * dependent, but in general, we can assume that the flag should remain set until
          * the next focused configure event occurs.
          */
-        if (focused || !(window->flags & SDL_WINDOW_MINIMIZED)) {
+        if (active || !(window->flags & SDL_WINDOW_MINIMIZED)) {
             SDL_SendWindowEvent(window,
                                 maximized ? SDL_EVENT_WINDOW_MAXIMIZED : SDL_EVENT_WINDOW_RESTORED,
                                 0, 0);
         }
     }
-
-    /* Similar to maximized/restore events above, send focus events too! */
-    SDL_SendWindowEvent(window,
-                        focused ? SDL_EVENT_WINDOW_FOCUS_GAINED : SDL_EVENT_WINDOW_FOCUS_LOST,
-                        0, 0);
 
     /* For fullscreen or fixed-size windows we know our size.
      * Always assume the configure is wrong.
@@ -1055,6 +1045,7 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
     /* Store the new state. */
     wind->floating = floating;
     wind->suspended = suspended;
+    wind->active = active;
 
     /* Calculate the new window geometry */
     wind->requested_window_width = width;
@@ -1529,12 +1520,6 @@ void Wayland_ShowWindow(SDL_VideoDevice *_this, SDL_Window *window)
 
     /* Restore state that was set prior to this call */
     Wayland_SetWindowTitle(_this, window);
-    if (window->flags & SDL_WINDOW_MAXIMIZED) {
-        Wayland_MaximizeWindow(_this, window);
-    }
-    if (window->flags & SDL_WINDOW_MINIMIZED) {
-        Wayland_MinimizeWindow(_this, window);
-    }
 
     /* We have to wait until the surface gets a "configure" event, or use of
      * this surface will fail. This is a new rule for xdg_shell.
@@ -1940,11 +1925,6 @@ void Wayland_RestoreWindow(SDL_VideoDevice *_this, SDL_Window *window)
         return;
     }
 
-    /* Set this flag now even if we never actually maximized, eventually
-     * ShowWindow will take care of it along with the other window state.
-     */
-    window->flags &= ~SDL_WINDOW_MAXIMIZED;
-
 #ifdef HAVE_LIBDECOR_H
     if (wind->shell_surface_type == WAYLAND_SURFACE_LIBDECOR) {
         if (wind->shell_surface.libdecor.frame == NULL) {
@@ -2025,11 +2005,6 @@ void Wayland_MaximizeWindow(SDL_VideoDevice *_this, SDL_Window *window)
         return;
     }
 
-    /* Set this flag now even if we don't actually maximize yet, eventually
-     * ShowWindow will take care of it along with the other window state.
-     */
-    window->flags |= SDL_WINDOW_MAXIMIZED;
-
 #ifdef HAVE_LIBDECOR_H
     if (wind->shell_surface_type == WAYLAND_SURFACE_LIBDECOR) {
         if (wind->shell_surface.libdecor.frame == NULL) {
@@ -2057,6 +2032,8 @@ void Wayland_MinimizeWindow(SDL_VideoDevice *_this, SDL_Window *window)
     SDL_VideoData *viddata = _this->driverdata;
     SDL_WindowData *wind = window->driverdata;
 
+    /* Maximized and minimized flags are mutually exclusive */
+    window->flags &= ~SDL_WINDOW_MAXIMIZED;
     window->flags |= SDL_WINDOW_MINIMIZED;
 
 #ifdef HAVE_LIBDECOR_H

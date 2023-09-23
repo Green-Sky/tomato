@@ -52,7 +52,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install build-essential git \
             pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
-            libaudio-dev libjack-dev libsndio-dev libsamplerate0-dev libx11-dev libxext-dev \
+            libaudio-dev libjack-dev libsndio-dev libusb-1.0-0-dev libx11-dev libxext-dev \
             libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libwayland-dev \
             libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
             libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev
@@ -111,7 +111,7 @@ jobs:
         ${{ matrix.platform.source_cmd }}
         set -eu
         export SDL_TESTS_QUICK=1
-        ctest -VV --test-dir build/
+        ctest -VV --test-dir build/ -j2
         if test "${{ runner.os }}" = "Linux"; then
           # This should show us the SDL_REVISION
           strings build/libSDL3.so.0 | grep SDL-

@@ -31,7 +31,7 @@
     <Filter Include="filesystem">
       <UniqueIdentifier>{377061e4-3856-4f05-b916-0d3b360df0f6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="filesystem\windows">
+    <Filter Include="filesystem\gdk">
       <UniqueIdentifier>{226a6643-1c65-4c7f-92aa-861313d974bb}</UniqueIdentifier>
     </Filter>
     <Filter Include="haptic">
@@ -396,7 +396,6 @@
     <ClInclude Include="..\..\include\SDL3\SDL_vulkan.h">
       <Filter>API Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\SDL_dataqueue.h" />
     <ClInclude Include="..\..\src\SDL_error_c.h" />
     <ClInclude Include="..\..\src\SDL_list.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_metal.h">
@@ -420,6 +419,12 @@
     <ClInclude Include="..\..\src\audio\SDL_sysaudio.h">
       <Filter>audio</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\audio\SDL_audioqueue.h">
+      <Filter>audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\audio\SDL_audioresample.h">
+      <Filter>audio</Filter>
+    </ClInclude>    
     <ClInclude Include="..\..\src\core\windows\SDL_hid.h">
       <Filter>core\windows</Filter>
     </ClInclude>
@@ -838,7 +843,6 @@
     <ClCompile Include="..\..\src\audio\wasapi\SDL_wasapi.c" />
     <ClCompile Include="..\..\src\SDL.c" />
     <ClCompile Include="..\..\src\SDL_assert.c" />
-    <ClCompile Include="..\..\src\SDL_dataqueue.c" />
     <ClCompile Include="..\..\src\SDL_error.c" />
     <ClCompile Include="..\..\src\SDL_guid.c" />
     <ClCompile Include="..\..\src\SDL_hints.c" />
@@ -856,6 +860,12 @@
     <ClCompile Include="..\..\src\audio\SDL_audiotypecvt.c">
       <Filter>audio</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\audio\SDL_audioqueue.c">
+      <Filter>audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\audio\SDL_audioresample.c">
+      <Filter>audio</Filter>
+    </ClCompile>    
     <ClCompile Include="..\..\src\audio\SDL_wave.c">
       <Filter>audio</Filter>
     </ClCompile>
@@ -916,8 +926,8 @@
     <ClCompile Include="..\..\src\file\SDL_rwops.c">
       <Filter>file</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\filesystem\windows\SDL_sysfilesystem.c">
-      <Filter>filesystem\windows</Filter>
+    <ClCompile Include="..\..\src\filesystem\gdk\SDL_sysfilesystem.c">
+      <Filter>filesystem\gdk</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\haptic\SDL_haptic.c">
       <Filter>haptic</Filter>

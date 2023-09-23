@@ -28,8 +28,8 @@ static int done = 0;
 
 static void loop(void)
 {
-    const SDL_AudioDeviceID devid_in = SDL_GetAudioStreamBinding(stream_in);
-    const SDL_AudioDeviceID devid_out = SDL_GetAudioStreamBinding(stream_out);
+    const SDL_AudioDeviceID devid_in = SDL_GetAudioStreamDevice(stream_in);
+    const SDL_AudioDeviceID devid_out = SDL_GetAudioStreamDevice(stream_out);
     SDL_bool please_quit = SDL_FALSE;
     SDL_Event e;
 
@@ -54,7 +54,7 @@ static void loop(void)
         }
     }
 
-    if (!SDL_IsAudioDevicePaused(devid_in)) {
+    if (!SDL_AudioDevicePaused(devid_in)) {
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
     } else {
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
@@ -179,10 +179,14 @@ int main(int argc, char **argv)
         exit(1);
     }
     SDL_PauseAudioDevice(device);
-    SDL_GetAudioDeviceFormat(device, &outspec);
-    stream_out = SDL_CreateAndBindAudioStream(device, &outspec);
+    SDL_GetAudioDeviceFormat(device, &outspec, NULL);
+    stream_out = SDL_CreateAudioStream(&outspec, &outspec);
     if (!stream_out) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create an audio stream for playback: %s!\n", SDL_GetError());
+        SDL_Quit();
+        exit(1);
+    } else if (SDL_BindAudioStream(device, stream_out) == -1) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't bind an audio stream for playback: %s!\n", SDL_GetError());
         SDL_Quit();
         exit(1);
     }
@@ -199,10 +203,14 @@ int main(int argc, char **argv)
         exit(1);
     }
     SDL_PauseAudioDevice(device);
-    SDL_GetAudioDeviceFormat(device, &inspec);
-    stream_in = SDL_CreateAndBindAudioStream(device, &inspec);
+    SDL_GetAudioDeviceFormat(device, &inspec, NULL);
+    stream_in = SDL_CreateAudioStream(&inspec, &inspec);
     if (!stream_in) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create an audio stream for capture: %s!\n", SDL_GetError());
+        SDL_Quit();
+        exit(1);
+    } else if (SDL_BindAudioStream(device, stream_in) == -1) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't bind an audio stream for capture: %s!\n", SDL_GetError());
         SDL_Quit();
         exit(1);
     }

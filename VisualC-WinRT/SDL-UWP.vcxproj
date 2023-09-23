@@ -94,6 +94,8 @@
     <ClInclude Include="..\src\audio\SDL_audiodev_c.h" />
     <ClInclude Include="..\src\audio\SDL_audio_c.h" />
     <ClInclude Include="..\src\audio\SDL_sysaudio.h" />
+    <ClInclude Include="..\src\audio\SDL_audioqueue.h" />
+    <ClInclude Include="..\src\audio\SDL_audioresample.h" />
     <ClInclude Include="..\src\audio\SDL_wave.h" />
     <ClInclude Include="..\src\audio\wasapi\SDL_wasapi.h" />
     <ClInclude Include="..\src\core\windows\SDL_directx.h" />
@@ -147,7 +149,6 @@
     <ClInclude Include="..\src\render\software\SDL_rotate.h" />
     <ClInclude Include="..\src\render\software\SDL_triangle.h" />
     <ClInclude Include="..\src\SDL_assert_c.h" />
-    <ClInclude Include="..\src\SDL_dataqueue.h" />
     <ClInclude Include="..\src\SDL_error_c.h" />
     <ClInclude Include="..\src\SDL_fatal.h" />
     <ClInclude Include="..\src\SDL_hints_c.h" />
@@ -194,6 +195,8 @@
     <ClCompile Include="..\src\audio\SDL_audiocvt.c" />
     <ClCompile Include="..\src\audio\SDL_audiodev.c" />
     <ClCompile Include="..\src\audio\SDL_audiotypecvt.c" />
+    <ClCompile Include="..\src\audio\SDL_audioqueue.c" />
+    <ClCompile Include="..\src\audio\SDL_audioresample.c" />
     <ClCompile Include="..\src\audio\SDL_mixer.c" />
     <ClCompile Include="..\src\audio\SDL_wave.c" />
     <ClCompile Include="..\src\audio\wasapi\SDL_wasapi.c" />
@@ -388,7 +391,6 @@
     <ClCompile Include="..\src\render\software\SDL_triangle.c" />
     <ClCompile Include="..\src\SDL.c" />
     <ClCompile Include="..\src\SDL_assert.c" />
-    <ClCompile Include="..\src\SDL_dataqueue.c" />
     <ClCompile Include="..\src\SDL_list.c" />
     <ClCompile Include="..\src\SDL_error.c" />
     <ClCompile Include="..\src\SDL_guid.c" />
