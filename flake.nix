@@ -30,9 +30,12 @@
         # for some reason, buildInputs performs some magic an converts them to build dependencies, not runtime dependencies
         # also, non static dependencies (?? how to ensure ??)
         dlopenBuildInputs = with pkgs; [
+          dbus
+
           xorg.libX11
           xorg.libXext
           xorg.xorgproto
+          libxkbcommon
           xorg.libICE
           xorg.libXi
           xorg.libXScrnSaver
@@ -40,7 +43,10 @@
           xorg.libXinerama
           xorg.libXrandr
           xorg.libXxf86vm
+
           libGL
+
+          pipewire
         ];
 
         buildInputs = with pkgs; [

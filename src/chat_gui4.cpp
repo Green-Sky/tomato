@@ -14,6 +14,7 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
+#include "solanaceae/message3/registry_message_model.hpp"
 
 #include <string>
 #include <variant>
@@ -21,6 +22,19 @@
 #include <chrono>
 #include <filesystem>
 #include <ctime>
+
+namespace Components {
+
+	struct UnreadFade {
+		// fades form 1 to 0
+		float fade {1.f};
+	};
+
+} // Components
+
+static float lerp(float a, float b, float t) {
+	return a + t * (b - a);
+}
 
 ChatGui4::ChatGui4(
 	ConfigModelI& conf,
@@ -167,6 +181,22 @@ void ChatGui4::render(void) {
 						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
 						Message3Registry& msg_reg = *msg_reg_ptr;
+
+						// do systems TODO: extract
+						{ // fade system
+							std::vector<Message3> to_remove;
+							msg_reg.view<Components::UnreadFade>().each([&to_remove](const Message3 e, Components::UnreadFade& fade) {
+								// TODO: configurable
+								const float fade_duration = 7.5f;
+								// TODO: dynamic fps
+								fade.fade -= 1.f/fade_duration * (1.f/60.f);
+								if (fade.fade <= 0.f) {
+									to_remove.push_back(e);
+								}
+							});
+							msg_reg.remove<Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
+						}
+
 						msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>()
 							.use<Message::Components::Timestamp>()
 							.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
@@ -184,6 +214,15 @@ void ChatGui4::render(void) {
 									ImGui::TextUnformatted("<unk>");
 								}
 
+								// use username as visibility test
+								if (ImGui::IsItemVisible() && msg_reg.all_of<Message::Components::TagUnread>(e)) {
+									// get time now
+									const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+									msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
+									msg_reg.remove<Message::Components::TagUnread>(e);
+									msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
+								}
+
 								// highlight self
 								if (_cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
 									ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.20f));
@@ -194,10 +233,31 @@ void ChatGui4::render(void) {
 									//ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
 								}
 
+								std::optional<ImVec4> row_bg;
+
 								// private group message
 								if (_cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
-									ImU32 row_bg_color = ImGui::GetColorU32(ImVec4(0.5f, 0.2f, 0.5f, 0.35f));
-									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, row_bg_color);
+									const ImVec4 priv_msg_hi_col = ImVec4(0.5f, 0.2f, 0.5f, 0.35f);
+									ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
+									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
+									row_bg = priv_msg_hi_col;
+								}
+
+								// fade
+								if (msg_reg.all_of<Components::UnreadFade>(e)) {
+									ImVec4 hi_color = ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogramHovered);
+									hi_color.w = 0.8f;
+									const ImVec4 orig_color = row_bg.value_or(ImGui::GetStyleColorVec4(ImGuiCol_TableRowBg)); // imgui defaults to 0,0,0,0
+									const float fade_frac = msg_reg.get<Components::UnreadFade>(e).fade;
+
+									ImVec4 res_color{
+										lerp(orig_color.x, hi_color.x, fade_frac),
+										lerp(orig_color.y, hi_color.y, fade_frac),
+										lerp(orig_color.z, hi_color.z, fade_frac),
+										lerp(orig_color.w, hi_color.w, fade_frac),
+									};
+
+									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(res_color));
 								}
 							}
 
@@ -588,7 +648,14 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	{
-		ImGui::Text("%s", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
+		// TODO: is there a better way?
+		// maybe cache mm?
+		bool has_unread = false;
+		if (const auto* mm = _rmm.get(c); mm != nullptr && !mm->storage<Message::Components::TagUnread>().empty()) {
+			has_unread = true;
+		}
+
+		ImGui::Text("%s%s", has_unread?"* ":"", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
 		if (request_incoming) {
 			ImGui::TextUnformatted("Incoming request/invite");
 		} else if (request_outgoing) {
