@@ -83,8 +83,8 @@ TEST(BasicHandle, Destruction) {
     ASSERT_FALSE(handle);
     ASSERT_FALSE(handle.valid());
     ASSERT_NE(handle.registry(), nullptr);
-    ASSERT_EQ(handle.entity(), entity);
     ASSERT_EQ(registry.current(entity), typename entt::registry::version_type{});
+    ASSERT_EQ(handle.entity(), entt::entity{entt::null});
 
     handle = entt::handle{registry, registry.create()};
 
@@ -98,8 +98,8 @@ TEST(BasicHandle, Destruction) {
     ASSERT_FALSE(handle);
     ASSERT_FALSE(handle.valid());
     ASSERT_NE(handle.registry(), nullptr);
-    ASSERT_EQ(handle.entity(), entity);
     ASSERT_NE(registry.current(entity), typename entt::registry::version_type{});
+    ASSERT_EQ(handle.entity(), entt::entity{entt::null});
 }
 
 TEST(BasicHandle, Comparison) {
@@ -275,6 +275,8 @@ TEST(BasicHandle, HandleStorageIterator) {
 
     registry.emplace<int>(entity);
     registry.emplace<double>(entity);
+    // required to test the find-first initialization step
+    registry.storage<entt::entity>().erase(entity);
 
     auto test = [](auto iterable) {
         auto end{iterable.begin()};
@@ -290,6 +292,13 @@ TEST(BasicHandle, HandleStorageIterator) {
         ASSERT_EQ(++begin, iterable.end());
     };
 
-    test(entt::handle{registry, entity}.storage());
-    test(entt::const_handle{std::as_const(registry), entity}.storage());
+    const auto handle = entt::handle{registry, entity};
+    const auto chandle = entt::const_handle{std::as_const(registry), entity};
+
+    ASSERT_FALSE(registry.valid(entity));
+    ASSERT_FALSE(handle);
+    ASSERT_FALSE(chandle);
+
+    test(handle.storage());
+    test(chandle.storage());
 }

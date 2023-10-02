@@ -51,7 +51,20 @@ function(SETUP_TARGET TARGET_NAME)
         target_compile_options(
             ${TARGET_NAME}
             PRIVATE
-                /EHsc /W1 /wd4996 /w14800
+                # vs2017 emits too many false positives for my tastes
+                $<IF:$<EQUAL:${MSVC_TOOLSET_VERSION},141>, /W1, /W4>
+                # clang-cl goes a little wrong with some warnings instead
+                $<$<STREQUAL:"${CMAKE_CXX_COMPILER_ID}","Clang">:
+                    -Wno-deprecated-declarations
+                    -Wno-ignored-qualifiers
+                    -Wno-unknown-warning-option
+                    -Wno-exceptions
+                    -Wno-unused-local-typedef
+                    -Wno-unused-private-field
+                >
+                # documentation diagnostic turned on for clang-cl only
+                $<$<STREQUAL:"${CMAKE_CXX_COMPILER_ID}","Clang">:-Wdocumentation>
+                /EHsc /wd4324 /wd4996
                 $<$<CONFIG:Debug>:/Od>
                 $<$<CONFIG:Release>:/O2>
         )
@@ -94,21 +107,23 @@ function(SETUP_BASIC_TEST TEST_NAME TEST_SOURCES)
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endfunction()
 
-function(SETUP_LIB_TEST TEST_NAME)
-    add_library(_${TEST_NAME} SHARED $<TARGET_OBJECTS:odr> lib/${TEST_NAME}/lib.cpp)
-    SETUP_TARGET(_${TEST_NAME} ENTT_API_EXPORT)
-    SETUP_BASIC_TEST(lib_${TEST_NAME} lib/${TEST_NAME}/main.cpp ENTT_API_IMPORT)
-    target_link_libraries(lib_${TEST_NAME} PRIVATE _${TEST_NAME})
+function(SETUP_LIB_SHARED_TEST TEST_NAME SUB_PATH)
+    set(TARGET_NAME ${TEST_NAME}_${SUB_PATH})
+    add_library(_${TARGET_NAME} SHARED $<TARGET_OBJECTS:odr> lib/${TEST_NAME}/${SUB_PATH}/lib.cpp)
+    SETUP_TARGET(_${TARGET_NAME} ENTT_API_EXPORT)
+    SETUP_BASIC_TEST(lib_${TARGET_NAME} lib/${TEST_NAME}/${SUB_PATH}/main.cpp ENTT_API_IMPORT)
+    target_link_libraries(lib_${TARGET_NAME} PRIVATE _${TARGET_NAME})
 endfunction()
 
-function(SETUP_PLUGIN_TEST TEST_NAME)
-    add_library(_${TEST_NAME} MODULE $<TARGET_OBJECTS:odr> lib/${TEST_NAME}/plugin.cpp)
-    SETUP_TARGET(_${TEST_NAME} ${ARGVN})
-    SETUP_BASIC_TEST(lib_${TEST_NAME} lib/${TEST_NAME}/main.cpp PLUGIN="$<TARGET_FILE:_${TEST_NAME}>" ${ARGVN})
-    target_include_directories(_${TEST_NAME} PRIVATE ${cr_INCLUDE_DIR})
-    target_include_directories(lib_${TEST_NAME} PRIVATE ${cr_INCLUDE_DIR})
-    target_link_libraries(lib_${TEST_NAME} PRIVATE ${CMAKE_DL_LIBS})
-    add_dependencies(lib_${TEST_NAME} _${TEST_NAME})
+function(SETUP_LIB_PLUGIN_TEST TEST_NAME SUB_PATH)
+    set(TARGET_NAME ${TEST_NAME}_${SUB_PATH})
+    add_library(_${TARGET_NAME} MODULE $<TARGET_OBJECTS:odr> lib/${TEST_NAME}/${SUB_PATH}/plugin.cpp)
+    SETUP_TARGET(_${TARGET_NAME} ${ARGVN})
+    SETUP_BASIC_TEST(lib_${TARGET_NAME} lib/${TEST_NAME}/${SUB_PATH}/main.cpp PLUGIN="$<TARGET_FILE:_${TARGET_NAME}>" ${ARGVN})
+    target_include_directories(_${TARGET_NAME} PRIVATE ${cr_INCLUDE_DIR})
+    target_include_directories(lib_${TARGET_NAME} PRIVATE ${cr_INCLUDE_DIR})
+    target_link_libraries(lib_${TARGET_NAME} PRIVATE ${CMAKE_DL_LIBS})
+    add_dependencies(lib_${TARGET_NAME} _${TARGET_NAME})
 endfunction()
 
 # Test benchmark
@@ -142,19 +157,21 @@ if(ENTT_BUILD_LIB)
         set(cr_INCLUDE_DIR ${cr_SOURCE_DIR})
     endif()
 
-    SETUP_LIB_TEST(dispatcher)
-    SETUP_LIB_TEST(emitter)
-    SETUP_LIB_TEST(locator)
-    SETUP_LIB_TEST(meta)
-    SETUP_LIB_TEST(registry)
+    SETUP_LIB_SHARED_TEST(dispatcher shared)
+    SETUP_LIB_PLUGIN_TEST(dispatcher plugin)
 
-    SETUP_PLUGIN_TEST(dispatcher_plugin)
-    SETUP_PLUGIN_TEST(emitter_plugin)
-    SETUP_PLUGIN_TEST(locator_plugin)
-    SETUP_PLUGIN_TEST(meta_plugin)
-    SETUP_PLUGIN_TEST(registry_plugin)
+    SETUP_LIB_SHARED_TEST(emitter shared)
+    SETUP_LIB_PLUGIN_TEST(emitter plugin)
 
-    SETUP_PLUGIN_TEST(meta_plugin_std ENTT_STANDARD_CPP)
+    SETUP_LIB_SHARED_TEST(locator shared)
+    SETUP_LIB_PLUGIN_TEST(locator plugin)
+
+    SETUP_LIB_SHARED_TEST(meta shared)
+    SETUP_LIB_PLUGIN_TEST(meta plugin)
+    SETUP_LIB_PLUGIN_TEST(meta plugin_std ENTT_STANDARD_CPP)
+
+    SETUP_LIB_SHARED_TEST(registry shared)
+    SETUP_LIB_PLUGIN_TEST(registry plugin)
 endif()
 
 # Test snapshot
@@ -215,10 +232,11 @@ SETUP_BASIC_TEST(observer entt/entity/observer.cpp)
 SETUP_BASIC_TEST(organizer entt/entity/organizer.cpp)
 SETUP_BASIC_TEST(registry entt/entity/registry.cpp)
 SETUP_BASIC_TEST(runtime_view entt/entity/runtime_view.cpp)
+SETUP_BASIC_TEST(sigh_mixin entt/entity/sigh_mixin.cpp)
 SETUP_BASIC_TEST(snapshot entt/entity/snapshot.cpp)
 SETUP_BASIC_TEST(sparse_set entt/entity/sparse_set.cpp)
 SETUP_BASIC_TEST(storage entt/entity/storage.cpp)
-SETUP_BASIC_TEST(storage_mixin entt/entity/storage_mixin.cpp)
+SETUP_BASIC_TEST(storage_entity entt/entity/storage_entity.cpp)
 SETUP_BASIC_TEST(view entt/entity/view.cpp)
 
 # Test graph

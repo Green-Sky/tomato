@@ -16,6 +16,10 @@ struct stable_type {
     int value;
 };
 
+void sigh_callback(int &value) {
+    ++value;
+}
+
 TEST(Helper, AsView) {
     entt::registry registry;
     const entt::registry cregistry;
@@ -48,7 +52,7 @@ TEST(Helper, Invoke) {
 TEST(Helper, ToEntity) {
     entt::registry registry;
     const entt::entity null = entt::null;
-    constexpr auto page_size = entt::component_traits<int>::page_size;
+    constexpr auto page_size = entt::storage_type_t<int>::traits_type::page_size;
     const int value = 42;
 
     ASSERT_EQ(entt::to_entity(registry, 42), null);
@@ -88,7 +92,7 @@ TEST(Helper, ToEntity) {
 TEST(Helper, ToEntityStableType) {
     entt::registry registry;
     const entt::entity null = entt::null;
-    constexpr auto page_size = entt::component_traits<stable_type>::page_size;
+    constexpr auto page_size = entt::storage_type_t<stable_type>::traits_type::page_size;
     const stable_type value{42};
 
     ASSERT_EQ(entt::to_entity(registry, stable_type{42}), null);
@@ -123,4 +127,45 @@ TEST(Helper, ToEntityStableType) {
 
     ASSERT_EQ(entt::to_entity(registry, stable_type{42}), null);
     ASSERT_EQ(entt::to_entity(registry, value), null);
+}
+
+TEST(Helper, SighHelper) {
+    using namespace entt::literals;
+
+    entt::registry registry{};
+    const auto entt = registry.create();
+    entt::sigh_helper helper{registry};
+    int counter{};
+
+    ASSERT_EQ(&helper.registry(), &registry);
+
+    helper.with<int>()
+        .on_construct<&sigh_callback>(counter)
+        .on_update<&sigh_callback>(counter)
+        .on_destroy<&sigh_callback>(counter);
+
+    ASSERT_EQ(counter, 0);
+
+    registry.emplace<int>(entt);
+    registry.replace<int>(entt);
+    registry.erase<int>(entt);
+
+    ASSERT_EQ(counter, 3);
+
+    helper.with<double>("other"_hs)
+        .on_construct<&sigh_callback>(counter)
+        .on_update<&sigh_callback>(counter)
+        .on_destroy<&sigh_callback>(counter);
+
+    registry.emplace<double>(entt);
+    registry.replace<double>(entt);
+    registry.erase<double>(entt);
+
+    ASSERT_EQ(counter, 3);
+
+    registry.storage<double>("other"_hs).emplace(entt);
+    registry.storage<double>("other"_hs).patch(entt);
+    registry.storage<double>("other"_hs).erase(entt);
+
+    ASSERT_EQ(counter, 6);
 }

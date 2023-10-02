@@ -49,7 +49,23 @@ TEST_F(MetaProp, Functionalities) {
     auto prop = entt::resolve<base_1_t>().prop("int"_hs);
 
     ASSERT_TRUE(prop);
-    ASSERT_EQ(prop.value(), 42);
+
+    ASSERT_EQ(prop, prop);
+    ASSERT_NE(prop, entt::meta_prop{});
+    ASSERT_FALSE(prop != prop);
+    ASSERT_TRUE(prop == prop);
+
+    auto value = prop.value();
+    auto cvalue = std::as_const(prop).value();
+
+    ASSERT_NE(value.try_cast<int>(), nullptr);
+    ASSERT_EQ(cvalue.try_cast<int>(), nullptr);
+
+    ASSERT_NE(value.try_cast<const int>(), nullptr);
+    ASSERT_NE(cvalue.try_cast<const int>(), nullptr);
+
+    ASSERT_EQ(value, 42);
+    ASSERT_EQ(cvalue, 42);
 }
 
 TEST_F(MetaProp, FromBase) {

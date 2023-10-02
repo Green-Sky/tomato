@@ -24,6 +24,12 @@ TEST(ToAddress, Functionalities) {
 
 TEST(PoccaPocmaAndPocs, Functionalities) {
     test::basic_test_allocator<int> lhs, rhs;
+    test::basic_test_allocator<int, std::false_type> no_pocs;
+
+    // code coverage purposes
+    ASSERT_FALSE(lhs == rhs);
+    ASSERT_NO_FATAL_FAILURE(entt::propagate_on_container_swap(no_pocs, no_pocs));
+
     // honestly, I don't even know how one is supposed to test such a thing :)
     entt::propagate_on_container_copy_assignment(lhs, rhs);
     entt::propagate_on_container_move_assignment(lhs, rhs);
@@ -31,8 +37,8 @@ TEST(PoccaPocmaAndPocs, Functionalities) {
 }
 
 ENTT_DEBUG_TEST(PoccaPocmaAndPocsDeathTest, Functionalities) {
-    using pocs = std::false_type;
-    test::basic_test_allocator<int, pocs> lhs, rhs;
+    test::basic_test_allocator<int, std::false_type> lhs, rhs;
+
     ASSERT_DEATH(entt::propagate_on_container_swap(lhs, rhs), "");
 }
 
@@ -60,8 +66,8 @@ TEST(NextPowerOfTwo, Functionalities) {
     ASSERT_EQ(entt::next_power_of_two(17u), 32u);
     ASSERT_EQ(entt::next_power_of_two(32u), 32u);
     ASSERT_EQ(entt::next_power_of_two(33u), 64u);
-    ASSERT_EQ(entt::next_power_of_two(std::pow(2, 16)), std::pow(2, 16));
-    ASSERT_EQ(entt::next_power_of_two(std::pow(2, 16) + 1u), std::pow(2, 17));
+    ASSERT_EQ(entt::next_power_of_two(static_cast<std::size_t>(std::pow(2, 16))), static_cast<std::size_t>(std::pow(2, 16)));
+    ASSERT_EQ(entt::next_power_of_two(static_cast<std::size_t>(std::pow(2, 16) + 1u)), static_cast<std::size_t>(std::pow(2, 17)));
 }
 
 ENTT_DEBUG_TEST(NextPowerOfTwoDeathTest, Functionalities) {
