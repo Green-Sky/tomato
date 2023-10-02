@@ -14,7 +14,6 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
-#include "solanaceae/message3/registry_message_model.hpp"
 
 #include <string>
 #include <variant>
@@ -157,6 +156,25 @@ void ChatGui4::render(void) {
 					}
 
 					auto* msg_reg_ptr = _rmm.get(*_selected_contact);
+
+					if (msg_reg_ptr != nullptr) {
+						const auto& mm = *msg_reg_ptr;
+						//const auto& unread_storage = mm.storage<Message::Components::TagUnread>();
+						if (const auto* unread_storage = mm.storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
+							//assert(unread_storage->size() == 0);
+							//assert(unread_storage.cbegin() == unread_storage.cend());
+							std::cout << "UNREAD ";
+							Message3 prev_ent = entt::null;
+							for (const Message3 e : mm.view<Message::Components::TagUnread>()) {
+								std::cout << entt::to_integral(e) << " ";
+								if (prev_ent == e) {
+									assert(false && "dup");
+								}
+								prev_ent = e;
+							}
+							std::cout << "\n";
+						}
+					}
 
 					constexpr ImGuiTableFlags table_flags =
 						ImGuiTableFlags_BordersInnerV |
@@ -653,6 +671,15 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 		bool has_unread = false;
 		if (const auto* mm = _rmm.get(c); mm != nullptr) {
 			if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
+#if 0
+				assert(unread_storage.size() == 0);
+				assert(unread_storage.cbegin() == unread_storage.cend());
+				std::cout << "UNREAD ";
+				for (const auto e : mm->view<Message::Components::TagUnread>()) {
+					std::cout << entt::to_integral(e) << " ";
+				}
+				std::cout << "\n";
+#endif
 				has_unread = true;
 			}
 		}
