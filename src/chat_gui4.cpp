@@ -197,9 +197,9 @@ void ChatGui4::render(void) {
 							msg_reg.remove<Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
 						}
 
-						msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>()
-							.use<Message::Components::Timestamp>()
-							.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
+						auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
+						tmp_view.use<Message::Components::Timestamp>();
+						tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
 						) {
 							// TODO: why?
 							ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
@@ -651,8 +651,10 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 		// TODO: is there a better way?
 		// maybe cache mm?
 		bool has_unread = false;
-		if (const auto* mm = _rmm.get(c); mm != nullptr && !mm->storage<Message::Components::TagUnread>().empty()) {
-			has_unread = true;
+		if (const auto* mm = _rmm.get(c); mm != nullptr) {
+			if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
+				has_unread = true;
+			}
 		}
 
 		ImGui::Text("%s%s", has_unread?"* ":"", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
