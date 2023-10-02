@@ -9,6 +9,7 @@
 * [Delegate](#delegate)
   * [Runtime arguments](#runtime-arguments)
   * [Lambda support](#lambda-support)
+  * [Raw access](#raw-access)
 * [Signals](#signals)
 * [Event dispatcher](#event-dispatcher)
   * [Named queues](#named-queues)
@@ -38,7 +39,7 @@ lightweight classes to solve the same and many other problems.
 # Delegate
 
 A delegate can be used as a general purpose invoker with no memory overhead for
-free functions and member functions provided along with an instance on which to
+free functions, lambdas and members provided along with an instance on which to
 invoke them.<br/>
 It doesn't claim to be a drop-in replacement for an `std::function`, so don't
 expect to use it whenever an `std::function` fits well. That said, it's most
@@ -92,9 +93,9 @@ delegate.connect<&g>(c);
 delegate(42);
 ```
 
-The function `g` is invoked with a reference to `c` and `42`. However, the
-function type of the delegate is still `void(int)`. This is also the signature
-of its function call operator.<br/>
+Function `g` is invoked with a reference to `c` and `42`. However, the function
+type of the delegate is still `void(int)`. This is also the signature of its
+function call operator.<br/>
 Another interesting aspect of the delegate class is that it accepts functions
 with a list of parameters that is shorter than that of its function type:
 
@@ -105,9 +106,15 @@ delegate(42);
 ```
 
 Where the function type of the delegate is `void(int)` as above. It goes without
-saying that the extra arguments are silently discarded internally.<br/>
-This is a nice-to-have feature in a lot of cases, as an example when the
-`delegate` class is used as a building block of a signal-slot system.
+saying that the extra arguments are silently discarded internally. This is a
+nice-to-have feature in a lot of cases, as an example when the `delegate` class
+is used as a building block of a signal-slot system.<br/>
+In fact, this filtering works both ways. The class tries to pass its first
+_count_ arguments **first**, then the last _count_. Watch out for conversion
+rules if in doubt when connecting a listener!<br/>
+Arbitrary functions that pull random arguments from the delegate list aren't
+supported instead. Other feature were preferred, such as support for functions
+with compatible argument lists although not equal to those of the delegate.
 
 To create and initialize a delegate at once, there are a few specialized
 constructors. Because of the rules of the language, the listener is provided by
@@ -231,6 +238,24 @@ As above, the first parameter (`const void *`) isn't part of the function type
 of the delegate and is used to dispatch arbitrary user data back and forth. In
 other terms, the function type of the delegate above is `int(int)`.
 
+## Raw access
+
+While not recommended, a delegate also allows direct access to the stored
+callable function target and underlying data, if any.<br/>
+This makes it possible to bypass the behavior of the delegate itself and force
+calls on different instances:
+
+```cpp
+my_struct other;
+delegate.target(&other, 42);
+```
+
+It goes without saying that this type of approach is **very** risky, especially
+since there is no way of knowing whether the contained function was originally a
+member function of some class, a free function or a lambda.<br/>
+Another possible (and meaningful) use of this feature is that of identifying a
+particular delegate through its descriptive _traits_ instead.
+
 # Signals
 
 Signal handlers work with references to classes, function pointers and pointers
@@ -290,7 +315,7 @@ sink.disconnect<&foo>();
 sink.disconnect<&listener::bar>(instance);
 
 // disconnect all member functions of an instance, if any
-sink.disconnect(instance);
+sink.disconnect(&instance);
 
 // discards all listeners at once
 sink.disconnect();
@@ -300,15 +325,6 @@ As shown above, listeners don't have to strictly follow the signature of the
 signal. As long as a listener can be invoked with the given arguments to yield a
 result that is convertible to the given return type, everything works just
 fine.<br/>
-It's also possible to connect a listener before other elements already contained
-by the signal. The `before` function returns a `sink` object that is correctly
-initialized for the purpose and can be used to connect one or more listeners in
-order and in the desired position:
-
-```cpp
-sink.before<&foo>().connect<&listener::bar>(instance);
-```
-
 In all cases, the `connect` member function returns by default a `connection`
 object to be used as an alternative to break a connection by means of its
 `release` member function.<br/>
@@ -409,7 +425,7 @@ of them at once:
 
 ```cpp
 dispatcher.sink<an_event>().disconnect<&listener::receive>(listener);
-dispatcher.sink<another_event>().disconnect(listener);
+dispatcher.sink<another_event>().disconnect(&listener);
 ```
 
 The `trigger` member function serves the purpose of sending an immediate event

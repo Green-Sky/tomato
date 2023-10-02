@@ -1,17 +1,34 @@
 # Similar projects
 
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+# Table of Contents
+
+* [Introduction](#introduction)
+* [Similar projects](#similar-projects)
+<!--
+@endcond TURN_OFF_DOXYGEN
+-->
+
+# Introduction
+
 There are many projects similar to `EnTT`, both open source and not.<br/>
 Some even borrowed some ideas from this library and expressed them in different
 languages.<br/>
 Others developed different architectures from scratch and therefore offer
 alternative solutions with their pros and cons.
 
-Below an incomplete list of those that I've come across so far.<br/>
+If you know of other similar projects out there, feel free to open an issue or a
+PR and I'll be glad to add them to this page.<br/>
+I hope the following lists can grow much more in the future.
+
+# Similar projects
+
+Below an incomplete list of similar projects that I've come across so far.<br/>
 If some terms or designs aren't clear, I recommend referring to the
 [_ECS Back and Forth_](https://skypjack.github.io/tags/#ecs) series for all the
 details.
-
-I hope this list can grow much more in the future:
 
 * C:
   * [destral_ecs](https://github.com/roig/destral_ecs): a single-file ECS based
@@ -34,6 +51,8 @@ I hope this list can grow much more in the future:
     solution between an ECS and dynamic mixins.
 
 * C#
+  * [Arch](https://github.com/genaray/Arch): a simple, fast and _unity entities_
+    inspired archetype ECS with optional multithreading. 
   * [Entitas](https://github.com/sschmid/Entitas-CSharp): the ECS framework for
     C# and Unity, where _reactive systems_ were invented.
   * [LeoECS](https://github.com/Leopotam/ecs): simple lightweight C# Entity
@@ -70,6 +89,3 @@ I hope this list can grow much more in the future:
 
 * Zig
   * [zig-ecs](https://github.com/prime31/zig-ecs): a _zig-ification_ of `EnTT`.
-
-If you know of other resources out there that can be of interest for the reader,
-feel free to open an issue or a PR and I'll be glad to add them to this page.
