@@ -383,7 +383,7 @@ void ChatGui4::render(void) {
 											tmp_file_name
 												<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
 												<< "."
-												<< std::setfill('0') << std::setw(4)
+												<< std::setfill('0') << std::setw(3)
 												<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
 												<< file_ext
 											;

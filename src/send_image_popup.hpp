@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "./image_loader.hpp"
 #include "./texture_cache.hpp"
@@ -32,6 +33,9 @@ struct SendImagePopup {
 	// texture to render (orig img)
 	TextureEntry preview_image;
 
+	bool compress {false};
+	uint32_t quality {80u};
+
 	bool _open_popup {false};
 
 	std::function<void(const std::vector<uint8_t>&, std::string_view)> _on_send = [](const auto&, auto){};
@@ -43,6 +47,10 @@ struct SendImagePopup {
 	// fills in original_image, preview_image and crop_rect
 	// returns if loaded successfully
 	bool load(void);
+
+	static std::vector<uint8_t> compressWebp(const ImageLoaderI::ImageResult& input_image, uint32_t quality = 80u);
+	static ImageLoaderI::ImageResult crop(const ImageLoaderI::ImageResult& input_image, const Rect& crop_rect);
+	static Rect sanitizeCrop(Rect crop_rect, uint32_t image_width, uint32_t image_height);
 
 	public:
 		SendImagePopup(TextureUploaderI& tu);
