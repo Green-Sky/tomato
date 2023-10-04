@@ -15,15 +15,16 @@
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
 
+#include <cstdint>
 #include <string>
 #include <variant>
 #include <vector>
 #include <chrono>
-#include <filesystem>
 #include <ctime>
-#include <cstdint>
-#include <fstream>
 #include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
 
 namespace Components {
 
