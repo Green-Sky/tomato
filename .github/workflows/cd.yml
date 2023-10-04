@@ -36,7 +36,7 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-        name: windows_msvc_x86-64
+        name: ${{ github.event.repository.name }}-windows-msvc-x86_64
         # TODO: do propper packing
         path: |
           ${{github.workspace}}/build/bin/
