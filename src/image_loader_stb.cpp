@@ -29,6 +29,7 @@ ImageLoaderSTB::ImageResult ImageLoaderSTB::loadFromMemoryRGBA(const uint8_t* da
 		if (img_data) {
 			res.width = x;
 			res.height = y;
+			res.file_ext = "gif";
 
 			const size_t stride = x * y * 4;
 

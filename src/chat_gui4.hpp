@@ -8,6 +8,7 @@
 #include "./tox_avatar_loader.hpp"
 #include "./message_image_loader.hpp"
 #include "./file_selector.hpp"
+#include "./send_image_popup.hpp"
 
 #include <vector>
 #include <set>
@@ -23,6 +24,7 @@ class ChatGui4 {
 	TextureCache<void*, Message3Handle, MessageImageLoader> _msg_tc;
 
 	FileSelector _fss;
+	SendImagePopup _sip;
 
 	std::optional<Contact3> _selected_contact;
 
@@ -44,6 +46,9 @@ class ChatGui4 {
 
 	public:
 		void render(void);
+
+	public:
+		bool any_unread {false};
 
 	private:
 		void renderMessageBodyText(Message3Registry& reg, const Message3 e);

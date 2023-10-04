@@ -27,6 +27,7 @@ ImageLoaderWebP::ImageInfo ImageLoaderWebP::loadInfoFromMemory(const uint8_t* da
 	WebPAnimDecoderGetInfo(dec, &anim_info);
 	res.width = anim_info.canvas_width;
 	res.height = anim_info.canvas_height;
+	res.file_ext = "webp";
 
 	return res;
 }
@@ -53,6 +54,7 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 	WebPAnimDecoderGetInfo(dec, &anim_info);
 	res.width = anim_info.canvas_width;
 	res.height = anim_info.canvas_height;
+	res.file_ext = "webp";
 
 	int prev_timestamp = 0;
 	while (WebPAnimDecoderHasMoreFrames(dec)) {

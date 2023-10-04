@@ -16,6 +16,7 @@ ImageLoaderSDLBMP::ImageInfo ImageLoaderSDLBMP::loadInfoFromMemory(const uint8_t
 
 	res.width = surf->w;
 	res.height = surf->h;
+	res.file_ext = "bmp";
 
 	SDL_DestroySurface(surf);
 
@@ -40,6 +41,7 @@ ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8
 
 	res.width = surf->w;
 	res.height = surf->h;
+	res.file_ext = "bmp";
 
 	SDL_LockSurface(conv_surf);
 

@@ -45,6 +45,9 @@ add_executable(tomato
 	./file_selector.hpp
 	./file_selector.cpp
 
+	./send_image_popup.hpp
+	./send_image_popup.cpp
+
 	./chat_gui4.hpp
 	./chat_gui4.cpp
 )

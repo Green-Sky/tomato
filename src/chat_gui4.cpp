@@ -21,6 +21,9 @@
 #include <chrono>
 #include <filesystem>
 #include <ctime>
+#include <cstdint>
+#include <fstream>
+#include <iomanip>
 
 namespace Components {
 
@@ -40,7 +43,7 @@ ChatGui4::ChatGui4(
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu
-) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu), _msg_tc(_mil, tu) {
+) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu), _msg_tc(_mil, tu), _sip(tu) {
 }
 
 void ChatGui4::render(void) {
@@ -353,9 +356,60 @@ void ChatGui4::render(void) {
 							[](){}
 						);
 					}
+
+					{
+						// TODO: add support for more than images
+						// !!! polling each frame can be VERY expensive !!!
+						//const auto* mime_type = clipboardHasImage();
+						//ImGui::BeginDisabled(mime_type == nullptr);
+						if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
+							const auto* mime_type = clipboardHasImage();
+							if (mime_type != nullptr) { // making sure
+								size_t data_size = 0;
+								void* data = SDL_GetClipboardData(mime_type, &data_size);
+
+								std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
+
+								_sip.sendMemory(
+									static_cast<const uint8_t*>(data), data_size,
+									[this](const auto& img_data, const auto file_ext) {
+										// create file name
+										// TODO: move this into sip
+										std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
+										{
+											const auto now = std::chrono::system_clock::now();
+											const auto ctime = std::chrono::system_clock::to_time_t(now);
+											tmp_file_name
+												<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
+												<< "."
+												<< std::setfill('0') << std::setw(4)
+												<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
+												<< file_ext
+											;
+										}
+
+										std::cout << "tmp image path " << tmp_file_name.str() << "\n";
+
+										const std::filesystem::path tmp_send_file_path = "tmp_send_files";
+										std::filesystem::create_directories(tmp_send_file_path);
+										const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
+
+										std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
+											.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
+
+										_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.u8string());
+									},
+									[](){}
+								);
+								SDL_free(data); // free data
+							}
+						}
+						//ImGui::EndDisabled();
+					}
 				}
 				ImGui::EndChild();
 
+#if 0
 				// if preview window not open?
 				if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyPressed(ImGuiMod_Shortcut, false)) {
 					std::cout << "CG: paste?\n";
@@ -366,6 +420,7 @@ void ChatGui4::render(void) {
 						std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
 					}
 				}
+#endif
 			}
 			ImGui::EndChild();
 		}
@@ -373,6 +428,7 @@ void ChatGui4::render(void) {
 	ImGui::End();
 
 	_fss.render();
+	_sip.render();
 
 	_contact_tc.workLoadQueue();
 	_msg_tc.workLoadQueue();
@@ -523,8 +579,25 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// if has local, display save base path?
 
 	for (size_t i = 0; i < file_list.size(); i++) {
-		// TODO: selectable text widget
+		ImGui::PushID(i);
+
+		// TODO: selectable text widget ?
 		ImGui::Bullet(); ImGui::Text("%s (%lu)", file_list[i].file_name.c_str(), file_list[i].file_size);
+
+		if (reg.all_of<Message::Components::Transfer::FileInfoLocal>(e)) {
+			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
+			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
+				if (ImGui::MenuItem("open")) {
+					std::string url{"file://" + std::filesystem::canonical(local_info.file_list.at(i)).u8string()};
+					std::cout << "opening file '" << url << "'\n";
+
+					SDL_OpenURL(url.c_str());
+				}
+				ImGui::EndPopup();
+			}
+		}
+
+		ImGui::PopID();
 	}
 
 	if (file_list.size() == 1 && reg.all_of<Message::Components::Transfer::FileInfoLocal, Message::Components::FrameDims>(e)) {
@@ -546,6 +619,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		}
 
 		ImGui::Image(id, ImVec2{static_cast<float>(width), static_cast<float>(height)});
+		// TODO: clickable to open in internal image viewer
 	}
 }
 
@@ -663,6 +737,9 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 		color_current
 	);
 
+	// TODO: move this out of chat gui
+	any_unread = false;
+
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	{
@@ -681,6 +758,7 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 				std::cout << "\n";
 #endif
 				has_unread = true;
+				any_unread = true;
 			}
 		}
 
