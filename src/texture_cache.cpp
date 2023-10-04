@@ -3,10 +3,10 @@
 #include <chrono>
 #include <array>
 
-void TextureEntry::doAnimation(const uint64_t ts_now) {
+void TextureEntry::doAnimation(const int64_t ts_now) {
 	if (frame_duration.size() > 1) { // is animation
 		do { // why is this loop so ugly
-			const uint64_t duration = getDuration();
+			const int64_t duration = getDuration();
 			if (ts_now - timestamp_last_rendered >= duration) {
 				timestamp_last_rendered += duration;
 				next();
@@ -21,7 +21,7 @@ void TextureEntry::doAnimation(const uint64_t ts_now) {
 
 TextureEntry generateTestAnim(TextureUploaderI& tu) {
 	TextureEntry new_entry;
-	new_entry.timestamp_last_rendered = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	new_entry.timestamp_last_rendered = getNowMS();
 	new_entry.current_texture = 0;
 	for (size_t i = 0; i < 4; i++) {
 		// hack
@@ -55,6 +55,6 @@ TextureEntry generateTestAnim(TextureUploaderI& tu) {
 }
 
 uint64_t getNowMS(void) {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 

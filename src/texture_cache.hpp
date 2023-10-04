@@ -16,7 +16,7 @@ struct TextureEntry {
 
 	bool rendered_this_frame {false};
 	// or flipped for animations
-	uint64_t timestamp_last_rendered {0}; // ms
+	int64_t timestamp_last_rendered {0}; // ms
 
 	TextureEntry(void) = default;
 	TextureEntry(const TextureEntry& other) :
@@ -50,7 +50,7 @@ struct TextureEntry {
 		current_texture = (current_texture + 1) % frame_duration.size();
 	}
 
-	void doAnimation(const uint64_t ts_now);
+	void doAnimation(const int64_t ts_now);
 
 	template<typename TextureType>
 	TextureType getID(void) {
