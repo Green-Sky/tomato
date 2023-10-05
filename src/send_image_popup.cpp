@@ -45,7 +45,7 @@ bool SendImagePopup::load(void) {
 			continue;
 		}
 
-#if 1
+#if 0
 		crop_rect.x = 0;
 		crop_rect.y = 0;
 		crop_rect.w = original_image.width;
@@ -58,6 +58,7 @@ bool SendImagePopup::load(void) {
 
 #endif
 		crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
+		crop_before_drag = crop_rect;
 
 		original_file_ext = ".";
 		if (original_image.file_ext != nullptr) {
@@ -193,20 +194,32 @@ ImageLoaderI::ImageResult SendImagePopup::crop(const ImageLoaderI::ImageResult& 
 	return new_image;
 }
 
-SendImagePopup::Rect SendImagePopup::sanitizeCrop(Rect crop_rect, uint32_t image_width, uint32_t image_height) {
+SendImagePopup::Rect SendImagePopup::sanitizeCrop(Rect crop_rect, int32_t image_width, int32_t image_height) {
 	// w and h min is 1 -> x/y need to be smaller so the img is atleast 1px in any dim
 	if (crop_rect.x >= image_width-1) {
 		crop_rect.x = image_width-2;
+	} else if (crop_rect.x < 0) {
+		crop_rect.x = 0;
 	}
+
 	if (crop_rect.y >= image_height-1) {
 		crop_rect.y = image_height-2;
+	} else if (crop_rect.y < 0) {
+		crop_rect.y = 0;
 	}
 
 	if (crop_rect.w > crop_rect.x + image_width) {
 		crop_rect.w = crop_rect.x + image_width;
+	} else if (crop_rect.w < 1) {
+		crop_rect.w = 1;
+		// TODO: adjust X
 	}
+
 	if (crop_rect.h > crop_rect.y + image_height) {
 		crop_rect.h = crop_rect.y + image_height;
+	} else if (crop_rect.h < 1) {
+		crop_rect.h = 1;
+		// TODO: adjust Y
 	}
 
 	return crop_rect;
@@ -290,7 +303,6 @@ void SendImagePopup::render(void) {
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.5f, 0.5f, 0.5f, 0.2f});
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.5f, 0.5f, 0.5f, 0.4f});
 
-				static Rect crop_before_drag = crop_rect;
 				auto ul_clipper_pos = ImVec2{float(crop_rect.x)/original_image.width, float(crop_rect.y)/original_image.height};
 				{ // crop upper left clipper
 
@@ -328,10 +340,11 @@ void SendImagePopup::render(void) {
 						std::cout << "drag ended\n";
 						dragging_last_frame = false;
 
-						crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 
 						crop_before_drag = crop_rect;
 					}
+
+					crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 				}
 
 				// crop lower right clipper
@@ -355,7 +368,20 @@ void SendImagePopup::render(void) {
 					);
 
 					// w vertical
+					ImGui::GetWindowDrawList()->AddLine(
+						{pre_img_curser_screen.x + lr_clipper_pos.x * width, pre_img_curser_screen.y},
+						{pre_img_curser_screen.x + lr_clipper_pos.x * width, pre_img_curser_screen.y + height},
+						0xffffffff,
+						1.f
+					);
+
 					// h horizontal
+					ImGui::GetWindowDrawList()->AddLine(
+						{pre_img_curser_screen.x,			pre_img_curser_screen.y + lr_clipper_pos.y * height},
+						{pre_img_curser_screen.x + width,	pre_img_curser_screen.y + lr_clipper_pos.y * height},
+						0xffffffff,
+						1.f
+					);
 				}
 
 				// cancel/ok buttons in the img center?

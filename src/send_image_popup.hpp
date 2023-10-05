@@ -29,6 +29,7 @@ struct SendImagePopup {
 		int32_t h {0};
 	};
 	Rect crop_rect;
+	Rect crop_before_drag;
 
 	bool cropping {false};
 
@@ -52,7 +53,7 @@ struct SendImagePopup {
 
 	static std::vector<uint8_t> compressWebp(const ImageLoaderI::ImageResult& input_image, uint32_t quality = 80u);
 	static ImageLoaderI::ImageResult crop(const ImageLoaderI::ImageResult& input_image, const Rect& crop_rect);
-	static Rect sanitizeCrop(Rect crop_rect, uint32_t image_width, uint32_t image_height);
+	static Rect sanitizeCrop(Rect crop_rect, int32_t image_width, int32_t image_height);
 
 	public:
 		SendImagePopup(TextureUploaderI& tu);
