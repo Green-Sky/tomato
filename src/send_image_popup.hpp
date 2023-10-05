@@ -41,6 +41,8 @@ struct SendImagePopup {
 	bool compress {false};
 	uint32_t quality {80u};
 
+	float time {0.f}; // cycling form 0 to 1 over time
+
 	bool _open_popup {false};
 
 	std::function<void(const std::vector<uint8_t>&, std::string_view)> _on_send = [](const auto&, auto){};

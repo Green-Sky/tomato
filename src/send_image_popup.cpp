@@ -47,7 +47,7 @@ bool SendImagePopup::load(void) {
 			continue;
 		}
 
-#if 0
+#if 1
 		crop_rect.x = 0;
 		crop_rect.y = 0;
 		crop_rect.w = original_image.width;
@@ -66,7 +66,18 @@ bool SendImagePopup::load(void) {
 		if (original_image.file_ext != nullptr) {
 			original_file_ext += original_image.file_ext;
 		} else {
-			original_file_ext += "unk";
+			// HACK: manually probe for png
+			if (!original_raw
+				&& original_data.size() >= 4
+				&& original_data.at(0) == 0x89
+				&& original_data.at(1) == 'P'
+				&& original_data.at(2) == 'N'
+				&& original_data.at(3) == 'G'
+			) {
+				original_file_ext += "png";
+			} else {
+				original_file_ext += "unk"; // very meh, default to png?
+			}
 		}
 
 		preview_image.timestamp_last_rendered = getNowMS();
@@ -210,15 +221,15 @@ SendImagePopup::Rect SendImagePopup::sanitizeCrop(Rect crop_rect, int32_t image_
 		crop_rect.y = 0;
 	}
 
-	if (crop_rect.w > crop_rect.x + image_width) {
-		crop_rect.w = crop_rect.x + image_width;
+	if (crop_rect.w > image_width - crop_rect.x) {
+		crop_rect.w = image_width - crop_rect.x;
 	} else if (crop_rect.w < 1) {
 		crop_rect.w = 1;
 		// TODO: adjust X
 	}
 
-	if (crop_rect.h > crop_rect.y + image_height) {
-		crop_rect.h = crop_rect.y + image_height;
+	if (crop_rect.h > image_height - crop_rect.y) {
+		crop_rect.h = image_height - crop_rect.y;
 	} else if (crop_rect.h < 1) {
 		crop_rect.h = 1;
 		// TODO: adjust Y
@@ -266,6 +277,9 @@ void SendImagePopup::render(void) {
 		const auto TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
 		preview_image.doAnimation(getNowMS());
+
+		time += 1.f/60.f; // TODO: actual delay
+		time = fmod(time, 1.f); // fract()
 
 		//ImGui::Text("send file....\n......");
 
@@ -371,11 +385,40 @@ void SendImagePopup::render(void) {
 				crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 
 				{ // 4 lines delimiting the crop result
+					ImU32 line_color = 0xffffffff;
+					{ // calc color
+						auto rgb = [](float x) -> ImVec4 {
+							auto f = [](float x) {
+								while (x < 0.f) {
+									x += 1.f;
+								}
+
+								x = std::fmod(x, 1.f); // fract()
+
+								if (x < 1.f/3) {
+									return x * 3;
+								} else if (x < 2.f/3) {
+									return (1 - (x - (1.f/3))) * 3 - 2;
+								} else {
+									return 0.f;
+								}
+							};
+
+							float red = f(x);
+							float green = f(x - (1.f/3));
+							float blue = f(x - (2.f/3));
+
+							return {red, green, blue, 1.f};
+						};
+
+						line_color = ImGui::GetColorU32(rgb(time));
+					}
+
 					// x vertical
 					ImGui::GetWindowDrawList()->AddLine(
 						{pre_img_curser_screen.x + ul_clipper_pos.x * width, pre_img_curser_screen.y},
 						{pre_img_curser_screen.x + ul_clipper_pos.x * width, pre_img_curser_screen.y + height},
-						0xffffffff,
+						line_color,
 						1.f
 					);
 
@@ -383,7 +426,7 @@ void SendImagePopup::render(void) {
 					ImGui::GetWindowDrawList()->AddLine(
 						{pre_img_curser_screen.x,			pre_img_curser_screen.y + ul_clipper_pos.y * height},
 						{pre_img_curser_screen.x + width,	pre_img_curser_screen.y + ul_clipper_pos.y * height},
-						0xffffffff,
+						line_color,
 						1.f
 					);
 
@@ -391,7 +434,7 @@ void SendImagePopup::render(void) {
 					ImGui::GetWindowDrawList()->AddLine(
 						{pre_img_curser_screen.x + lr_clipper_pos.x * width, pre_img_curser_screen.y},
 						{pre_img_curser_screen.x + lr_clipper_pos.x * width, pre_img_curser_screen.y + height},
-						0xffffffff,
+						line_color,
 						1.f
 					);
 
@@ -399,7 +442,7 @@ void SendImagePopup::render(void) {
 					ImGui::GetWindowDrawList()->AddLine(
 						{pre_img_curser_screen.x,			pre_img_curser_screen.y + lr_clipper_pos.y * height},
 						{pre_img_curser_screen.x + width,	pre_img_curser_screen.y + lr_clipper_pos.y * height},
-						0xffffffff,
+						line_color,
 						1.f
 					);
 				}
