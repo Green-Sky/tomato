@@ -22,13 +22,15 @@ struct SendImagePopup {
 	ImageLoaderI::ImageResult original_image;
 
 	struct Rect {
-		uint32_t x {0};
-		uint32_t y {0};
+		int32_t x {0};
+		int32_t y {0};
 
-		uint32_t w {0};
-		uint32_t h {0};
+		int32_t w {0};
+		int32_t h {0};
 	};
 	Rect crop_rect;
+
+	bool cropping {false};
 
 	// texture to render (orig img)
 	TextureEntry preview_image;
