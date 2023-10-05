@@ -285,7 +285,10 @@ void SendImagePopup::render(void) {
 
 		{
 			float width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-			float height = preview_image.height * (width / preview_image.width);
+			float height = crop_rect.h * (width / crop_rect.w);
+			if (cropping) {
+				height = original_image.height * (width / original_image.width);
+			}
 
 			const float max_height =
 				ImGui::GetWindowContentRegionMax().y
@@ -462,6 +465,9 @@ void SendImagePopup::render(void) {
 					ImVec2{float(crop_rect.x)/original_image.width, float(crop_rect.y)/original_image.height},
 					ImVec2{float(crop_rect.x+crop_rect.w)/original_image.width, float(crop_rect.y+crop_rect.h)/original_image.height}
 				);
+
+				// transparent crop button on image
+#if 0
 				const auto post_img_curser = ImGui::GetCursorPos();
 
 				ImGui::SetCursorPos(pre_img_curser);
@@ -474,11 +480,30 @@ void SendImagePopup::render(void) {
 				ImGui::PopStyleColor();
 
 				ImGui::SetCursorPos(post_img_curser);
+#endif
 			}
 		}
 
 		const bool cropped = crop_rect.x != 0 || crop_rect.y != 0 || crop_rect.w != original_image.width || crop_rect.h != original_image.height;
-		ImGui::Text("crop: x:%d y:%d w:%d h:%d", crop_rect.x, crop_rect.y, crop_rect.w, crop_rect.h);
+		if (cropping) {
+			if (ImGui::Button("done")) {
+				cropping = false;
+			}
+		} else {
+			if (ImGui::Button("crop")) {
+				cropping = true;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("reset")) {
+			crop_rect.x = 0;
+			crop_rect.y = 0;
+			crop_rect.w = original_image.width;
+			crop_rect.h = original_image.height;
+			crop_before_drag = crop_rect;
+		}
+		ImGui::SameLine();
+		ImGui::Text("x:%d y:%d w:%d h:%d", crop_rect.x, crop_rect.y, crop_rect.w, crop_rect.h);
 
 		bool recalc_size = false;
 		if (cropped) {
@@ -488,7 +513,12 @@ void SendImagePopup::render(void) {
 			}
 			compress = true;
 		}
+
 		recalc_size |= ImGui::Checkbox("reencode", &compress);
+		if (cropped && ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("required since cropped!");
+		}
+
 		if (compress) {
 			ImGui::Indent();
 			// combo "webp""webp-lossless""png""jpg?"
