@@ -32,6 +32,8 @@ struct SendImagePopup {
 	Rect crop_before_drag;
 
 	bool cropping {false};
+	bool dragging_last_frame_ul {false};
+	bool dragging_last_frame_lr {false};
 
 	// texture to render (orig img)
 	TextureEntry preview_image;

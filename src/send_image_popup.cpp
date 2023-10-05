@@ -35,6 +35,8 @@ void SendImagePopup::reset(void) {
 	preview_image = {};
 
 	cropping = false;
+	dragging_last_frame_ul = false;
+	dragging_last_frame_lr = false;
 }
 
 bool SendImagePopup::load(void) {
@@ -51,12 +53,12 @@ bool SendImagePopup::load(void) {
 		crop_rect.w = original_image.width;
 		crop_rect.h = original_image.height;
 #else
-		crop_rect.x = original_image.width * 0.1f;
-		crop_rect.y = original_image.height * 0.1f;
-		crop_rect.w = original_image.width * 0.8f;
-		crop_rect.h = original_image.height * 0.8f;
-
+		crop_rect.x = original_image.width * 0.05f;
+		crop_rect.y = original_image.height * 0.05f;
+		crop_rect.w = original_image.width * 0.9f;
+		crop_rect.h = original_image.height * 0.9f;
 #endif
+
 		crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 		crop_before_drag = crop_rect;
 
@@ -287,7 +289,6 @@ void SendImagePopup::render(void) {
 			// TODO: propergate texture id type
 
 			// save curser pos
-
 			const auto pre_img_curser_screen = ImGui::GetCursorScreenPos();
 			const auto pre_img_curser = ImGui::GetCursorPos();
 
@@ -311,10 +312,9 @@ void SendImagePopup::render(void) {
 						pre_img_curser.y + ul_clipper_pos.y * height
 					});
 
-					static bool dragging_last_frame = false;
 					ImGui::Button("##ul_clipper", {TEXT_BASE_HEIGHT, TEXT_BASE_HEIGHT});
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-						if (dragging_last_frame) {
+						if (dragging_last_frame_ul) {
 							auto drag_total = ImGui::GetMouseDragDelta();
 							drag_total.x = (drag_total.x / width) * original_image.width;
 							drag_total.y = (drag_total.y / height) * original_image.height;
@@ -329,26 +329,46 @@ void SendImagePopup::render(void) {
 							crop_rect.h = crop_before_drag.h - (crop_rect.y - crop_before_drag.y);
 						} else {
 							if (ImGui::IsItemActive()) {
-								dragging_last_frame = true;
+								dragging_last_frame_ul = true;
 								// drag started on button, start drag
-								std::cout << "drag started\n";
-							} else {
-								std::cout << "drag but now ours\n";
 							}
 						}
-					} else if (dragging_last_frame) { // was dragging
-						std::cout << "drag ended\n";
-						dragging_last_frame = false;
-
-
+					} else if (dragging_last_frame_ul) { // was dragging
+						dragging_last_frame_ul = false;
 						crop_before_drag = crop_rect;
 					}
-
-					crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 				}
 
-				// crop lower right clipper
 				auto lr_clipper_pos = ImVec2{float(crop_rect.x+crop_rect.w)/original_image.width, float(crop_rect.y+crop_rect.h)/original_image.height};
+				{ // crop lower right clipper
+					ImGui::SetCursorPos({
+						pre_img_curser.x + lr_clipper_pos.x * width - TEXT_BASE_HEIGHT,
+						pre_img_curser.y + lr_clipper_pos.y * height - TEXT_BASE_HEIGHT
+					});
+
+					ImGui::Button("##lr_clipper", {TEXT_BASE_HEIGHT, TEXT_BASE_HEIGHT});
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+						if (dragging_last_frame_lr) {
+							auto drag_total = ImGui::GetMouseDragDelta();
+							drag_total.x = (drag_total.x / width) * original_image.width;
+							drag_total.y = (drag_total.y / height) * original_image.height;
+
+							crop_rect.w = std::min<float>(crop_before_drag.w + drag_total.x, original_image.width);
+							crop_rect.h = std::min<float>(crop_before_drag.h + drag_total.y, original_image.height);
+						} else {
+							if (ImGui::IsItemActive()) {
+								dragging_last_frame_lr = true;
+								// drag started on button, start drag
+							}
+						}
+					} else if (dragging_last_frame_lr) { // was dragging
+						dragging_last_frame_lr = false;
+						crop_before_drag = crop_rect;
+					}
+				}
+
+				// sanitzie after tool
+				crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 
 				{ // 4 lines delimiting the crop result
 					// x vertical
@@ -389,8 +409,6 @@ void SendImagePopup::render(void) {
 				ImGui::PopStyleColor(2);
 
 				ImGui::SetCursorPos(post_img_curser);
-
-				crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 			} else {
 				crop_rect = sanitizeCrop(crop_rect, original_image.width, original_image.height);
 
