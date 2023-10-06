@@ -71,6 +71,7 @@ target_link_libraries(tomato PUBLIC
 	imgui_backend_sdlrenderer3
 
 	stb_image
+	stb_image_write
 	webpdemux
 	libwebpmux # the f why (needed for anim encode)
 )

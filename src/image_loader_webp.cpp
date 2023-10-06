@@ -81,11 +81,7 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 	return res;
 }
 
-std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& input_image) {
-	return encodeToMemoryRGBAExt(input_image, {{"quality", 80.f}});
-}
-
-std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBAExt(const ImageResult& input_image, const std::map<std::string, float>& extra_options) {
+std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options) {
 	// setup options
 	float quality = 80.f;
 	if (extra_options.count("quality")) {

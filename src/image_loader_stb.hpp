@@ -7,3 +7,11 @@ struct ImageLoaderSTB : public ImageLoaderI {
 	ImageResult loadFromMemoryRGBA(const uint8_t* data, uint64_t data_size) override;
 };
 
+struct ImageEncoderSTBPNG : public ImageEncoderI {
+	std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options = {}) override;
+};
+
+struct ImageEncoderSTBJpeg : public ImageEncoderI {
+	std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options = {}) override;
+};
+

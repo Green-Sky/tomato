@@ -103,7 +103,7 @@ bool SendImagePopup::load(void) {
 std::vector<uint8_t> SendImagePopup::compressWebp(const ImageLoaderI::ImageResult& input_image, uint32_t quality) {
 	// HACK: generic list
 
-	return ImageEncoderWebP{}.encodeToMemoryRGBAExt(input_image, {{"quality", quality}});
+	return ImageEncoderWebP{}.encodeToMemoryRGBA(input_image, {{"quality", quality}});
 }
 
 ImageLoaderI::ImageResult SendImagePopup::crop(const ImageLoaderI::ImageResult& input_image, const Rect& crop_rect) {

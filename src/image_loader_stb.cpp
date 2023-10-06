@@ -1,6 +1,10 @@
 #include "./image_loader_stb.hpp"
 
+#include <cstdint>
 #include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
+
+#include <iostream>
 
 ImageLoaderSTB::ImageInfo ImageLoaderSTB::loadInfoFromMemory(const uint8_t* data, uint64_t data_size) {
 	ImageInfo res;
@@ -62,5 +66,70 @@ ImageLoaderSTB::ImageResult ImageLoaderSTB::loadFromMemoryRGBA(const uint8_t* da
 
 	stbi_image_free(img_data);
 	return res;
+}
+
+std::vector<uint8_t> ImageEncoderSTBPNG::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options) {
+	if (input_image.frames.empty()) {
+		std::cerr << "IESTBPNG error: empty image\n";
+		return {};
+	}
+
+	if (input_image.frames.size() > 1) {
+		std::cerr << "IESTBPNG warning: image with animation, only first frame will be encoded!\n";
+		return {};
+	}
+
+	int png_compression_level = 8;
+	if (extra_options.count("png_compression_level")) {
+		png_compression_level = extra_options.at("png_compression_level");
+	}
+	// TODO:
+	//int stbi_write_force_png_filter;         // defaults to -1; set to 0..5 to force a filter mode
+
+	struct Context {
+		std::vector<uint8_t> new_data;
+	} context;
+	auto write_f = +[](void* context, void* data, int size) -> void {
+		Context* ctx = reinterpret_cast<Context*>(context);
+		uint8_t* d = reinterpret_cast<uint8_t*>(data);
+		ctx->new_data.insert(ctx->new_data.cend(), d, d + size);
+	};
+
+	stbi_write_png_compression_level = png_compression_level;
+
+	if (!stbi_write_png_to_func(write_f, &context, input_image.width, input_image.height, 4, input_image.frames.front().data.data(), 4*input_image.width)) {
+		std::cerr << "IESTBPNG error: stbi_write_png failed!\n";
+		return {};
+	}
+
+	return context.new_data;
+}
+
+std::vector<uint8_t> ImageEncoderSTBJpeg::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>&) {
+	if (input_image.frames.empty()) {
+		std::cerr << "IESTBJpeg error: empty image\n";
+		return {};
+	}
+
+	if (input_image.frames.size() > 1) {
+		std::cerr << "IESTBJpeg warning: image with animation, only first frame will be encoded!\n";
+		return {};
+	}
+
+	struct Context {
+		std::vector<uint8_t> new_data;
+	} context;
+	auto write_f = +[](void* context, void* data, int size) -> void {
+		Context* ctx = reinterpret_cast<Context*>(context);
+		uint8_t* d = reinterpret_cast<uint8_t*>(data);
+		ctx->new_data.insert(ctx->new_data.cend(), d, d + size);
+	};
+
+	if (!stbi_write_jpg_to_func(write_f, &context, input_image.width, input_image.height, 4, input_image.frames.front().data.data(), 4*input_image.width)) {
+		std::cerr << "IESTBJpeg error: stbi_write_jpg failed!\n";
+		return {};
+	}
+
+	return context.new_data;
 }
 

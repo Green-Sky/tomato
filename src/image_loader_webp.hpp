@@ -8,7 +8,6 @@ struct ImageLoaderWebP : public ImageLoaderI {
 };
 
 struct ImageEncoderWebP : public ImageEncoderI {
-	std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image) override;
-	std::vector<uint8_t> encodeToMemoryRGBAExt(const ImageResult& input_image, const std::map<std::string, float>& extra_options) override;
+	std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options = {}) override;
 };
 

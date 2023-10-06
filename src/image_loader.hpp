@@ -33,7 +33,6 @@ struct ImageEncoderI {
 
 	using ImageResult = ImageLoaderI::ImageResult;
 
-	virtual std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image) = 0;
-	virtual std::vector<uint8_t> encodeToMemoryRGBAExt(const ImageResult& input_image, const std::map<std::string, float>& extra_options) = 0;
+	virtual std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options = {}) = 0;
 };
 
