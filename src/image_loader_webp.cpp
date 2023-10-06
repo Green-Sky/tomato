@@ -2,8 +2,11 @@
 
 #include <webp/demux.h>
 #include <webp/mux.h>
+#include <webp/encode.h>
 
 #include <cassert>
+
+#include <iostream>
 
 ImageLoaderWebP::ImageInfo ImageLoaderWebP::loadInfoFromMemory(const uint8_t* data, uint64_t data_size) {
 	ImageInfo res;
@@ -76,5 +79,90 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 	assert(anim_info.frame_count == res.frames.size());
 
 	return res;
+}
+
+std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& input_image) {
+	return encodeToMemoryRGBAExt(input_image, {{"quality", 80.f}});
+}
+
+std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBAExt(const ImageResult& input_image, const std::map<std::string, float>& extra_options) {
+	// setup options
+	float quality = 80.f;
+	if (extra_options.count("quality")) {
+		quality = extra_options.at("quality");
+	}
+
+	// start encoding
+
+	WebPAnimEncoderOptions enc_options;
+	if (!WebPAnimEncoderOptionsInit(&enc_options)) {
+		std::cerr << "IEWebP error: WebPAnimEncoderOptionsInit()\n";
+		return {};
+	}
+
+	// Tune 'enc_options' as needed.
+	enc_options.minimize_size = 1; // might be slow? optimize for size, no key-frame insertion
+
+	WebPAnimEncoder* enc = WebPAnimEncoderNew(input_image.width, input_image.height, &enc_options);
+	if (enc == nullptr) {
+		std::cerr << "IEWebP error: WebPAnimEncoderNew()\n";
+		return {};
+	}
+
+	int prev_timestamp = 0;
+	for (const auto& frame : input_image.frames) {
+		WebPConfig config;
+		//WebPConfigInit(&config);
+		if (!WebPConfigPreset(&config, WebPPreset::WEBP_PRESET_DEFAULT, quality)) {
+			std::cerr << "IEWebP error: WebPConfigPreset()\n";
+			WebPAnimEncoderDelete(enc);
+			return {};
+		}
+		//WebPConfigLosslessPreset(&config, 6); // 9 for max compression
+
+		WebPPicture frame_webp;
+		if (!WebPPictureInit(&frame_webp)) {
+			std::cerr << "IEWebP error: WebPPictureInit()\n";
+			WebPAnimEncoderDelete(enc);
+			return {};
+		}
+		frame_webp.width = input_image.width;
+		frame_webp.height = input_image.height;
+		if (!WebPPictureImportRGBA(&frame_webp, frame.data.data(), 4*input_image.width)) {
+			std::cerr << "IEWebP error: WebPPictureImportRGBA()\n";
+			WebPAnimEncoderDelete(enc);
+			return {};
+		}
+
+		if (!WebPAnimEncoderAdd(enc, &frame_webp, prev_timestamp, &config)) {
+			std::cerr << "IEWebP error: WebPAnimEncoderAdd()\n";
+			WebPPictureFree(&frame_webp);
+			WebPAnimEncoderDelete(enc);
+			return {};
+		}
+		prev_timestamp += frame.ms;
+	}
+	if (!WebPAnimEncoderAdd(enc, NULL, prev_timestamp, NULL)) { // tell anim encoder its the end
+		std::cerr << "IEWebP error: WebPAnimEncoderAdd(NULL)\n";
+		WebPAnimEncoderDelete(enc);
+		return {};
+	}
+
+	WebPData webp_data;
+	WebPDataInit(&webp_data);
+	if (!WebPAnimEncoderAssemble(enc, &webp_data)) {
+		std::cerr << "IEWebP error: WebPAnimEncoderAdd(NULL)\n";
+		WebPAnimEncoderDelete(enc);
+		return {};
+	}
+	WebPAnimEncoderDelete(enc);
+
+	// Write the 'webp_data' to a file, or re-mux it further.
+	// TODO: make it not a copy
+	std::vector<uint8_t> new_data{webp_data.bytes, webp_data.bytes+webp_data.size};
+
+	WebPDataClear(&webp_data);
+
+	return new_data;
 }
 

@@ -6,10 +6,6 @@
 
 #include <imgui/imgui.h>
 
-// tmp
-#include <webp/mux.h>
-#include <webp/encode.h>
-
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
@@ -105,78 +101,9 @@ bool SendImagePopup::load(void) {
 }
 
 std::vector<uint8_t> SendImagePopup::compressWebp(const ImageLoaderI::ImageResult& input_image, uint32_t quality) {
-	// HACK: move to own interface
+	// HACK: generic list
 
-	WebPAnimEncoderOptions enc_options;
-	if (!WebPAnimEncoderOptionsInit(&enc_options)) {
-		std::cerr << "SIP error: WebPAnimEncoderOptionsInit()\n";
-		return {};
-	}
-
-	// Tune 'enc_options' as needed.
-	enc_options.minimize_size = 1; // might be slow? optimize for size, no key-frame insertion
-
-	WebPAnimEncoder* enc = WebPAnimEncoderNew(input_image.width, input_image.height, &enc_options);
-	if (enc == nullptr) {
-		std::cerr << "SIP error: WebPAnimEncoderNew()\n";
-		return {};
-	}
-
-	int prev_timestamp = 0;
-	for (const auto& frame : input_image.frames) {
-		WebPConfig config;
-		//WebPConfigInit(&config);
-		if (!WebPConfigPreset(&config, WebPPreset::WEBP_PRESET_DEFAULT, quality)) {
-			std::cerr << "SIP error: WebPConfigPreset()\n";
-			WebPAnimEncoderDelete(enc);
-			return {};
-		}
-		//WebPConfigLosslessPreset(&config, 6); // 9 for max compression
-
-		WebPPicture frame_webp;
-		if (!WebPPictureInit(&frame_webp)) {
-			std::cerr << "SIP error: WebPPictureInit()\n";
-			WebPAnimEncoderDelete(enc);
-			return {};
-		}
-		frame_webp.width = input_image.width;
-		frame_webp.height = input_image.height;
-		if (!WebPPictureImportRGBA(&frame_webp, frame.data.data(), 4*input_image.width)) {
-			std::cerr << "SIP error: WebPPictureImportRGBA()\n";
-			WebPAnimEncoderDelete(enc);
-			return {};
-		}
-
-		if (!WebPAnimEncoderAdd(enc, &frame_webp, prev_timestamp, &config)) {
-			std::cerr << "SIP error: WebPAnimEncoderAdd()\n";
-			WebPPictureFree(&frame_webp);
-			WebPAnimEncoderDelete(enc);
-			return {};
-		}
-		prev_timestamp += frame.ms;
-	}
-	if (!WebPAnimEncoderAdd(enc, NULL, prev_timestamp, NULL)) { // tell anim encoder its the end
-		std::cerr << "SIP error: WebPAnimEncoderAdd(NULL)\n";
-		WebPAnimEncoderDelete(enc);
-		return {};
-	}
-
-	WebPData webp_data;
-	WebPDataInit(&webp_data);
-	if (!WebPAnimEncoderAssemble(enc, &webp_data)) {
-		std::cerr << "SIP error: WebPAnimEncoderAdd(NULL)\n";
-		WebPAnimEncoderDelete(enc);
-		return {};
-	}
-	WebPAnimEncoderDelete(enc);
-
-	// Write the 'webp_data' to a file, or re-mux it further.
-	// TODO: make it not a copy
-	std::vector<uint8_t> new_data{webp_data.bytes, webp_data.bytes+webp_data.size};
-
-	WebPDataClear(&webp_data);
-
-	return new_data;
+	return ImageEncoderWebP{}.encodeToMemoryRGBAExt(input_image, {{"quality", quality}});
 }
 
 ImageLoaderI::ImageResult SendImagePopup::crop(const ImageLoaderI::ImageResult& input_image, const Rect& crop_rect) {

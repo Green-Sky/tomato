@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <vector>
+#include <string>
 
 struct ImageLoaderI {
 	virtual ~ImageLoaderI(void) {}
@@ -24,5 +26,14 @@ struct ImageLoaderI {
 		const char* file_ext {nullptr};
 	};
 	virtual ImageResult loadFromMemoryRGBA(const uint8_t* data, uint64_t data_size) = 0;
+};
+
+struct ImageEncoderI {
+	virtual ~ImageEncoderI(void) {}
+
+	using ImageResult = ImageLoaderI::ImageResult;
+
+	virtual std::vector<uint8_t> encodeToMemoryRGBA(const ImageResult& input_image) = 0;
+	virtual std::vector<uint8_t> encodeToMemoryRGBAExt(const ImageResult& input_image, const std::map<std::string, float>& extra_options) = 0;
 };
 
