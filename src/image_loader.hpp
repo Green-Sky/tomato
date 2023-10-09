@@ -8,14 +8,14 @@
 struct ImageLoaderI {
 	virtual ~ImageLoaderI(void) {}
 
-	struct ImageInfo {
+	struct ImageInfo final {
 		uint32_t width {0};
 		uint32_t height {0};
 		const char* file_ext {nullptr};
 	};
 	virtual ImageInfo loadInfoFromMemory(const uint8_t* data, uint64_t data_size) = 0;
 
-	struct ImageResult {
+	struct ImageResult final {
 		uint32_t width {0};
 		uint32_t height {0};
 		struct Frame {
@@ -24,6 +24,9 @@ struct ImageLoaderI {
 		};
 		std::vector<Frame> frames;
 		const char* file_ext {nullptr};
+
+		// only positive values are valid
+		ImageResult crop(int32_t c_x, int32_t c_y, int32_t c_w, int32_t c_h) const;
 	};
 	virtual ImageResult loadFromMemoryRGBA(const uint8_t* data, uint64_t data_size) = 0;
 };

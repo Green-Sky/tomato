@@ -13,6 +13,7 @@ struct SendImagePopup {
 
 	// private
 	std::vector<std::unique_ptr<ImageLoaderI>> _image_loaders;
+	std::vector<std::unique_ptr<ImageEncoderI>> _image_encoders;
 
 	// copy of the original data, dont touch!
 	std::vector<uint8_t> original_data;
@@ -40,6 +41,7 @@ struct SendImagePopup {
 
 	bool compress {false};
 	uint32_t quality {80u};
+	uint32_t compression_level {8u};
 
 	float time {0.f}; // cycling form 0 to 1 over time
 
@@ -55,8 +57,6 @@ struct SendImagePopup {
 	// returns if loaded successfully
 	bool load(void);
 
-	static std::vector<uint8_t> compressWebp(const ImageLoaderI::ImageResult& input_image, uint32_t quality = 80u);
-	static ImageLoaderI::ImageResult crop(const ImageLoaderI::ImageResult& input_image, const Rect& crop_rect);
 	static Rect sanitizeCrop(Rect crop_rect, int32_t image_width, int32_t image_height);
 
 	public:

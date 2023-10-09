@@ -18,6 +18,7 @@ add_executable(tomato
 	./theme.hpp
 
 	./image_loader.hpp
+	./image_loader.cpp
 	./image_loader_sdl_bmp.hpp
 	./image_loader_sdl_bmp.cpp
 	./image_loader_stb.hpp

@@ -100,40 +100,6 @@ bool SendImagePopup::load(void) {
 	return false;
 }
 
-std::vector<uint8_t> SendImagePopup::compressWebp(const ImageLoaderI::ImageResult& input_image, uint32_t quality) {
-	// HACK: generic list
-
-	return ImageEncoderWebP{}.encodeToMemoryRGBA(input_image, {{"quality", quality}});
-}
-
-ImageLoaderI::ImageResult SendImagePopup::crop(const ImageLoaderI::ImageResult& input_image, const Rect& crop_rect) {
-	// TODO: proper error handling
-	assert(crop_rect.x+crop_rect.w <= input_image.width);
-	assert(crop_rect.y+crop_rect.h <= input_image.height);
-
-	ImageLoaderI::ImageResult new_image;
-	new_image.width = crop_rect.w;
-	new_image.height = crop_rect.h;
-	new_image.file_ext = input_image.file_ext;
-
-	for (const auto& input_frame : input_image.frames) {
-		auto& new_frame = new_image.frames.emplace_back();
-		new_frame.ms = input_frame.ms;
-
-		// TODO: improve this, this is super inefficent
-		for (int64_t y = crop_rect.y; y < crop_rect.y + crop_rect.h; y++) {
-			for (int64_t x = crop_rect.x; x < crop_rect.x + crop_rect.w; x++) {
-				new_frame.data.push_back(input_frame.data.at(y*input_image.width*4+x*4+0));
-				new_frame.data.push_back(input_frame.data.at(y*input_image.width*4+x*4+1));
-				new_frame.data.push_back(input_frame.data.at(y*input_image.width*4+x*4+2));
-				new_frame.data.push_back(input_frame.data.at(y*input_image.width*4+x*4+3));
-			}
-		}
-	}
-
-	return new_image;
-}
-
 SendImagePopup::Rect SendImagePopup::sanitizeCrop(Rect crop_rect, int32_t image_width, int32_t image_height) {
 	// w and h min is 1 -> x/y need to be smaller so the img is atleast 1px in any dim
 	if (crop_rect.x >= image_width-1) {
@@ -441,18 +407,30 @@ void SendImagePopup::render(void) {
 			compress = true;
 		}
 
-		recalc_size |= ImGui::Checkbox("reencode", &compress);
+		recalc_size |= ImGui::Checkbox("compress", &compress);
 		if (cropped && ImGui::IsItemHovered()) {
 			ImGui::SetTooltip("required since cropped!");
 		}
 
+		static int current_compressor = 0;
+
 		if (compress) {
+			ImGui::SameLine();
+			ImGui::Combo("##compression_type", &current_compressor, "webp\0jpeg\0png\n");
+
 			ImGui::Indent();
 			// combo "webp""webp-lossless""png""jpg?"
 			// if lossy quality slider (1-100) default 80
-			const uint32_t qmin = 1;
-			const uint32_t qmax = 100;
-			recalc_size |= ImGui::SliderScalar("quality", ImGuiDataType_U32, &quality, &qmin, &qmax);
+			if (current_compressor == 0 || current_compressor == 1) {
+				const uint32_t qmin = 1;
+				const uint32_t qmax = 100;
+				recalc_size |= ImGui::SliderScalar("quality", ImGuiDataType_U32, &quality, &qmin, &qmax);
+			}
+			if (current_compressor == 2) {
+				const uint32_t qmin = 0;
+				const uint32_t qmax = 9;
+				recalc_size |= ImGui::SliderScalar("compression_level", ImGuiDataType_U32, &compression_level, &qmin, &qmax);
+			}
 
 			if (recalc_size) {
 				// compress and save temp? cooldown? async? save size only?
@@ -470,17 +448,41 @@ void SendImagePopup::render(void) {
 		ImGui::SameLine();
 		if (ImGui::Button("send ->", {-FLT_MIN, TEXT_BASE_HEIGHT*2})) {
 			if (compress || cropped) {
-				std::vector<uint8_t> new_data;
+				// TODO: copy bad
+				ImageLoaderI::ImageResult tmp_img;
 				if (cropped) {
 					std::cout << "SIP: CROP!!!!!\n";
-					new_data = compressWebp(crop(original_image, crop_rect), quality);
+					tmp_img = original_image.crop(
+						crop_rect.x,
+						crop_rect.y,
+						crop_rect.w,
+						crop_rect.h
+					);
 				} else {
-					new_data = compressWebp(original_image, quality);
+					tmp_img = original_image;
 				}
 
-				if (!new_data.empty()) {
-					_on_send(new_data, ".webp");
+				std::vector<uint8_t> new_data;
+
+				// HACK: generic list
+				if (current_compressor == 0) {
+					new_data = ImageEncoderWebP{}.encodeToMemoryRGBA(tmp_img, {{"quality", quality}});
+					if (!new_data.empty()) {
+						_on_send(new_data, ".webp");
+					}
+				} else if (current_compressor == 1) {
+					new_data = ImageEncoderSTBJpeg{}.encodeToMemoryRGBA(tmp_img, {{"quality", quality}});;
+					if (!new_data.empty()) {
+						_on_send(new_data, ".jpg");
+					}
+				} else if (current_compressor == 2) {
+					new_data = ImageEncoderSTBPNG{}.encodeToMemoryRGBA(tmp_img, {{"png_compression_level", compression_level}});;
+					if (!new_data.empty()) {
+						_on_send(new_data, ".png");
+					}
 				}
+				// error
+
 			} else {
 				_on_send(original_data, original_file_ext);
 			}

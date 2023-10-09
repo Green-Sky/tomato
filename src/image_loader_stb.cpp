@@ -105,7 +105,7 @@ std::vector<uint8_t> ImageEncoderSTBPNG::encodeToMemoryRGBA(const ImageResult& i
 	return context.new_data;
 }
 
-std::vector<uint8_t> ImageEncoderSTBJpeg::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>&) {
+std::vector<uint8_t> ImageEncoderSTBJpeg::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options) {
 	if (input_image.frames.empty()) {
 		std::cerr << "IESTBJpeg error: empty image\n";
 		return {};
@@ -116,6 +116,13 @@ std::vector<uint8_t> ImageEncoderSTBJpeg::encodeToMemoryRGBA(const ImageResult& 
 		return {};
 	}
 
+	// setup options
+	float quality = 80.f;
+	if (extra_options.count("quality")) {
+		quality = extra_options.at("quality");
+	}
+
+
 	struct Context {
 		std::vector<uint8_t> new_data;
 	} context;
@@ -125,7 +132,7 @@ std::vector<uint8_t> ImageEncoderSTBJpeg::encodeToMemoryRGBA(const ImageResult& 
 		ctx->new_data.insert(ctx->new_data.cend(), d, d + size);
 	};
 
-	if (!stbi_write_jpg_to_func(write_f, &context, input_image.width, input_image.height, 4, input_image.frames.front().data.data(), 4*input_image.width)) {
+	if (!stbi_write_jpg_to_func(write_f, &context, input_image.width, input_image.height, 4, input_image.frames.front().data.data(), quality)) {
 		std::cerr << "IESTBJpeg error: stbi_write_jpg failed!\n";
 		return {};
 	}
