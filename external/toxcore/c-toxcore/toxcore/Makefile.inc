@@ -57,6 +57,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/group_voice_state.c \
                         ../toxcore/DHT.h \
                         ../toxcore/DHT.c \
+                        ../toxcore/mem.h \
+                        ../toxcore/mem.c \
                         ../toxcore/mono_time.h \
                         ../toxcore/mono_time.c \
                         ../toxcore/network.h \

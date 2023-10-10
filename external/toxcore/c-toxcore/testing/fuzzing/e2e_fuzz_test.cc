@@ -24,7 +24,7 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         });
     tox_events_callback_conference_connected(
         dispatch, [](Tox *tox, const Tox_Event_Conference_Connected *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_conference_invite(
         dispatch, [](Tox *tox, const Tox_Event_Conference_Invite *event, void *user_data) {
@@ -35,19 +35,19 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         });
     tox_events_callback_conference_message(
         dispatch, [](Tox *tox, const Tox_Event_Conference_Message *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_conference_peer_list_changed(dispatch,
         [](Tox *tox, const Tox_Event_Conference_Peer_List_Changed *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_conference_peer_name(
         dispatch, [](Tox *tox, const Tox_Event_Conference_Peer_Name *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_conference_title(
         dispatch, [](Tox *tox, const Tox_Event_Conference_Title *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_file_chunk_request(
         dispatch, [](Tox *tox, const Tox_Event_File_Chunk_Request *event, void *user_data) {
@@ -61,11 +61,11 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         });
     tox_events_callback_file_recv_chunk(
         dispatch, [](Tox *tox, const Tox_Event_File_Recv_Chunk *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_file_recv_control(
         dispatch, [](Tox *tox, const Tox_Event_File_Recv_Control *event, void *user_data) {
-            assert(event == nullptr);
+            assert(event != nullptr);
         });
     tox_events_callback_friend_connection_status(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Connection_Status *event, void *user_data) {
@@ -134,6 +134,8 @@ void setup_callbacks(Tox_Dispatch *dispatch)
 void TestEndToEnd(Fuzz_Data &input)
 {
     Fuzz_System sys(input);
+    // Used for places where we want all allocations to succeed.
+    Null_System null_sys;
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
     assert(opts != nullptr);
@@ -170,7 +172,7 @@ void TestEndToEnd(Fuzz_Data &input)
     while (input.size > 0) {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
-        assert(tox_events_equal(events, events));
+        assert(tox_events_equal(null_sys.sys.get(), events, events));
         tox_dispatch_invoke(dispatch, events, tox, nullptr);
         tox_events_free(events);
         // Move the clock forward a decent amount so all the time-based checks

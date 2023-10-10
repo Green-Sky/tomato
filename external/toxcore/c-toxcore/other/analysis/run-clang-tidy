@@ -6,61 +6,92 @@ CHECKS="*"
 CHECKS="$CHECKS,-clang-diagnostic-pointer-bool-conversion"
 CHECKS="$CHECKS,-clang-diagnostic-tautological-pointer-compare"
 
-# TODO(iphydf): We might want some of these. For the ones we don't want, add a
-# comment explaining why not.
-CHECKS="$CHECKS,-altera-unroll-loops"
-CHECKS="$CHECKS,-android-cloexec-accept"
-CHECKS="$CHECKS,-android-cloexec-fopen"
-CHECKS="$CHECKS,-bugprone-not-null-terminated-result"
-CHECKS="$CHECKS,-bugprone-reserved-identifier"
-CHECKS="$CHECKS,-bugprone-sizeof-expression"
-CHECKS="$CHECKS,-cert-dcl37-c"
-CHECKS="$CHECKS,-cert-dcl51-cpp"
-CHECKS="$CHECKS,-clang-analyzer-optin.performance.Padding"
-CHECKS="$CHECKS,-cppcoreguidelines-avoid-magic-numbers"
+# Conflicts with "Variable is assigned a value that is never used."
+# [unreadVariable]
 CHECKS="$CHECKS,-cppcoreguidelines-init-variables"
-CHECKS="$CHECKS,-hicpp-multiway-paths-covered"
-CHECKS="$CHECKS,-hicpp-signed-bitwise"
-CHECKS="$CHECKS,-llvm-else-after-return"
-CHECKS="$CHECKS,-llvmlibc-restrict-system-libc-headers"
-CHECKS="$CHECKS,-misc-redundant-expression"
-CHECKS="$CHECKS,-misc-unused-parameters"
-CHECKS="$CHECKS,-readability-else-after-return"
-CHECKS="$CHECKS,-readability-function-cognitive-complexity"
-CHECKS="$CHECKS,-readability-inconsistent-declaration-parameter-name"
-CHECKS="$CHECKS,-readability-magic-numbers"
-CHECKS="$CHECKS,-readability-redundant-control-flow"
 
-# TODO(iphydf): Maybe fix these?
+# Short variable names are used quite a lot, and we don't consider them a
+# readability issue.
+CHECKS="$CHECKS,-readability-identifier-length"
+
+# Altera checks are for GPUs (OpenCL). Our code doesn't run on GPUs.
 CHECKS="$CHECKS,-altera-id-dependent-backward-branch"
 CHECKS="$CHECKS,-altera-struct-pack-align"
+CHECKS="$CHECKS,-altera-unroll-loops"
+
+# We target systems other than Android, so we don't want to use non-standard
+# functions from the Android libc.
+CHECKS="$CHECKS,-android-cloexec-accept"
+CHECKS="$CHECKS,-android-cloexec-fopen"
+
+# This catches all the feature test macros (_POSIX_SOURCE etc.).
+CHECKS="$CHECKS,-bugprone-reserved-identifier"
+CHECKS="$CHECKS,-cert-dcl37-c"
+CHECKS="$CHECKS,-cert-dcl51-cpp"
+
+# Too restrictive. This makes sense if the branch clone is very large, but not
+# if it's a single line. It can make the code less readable.
 CHECKS="$CHECKS,-bugprone-branch-clone"
+
+# We intentionally send some not null-terminated strings in tests and use it for
+# the toxencryptsave magic number.
+CHECKS="$CHECKS,-bugprone-not-null-terminated-result"
+
+# We don't want default labels in enum switches.
+CHECKS="$CHECKS,-hicpp-multiway-paths-covered"
+
+# This can make readability quite a bit worse when the 2 cases look very
+# similar.
+CHECKS="$CHECKS,-llvm-else-after-return"
+CHECKS="$CHECKS,-readability-else-after-return"
+
+# We need 'return;' in empty functions because cimple won't allow empty
+# functions otherwise.
+CHECKS="$CHECKS,-readability-redundant-control-flow"
+
+# These are incredibly annoying, because things like
+#   uint16_t a = 0, b = 1, c = a > b ? a : b;
+#                                      ^
+# Trip the checker, which is true, because of integer promotion, but also not
+# very helpful as a diagnostic.
+CHECKS="$CHECKS,-bugprone-narrowing-conversions"
+CHECKS="$CHECKS,-cppcoreguidelines-narrowing-conversions"
+
+# TODO(iphydf): We might want some of these. For the ones we don't want, add a
+# comment explaining why not.
+CHECKS="$CHECKS,-clang-analyzer-optin.performance.Padding"
+CHECKS="$CHECKS,-hicpp-signed-bitwise"
+CHECKS="$CHECKS,-misc-unused-parameters"
+CHECKS="$CHECKS,-readability-function-cognitive-complexity"
+
+# TODO(iphydf): Maybe fix these?
 CHECKS="$CHECKS,-bugprone-easily-swappable-parameters"
 CHECKS="$CHECKS,-bugprone-implicit-widening-of-multiplication-result"
 CHECKS="$CHECKS,-bugprone-integer-division"
-CHECKS="$CHECKS,-bugprone-narrowing-conversions"
-CHECKS="$CHECKS,-clang-analyzer-core.NonNullParamChecker"
 CHECKS="$CHECKS,-clang-analyzer-core.NullDereference"
-CHECKS="$CHECKS,-clang-analyzer-optin.portability.UnixAPI"
-CHECKS="$CHECKS,-clang-analyzer-unix.Malloc"
 CHECKS="$CHECKS,-clang-analyzer-valist.Uninitialized"
 CHECKS="$CHECKS,-concurrency-mt-unsafe"
 CHECKS="$CHECKS,-cppcoreguidelines-avoid-non-const-global-variables"
-CHECKS="$CHECKS,-cppcoreguidelines-narrowing-conversions"
-CHECKS="$CHECKS,-google-readability-casting"
 CHECKS="$CHECKS,-misc-no-recursion"
+
+# TODO(iphydf): Probably fix these.
+CHECKS="$CHECKS,-cert-err33-c"
+CHECKS="$CHECKS,-cppcoreguidelines-avoid-magic-numbers"
+CHECKS="$CHECKS,-google-readability-casting"
+CHECKS="$CHECKS,-modernize-macro-to-enum"
+CHECKS="$CHECKS,-readability-magic-numbers"
+
+# TODO(iphydf): These two trip on list.c. Investigate why.
+CHECKS="$CHECKS,-clang-analyzer-core.NonNullParamChecker"
+CHECKS="$CHECKS,-clang-analyzer-unix.Malloc"
 
 ERRORS="*"
 
 # TODO(iphydf): Fix these.
 ERRORS="$ERRORS,-bugprone-macro-parentheses"
-ERRORS="$ERRORS,-bugprone-posix-return"
-ERRORS="$ERRORS,-bugprone-signed-char-misuse"
 ERRORS="$ERRORS,-cert-err34-c"
 ERRORS="$ERRORS,-cert-str34-c"
-ERRORS="$ERRORS,-hicpp-uppercase-literal-suffix"
 ERRORS="$ERRORS,-readability-suspicious-call-argument"
-ERRORS="$ERRORS,-readability-uppercase-literal-suffix"
 
 set -eux
 
@@ -70,7 +101,7 @@ run() {
   for i in "${!EXTRA_ARGS[@]}"; do
     EXTRA_ARGS[$i]="--extra-arg=${EXTRA_ARGS[$i]}"
   done
-  clang-tidy-12 \
+  clang-tidy-14 \
     -p=_build \
     --extra-arg=-DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE \
     "${EXTRA_ARGS[@]}" \
@@ -83,5 +114,7 @@ run() {
     toxcore/*.c \
     toxencryptsave/*.c
 }
+
+cmake . -B_build -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 . other/analysis/variants.sh

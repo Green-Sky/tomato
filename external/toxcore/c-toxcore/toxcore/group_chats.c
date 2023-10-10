@@ -5691,13 +5691,13 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
         return -1;
     }
 
-    if (chat->connection_O_metre >= GC_NEW_PEER_CONNECTION_LIMIT) {
+    if (chat->connection_o_metre >= GC_NEW_PEER_CONNECTION_LIMIT) {
         chat->block_handshakes = true;
         LOGGER_DEBUG(chat->log, "Handshake overflow. Blocking handshakes.");
         return -1;
     }
 
-    ++chat->connection_O_metre;
+    ++chat->connection_o_metre;
 
     const uint8_t *public_sig_key = data + ENC_PUBLIC_KEY_SIZE;
 
@@ -7015,7 +7015,7 @@ static void do_gc_ping_and_key_rotation(GC_Chat *chat)
 non_null()
 static void do_new_connection_cooldown(GC_Chat *chat)
 {
-    if (chat->connection_O_metre == 0) {
+    if (chat->connection_o_metre == 0) {
         return;
     }
 
@@ -7023,9 +7023,9 @@ static void do_new_connection_cooldown(GC_Chat *chat)
 
     if (chat->connection_cooldown_timer < tm) {
         chat->connection_cooldown_timer = tm;
-        --chat->connection_O_metre;
+        --chat->connection_o_metre;
 
-        if (chat->connection_O_metre == 0 && chat->block_handshakes) {
+        if (chat->connection_o_metre == 0 && chat->block_handshakes) {
             chat->block_handshakes = false;
             LOGGER_DEBUG(chat->log, "Unblocking handshakes");
         }
@@ -7250,7 +7250,7 @@ static bool init_gc_tcp_connection(const GC_Session *c, GC_Chat *chat)
 {
     const Messenger *m = c->messenger;
 
-    chat->tcp_conn = new_tcp_connections(chat->log, chat->rng, m->ns, chat->mono_time, chat->self_secret_key,
+    chat->tcp_conn = new_tcp_connections(chat->log, chat->mem, chat->rng, m->ns, chat->mono_time, chat->self_secret_key,
                                          &m->options.proxy_info);
 
     if (chat->tcp_conn == nullptr) {
@@ -7305,6 +7305,7 @@ static void init_gc_moderation(GC_Chat *chat)
     memcpy(chat->moderation.self_secret_sig_key, get_sig_pk(chat->self_secret_key), SIG_SECRET_KEY_SIZE);
     chat->moderation.shared_state_version = chat->shared_state.version;
     chat->moderation.log = chat->log;
+    chat->moderation.mem = chat->mem;
 }
 
 non_null()
@@ -7332,6 +7333,7 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     GC_Chat *chat = &c->chats[group_number];
 
     chat->log = m->log;
+    chat->mem = m->mem;
     chat->rng = m->rng;
 
     const uint64_t tm = mono_time_get(m->mono_time);
@@ -7476,9 +7478,14 @@ int gc_group_load(GC_Session *c, Bin_Unpack *bu)
     chat->net = m->net;
     chat->mono_time = m->mono_time;
     chat->log = m->log;
+    chat->mem = m->mem;
     chat->rng = m->rng;
     chat->last_ping_interval = tm;
     chat->friend_connection_id = -1;
+
+    // Initialise these first, because we may need to log/dealloc things on cleanup.
+    chat->moderation.log = m->log;
+    chat->moderation.mem = m->mem;
 
     if (!gc_load_unpack_group(chat, bu)) {
         LOGGER_ERROR(chat->log, "Failed to unpack group");

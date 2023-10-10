@@ -165,7 +165,7 @@ int onion_dht_pk_callback(Onion_Client *onion_c, int friend_num, onion_dht_pk_cb
  * return 0 on success.
  */
 non_null()
-int onion_set_friend_DHT_pubkey(Onion_Client *onion_c, int friend_num, const uint8_t *dht_key);
+int onion_set_friend_dht_pubkey(Onion_Client *onion_c, int friend_num, const uint8_t *dht_key);
 
 /** @brief Copy friends DHT public key into dht_key.
  *
@@ -173,7 +173,7 @@ int onion_set_friend_DHT_pubkey(Onion_Client *onion_c, int friend_num, const uin
  * return 1 on success (key copied).
  */
 non_null()
-unsigned int onion_getfriend_DHT_pubkey(const Onion_Client *onion_c, int friend_num, uint8_t *dht_key);
+unsigned int onion_getfriend_dht_pubkey(const Onion_Client *onion_c, int friend_num, uint8_t *dht_key);
 
 #define ONION_DATA_IN_RESPONSE_MIN_SIZE (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
 #define ONION_CLIENT_MAX_DATA_SIZE (MAX_DATA_REQUEST_SIZE - ONION_DATA_IN_RESPONSE_MIN_SIZE)
@@ -208,7 +208,7 @@ non_null()
 void do_onion_client(Onion_Client *onion_c);
 
 non_null()
-Onion_Client *new_onion_client(const Logger *logger, const Random *rng, const Mono_Time *mono_time, Net_Crypto *c);
+Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Random *rng, const Mono_Time *mono_time, Net_Crypto *c);
 
 nullable(1)
 void kill_onion_client(Onion_Client *onion_c);
