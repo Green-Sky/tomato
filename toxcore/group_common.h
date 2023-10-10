@@ -247,6 +247,7 @@ typedef struct GC_TopicInfo {
 typedef struct GC_Chat {
     Mono_Time       *mono_time;
     const Logger    *log;
+    const Memory    *mem;
     const Random    *rng;
 
     uint32_t        connected_tcp_relays;
@@ -291,7 +292,7 @@ typedef struct GC_Chat {
     uint64_t    last_time_peers_loaded;
 
     /* keeps track of frequency of new inbound connections */
-    uint8_t     connection_O_metre;
+    uint8_t     connection_o_metre;
     uint64_t    connection_cooldown_timer;
     bool        block_handshakes;
 

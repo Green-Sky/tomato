@@ -139,15 +139,15 @@ static const char *inet_ntop6(const struct in6_addr *addr, char *buf, size_t buf
 }
 
 non_null()
-static int inet_pton4(const char *addrString, struct in_addr *addrbuf)
+static int inet_pton4(const char *addr_string, struct in_addr *addrbuf)
 {
-    return inet_pton(AF_INET, addrString, addrbuf);
+    return inet_pton(AF_INET, addr_string, addrbuf);
 }
 
 non_null()
-static int inet_pton6(const char *addrString, struct in6_addr *addrbuf)
+static int inet_pton6(const char *addr_string, struct in6_addr *addrbuf)
 {
-    return inet_pton(AF_INET6, addrString, addrbuf);
+    return inet_pton(AF_INET6, addr_string, addrbuf);
 }
 
 #else
@@ -377,47 +377,47 @@ IP6 get_ip6_loopback(void)
 
 const Socket net_invalid_socket = { (int)INVALID_SOCKET };
 
-Family net_family_unspec()
+Family net_family_unspec(void)
 {
     return family_unspec;
 }
 
-Family net_family_ipv4()
+Family net_family_ipv4(void)
 {
     return family_ipv4;
 }
 
-Family net_family_ipv6()
+Family net_family_ipv6(void)
 {
     return family_ipv6;
 }
 
-Family net_family_tcp_server()
+Family net_family_tcp_server(void)
 {
     return family_tcp_server;
 }
 
-Family net_family_tcp_client()
+Family net_family_tcp_client(void)
 {
     return family_tcp_client;
 }
 
-Family net_family_tcp_ipv4()
+Family net_family_tcp_ipv4(void)
 {
     return family_tcp_ipv4;
 }
 
-Family net_family_tcp_ipv6()
+Family net_family_tcp_ipv6(void)
 {
     return family_tcp_ipv6;
 }
 
-Family net_family_tox_tcp_ipv4()
+Family net_family_tox_tcp_ipv4(void)
 {
     return family_tox_tcp_ipv4;
 }
 
-Family net_family_tox_tcp_ipv6()
+Family net_family_tox_tcp_ipv6(void)
 {
     return family_tox_tcp_ipv6;
 }
@@ -898,6 +898,7 @@ typedef struct Packet_Handler {
 
 struct Networking_Core {
     const Logger *log;
+    const Memory *mem;
     Packet_Handler packethandlers[256];
     const Network *ns;
 
@@ -1009,7 +1010,7 @@ int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t
  * Packet length is put into length.
  */
 non_null()
-static int receivepacket(const Network *ns, const Logger *log, Socket sock, IP_Port *ip_port, uint8_t *data, uint32_t *length)
+static int receivepacket(const Network *ns, const Memory *mem, const Logger *log, Socket sock, IP_Port *ip_port, uint8_t *data, uint32_t *length)
 {
     memset(ip_port, 0, sizeof(IP_Port));
     Network_Addr addr = {{0}};
@@ -1088,7 +1089,7 @@ void networking_poll(const Networking_Core *net, void *userdata)
     uint8_t data[MAX_UDP_PACKET_SIZE];
     uint32_t length;
 
-    while (receivepacket(net->ns, net->log, net->sock, &ip_port, data, &length) != -1) {
+    while (receivepacket(net->ns, net->mem, net->log, net->sock, &ip_port, data, &length) != -1) {
         if (length < 1) {
             continue;
         }
@@ -1117,7 +1118,7 @@ void networking_poll(const Networking_Core *net, void *userdata)
  * If error is non NULL it is set to 0 if no issues, 1 if socket related error, 2 if other.
  */
 Networking_Core *new_networking_ex(
-        const Logger *log, const Network *ns, const IP *ip,
+        const Logger *log, const Memory *mem, const Network *ns, const IP *ip,
         uint16_t port_from, uint16_t port_to, unsigned int *error)
 {
     /* If both from and to are 0, use default port range
@@ -1147,7 +1148,7 @@ Networking_Core *new_networking_ex(
         return nullptr;
     }
 
-    Networking_Core *temp = (Networking_Core *)calloc(1, sizeof(Networking_Core));
+    Networking_Core *temp = (Networking_Core *)mem_alloc(mem, sizeof(Networking_Core));
 
     if (temp == nullptr) {
         return nullptr;
@@ -1155,6 +1156,7 @@ Networking_Core *new_networking_ex(
 
     temp->ns = ns;
     temp->log = log;
+    temp->mem = mem;
     temp->family = ip->family;
     temp->port = 0;
 
@@ -1168,7 +1170,7 @@ Networking_Core *new_networking_ex(
         char *strerror = net_new_strerror(neterror);
         LOGGER_ERROR(log, "failed to get a socket?! %d, %s", neterror, strerror);
         net_kill_strerror(strerror);
-        free(temp);
+        mem_delete(mem, temp);
 
         if (error != nullptr) {
             *error = 1;
@@ -1246,7 +1248,7 @@ Networking_Core *new_networking_ex(
 
         portptr = &addr6->sin6_port;
     } else {
-        free(temp);
+        mem_delete(mem, temp);
         return nullptr;
     }
 
@@ -1350,10 +1352,10 @@ Networking_Core *new_networking_ex(
     return nullptr;
 }
 
-Networking_Core *new_networking_no_udp(const Logger *log, const Network *ns)
+Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns)
 {
     /* this is the easiest way to completely disable UDP without changing too much code. */
-    Networking_Core *net = (Networking_Core *)calloc(1, sizeof(Networking_Core));
+    Networking_Core *net = (Networking_Core *)mem_alloc(mem, sizeof(Networking_Core));
 
     if (net == nullptr) {
         return nullptr;
@@ -1361,6 +1363,7 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Network *ns)
 
     net->ns = ns;
     net->log = log;
+    net->mem = mem;
 
     return net;
 }
@@ -1377,7 +1380,7 @@ void kill_networking(Networking_Core *net)
         kill_sock(net->ns, net->sock);
     }
 
-    free(net);
+    mem_delete(net->mem, net);
 }
 
 
@@ -1712,7 +1715,7 @@ bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP
     return true;
 }
 
-bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
+bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
 {
     struct sockaddr_storage addr = {0};
     size_t addrsize;
@@ -1765,13 +1768,16 @@ bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
     return true;
 }
 
-int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
+int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type)
 {
     // Try parsing as IP address first.
     IP_Port parsed = {{{0}}};
+    // Initialise to nullptr. In error paths, at least we initialise the out
+    // parameter.
+    *res = nullptr;
 
     if (addr_parse_ip(node, &parsed.ip)) {
-        IP_Port *tmp = (IP_Port *)calloc(1, sizeof(IP_Port));
+        IP_Port *tmp = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
 
         if (tmp == nullptr) {
             return -1;
@@ -1784,7 +1790,7 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
-        *res = (IP_Port *)calloc(1, sizeof(IP_Port));
+        *res = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
         assert(*res != nullptr);
         IP_Port *ip_port = *res;
         ip_port->ip.ip.v4.uint32 = net_htonl(0x7F000003); // 127.0.0.3
@@ -1797,7 +1803,6 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
     // It's not an IP address, so now we try doing a DNS lookup.
     struct addrinfo *infos;
     const int ret = getaddrinfo(node, nullptr, nullptr, &infos);
-    *res = nullptr;
 
     if (ret != 0) {
         return -1;
@@ -1827,7 +1832,7 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
         return 0;
     }
 
-    *res = (IP_Port *)calloc(count, sizeof(IP_Port));
+    *res = (IP_Port *)mem_valloc(mem, count, sizeof(IP_Port));
 
     if (*res == nullptr) {
         freeaddrinfo(infos);
@@ -1869,9 +1874,9 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
     return count;
 }
 
-void net_freeipport(IP_Port *ip_ports)
+void net_freeipport(const Memory *mem, IP_Port *ip_ports)
 {
-    free(ip_ports);
+    mem_delete(mem, ip_ports);
 }
 
 bool bind_to_port(const Network *ns, Socket sock, Family family, uint16_t port)

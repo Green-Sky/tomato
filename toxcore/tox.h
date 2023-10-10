@@ -684,8 +684,8 @@ struct Tox_Options {
     bool experimental_thread_safety;
 
     /**
-     * Low level operating system functionality such as send/recv and random
-     * number generation.
+     * Low level operating system functionality such as send/recv, random
+     * number generation, and memory allocation.
      */
     const Tox_System *operating_system;
 
@@ -910,6 +910,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error);
  * functions can be called, and the pointer value can no longer be read.
  */
 void tox_kill(Tox *tox);
+
+const Tox_System *tox_get_system(Tox *tox);
 
 /**
  * @brief Calculates the number of bytes required to store the tox instance with
@@ -3303,15 +3305,21 @@ uint32_t tox_group_max_part_length(void);
  */
 #define TOX_GROUP_MAX_MESSAGE_LENGTH    1372
 
+uint32_t tox_group_max_message_length(void);
+
 /**
  * Maximum length of a group custom lossy packet.
  */
 #define TOX_GROUP_MAX_CUSTOM_LOSSY_PACKET_LENGTH 500
 
+uint32_t tox_group_max_custom_lossy_packet_length(void);
+
 /**
  * Maximum length of a group custom lossless packet.
  */
 #define TOX_GROUP_MAX_CUSTOM_LOSSLESS_PACKET_LENGTH 1373
+
+uint32_t tox_group_max_custom_lossless_packet_length(void);
 
 /**
  * Maximum length of a group name.
@@ -3973,8 +3981,8 @@ Tox_Connection tox_group_peer_get_connection_status(const Tox *tox, uint32_t gro
 /**
  * Write the group public key with the designated peer_id for the designated group number to public_key.
  *
- * This key will be permanently tied to a particular peer until they explicitly leave the group or
- * get kicked, and is the only way to reliably identify the same peer across client restarts.
+ * This key will be permanently tied to a particular peer until they explicitly leave the group and is
+ * the only way to reliably identify the same peer across client restarts.
  *
  * `public_key` should have room for at least TOX_GROUP_PEER_PUBLIC_KEY_SIZE bytes. If `public_key` is null
  * this function has no effect.
