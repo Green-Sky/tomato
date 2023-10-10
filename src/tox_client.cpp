@@ -12,6 +12,12 @@
 #include <iostream>
 #include <cassert>
 
+static void eee(std::string& mod) {
+	for (char& c : mod) {
+		c ^= 0x59;
+	}
+}
+
 ToxClient::ToxClient(std::string_view save_path, std::string_view save_password) :
 	_tox_profile_path(save_path), _tox_profile_password(save_password)
 {
@@ -51,6 +57,7 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 					)) {
 						throw std::runtime_error("FAILED to decrypt save file!!!!");
 					}
+					eee(_tox_profile_password);
 				}
 				tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 				tox_options_set_savedata_data(options, profile_data.data(), profile_data.size());
@@ -144,14 +151,17 @@ void ToxClient::saveToxProfile(void) {
 		std::vector<uint8_t> unencrypted_copy(data.begin(), data.end());
 		//profile_data.clear();
 		data.resize(unencrypted_copy.size() + TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
+		eee(_tox_profile_password);
 		if (!tox_pass_encrypt(
 			unencrypted_copy.data(), unencrypted_copy.size(),
 			reinterpret_cast<const uint8_t*>(_tox_profile_password.data()), _tox_profile_password.size(),
 			data.data(),
 			nullptr // TODO: error checking
 		)) {
+			eee(_tox_profile_password);
 			throw std::runtime_error("FAILED to encrypt save file!!!!");
 		}
+		eee(_tox_profile_password);
 	}
 	std::ofstream ofile{_tox_profile_path, std::ios::binary};
 	// TODO: improve
