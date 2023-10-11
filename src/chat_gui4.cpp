@@ -386,6 +386,7 @@ void ChatGui4::render(void) {
 									pasteFile(mime_type);
 								}
 							}
+							ImGui::EndPopup();
 						}
 						//ImGui::EndDisabled();
 					}
