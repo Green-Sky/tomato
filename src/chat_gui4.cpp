@@ -61,6 +61,9 @@ void ChatGui4::render(void) {
 	_contact_tc.update();
 	_msg_tc.update();
 
+	_fss.render();
+	_sip.render();
+
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
 	ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -366,43 +369,22 @@ void ChatGui4::render(void) {
 						if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
 							const auto* mime_type = clipboardHasImage();
 							if (mime_type != nullptr) { // making sure
-								size_t data_size = 0;
-								void* data = SDL_GetClipboardData(mime_type, &data_size);
+								pasteFile(mime_type);
+							}
+						//} else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+						} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
+							const static std::vector<const char*> image_mime_types {
+								"image/webp",
+								"image/png",
+								"image/gif",
+								"image/jpeg",
+								"image/bmp",
+							};
 
-								std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
-
-								_sip.sendMemory(
-									static_cast<const uint8_t*>(data), data_size,
-									[this](const auto& img_data, const auto file_ext) {
-										// create file name
-										// TODO: move this into sip
-										std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
-										{
-											const auto now = std::chrono::system_clock::now();
-											const auto ctime = std::chrono::system_clock::to_time_t(now);
-											tmp_file_name
-												<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
-												<< "."
-												<< std::setfill('0') << std::setw(3)
-												<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
-												<< file_ext
-											;
-										}
-
-										std::cout << "tmp image path " << tmp_file_name.str() << "\n";
-
-										const std::filesystem::path tmp_send_file_path = "tmp_send_files";
-										std::filesystem::create_directories(tmp_send_file_path);
-										const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
-
-										std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
-											.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
-
-										_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.u8string());
-									},
-									[](){}
-								);
-								SDL_free(data); // free data
+							for (const char* mime_type : image_mime_types) {
+								if (ImGui::MenuItem(mime_type)) {
+									pasteFile(mime_type);
+								}
 							}
 						}
 						//ImGui::EndDisabled();
@@ -427,9 +409,6 @@ void ChatGui4::render(void) {
 		}
 	}
 	ImGui::End();
-
-	_fss.render();
-	_sip.render();
 
 	_contact_tc.workLoadQueue();
 	_msg_tc.workLoadQueue();
@@ -810,5 +789,47 @@ bool ChatGui4::renderSubContactListContact(const Contact3 c, const bool selected
 	label += std::to_string(entt::to_integral(c));
 
 	return ImGui::Selectable(label.c_str(), selected);
+}
+
+void ChatGui4::pasteFile(const char* mime_type) {
+	size_t data_size = 0;
+	void* data = SDL_GetClipboardData(mime_type, &data_size);
+
+	// if image
+
+	std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
+
+	_sip.sendMemory(
+		static_cast<const uint8_t*>(data), data_size,
+		[this](const auto& img_data, const auto file_ext) {
+			// create file name
+			// TODO: move this into sip
+			std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
+			{
+				const auto now = std::chrono::system_clock::now();
+				const auto ctime = std::chrono::system_clock::to_time_t(now);
+				tmp_file_name
+					<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
+					<< "."
+					<< std::setfill('0') << std::setw(3)
+					<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
+					<< file_ext
+				;
+			}
+
+			std::cout << "tmp image path " << tmp_file_name.str() << "\n";
+
+			const std::filesystem::path tmp_send_file_path = "tmp_send_files";
+			std::filesystem::create_directories(tmp_send_file_path);
+			const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
+
+			std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
+				.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
+
+			_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.u8string());
+		},
+		[](){}
+	);
+	SDL_free(data); // free data
 }
 
