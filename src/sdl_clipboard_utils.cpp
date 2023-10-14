@@ -6,8 +6,8 @@
 
 const char* clipboardHasImage(void) {
 	const static std::vector<const char*> image_mime_types {
-		"image/webp",
 		"image/png",
+		"image/webp",
 		"image/gif",
 		"image/jpeg",
 		"image/bmp",

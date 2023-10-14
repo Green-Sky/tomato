@@ -37,6 +37,9 @@ add_executable(tomato
 	./message_image_loader.hpp
 	./message_image_loader.cpp
 
+	./tox_avatar_manager.hpp
+	./tox_avatar_manager.cpp
+
 	./media_meta_info_loader.hpp
 	./media_meta_info_loader.cpp
 

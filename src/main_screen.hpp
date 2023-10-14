@@ -17,6 +17,7 @@
 #include "./auto_dirty.hpp"
 
 #include "./media_meta_info_loader.hpp"
+#include "./tox_avatar_manager.hpp"
 
 #include "./sdlrenderer_texture_uploader.hpp"
 #include "./chat_gui4.hpp"
@@ -50,6 +51,7 @@ struct MainScreen final : public Screen {
 	ToxTransferManager ttm;
 
 	MediaMetaInfoLoader mmil;
+	ToxAvatarManager tam;
 
 	SDLRendererTextureUploader sdlrtu;
 	//OpenGLTextureUploader ogltu;

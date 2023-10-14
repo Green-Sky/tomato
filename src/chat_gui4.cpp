@@ -374,8 +374,8 @@ void ChatGui4::render(void) {
 						//} else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 						} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
 							const static std::vector<const char*> image_mime_types {
-								"image/webp",
 								"image/png",
+								"image/webp",
 								"image/gif",
 								"image/jpeg",
 								"image/bmp",
@@ -459,6 +459,12 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 }
 
 void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
+	if (reg.all_of<Message::Components::Transfer::FileKind>(e) && reg.get<Message::Components::Transfer::FileKind>(e).kind == 1) {
+		// TODO: this looks ugly
+		ImGui::TextDisabled("set avatar");
+		return;
+	}
+
 #if 0
 	if (msg_reg.all_of<Components::TransferState>(e)) {
 		switch (msg_reg.get<Components::TransferState>(e).state) {

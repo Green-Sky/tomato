@@ -175,7 +175,7 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 				return new_entry;
 			}
 		}
-	}
+	} // continues if loading img fails
 
 	if (!_cr.any_of<
 		Contact::Components::ToxFriendPersistent,
