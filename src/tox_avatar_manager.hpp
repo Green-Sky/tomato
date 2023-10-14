@@ -1,7 +1,10 @@
 #pragma once
 
-#include "solanaceae/contact/contact_model3.hpp"
 #include <solanaceae/message3/registry_message_model.hpp>
+#include <solanaceae/contact/contact_model3.hpp>
+
+#include <string>
+#include <vector>
 
 
 // RIP fishy c=<
