@@ -50,6 +50,8 @@ class ChatGui4 {
 	public:
 		bool any_unread {false};
 
+		void sendFilePath(const char* file_path);
+
 	private:
 		void renderMessageBodyText(Message3Registry& reg, const Message3 e);
 		void renderMessageBodyFile(Message3Registry& reg, const Message3 e);

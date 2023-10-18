@@ -415,6 +415,12 @@ void ChatGui4::render(void) {
 	_msg_tc.workLoadQueue();
 }
 
+void ChatGui4::sendFilePath(const char* file_path) {
+	if (_selected_contact && std::filesystem::is_regular_file(file_path)) {
+		_rmm.sendFilePath(*_selected_contact, std::filesystem::path(file_path).filename().u8string(), file_path);
+	}
+}
+
 // has MessageText
 void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	const auto& msgtext = reg.get<Message::Components::MessageText>(e).text;

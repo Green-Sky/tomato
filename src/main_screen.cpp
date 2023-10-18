@@ -67,6 +67,12 @@ MainScreen::~MainScreen(void) {
 }
 
 bool MainScreen::handleEvent(SDL_Event& e) {
+	if (e.type == SDL_EVENT_DROP_FILE) {
+		std::cout << "DROP FILE: " << e.drop.file << "\n";
+		cg.sendFilePath(e.drop.file);
+		return true; // TODO: forward return succ from sendFilePath()
+	}
+
 	return false;
 }
 
