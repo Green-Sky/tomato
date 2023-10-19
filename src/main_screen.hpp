@@ -21,6 +21,7 @@
 
 #include "./sdlrenderer_texture_uploader.hpp"
 #include "./chat_gui4.hpp"
+#include "./settings_window.hpp"
 
 #include <string>
 #include <iostream>
@@ -57,6 +58,7 @@ struct MainScreen final : public Screen {
 	//OpenGLTextureUploader ogltu;
 
 	ChatGui4 cg;
+	SettingsWindow sw;
 
 	MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins);
 	~MainScreen(void);

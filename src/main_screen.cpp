@@ -18,7 +18,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	mmil(rmm),
 	tam(rmm, cr, conf),
 	sdlrtu(renderer_),
-	cg(conf, rmm, cr, sdlrtu)
+	cg(conf, rmm, cr, sdlrtu),
+	sw(conf)
 {
 	tel.subscribeAll(tc);
 
@@ -87,11 +88,29 @@ Screen* MainScreen::poll(bool& quit) {
 
 	tam.iterate();
 
+	// HACK: render the tomato main window first, with proper flags set.
+	// flags need to be set the first time begin() is called.
+	// and plugins are run before the main cg is run.
+	{
+		// TODO: maybe render cg earlier? or move the main window out of cg?
+		constexpr auto bg_window_flags =
+			ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_MenuBar |
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+		ImGui::Begin("tomato", nullptr, bg_window_flags);
+		ImGui::End();
+	}
+
 	pm.tick(time_delta);
 
 	mts.iterate();
 
 	cg.render();
+	sw.render();
 
 	if constexpr (false) {
 		ImGui::ShowDemoWindow();
