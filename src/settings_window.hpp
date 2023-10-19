@@ -1,13 +1,14 @@
 #pragma once
 
-struct ConfigModelI;
+struct SimpleConfigModel;
 
 class SettingsWindow {
 	bool _show_window {false};
-	ConfigModelI& _conf;
+	// TODO: add iteration api to interface
+	SimpleConfigModel& _conf;
 
 	public:
-		SettingsWindow(ConfigModelI& conf);
+		SettingsWindow(SimpleConfigModel& conf);
 
 		void render(void);
 };
