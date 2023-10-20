@@ -2,7 +2,6 @@
 
 #include "./file_selector.hpp"
 
-#include <cstdio>
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
@@ -22,6 +21,7 @@
 #include <vector>
 #include <chrono>
 #include <ctime>
+#include <cstdio>
 #include <iomanip>
 #include <fstream>
 #include <sstream>

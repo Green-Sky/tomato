@@ -19,7 +19,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tam(rmm, cr, conf),
 	sdlrtu(renderer_),
 	cg(conf, rmm, cr, sdlrtu),
-	sw(conf)
+	sw(conf),
+	tuiu(tc, conf)
 {
 	tel.subscribeAll(tc);
 
@@ -111,6 +112,7 @@ Screen* MainScreen::poll(bool& quit) {
 
 	cg.render();
 	sw.render();
+	tuiu.render();
 
 	if constexpr (false) {
 		ImGui::ShowDemoWindow();

@@ -55,6 +55,9 @@ add_executable(tomato
 	./settings_window.hpp
 	./settings_window.cpp
 
+	./tox_ui_utils.hpp
+	./tox_ui_utils.cpp
+
 	./chat_gui4.hpp
 	./chat_gui4.cpp
 )
