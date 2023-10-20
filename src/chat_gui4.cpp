@@ -2,6 +2,7 @@
 
 #include "./file_selector.hpp"
 
+#include <cstdio>
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
@@ -545,9 +546,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		ImGui::TextUnformatted("down");
 		if (reg.all_of<Message::Components::Transfer::BytesReceived>(e)) {
 			ImGui::SameLine();
+
+			float fraction = float(reg.get<Message::Components::Transfer::BytesReceived>(e).total) / reg.get<Message::Components::Transfer::FileInfo>(e).total_size;
+
+			char overlay_buf[32];
+			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
+
 			ImGui::ProgressBar(
-				float(reg.get<Message::Components::Transfer::BytesReceived>(e).total) / reg.get<Message::Components::Transfer::FileInfo>(e).total_size,
-				{-FLT_MIN, TEXT_BASE_HEIGHT}
+				fraction,
+				{-FLT_MIN, TEXT_BASE_HEIGHT},
+				overlay_buf
 			);
 			// TODO: numbers
 		}
@@ -559,9 +567,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		ImGui::TextUnformatted("  up");
 		if (reg.all_of<Message::Components::Transfer::BytesSent>(e)) {
 			ImGui::SameLine();
+
+			float fraction = float(reg.get<Message::Components::Transfer::BytesSent>(e).total) / reg.get<Message::Components::Transfer::FileInfo>(e).total_size;
+
+			char overlay_buf[32];
+			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
+
 			ImGui::ProgressBar(
-				float(reg.get<Message::Components::Transfer::BytesSent>(e).total) / reg.get<Message::Components::Transfer::FileInfo>(e).total_size,
-				{-FLT_MIN, TEXT_BASE_HEIGHT}
+				fraction,
+				{-FLT_MIN, TEXT_BASE_HEIGHT},
+				overlay_buf
 			);
 			// TODO: numbers
 		}
