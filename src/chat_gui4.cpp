@@ -154,11 +154,11 @@ void ChatGui4::render(void) {
 
 				if (ImGui::BeginChild("message_log", {0, -100}, false, ImGuiWindowFlags_MenuBar)) {
 					if (ImGui::BeginMenuBar()) {
-						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
-						if (ImGui::SmallButton("test")) {
-							_cr.emplace_or_replace<Contact::Components::AvatarFile>(*_selected_contact, "tomato_v1_256.png");
-							_cr.emplace_or_replace<Contact::Components::TagAvatarInvalidate>(*_selected_contact);
-							std::cout << "DEBUG: added AvatarFile comp to contact\n";
+						if (ImGui::BeginMenu("debug")) {
+							ImGui::Checkbox("show extra info", &_show_chat_extra_info);
+							ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
+
+							ImGui::EndMenu();
 						}
 						ImGui::EndMenuBar();
 					}
@@ -466,7 +466,13 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 }
 
 void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
-	if (reg.all_of<Message::Components::Transfer::FileKind>(e) && reg.get<Message::Components::Transfer::FileKind>(e).kind == 1) {
+	if (
+		!_show_chat_avatar_tf
+		&& (
+			reg.all_of<Message::Components::Transfer::FileKind>(e)
+			&& reg.get<Message::Components::Transfer::FileKind>(e).kind == 1
+		)
+	) {
 		// TODO: this looks ugly
 		ImGui::TextDisabled("set avatar");
 		return;

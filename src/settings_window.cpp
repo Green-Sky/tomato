@@ -109,7 +109,7 @@ void SettingsWindow::render(void) {
 			if (ImGui::BeginMenuBar()) {
 				ImGui::Separator();
 				if (ImGui::BeginMenu("Settings")) {
-					if (ImGui::MenuItem("show settings window")) {
+					if (ImGui::MenuItem("settings window")) {
 						_show_window = true;
 					}
 					ImGui::EndMenu();

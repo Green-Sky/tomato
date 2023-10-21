@@ -31,7 +31,8 @@ class ChatGui4 {
 	// TODO: per contact
 	std::string _text_input_buffer;
 
-	bool _show_chat_extra_info {true};
+	bool _show_chat_extra_info {false};
+	bool _show_chat_avatar_tf {false};
 
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};

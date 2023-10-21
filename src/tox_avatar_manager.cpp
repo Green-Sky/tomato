@@ -140,13 +140,13 @@ void ToxAvatarManager::checkMsg(Message3Handle h) {
 
 	const auto& file_info = h.get<Message::Components::Transfer::FileInfo>();
 
+	const auto contact = h.get<Message::Components::ContactFrom>().c;
+
 	// TCS-2.2.4
 	if (file_info.total_size > 65536ul) {
 		// TODO: mark handled?
 		return; // too large
 	}
-
-	const auto contact = h.get<Message::Components::ContactFrom>().c;
 
 	// TCS-2.2.10
 	if (file_info.file_list.empty() || file_info.file_list.front().file_name.empty() || file_info.total_size == 0) {
@@ -186,15 +186,17 @@ void ToxAvatarManager::checkMsg(Message3Handle h) {
 
 		h.emplace_or_replace<Components::TagAvatarImageHandled>();
 	} else {
-		const auto& supposed_file_hash = h.get<Message::Components::Transfer::FileID>().id;
-
 		// check file id for existing hash
 		if (std::filesystem::is_regular_file(file_path)) {
+			//const auto& supposed_file_hash = h.get<Message::Components::Transfer::FileID>().id;
 			// load file
 			// hash file
 			//_t.toxHash();
 
+			std::filesystem::remove(file_path); // hack, hard replace existing file
 		}
+
+		std::cout << "TAM: accepted avatar ft\n";
 
 		// if not already on disk
 		_accept_queue.push_back(AcceptEntry{h, file_path});
