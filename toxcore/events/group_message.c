@@ -150,7 +150,7 @@ static bool tox_event_group_message_unpack(
     Tox_Event_Group_Message *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 5)) {
+    if (!bin_unpack_array_fixed(bu, 5, nullptr)) {
         return false;
     }
 

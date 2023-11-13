@@ -120,7 +120,7 @@ static bool tox_event_group_peer_name_unpack(
     Tox_Event_Group_Peer_Name *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 3)) {
+    if (!bin_unpack_array_fixed(bu, 3, nullptr)) {
         return false;
     }
 

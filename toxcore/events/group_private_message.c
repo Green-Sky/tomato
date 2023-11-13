@@ -135,7 +135,7 @@ static bool tox_event_group_private_message_unpack(
     Tox_Event_Group_Private_Message *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 4)) {
+    if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
         return false;
     }
 

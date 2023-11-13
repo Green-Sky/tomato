@@ -84,7 +84,7 @@ static bool tox_event_group_join_fail_unpack(
     Tox_Event_Group_Join_Fail *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 2)) {
+    if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
         return false;
     }
 

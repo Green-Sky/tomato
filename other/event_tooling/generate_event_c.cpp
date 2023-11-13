@@ -306,7 +306,7 @@ void generate_event_impl(const std::string& event_name, std::vector<EventType> e
     f << "    Tox_Event_" << event_name << " *event, Bin_Unpack *bu)\n{\n";
     f << "    assert(event != nullptr);\n";
     if (event_types.size() > 1) {
-        f << "    if (!bin_unpack_array_fixed(bu, " << event_types.size() << ")) {\n        return false;\n    }\n\n";
+        f << "    if (!bin_unpack_array_fixed(bu, " << event_types.size() << ", nullptr)) {\n        return false;\n    }\n\n";
     }
 
     bool first = true;
