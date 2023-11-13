@@ -172,7 +172,7 @@ static bool tox_event_group_peer_exit_unpack(
     Tox_Event_Group_Peer_Exit *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 5)) {
+    if (!bin_unpack_array_fixed(bu, 5, nullptr)) {
         return false;
     }
 

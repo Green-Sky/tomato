@@ -84,7 +84,7 @@ static bool tox_event_group_privacy_state_unpack(
     Tox_Event_Group_Privacy_State *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 2)) {
+    if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
         return false;
     }
 

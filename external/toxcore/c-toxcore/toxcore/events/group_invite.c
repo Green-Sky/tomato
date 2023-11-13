@@ -142,7 +142,7 @@ static bool tox_event_group_invite_unpack(
     Tox_Event_Group_Invite *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 3)) {
+    if (!bin_unpack_array_fixed(bu, 3, nullptr)) {
         return false;
     }
 
