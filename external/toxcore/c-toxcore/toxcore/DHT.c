@@ -533,8 +533,8 @@ int pack_nodes(const Logger *logger, uint8_t *data, uint16_t length, const Node_
 
 #ifndef NDEBUG
         const uint32_t increment = ipp_size + CRYPTO_PUBLIC_KEY_SIZE;
-#endif
         assert(increment == PACKED_NODE_SIZE_IP4 || increment == PACKED_NODE_SIZE_IP6);
+#endif
     }
 
     return packed_length;
@@ -565,8 +565,8 @@ int unpack_nodes(Node_format *nodes, uint16_t max_num_nodes, uint16_t *processed
 
 #ifndef NDEBUG
         const uint32_t increment = ipp_size + CRYPTO_PUBLIC_KEY_SIZE;
-#endif
         assert(increment == PACKED_NODE_SIZE_IP4 || increment == PACKED_NODE_SIZE_IP6);
+#endif
     }
 
     if (processed_data_len != nullptr) {
@@ -2963,6 +2963,34 @@ bool dht_non_lan_connected(const DHT *dht)
     }
 
     return false;
+}
+
+uint16_t dht_get_num_closelist(const DHT *dht) {
+    uint16_t num_valid_close_clients = 0;
+    for (uint32_t i = 0; i < LCLIENT_LIST; ++i) {
+        const Client_data *const client = dht_get_close_client(dht, i);
+
+        // check if client is valid
+        if (!(assoc_timeout(dht->cur_time, &client->assoc4) && assoc_timeout(dht->cur_time, &client->assoc6))) {
+            ++num_valid_close_clients;
+        }
+    }
+
+    return num_valid_close_clients;
+}
+
+uint16_t dht_get_num_closelist_announce_capable(const DHT *dht) {
+    uint16_t num_valid_close_clients_with_cap = 0;
+    for (uint32_t i = 0; i < LCLIENT_LIST; ++i) {
+        const Client_data *const client = dht_get_close_client(dht, i);
+
+        // check if client is valid
+        if (!(assoc_timeout(dht->cur_time, &client->assoc4) && assoc_timeout(dht->cur_time, &client->assoc6)) && client->announce_node) {
+            ++num_valid_close_clients_with_cap;
+        }
+    }
+
+    return num_valid_close_clients_with_cap;
 }
 
 unsigned int ipport_self_copy(const DHT *dht, IP_Port *dest)
