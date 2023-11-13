@@ -1,3 +1,5 @@
+#pragma once
+
 #include <tox/tox_private.h>
 #include <solanaceae/toxcore/tox_private_interface.hpp>
 

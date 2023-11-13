@@ -58,6 +58,9 @@ add_executable(tomato
 	./tox_ui_utils.hpp
 	./tox_ui_utils.cpp
 
+	./tox_dht_cap_histo.hpp
+	./tox_dht_cap_histo.cpp
+
 	./chat_gui4.hpp
 	./chat_gui4.cpp
 )

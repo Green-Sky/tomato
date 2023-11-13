@@ -21,7 +21,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	sdlrtu(renderer_),
 	cg(conf, rmm, cr, sdlrtu),
 	sw(conf),
-	tuiu(tc, conf)
+	tuiu(tc, conf),
+	tdch(tpi)
 {
 	tel.subscribeAll(tc);
 
@@ -109,12 +110,14 @@ Screen* MainScreen::poll(bool& quit) {
 	}
 
 	pm.tick(time_delta);
+	tdch.tick(time_delta);
 
 	mts.iterate();
 
 	cg.render();
 	sw.render();
 	tuiu.render();
+	tdch.render();
 
 	if constexpr (false) {
 		ImGui::ShowDemoWindow();

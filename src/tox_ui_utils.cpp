@@ -23,6 +23,8 @@ void ToxUIUtils::render(void) {
 			if (ImGui::BeginMenuBar()) {
 				ImGui::Separator();
 				if (ImGui::BeginMenu("Tox")) {
+					ImGui::SeparatorText("Friends/Groups");
+
 					if (ImGui::MenuItem("add Friend by ID")) {
 						_show_add_friend_window = true;
 					}

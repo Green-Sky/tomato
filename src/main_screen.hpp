@@ -24,6 +24,7 @@
 #include "./chat_gui4.hpp"
 #include "./settings_window.hpp"
 #include "./tox_ui_utils.hpp"
+#include "./tox_dht_cap_histo.hpp"
 
 #include <string>
 #include <iostream>
@@ -63,6 +64,7 @@ struct MainScreen final : public Screen {
 	ChatGui4 cg;
 	SettingsWindow sw;
 	ToxUIUtils tuiu;
+	ToxDHTCapHisto tdch;
 
 	MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins);
 	~MainScreen(void);
