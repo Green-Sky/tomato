@@ -11,6 +11,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	rmm(cr),
 	mts(rmm),
 	tc(save_path, save_password),
+	tpi(tc.getTox()),
 	ad(tc),
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
@@ -44,6 +45,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
+		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
 		g_provideInstance<ToxEventProviderI>("ToxEventProviderI", "host", &tc);
 		g_provideInstance<ToxContactModel2>("ToxContactModel2", "host", &tcm);
 

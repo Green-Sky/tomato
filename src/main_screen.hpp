@@ -8,6 +8,7 @@
 #include <solanaceae/message3/message_time_sort.hpp>
 #include <solanaceae/plugin/plugin_manager.hpp>
 #include <solanaceae/toxcore/tox_event_logger.hpp>
+#include "./tox_private_impl.hpp"
 
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 #include <solanaceae/tox_messages/tox_message_manager.hpp>
@@ -47,6 +48,7 @@ struct MainScreen final : public Screen {
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;
+	ToxPrivateImpl tpi;
 	AutoDirty ad;
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
