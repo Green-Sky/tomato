@@ -155,6 +155,11 @@ configure_file(
 	${TOX_DIR}tox/tox_events.h
 	@ONLY
 )
+configure_file(
+	${TOX_DIR}toxcore/tox_private.h
+	${TOX_DIR}tox/tox_private.h
+	@ONLY
+)
 
 target_include_directories(toxcore PRIVATE "${TOX_DIR}toxcore")
 target_include_directories(toxcore PUBLIC "${TOX_DIR}")

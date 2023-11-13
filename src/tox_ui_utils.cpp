@@ -1,5 +1,7 @@
 #include "./tox_ui_utils.hpp"
 
+#include <tox/tox.h>
+
 #include <solanaceae/toxcore/tox_interface.hpp>
 #include <solanaceae/toxcore/utils.hpp>
 
