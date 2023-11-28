@@ -171,6 +171,8 @@ void ChatGui4::render(void) {
 						if (const auto* unread_storage = mm.storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
 							//assert(unread_storage->size() == 0);
 							//assert(unread_storage.cbegin() == unread_storage.cend());
+
+#if 0
 							std::cout << "UNREAD ";
 							Message3 prev_ent = entt::null;
 							for (const Message3 e : mm.view<Message::Components::TagUnread>()) {
@@ -181,6 +183,7 @@ void ChatGui4::render(void) {
 								prev_ent = e;
 							}
 							std::cout << "\n";
+#endif
 						}
 					}
 
