@@ -3,6 +3,7 @@
 #include "./image_loader_sdl_bmp.hpp"
 #include "./image_loader_stb.hpp"
 #include "./image_loader_webp.hpp"
+#include "./media_meta_info_loader.hpp"
 
 #include <solanaceae/message3/components.hpp>
 
@@ -19,6 +20,10 @@ MessageImageLoader::MessageImageLoader(void) {
 
 std::optional<TextureEntry> MessageImageLoader::load(TextureUploaderI& tu, Message3Handle m) {
 	if (!static_cast<bool>(m)) {
+		return std::nullopt;
+	}
+
+	if (m.all_of<Message::Components::TagNotImage>()) {
 		return std::nullopt;
 	}
 
