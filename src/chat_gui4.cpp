@@ -6,6 +6,9 @@
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
 
+// HACK: remove them
+#include <solanaceae/tox_contacts/components.hpp>
+#include <solanaceae/toxcore/utils.hpp>
 
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
@@ -157,6 +160,16 @@ void ChatGui4::render(void) {
 						if (ImGui::BeginMenu("debug")) {
 							ImGui::Checkbox("show extra info", &_show_chat_extra_info);
 							ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
+
+							ImGui::SeparatorText("tox");
+
+							if (_cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
+								if (ImGui::MenuItem("copy ngc chatid")) {
+									const auto& chat_id = _cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
+									const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
+									ImGui::SetClipboardText(chat_id_str.c_str());
+								}
+							}
 
 							ImGui::EndMenu();
 						}
