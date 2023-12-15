@@ -182,7 +182,7 @@ static void kill_group_friend_connection(const GC_Session *c, const GC_Chat *cha
 
 uint16_t gc_get_wrapped_packet_size(uint16_t length, Net_Packet_Type packet_type)
 {
-    assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+    assert(length <= (packet_type == NET_PACKET_GC_LOSSY ? MAX_GC_CUSTOM_LOSSY_PACKET_SIZE : MAX_GC_PACKET_CHUNK_SIZE));
 
     const uint16_t min_header_size = packet_type == NET_PACKET_GC_LOSSY
                                      ? GC_MIN_LOSSY_PAYLOAD_SIZE
@@ -226,10 +226,20 @@ GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
     return &peer->gconn;
 }
 
-/** Returns the amount of empty padding a packet of designated length should have. */
-static uint16_t group_packet_padding_length(uint16_t length)
+/** Returns the max packet size, not wrapped */
+static uint16_t group_packet_max_packet_size(Net_Packet_Type net_packet_type)
 {
-    return (MAX_GC_PACKET_CHUNK_SIZE - length) % GC_MAX_PACKET_PADDING;
+    if (net_packet_type == NET_PACKET_GC_LOSSY) {
+        return MAX_GC_CUSTOM_LOSSY_PACKET_SIZE;
+    } else {
+        return MAX_GC_PACKET_CHUNK_SIZE;
+    }
+}
+
+/** Returns the amount of empty padding a packet of designated length should have. */
+static uint16_t group_packet_padding_length(uint16_t length, uint16_t max_length)
+{
+    return (max_length - length) % GC_MAX_PACKET_PADDING;
 }
 
 void gc_get_self_nick(const GC_Chat *chat, uint8_t *nick)
@@ -1270,8 +1280,8 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     memcpy(&voice_state, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
 
-    shared_state->voice_state = (Group_Voice_State)voice_state;
-    shared_state->privacy_state = (Group_Privacy_State)privacy_state;
+    shared_state->voice_state = group_voice_state_from_int(voice_state);
+    shared_state->privacy_state = group_privacy_state_from_int(privacy_state);
 
     return len_processed;
 }
@@ -1483,9 +1493,10 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
 int group_packet_wrap(
     const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
-    uint8_t gp_packet_type, uint8_t net_packet_type)
+    uint8_t gp_packet_type, Net_Packet_Type net_packet_type)
 {
-    const uint16_t padding_len = group_packet_padding_length(length);
+    const uint16_t max_packet_size = group_packet_max_packet_size(net_packet_type);
+    const uint16_t padding_len = group_packet_padding_length(length, max_packet_size);
     const uint16_t min_packet_size = net_packet_type == NET_PACKET_GC_LOSSLESS
                                      ? length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + GC_MESSAGE_ID_BYTES + 1
                                      : length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + 1;
@@ -1495,8 +1506,8 @@ int group_packet_wrap(
         return -1;
     }
 
-    if (length > MAX_GC_PACKET_CHUNK_SIZE) {
-        LOGGER_ERROR(log, "Packet payload size (%u) exceeds maximum (%u)", length, MAX_GC_PACKET_CHUNK_SIZE);
+    if (length > max_packet_size) {
+        LOGGER_ERROR(log, "Packet payload size (%u) exceeds maximum (%u)", length, max_packet_size);
         return -1;
     }
 
@@ -1563,7 +1574,7 @@ non_null()
 static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
                                     uint16_t length, uint8_t packet_type)
 {
-    assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+    assert(length <= MAX_GC_CUSTOM_LOSSY_PACKET_SIZE);
 
     if (!gconn->handshaked || gconn->pending_delete) {
         return false;
@@ -3510,8 +3521,8 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
 {
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    if (peer_number_is_self(peer_number)) {  // we cannot have a connection with ourselves
-        return 0;
+    if (peer_number_is_self(peer_number)) {
+        return chat->self_udp_status ==  SELF_UDP_STATUS_NONE ? 1 : 2;
     }
 
     const GC_Connection *gconn = get_gc_connection(chat, peer_number);
@@ -7224,7 +7235,9 @@ static int get_new_group_index(GC_Session *c)
 
     c->chats[new_index] = empty_gc_chat;
 
-    memset(&c->chats[new_index].saved_invites, -1, sizeof(c->chats[new_index].saved_invites));
+    for (size_t i = 0; i < sizeof(c->chats[new_index].saved_invites)/sizeof(*c->chats[new_index].saved_invites); ++i) {
+        c->chats[new_index].saved_invites[i] = -1;
+    }
 
     ++c->chats_index;
 
@@ -7279,7 +7292,7 @@ static bool init_gc_tcp_connection(const GC_Session *c, GC_Chat *chat)
 
 /** Initializes default shared state values. */
 non_null()
-static void init_gc_shared_state(GC_Chat *chat, const Group_Privacy_State privacy_state)
+static void init_gc_shared_state(GC_Chat *chat, Group_Privacy_State privacy_state)
 {
     chat->shared_state.maxpeers = MAX_GC_PEERS_DEFAULT;
     chat->shared_state.privacy_state = privacy_state;
