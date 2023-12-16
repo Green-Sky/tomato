@@ -19,7 +19,7 @@ static void eee(std::string& mod) {
 }
 
 static void tmp_tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func, const char *message, void *user_data) {
-	std::cerr << "l:" << level << " " << file << ":" << line << "@" << func << ": '" << message << "'\n";
+	std::cerr << "l:" << level << " " << file << ":" << line << "@" << func << "(): '" << message << "'\n";
 }
 
 ToxClient::ToxClient(std::string_view save_path, std::string_view save_password) :
