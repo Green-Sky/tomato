@@ -18,6 +18,10 @@ static void eee(std::string& mod) {
 	}
 }
 
+static void tmp_tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func, const char *message, void *user_data) {
+	std::cerr << "l:" << level << " " << file << ":" << line << "@" << func << ": '" << message << "'\n";
+}
+
 ToxClient::ToxClient(std::string_view save_path, std::string_view save_password) :
 	_tox_profile_path(save_path), _tox_profile_password(save_password)
 {
@@ -66,6 +70,8 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 			ifile.close(); // do i need this?
 		}
 	}
+
+	tox_options_set_log_callback(options, tmp_tox_log_cb);
 
 	TOX_ERR_NEW err_new;
 	_tox = tox_new(options, &err_new);
