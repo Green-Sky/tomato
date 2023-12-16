@@ -1,4 +1,5 @@
 #include "./tox_client.hpp"
+#include "toxcore/tox.h"
 
 // meh, change this
 #include <exception>
@@ -71,6 +72,7 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 		}
 	}
 
+	tox_options_set_local_discovery_enabled(options, false);
 	tox_options_set_log_callback(options, tmp_tox_log_cb);
 
 	TOX_ERR_NEW err_new;
