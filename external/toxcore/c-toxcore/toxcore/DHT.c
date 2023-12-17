@@ -1499,12 +1499,15 @@ static bool sent_getnode_to_node(DHT *dht, const uint8_t *public_key, const IP_P
     uint8_t data[sizeof(Node_format) * 2];
 
     if (ping_array_check(dht->dht_ping_array, dht->mono_time, data, sizeof(data), ping_id) != sizeof(Node_format)) {
+        LOGGER_ERROR(dht->log, "ping array check failed");
         return false;
     }
 
     Node_format test;
 
+	// why?
     if (unpack_nodes(&test, 1, nullptr, data, sizeof(data), false) != 1) {
+        LOGGER_ERROR(dht->log, "test unpack failed failed");
         return false;
     }
 
