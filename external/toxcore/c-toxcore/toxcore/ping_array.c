@@ -153,8 +153,8 @@ int32_t ping_array_check(const Logger *log, Ping_Array *array, const Mono_Time *
         return -2;
     }
 
+	LOGGER_DEBUG(log, "now:%lu ts:%lu to: %u", mono_time_get(mono_time), array->entries[index].ping_time, array->timeout);
     if (mono_time_is_timeout(mono_time, array->entries[index].ping_time, array->timeout)) {
-		LOGGER_DEBUG(log, "ts:%lu to: %u", array->entries[index].ping_time, array->timeout);
         return -3;
     }
 
