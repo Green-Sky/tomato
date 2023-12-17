@@ -1588,8 +1588,11 @@ static int handle_sendnodes_ipv6(void *object, const IP_Port *source, const uint
     uint32_t num_nodes;
 
     if (!handle_sendnodes_core(object, source, packet, length, plain_nodes, MAX_SENT_NODES, &num_nodes)) {
+        LOGGER_WARNING(dht->log, "error parsing dht nodes packet");
         return 1;
     }
+
+    LOGGER_INFO(dht->log, "got %u nodes", num_nodes);
 
     if (num_nodes == 0) {
         return 0;
