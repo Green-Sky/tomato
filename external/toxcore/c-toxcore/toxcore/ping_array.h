@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include "crypto_core.h"
+#include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
 
@@ -56,7 +57,7 @@ uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Ran
  * @return length of data copied on success, -1 on failure.
  */
 non_null()
-int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t *data, size_t length,
+int32_t ping_array_check(const Logger *log, Ping_Array *array, const Mono_Time *mono_time, uint8_t *data, size_t length,
                          uint64_t ping_id);
 
 #ifdef __cplusplus

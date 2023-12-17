@@ -606,7 +606,7 @@ static uint32_t check_sendback(Onion_Client *onion_c, const uint8_t *sendback, u
     memcpy(&sback, sendback, sizeof(uint64_t));
     uint8_t data[sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE + sizeof(IP_Port) + sizeof(uint32_t)];
 
-    if (ping_array_check(onion_c->announce_ping_array, onion_c->mono_time, data, sizeof(data), sback) != sizeof(data)) {
+    if (ping_array_check(onion_c->logger, onion_c->announce_ping_array, onion_c->mono_time, data, sizeof(data), sback) != sizeof(data)) {
         return -1;
     }
 

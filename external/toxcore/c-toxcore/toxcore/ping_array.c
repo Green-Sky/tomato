@@ -13,6 +13,7 @@
 
 #include "ccompat.h"
 #include "crypto_core.h"
+#include "logger.h"
 #include "mono_time.h"
 #include "util.h"
 
@@ -139,7 +140,7 @@ uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Ran
     return ping_id;
 }
 
-int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t *data,
+int32_t ping_array_check(const Logger *log, Ping_Array *array, const Mono_Time *mono_time, uint8_t *data,
                          size_t length, uint64_t ping_id)
 {
     if (ping_id == 0) {
@@ -153,6 +154,7 @@ int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t 
     }
 
     if (mono_time_is_timeout(mono_time, array->entries[index].ping_time, array->timeout)) {
+		LOGGER_DEBUG(log, "ts:%lu to: %u", array->entries[index].ping_time, array->timeout);
         return -3;
     }
 

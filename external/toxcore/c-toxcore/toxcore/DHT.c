@@ -979,7 +979,7 @@ static int handle_data_search_response(void *object, const IP_Port *source,
 
     uint8_t ping_data[CRYPTO_PUBLIC_KEY_SIZE];
 
-    if (ping_array_check(dht->dht_ping_array,
+    if (ping_array_check(dht->log, dht->dht_ping_array,
                          dht->mono_time, ping_data,
                          sizeof(ping_data), ping_id) != sizeof(ping_data)) {
         return 1;
@@ -1498,7 +1498,7 @@ static bool sent_getnode_to_node(DHT *dht, const uint8_t *public_key, const IP_P
 {
     uint8_t data[sizeof(Node_format) * 2];
 
-	int32_t res = ping_array_check(dht->dht_ping_array, dht->mono_time, data, sizeof(data), ping_id);
+	int32_t res = ping_array_check(dht->log, dht->dht_ping_array, dht->mono_time, data, sizeof(data), ping_id);
     if (res != sizeof(Node_format)) {
         LOGGER_ERROR(dht->log, "ping array check failed: %d", res);
         return false;
