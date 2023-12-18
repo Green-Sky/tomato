@@ -206,10 +206,10 @@ add_executable(DHT_Bootstrap EXCLUDE_FROM_ALL
 )
 target_link_libraries(DHT_Bootstrap toxcore)
 
-add_executable(mono_time_test
-	./mono_time_test.cc
-)
-target_link_libraries(mono_time_test PUBLIC
-	toxcore
-)
+#add_executable(mono_time_test
+	#./mono_time_test.cc
+#)
+#target_link_libraries(mono_time_test PUBLIC
+	#toxcore
+#)
 
