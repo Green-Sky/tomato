@@ -2,7 +2,7 @@ name: ContinuousDelivery
 
 on:
   push:
-    branches: [ master tmp_tox_logging ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
