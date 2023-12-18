@@ -979,7 +979,7 @@ static int handle_data_search_response(void *object, const IP_Port *source,
 
     uint8_t ping_data[CRYPTO_PUBLIC_KEY_SIZE];
 
-    if (ping_array_check(dht->dht_ping_array,
+    if (ping_array_check(dht->log, dht->dht_ping_array,
                          dht->mono_time, ping_data,
                          sizeof(ping_data), ping_id) != sizeof(ping_data)) {
         return 1;
@@ -1498,13 +1498,17 @@ static bool sent_getnode_to_node(DHT *dht, const uint8_t *public_key, const IP_P
 {
     uint8_t data[sizeof(Node_format) * 2];
 
-    if (ping_array_check(dht->dht_ping_array, dht->mono_time, data, sizeof(data), ping_id) != sizeof(Node_format)) {
+	int32_t res = ping_array_check(dht->log, dht->dht_ping_array, dht->mono_time, data, sizeof(data), ping_id);
+    if (res != sizeof(Node_format)) {
+        LOGGER_ERROR(dht->log, "ping array check failed: %d", res);
         return false;
     }
 
     Node_format test;
 
+	// why?
     if (unpack_nodes(&test, 1, nullptr, data, sizeof(data), false) != 1) {
+        LOGGER_ERROR(dht->log, "test unpack failed failed");
         return false;
     }
 
@@ -1519,16 +1523,19 @@ static bool handle_sendnodes_core(void *object, const IP_Port *source, const uin
     const uint32_t cid_size = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + 1 + sizeof(uint64_t) + CRYPTO_MAC_SIZE;
 
     if (length < cid_size) { /* too short */
+        LOGGER_ERROR(dht->log, "too short");
         return false;
     }
 
     const uint32_t data_size = length - cid_size;
 
     if (data_size == 0) {
+        LOGGER_ERROR(dht->log, "data_size == 0");
         return false;
     }
 
     if (data_size > sizeof(Node_format) * MAX_SENT_NODES) { /* invalid length */
+        LOGGER_ERROR(dht->log, "data_size too large");
         return false;
     }
 
@@ -1542,10 +1549,12 @@ static bool handle_sendnodes_core(void *object, const IP_Port *source, const uin
                         plain);
 
     if ((unsigned int)len != SIZEOF_VLA(plain)) {
+        LOGGER_ERROR(dht->log, "decrypt_data size mismatch");
         return false;
     }
 
     if (plain[0] > size_plain_nodes) {
+        LOGGER_ERROR(dht->log, "number nodes in packet too large??");
         return false;
     }
 
@@ -1553,6 +1562,7 @@ static bool handle_sendnodes_core(void *object, const IP_Port *source, const uin
     memcpy(&ping_id, plain + 1 + data_size, sizeof(ping_id));
 
     if (!sent_getnode_to_node(dht, packet + 1, source, ping_id)) {
+        LOGGER_ERROR(dht->log, "we did not request this nodes packet");
         return false;
     }
 
@@ -1560,10 +1570,12 @@ static bool handle_sendnodes_core(void *object, const IP_Port *source, const uin
     const int num_nodes = unpack_nodes(plain_nodes, plain[0], &length_nodes, plain + 1, data_size, false);
 
     if (length_nodes != data_size) {
+        LOGGER_ERROR(dht->log, "unpacking nodes size mismatch");
         return false;
     }
 
     if (num_nodes != plain[0]) {
+        LOGGER_ERROR(dht->log, "unpacking nodes not specified number");
         return false;
     }
 
@@ -1588,8 +1600,11 @@ static int handle_sendnodes_ipv6(void *object, const IP_Port *source, const uint
     uint32_t num_nodes;
 
     if (!handle_sendnodes_core(object, source, packet, length, plain_nodes, MAX_SENT_NODES, &num_nodes)) {
+        LOGGER_WARNING(dht->log, "error parsing dht nodes packet");
         return 1;
     }
+
+    LOGGER_INFO(dht->log, "got %u nodes", num_nodes);
 
     if (num_nodes == 0) {
         return 0;

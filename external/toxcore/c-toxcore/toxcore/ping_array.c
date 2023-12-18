@@ -13,6 +13,7 @@
 
 #include "ccompat.h"
 #include "crypto_core.h"
+#include "logger.h"
 #include "mono_time.h"
 #include "util.h"
 
@@ -139,7 +140,7 @@ uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Ran
     return ping_id;
 }
 
-int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t *data,
+int32_t ping_array_check(const Logger *log, Ping_Array *array, const Mono_Time *mono_time, uint8_t *data,
                          size_t length, uint64_t ping_id)
 {
     if (ping_id == 0) {
@@ -149,20 +150,21 @@ int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t 
     const uint32_t index = ping_id % array->total_size;
 
     if (array->entries[index].ping_id != ping_id) {
-        return -1;
+        return -2;
     }
 
+	LOGGER_DEBUG(log, "now:%lu ts:%lu to: %u", mono_time_get(mono_time), array->entries[index].ping_time, array->timeout);
     if (mono_time_is_timeout(mono_time, array->entries[index].ping_time, array->timeout)) {
-        return -1;
+        return -3;
     }
 
     if (array->entries[index].length > length) {
-        return -1;
+        return -4;
     }
 
     // TODO(iphydf): This can't happen? If it indeed can't, turn it into an assert.
     if (array->entries[index].data == nullptr) {
-        return -1;
+        return -5;
     }
 
     memcpy(data, array->entries[index].data, array->entries[index].length);

@@ -163,6 +163,10 @@ static int handle_ping_request(void *object, const IP_Port *source, const uint8_
     return 0;
 }
 
+struct DHTLOGGEREXTRACTor {
+	const Logger* log;
+};
+
 non_null()
 static int handle_ping_response(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
                                 void *userdata)
@@ -203,7 +207,8 @@ static int handle_ping_response(void *object, const IP_Port *source, const uint8
     memcpy(&ping_id, ping_plain + 1, sizeof(ping_id));
     uint8_t data[PING_DATA_SIZE];
 
-    if (ping_array_check(ping->ping_array, ping->mono_time, data, sizeof(data), ping_id) != sizeof(data)) {
+	// HACK: logger is the first pointer in the struct, so we fake it
+    if (ping_array_check(((struct DHTLOGGEREXTRACTor*)dht)->log, ping->ping_array, ping->mono_time, data, sizeof(data), ping_id) != sizeof(data)) {
         return 1;
     }
 

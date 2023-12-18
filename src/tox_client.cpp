@@ -1,4 +1,5 @@
 #include "./tox_client.hpp"
+#include "toxcore/tox.h"
 
 // meh, change this
 #include <exception>
@@ -16,6 +17,10 @@ static void eee(std::string& mod) {
 	for (char& c : mod) {
 		c ^= 0x59;
 	}
+}
+
+static void tmp_tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func, const char *message, void *user_data) {
+	std::cerr << "l:" << level << " " << file << ":" << line << "@" << func << "(): '" << message << "'\n";
 }
 
 ToxClient::ToxClient(std::string_view save_path, std::string_view save_password) :
@@ -66,6 +71,9 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 			ifile.close(); // do i need this?
 		}
 	}
+
+	tox_options_set_local_discovery_enabled(options, false);
+	tox_options_set_log_callback(options, tmp_tox_log_cb);
 
 	TOX_ERR_NEW err_new;
 	_tox = tox_new(options, &err_new);
