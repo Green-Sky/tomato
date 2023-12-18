@@ -203,6 +203,10 @@ add_executable(DHT_Bootstrap EXCLUDE_FROM_ALL
 	${TOX_DIR}testing/misc_tools.h
 	${TOX_DIR}testing/misc_tools.c
 )
-
 target_link_libraries(DHT_Bootstrap toxcore)
+
+add_executable(mono_time_test
+	./mono_time_test.cc
+)
+target_link_libraries(mono_time_test toxcore)
 
