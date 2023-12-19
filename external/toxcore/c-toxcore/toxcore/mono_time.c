@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -89,7 +90,7 @@ static uint64_t current_time_monotonic_default(void *user_data)
 
     /* splice the low and high bits back together */
     uint64_t ret = old_ovf + ticks;
-	//fprintf(stderr, "!!! ret:%lu\n", ret);
+	fprintf(stderr, "!!! ret:%lu\n", ret);
 	return ret;
 }
 #else // !OS_WIN32
@@ -198,6 +199,9 @@ void mono_time_free(const Memory *mem, Mono_Time *mono_time)
 
 void mono_time_update(Mono_Time *mono_time)
 {
+	fprintf(stderr, "===cur_time before:%lu\n", mono_time->cur_time);
+	//fprintf(stderr, "===base_time:%lu\n", mono_time->base_time);
+	fprintf(stderr, "===base_time:%" PRIu64 "\n", mono_time->base_time);
 #ifdef OS_WIN32
     /* we actually want to update the overflow state of mono_time here */
     pthread_mutex_lock(&mono_time->last_clock_lock);
@@ -216,6 +220,7 @@ void mono_time_update(Mono_Time *mono_time)
 #ifndef ESP_PLATFORM
     pthread_rwlock_unlock(mono_time->time_update_lock);
 #endif
+	fprintf(stderr, "===cur_time after:%lu\n", mono_time->cur_time);
 }
 
 uint64_t mono_time_get_ms(const Mono_Time *mono_time)
