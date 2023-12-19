@@ -71,4 +71,6 @@ jobs:
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
+    - name: temp test
+      run: ${{github.workspace}}/build/bin/mono_time_test.exe
 
