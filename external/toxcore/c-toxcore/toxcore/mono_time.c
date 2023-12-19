@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 
 #include "ccompat.h"
@@ -66,23 +67,30 @@ static uint64_t current_time_monotonic_default(void *user_data)
      * ourselves.
      */
     const uint32_t ticks = GetTickCount();
+	fprintf(stderr, "!!!GetTickCount():%u\n", ticks);
 
     /* the higher 32 bits count the number of wrap arounds */
     uint64_t old_ovf = mono_time->cur_time & ~((uint64_t)UINT32_MAX);
 
+	//fprintf(stderr, "!!! old_ovf:%lu\n", old_ovf);
+
     /* Check if time has decreased because of 32 bit wrap from GetTickCount() */
     if (ticks < mono_time->last_clock_mono) {
+		fprintf(stderr, "!!! ticks<last_clock_mono\n");
         /* account for overflow */
         old_ovf += UINT32_MAX + UINT64_C(1);
     }
 
     if (mono_time->last_clock_update) {
+		//fprintf(stderr, "!!! updating last_clock_mono %u to %u\n", mono_time->last_clock_mono, ticks);
         mono_time->last_clock_mono = ticks;
         mono_time->last_clock_update = false;
     }
 
     /* splice the low and high bits back together */
-    return old_ovf + ticks;
+    uint64_t ret = old_ovf + ticks;
+	//fprintf(stderr, "!!! ret:%lu\n", ret);
+	return ret;
 }
 #else // !OS_WIN32
 static uint64_t timespec_to_u64(struct timespec clock_mono)
