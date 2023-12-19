@@ -209,4 +209,4 @@ add_executable(mono_time_test
 	./mono_time_test.cc
 )
 target_link_libraries(mono_time_test toxcore)
-
+target_compile_features(mono_time_test PUBLIC cxx_std_11)
