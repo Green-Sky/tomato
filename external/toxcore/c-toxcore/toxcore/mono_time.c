@@ -2,6 +2,7 @@
  * Copyright © 2016-2020 The TokTok team.
  * Copyright © 2014 Tox project.
  */
+#include <stdint.h>
 #include "stdint.h"
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600
@@ -69,30 +70,31 @@ static uint64_t current_time_monotonic_default(void *user_data)
      * ourselves.
      */
     const uint32_t ticks = GetTickCount();
-	fprintf(stderr, "!!!GetTickCount():%u\n", ticks);
+    fprintf(stderr, "!!!GetTickCount():%u\n", ticks);
 
     /* the higher 32 bits count the number of wrap arounds */
     uint64_t old_ovf = mono_time->cur_time & ~((uint64_t)UINT32_MAX);
 
-	//fprintf(stderr, "!!! old_ovf:%lu\n", old_ovf);
+    //fprintf(stderr, "!!! old_ovf:%lu\n", old_ovf);
 
     /* Check if time has decreased because of 32 bit wrap from GetTickCount() */
     if (ticks < mono_time->last_clock_mono) {
-		fprintf(stderr, "!!! ticks<last_clock_mono\n");
+        fprintf(stderr, "!!! ticks<last_clock_mono\n");
         /* account for overflow */
         old_ovf += UINT32_MAX + UINT64_C(1);
     }
 
     if (mono_time->last_clock_update) {
-		//fprintf(stderr, "!!! updating last_clock_mono %u to %u\n", mono_time->last_clock_mono, ticks);
+        //fprintf(stderr, "!!! updating last_clock_mono %u to %u\n", mono_time->last_clock_mono, ticks);
         mono_time->last_clock_mono = ticks;
         mono_time->last_clock_update = false;
     }
 
     /* splice the low and high bits back together */
     uint64_t ret = old_ovf + ticks;
-	fprintf(stderr, "!!! ret:%lu\n", ret);
-	return ret;
+    //fprintf(stderr, "!!! ret:%lu\n", ret);
+    fprintf(stderr, "%s() ret:%" PRIu64 "\n", __FUNCTION__, ret);
+    return ret;
 }
 #else // !OS_WIN32
 static uint64_t timespec_to_u64(struct timespec clock_mono)
@@ -200,19 +202,22 @@ void mono_time_free(const Memory *mem, Mono_Time *mono_time)
 
 void mono_time_update(Mono_Time *mono_time)
 {
-	fprintf(stderr, "===cur_time before:%lu\n", mono_time->cur_time);
-	//fprintf(stderr, "===base_time:%lu\n", mono_time->base_time);
-	fprintf(stderr, "===base_time:%" PRIu64 "\n", mono_time->base_time);
+    fprintf(stderr, "%s() ########################################\n", __FUNCTION__);
+    fprintf(stderr, "%s() cur_time;before:%" PRIu64 "\n", __FUNCTION__, mono_time->cur_time);
+    fprintf(stderr, "%s() base_time:%" PRIu64 "\n", __FUNCTION__, mono_time->base_time);
 #ifdef OS_WIN32
     /* we actually want to update the overflow state of mono_time here */
     pthread_mutex_lock(&mono_time->last_clock_lock);
     mono_time->last_clock_update = true;
 #endif
-    const uint64_t cur_time =
-        mono_time->base_time + mono_time->current_time_callback(mono_time->user_data);
+    const uint64_t callback_time = mono_time->current_time_callback(mono_time->user_data);
+    const uint64_t cur_time = mono_time->base_time + callback_time;
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
+
+    fprintf(stderr, "%s() callback_time:%" PRIu64 "\n", __FUNCTION__, callback_time);
+    fprintf(stderr, "%s() tmp_cur_time:%" PRIu64 " (base_time+GetTickCount())\n", __FUNCTION__, cur_time);
 
 #ifndef ESP_PLATFORM
     pthread_rwlock_wrlock(mono_time->time_update_lock);
@@ -221,7 +226,7 @@ void mono_time_update(Mono_Time *mono_time)
 #ifndef ESP_PLATFORM
     pthread_rwlock_unlock(mono_time->time_update_lock);
 #endif
-	fprintf(stderr, "===cur_time after:%lu\n", mono_time->cur_time);
+    fprintf(stderr, "%s() cur_time;after:%" PRIu64 " (base_time+GetTickCount())\n", __FUNCTION__, mono_time->cur_time);
 }
 
 uint64_t mono_time_get_ms(const Mono_Time *mono_time)
@@ -239,12 +244,15 @@ uint64_t mono_time_get_ms(const Mono_Time *mono_time)
 
 uint64_t mono_time_get(const Mono_Time *mono_time)
 {
-    return mono_time_get_ms(mono_time) / 1000ULL;
+    return mono_time_get_ms(mono_time) / UINT64_C(1000);
 }
 
 bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout)
 {
-    return timestamp + timeout <= mono_time_get(mono_time);
+    fprintf(stderr, "%s() ts:%" PRIu64 " to:%" PRIu64 "\n", __FUNCTION__, timestamp, timeout);
+    const uint64_t current_time = mono_time_get(mono_time);
+    fprintf(stderr, "%s() current_time:%" PRIu64 " (should be cur_time/1000)\n", __FUNCTION__, current_time);
+    return timestamp + timeout <= current_time;
 }
 
 void mono_time_set_current_time_callback(Mono_Time *mono_time,
