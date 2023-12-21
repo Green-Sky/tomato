@@ -39,6 +39,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
 		#link_libraries(-fsanitize=undefined)
 	endif()
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+	add_compile_options("/fsanitize=address")
 	if (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
 		string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 	else()
