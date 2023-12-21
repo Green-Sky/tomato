@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14...3.24 FATAL_ERROR)
 
 # cmake setup begin
 project(tomato)
@@ -6,7 +6,7 @@ project(tomato)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # defaulting to debug mode, if not specified
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
@@ -17,6 +17,26 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+option(TOMATO_ASAN "Build tomato with asan (gcc/clang/msvc)" OFF)
+
+if (TOMATO_ASAN)
+	if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+		if (NOT WIN32) # exclude mingw
+			link_libraries(-fsanitize=address)
+			#link_libraries(-fsanitize=address,undefined)
+			#link_libraries(-fsanitize=undefined)
+			message("II enabled ASAN")
+		else()
+			message("!! can not enable ASAN on this platform (gcc/clang + win)")
+		endif()
+	elseif (MSVC)
+		add_compile_options("/fsanitize=address")
+		message("II enabled ASAN")
+	else()
+		message("!! can not enable ASAN on this platform")
+	endif()
+endif()
 
 # external libs
 add_subdirectory(./external) # before increasing warn levels, sad :(
@@ -33,13 +53,8 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
 		#-Wsign-conversion # Warn on sign conversions
 		-Wshadow # Warn if a variable declaration shadows one from a parent context
 	)
-
-	if (NOT WIN32)
-		#link_libraries(-fsanitize=address,undefined)
-		#link_libraries(-fsanitize=undefined)
-	endif()
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-	if (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+	if (MSVC)
 		string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
