@@ -177,7 +177,8 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
     // Maximum reproducibility. Never return time = 0.
     mono_time->base_time = 1;
 #else
-    mono_time->base_time = (uint64_t)time(nullptr) * UINT64_C(1000) - current_time_monotonic(mono_time);
+    //mono_time->base_time = (uint64_t)time(nullptr) * UINT64_C(1000) - current_time_monotonic(mono_time);
+    mono_time->base_time = 1;
 #endif
 
     mono_time_update(mono_time);
