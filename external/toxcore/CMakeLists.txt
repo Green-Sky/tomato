@@ -5,7 +5,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(TOX_DIR "${CMAKE_CURRENT_SOURCE_DIR}/c-toxcore/")
 
 # TODO: shared
-add_library(toxcore STATIC
+add_library(toxcore SHARED
 	${TOX_DIR}third_party/cmp/cmp.c
 	${TOX_DIR}third_party/cmp/cmp.h
 
@@ -167,6 +167,8 @@ target_include_directories(toxcore PUBLIC "${TOX_DIR}")
 target_compile_definitions(toxcore PUBLIC USE_IPV6=1)
 #target_compile_definitions(toxcore PUBLIC MIN_LOGGER_LEVEL=LOGGER_LEVEL_DEBUG)
 target_compile_definitions(toxcore PUBLIC MIN_LOGGER_LEVEL=LOGGER_LEVEL_INFO)
+
+set_target_properties(toxcore PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
 find_package(unofficial-sodium CONFIG QUIET)
 find_package(sodium QUIET)

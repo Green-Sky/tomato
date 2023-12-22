@@ -161,7 +161,7 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
 #endif
 
     mono_time->cur_time = 0;
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#if defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) || defined(OS_WIN32)
     // Maximum reproducibility. Never return time = 0.
     mono_time->base_time = 1;
 #else
