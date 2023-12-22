@@ -113,25 +113,25 @@ int main(int argc, char **argv) {
 		std::cerr << "MonoTimeUnixTimeIncreasesOverTime() failed\n";
 		return -1;
 	}
-	std::cout << "MonoTimeUnixTimeIncreasesOverTime() succeeded\n";
+	std::cerr << "MonoTimeUnixTimeIncreasesOverTime() succeeded\n";
 
 	if (!run_test_MonoTimeIsTimeout()) {
 		std::cerr << "MonoTimeIsTimeout() failed\n";
 		return -1;
 	}
-	std::cout << "MonoTimeIsTimeout() succeeded\n";
+	std::cerr << "MonoTimeIsTimeout() succeeded\n";
 
 	if (!run_test_MonoTimeIsTimeoutReal()) {
 		std::cerr << "MonoTimeIsTimeoutReal() failed\n";
 		return -1;
 	}
-	std::cout << "MonoTimeIsTimeoutReal() succeeded\n";
+	std::cerr << "MonoTimeIsTimeoutReal() succeeded\n";
 
 	if (!run_test_MonoTimeCustomTime()) {
 		std::cerr << "MonoTimeCustomTime() failed\n";
 		return -1;
 	}
-	std::cout << "MonoTimeCustomTime() succeeded\n";
+	std::cerr << "MonoTimeCustomTime() succeeded\n";
 
 	return 0;
 }
