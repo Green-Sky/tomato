@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2023 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -778,7 +778,7 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
         Ip_Ntoa ip_str;
         const int error = net_error();
         char *strerror = net_new_strerror(error);
-        LOGGER_TRACE(log, "[%02x = %-20s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(buflen, 999), 'E',
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error,
@@ -786,14 +786,14 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
         net_kill_strerror(strerror);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
         Ip_Ntoa ip_str;
-        LOGGER_TRACE(log, "[%02x = %-20s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else { /* empty or overwrite */
         Ip_Ntoa ip_str;
-        LOGGER_TRACE(log, "[%02x = %-20s] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      res, res == 0 ? '!' : '>', buflen,
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
@@ -1514,30 +1514,29 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
     *target = *source;
 }
 
-/** @brief Converts IP into a string.
- *
- * Writes error message into the buffer on error.
- *
- * @param ip_str contains a buffer of the required size.
- *
- * @return Pointer to the buffer inside `ip_str` containing the IP string.
- */
 const char *net_ip_ntoa(const IP *ip, Ip_Ntoa *ip_str)
 {
     assert(ip_str != nullptr);
 
+    ip_str->ip_is_valid = false;
+
     if (ip == nullptr) {
         snprintf(ip_str->buf, sizeof(ip_str->buf), "(IP invalid: NULL)");
+        ip_str->length = (uint16_t)strlen(ip_str->buf);
         return ip_str->buf;
     }
 
     if (!ip_parse_addr(ip, ip_str->buf, sizeof(ip_str->buf))) {
         snprintf(ip_str->buf, sizeof(ip_str->buf), "(IP invalid, family %u)", ip->family.value);
+        ip_str->length = (uint16_t)strlen(ip_str->buf);
         return ip_str->buf;
     }
 
     /* brute force protection against lacking termination */
     ip_str->buf[sizeof(ip_str->buf) - 1] = '\0';
+    ip_str->length = (uint16_t)strlen(ip_str->buf);
+    ip_str->ip_is_valid = true;
+
     return ip_str->buf;
 }
 
