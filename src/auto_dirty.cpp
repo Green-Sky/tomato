@@ -5,14 +5,14 @@
 // TODO: add more events
 
 void AutoDirty::subscribe(void) {
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_SELF_CONNECTION_STATUS);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_FRIEND_CONNECTION_STATUS);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_FRIEND_REQUEST);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_GROUP_INVITE);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_GROUP_SELF_JOIN);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_GROUP_PEER_JOIN);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_GROUP_PEER_EXIT);
-	_tc.subscribe(this, Tox_Event::TOX_EVENT_CONFERENCE_INVITE);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_SELF_CONNECTION_STATUS);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_FRIEND_REQUEST);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_INVITE);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_SELF_JOIN);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_PEER_JOIN);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_PEER_EXIT);
+	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_CONFERENCE_INVITE);
 }
 
 AutoDirty::AutoDirty(ToxClient& tc) : _tc(tc) {
