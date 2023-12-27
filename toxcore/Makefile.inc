@@ -21,6 +21,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/conference_peer_list_changed.c \
                         ../toxcore/events/conference_peer_name.c \
                         ../toxcore/events/conference_title.c \
+                        ../toxcore/events/events_alloc.c \
+                        ../toxcore/events/events_alloc.h \
                         ../toxcore/events/file_chunk_request.c \
                         ../toxcore/events/file_recv.c \
                         ../toxcore/events/file_recv_chunk.c \
@@ -35,8 +37,6 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/friend_status.c \
                         ../toxcore/events/friend_status_message.c \
                         ../toxcore/events/friend_typing.c \
-                        ../toxcore/events/events_alloc.c \
-                        ../toxcore/events/events_alloc.h \
                         ../toxcore/events/self_connection_status.c \
                         ../toxcore/events/group_custom_packet.c \
                         ../toxcore/events/group_custom_private_packet.c \
@@ -90,6 +90,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/tox.c \
                         ../toxcore/tox_dispatch.h \
                         ../toxcore/tox_dispatch.c \
+                        ../toxcore/tox_event.h \
+                        ../toxcore/tox_event.c \
                         ../toxcore/tox_events.h \
                         ../toxcore/tox_events.c \
                         ../toxcore/tox_unpack.h \
@@ -141,7 +143,6 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
 libtoxcore_la_CFLAGS =  -I$(top_srcdir) \
                         -I$(top_srcdir)/toxcore \
                         $(LIBSODIUM_CFLAGS) \
-                        $(NACL_CFLAGS) \
                         $(MSGPACK_CFLAGS) \
                         $(PTHREAD_CFLAGS) \
                         -DCMP_NO_FLOAT=1
@@ -149,15 +150,12 @@ libtoxcore_la_CFLAGS =  -I$(top_srcdir) \
 libtoxcore_la_LDFLAGS = $(LT_LDFLAGS) \
                         $(EXTRA_LT_LDFLAGS) \
                         $(LIBSODIUM_LDFLAGS) \
-                        $(NACL_LDFLAGS) \
                         $(MSGPACK_LDFLAGS) \
                         $(MATH_LDFLAGS) \
                         $(RT_LIBS) \
                         $(WINSOCK2_LIBS)
 
 libtoxcore_la_LIBADD =  $(LIBSODIUM_LIBS) \
-                        $(NACL_OBJECTS) \
-                        $(NACL_LIBS) \
                         $(MSGPACK_LIBS) \
                         $(PTHREAD_LIBS)
 

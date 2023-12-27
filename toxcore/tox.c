@@ -362,7 +362,6 @@ static void tox_friend_lossless_packet_handler(Messenger *m, uint32_t friend_num
     }
 }
 
-#ifndef VANILLA_NACL
 non_null(1, 4) nullable(6)
 static void tox_group_peer_name_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id,
                                         const uint8_t *name, size_t length, void *user_data)
@@ -573,7 +572,6 @@ static void tox_group_moderation_handler(const Messenger *m, uint32_t group_numb
                 tox_data->user_data);
     }
 }
-#endif
 
 bool tox_version_is_compatible(uint32_t major, uint32_t minor, uint32_t patch)
 {
@@ -637,6 +635,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         switch (err) {
             case TOX_ERR_OPTIONS_NEW_OK: {
+                assert(default_options != nullptr);
                 break;
             }
 
@@ -660,6 +659,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     if (sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
         // TODO(iphydf): Not quite right, but similar.
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -717,6 +717,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
     if (tox == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -743,8 +744,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         default: {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_TYPE);
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
     }
@@ -754,8 +755,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_PORT);
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
 
@@ -771,8 +772,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
                 || !addr_resolve_or_parse_ip(tox->sys.ns, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
 
@@ -783,8 +784,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-        tox_options_free(default_options);
         mem_delete(sys->mem, tox);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -793,8 +794,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         if (tox->mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
 
@@ -828,7 +829,6 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         }
 
         mono_time_free(tox->sys.mem, tox->mono_time);
-        tox_options_free(default_options);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
@@ -837,14 +837,16 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         mem_delete(sys->mem, tox->mutex);
         mem_delete(sys->mem, tox);
+        tox_options_free(default_options);
         return nullptr;
     }
 
-    if (new_groupchats(tox->mono_time, tox->m) == nullptr) {
+    tox->m->conferences_object = new_groupchats(tox->mono_time, tox->m);
+
+    if (tox->m->conferences_object == nullptr) {
         kill_messenger(tox->m);
 
         mono_time_free(tox->sys.mem, tox->mono_time);
-        tox_options_free(default_options);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
@@ -855,6 +857,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         mem_delete(sys->mem, tox);
 
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -864,7 +867,6 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         kill_messenger(tox->m);
 
         mono_time_free(tox->sys.mem, tox->mono_time);
-        tox_options_free(default_options);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
@@ -875,6 +877,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         mem_delete(sys->mem, tox);
 
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_LOAD_BAD_FORMAT);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -905,7 +908,6 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     custom_lossy_packet_registerhandler(tox->m, tox_friend_lossy_packet_handler);
     custom_lossless_packet_registerhandler(tox->m, tox_friend_lossless_packet_handler);
 
-#ifndef VANILLA_NACL
     m_callback_group_invite(tox->m, tox_group_invite_handler);
     gc_callback_message(tox->m, tox_group_message_handler);
     gc_callback_private_message(tox->m, tox_group_private_message_handler);
@@ -924,14 +926,12 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     gc_callback_self_join(tox->m, tox_group_self_join_handler);
     gc_callback_rejected(tox->m, tox_group_join_fail_handler);
     gc_callback_voice_state(tox->m, tox_group_voice_state_handler);
-#endif
-
-    tox_options_free(default_options);
 
     tox_unlock(tox);
 
     SET_ERROR_PARAMETER(error, TOX_ERR_NEW_OK);
 
+    tox_options_free(default_options);
     return tox;
 }
 
@@ -2725,6 +2725,7 @@ static void set_custom_packet_error(int ret, Tox_Err_Friend_Custom_Packet *error
     }
 }
 
+// cppcheck-suppress constParameterPointer
 bool tox_friend_send_lossy_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
                                   Tox_Err_Friend_Custom_Packet *error)
 {
@@ -2764,6 +2765,7 @@ void tox_callback_friend_lossy_packet(Tox *tox, tox_friend_lossy_packet_cb *call
     }
 }
 
+// cppcheck-suppress constParameterPointer
 bool tox_friend_send_lossless_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
                                      Tox_Err_Friend_Custom_Packet *error)
 {
@@ -2843,7 +2845,6 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
 
 /* GROUPCHAT FUNCTIONS */
 
-#ifndef VANILLA_NACL
 void tox_callback_group_invite(Tox *tox, tox_group_invite_cb *callback)
 {
     assert(tox != nullptr);
@@ -4594,8 +4595,6 @@ bool tox_group_mod_kick_peer(const Tox *tox, uint32_t group_number, uint32_t pee
 
     return false;
 }
-
-#endif /* VANILLA_NACL */
 
 const Tox_System *tox_get_system(Tox *tox)
 {

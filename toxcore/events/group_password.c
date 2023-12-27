@@ -30,19 +30,6 @@ struct Tox_Event_Group_Password {
 };
 
 non_null()
-static void tox_event_group_password_construct(Tox_Event_Group_Password *group_password)
-{
-    *group_password = (Tox_Event_Group_Password) {
-        0
-    };
-}
-non_null()
-static void tox_event_group_password_destruct(Tox_Event_Group_Password *group_password)
-{
-    free(group_password->password);
-}
-
-non_null()
 static void tox_event_group_password_set_group_number(Tox_Event_Group_Password *group_password,
         uint32_t group_number)
 {
@@ -77,7 +64,7 @@ static bool tox_event_group_password_set_password(Tox_Event_Group_Password *grou
     group_password->password_length = password_length;
     return true;
 }
-size_t tox_event_group_password_get_password_length(const Tox_Event_Group_Password *group_password)
+uint32_t tox_event_group_password_get_password_length(const Tox_Event_Group_Password *group_password)
 {
     assert(group_password != nullptr);
     return group_password->password_length;
@@ -89,7 +76,19 @@ const uint8_t *tox_event_group_password_get_password(const Tox_Event_Group_Passw
 }
 
 non_null()
-static bool tox_event_group_password_pack(
+static void tox_event_group_password_construct(Tox_Event_Group_Password *group_password)
+{
+    *group_password = (Tox_Event_Group_Password) {
+        0
+    };
+}
+non_null()
+static void tox_event_group_password_destruct(Tox_Event_Group_Password *group_password, const Memory *mem)
+{
+    free(group_password->password);
+}
+
+bool tox_event_group_password_pack(
     const Tox_Event_Group_Password *event, Bin_Pack *bp)
 {
     assert(event != nullptr);
@@ -101,7 +100,7 @@ static bool tox_event_group_password_pack(
 }
 
 non_null()
-static bool tox_event_group_password_unpack(
+static bool tox_event_group_password_unpack_into(
     Tox_Event_Group_Password *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
@@ -116,93 +115,120 @@ static bool tox_event_group_password_unpack(
 
 /*****************************************************
  *
- * :: add/clear/get
+ * :: new/free/add/get/size/unpack
  *
  *****************************************************/
 
-
-non_null()
-static Tox_Event_Group_Password *tox_events_add_group_password(Tox_Events *events)
+const Tox_Event_Group_Password *tox_event_get_group_password(const Tox_Event *event)
 {
-    if (events->group_password_size == UINT32_MAX) {
+    return event->type == TOX_EVENT_GROUP_PASSWORD ? event->data.group_password : nullptr;
+}
+
+Tox_Event_Group_Password *tox_event_group_password_new(const Memory *mem)
+{
+    Tox_Event_Group_Password *const group_password =
+        (Tox_Event_Group_Password *)mem_alloc(mem, sizeof(Tox_Event_Group_Password));
+
+    if (group_password == nullptr) {
         return nullptr;
     }
 
-    if (events->group_password_size == events->group_password_capacity) {
-        const uint32_t new_group_password_capacity = events->group_password_capacity * 2 + 1;
-        Tox_Event_Group_Password *new_group_password = (Tox_Event_Group_Password *)
-                realloc(
-                    events->group_password,
-                    new_group_password_capacity * sizeof(Tox_Event_Group_Password));
-
-        if (new_group_password == nullptr) {
-            return nullptr;
-        }
-
-        events->group_password = new_group_password;
-        events->group_password_capacity = new_group_password_capacity;
-    }
-
-    Tox_Event_Group_Password *const group_password =
-        &events->group_password[events->group_password_size];
     tox_event_group_password_construct(group_password);
-    ++events->group_password_size;
     return group_password;
 }
 
-void tox_events_clear_group_password(Tox_Events *events)
+void tox_event_group_password_free(Tox_Event_Group_Password *group_password, const Memory *mem)
 {
-    if (events == nullptr) {
-        return;
+    if (group_password != nullptr) {
+        tox_event_group_password_destruct(group_password, mem);
     }
-
-    for (uint32_t i = 0; i < events->group_password_size; ++i) {
-        tox_event_group_password_destruct(&events->group_password[i]);
-    }
-
-    free(events->group_password);
-    events->group_password = nullptr;
-    events->group_password_size = 0;
-    events->group_password_capacity = 0;
+    mem_delete(mem, group_password);
 }
 
-uint32_t tox_events_get_group_password_size(const Tox_Events *events)
+non_null()
+static Tox_Event_Group_Password *tox_events_add_group_password(Tox_Events *events, const Memory *mem)
 {
-    if (events == nullptr) {
-        return 0;
+    Tox_Event_Group_Password *const group_password = tox_event_group_password_new(mem);
+
+    if (group_password == nullptr) {
+        return nullptr;
     }
 
-    return events->group_password_size;
+    Tox_Event event;
+    event.type = TOX_EVENT_GROUP_PASSWORD;
+    event.data.group_password = group_password;
+
+    tox_events_add(events, &event);
+    return group_password;
 }
 
 const Tox_Event_Group_Password *tox_events_get_group_password(const Tox_Events *events, uint32_t index)
 {
-    assert(index < events->group_password_size);
-    assert(events->group_password != nullptr);
-    return &events->group_password[index];
-}
-
-bool tox_events_pack_group_password(const Tox_Events *events, Bin_Pack *bp)
-{
-    const uint32_t size = tox_events_get_group_password_size(events);
+    uint32_t group_password_index = 0;
+    const uint32_t size = tox_events_get_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        if (!tox_event_group_password_pack(tox_events_get_group_password(events, i), bp)) {
-            return false;
+        if (group_password_index > index) {
+            return nullptr;
+        }
+
+        if (events->events[i].type == TOX_EVENT_GROUP_PASSWORD) {
+            const Tox_Event_Group_Password *group_password = events->events[i].data.group_password;
+            if (group_password_index == index) {
+                return group_password;
+            }
+            ++group_password_index;
         }
     }
-    return true;
+
+    return nullptr;
 }
 
-bool tox_events_unpack_group_password(Tox_Events *events, Bin_Unpack *bu)
+uint32_t tox_events_get_group_password_size(const Tox_Events *events)
 {
-    Tox_Event_Group_Password *event = tox_events_add_group_password(events);
+    uint32_t group_password_size = 0;
+    const uint32_t size = tox_events_get_size(events);
 
-    if (event == nullptr) {
+    for (uint32_t i = 0; i < size; ++i) {
+        if (events->events[i].type == TOX_EVENT_GROUP_PASSWORD) {
+            ++group_password_size;
+        }
+    }
+
+    return group_password_size;
+}
+
+bool tox_event_group_password_unpack(
+    Tox_Event_Group_Password **event, Bin_Unpack *bu, const Memory *mem)
+{
+    assert(event != nullptr);
+    *event = tox_event_group_password_new(mem);
+
+    if (*event == nullptr) {
         return false;
     }
 
-    return tox_event_group_password_unpack(event, bu);
+    return tox_event_group_password_unpack_into(*event, bu);
+}
+
+non_null()
+static Tox_Event_Group_Password *tox_event_group_password_alloc(void *user_data)
+{
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    assert(state != nullptr);
+
+    if (state->events == nullptr) {
+        return nullptr;
+    }
+
+    Tox_Event_Group_Password *group_password = tox_events_add_group_password(state->events, state->mem);
+
+    if (group_password == nullptr) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+        return nullptr;
+    }
+
+    return group_password;
 }
 
 
@@ -216,17 +242,9 @@ bool tox_events_unpack_group_password(Tox_Events *events, Bin_Unpack *bu)
 void tox_events_handle_group_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
         void *user_data)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
-    if (state->events == nullptr) {
-        return;
-    }
-
-    Tox_Event_Group_Password *group_password = tox_events_add_group_password(state->events);
+    Tox_Event_Group_Password *group_password = tox_event_group_password_alloc(user_data);
 
     if (group_password == nullptr) {
-        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
 

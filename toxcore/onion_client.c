@@ -671,7 +671,6 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, con
                       onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
                       zero_ping_id, sendback);
         } else { // contact is a gc
-#ifndef VANILLA_NACL
             onion_friend->is_groupchat = true;
 
             len = create_gca_announce_request(
@@ -679,9 +678,6 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, con
                       onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
                       zero_ping_id, sendback, onion_friend->gc_data,
                       onion_friend->gc_data_length);
-#else
-            return -1;
-#endif  // VANILLA_NACL
         }
     }
 
@@ -1996,6 +1992,9 @@ static void do_announce(Onion_Client *onion_c)
         // Don't send announces to the same node twice. If we don't have many nodes,
         // the random selection below may have overlaps. This ensures that we deduplicate
         // nodes before sending packets to save some bandwidth.
+        //
+        // TODO(iphydf): Figure out why on esp32, this is necessary for the onion
+        // connection to succeed. This is an optimisation and shouldn't be necessary.
         const uint8_t *targets[MAX_ONION_CLIENTS_ANNOUNCE / 2];
         unsigned int targets_count = 0;
 

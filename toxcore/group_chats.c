@@ -11,9 +11,7 @@
 
 #include <assert.h>
 
-#ifndef VANILLA_NACL
 #include <sodium.h>
-#endif
 
 #include <string.h>
 
@@ -29,8 +27,6 @@
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
-
-#ifndef VANILLA_NACL
 
 /* The minimum size of a plaintext group handshake packet */
 #define GC_MIN_HS_PACKET_PAYLOAD_SIZE (1 + ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1 + 1)
@@ -160,7 +156,7 @@ non_null() static bool self_gc_is_founder(const GC_Chat *chat);
 non_null() static bool group_number_valid(const GC_Session *c, int group_number);
 non_null() static int peer_update(const GC_Chat *chat, const GC_Peer *peer, uint32_t peer_number);
 non_null() static void group_delete(GC_Session *c, GC_Chat *chat);
-non_null() static void group_cleanup(GC_Session *c, GC_Chat *chat);
+non_null() static void group_cleanup(const GC_Session *c, GC_Chat *chat);
 non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
 non_null(1, 2) nullable(4)
@@ -1280,8 +1276,8 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     memcpy(&voice_state, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
 
-    shared_state->voice_state = group_voice_state_from_int(voice_state);
-    shared_state->privacy_state = group_privacy_state_from_int(privacy_state);
+    group_voice_state_from_int(voice_state, &shared_state->voice_state);
+    group_privacy_state_from_int(privacy_state, &shared_state->privacy_state);
 
     return len_processed;
 }
@@ -7434,6 +7430,9 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
         return -1;
     }
 
+    init_gc_shared_state(chat, privacy_state);
+    init_gc_moderation(chat);
+
     if (!init_gc_tcp_connection(c, chat)) {
         group_delete(c, chat);
         return -1;
@@ -7453,9 +7452,6 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     self_gc_set_role(chat, founder ? GR_FOUNDER : GR_USER);
     self_gc_set_confirmed(chat, true);
     self_gc_set_ext_public_key(chat, chat->self_public_key);
-
-    init_gc_shared_state(chat, privacy_state);
-    init_gc_moderation(chat);
 
     return group_number;
 }
@@ -8182,7 +8178,7 @@ GC_Session *new_dht_groupchats(Messenger *m)
     return c;
 }
 
-static void group_cleanup(GC_Session *c, GC_Chat *chat)
+static void group_cleanup(const GC_Session *c, GC_Chat *chat)
 {
     kill_group_friend_connection(c, chat);
 
@@ -8496,4 +8492,3 @@ int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uin
 
     return added_peers;
 }
-#endif  // VANILLA_NACL

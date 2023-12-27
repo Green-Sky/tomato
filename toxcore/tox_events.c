@@ -67,9 +67,24 @@ void tox_events_init(Tox *tox)
     tox_callback_group_moderation(tox, tox_events_handle_group_moderation);
 }
 
+uint32_t tox_events_get_size(const Tox_Events *events)
+{
+    return events == nullptr ? 0 : events->events_size;
+}
+
+const Tox_Event *tox_events_get(const Tox_Events *events, uint32_t index)
+{
+    if (index >= tox_events_get_size(events)) {
+        return nullptr;
+    }
+
+    return &events->events[index];
+}
+
 Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error)
 {
-    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK};
+    const Tox_System *sys = tox_get_system(tox);
+    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem};
     tox_iterate(tox, &state);
 
     if (error != nullptr) {
@@ -86,231 +101,21 @@ Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate 
 
 bool tox_events_pack(const Tox_Events *events, Bin_Pack *bp)
 {
-    const uint32_t count = tox_events_get_conference_connected_size(events)
-                           + tox_events_get_conference_invite_size(events)
-                           + tox_events_get_conference_message_size(events)
-                           + tox_events_get_conference_peer_list_changed_size(events)
-                           + tox_events_get_conference_peer_name_size(events)
-                           + tox_events_get_conference_title_size(events)
-                           + tox_events_get_file_chunk_request_size(events)
-                           + tox_events_get_file_recv_chunk_size(events)
-                           + tox_events_get_file_recv_control_size(events)
-                           + tox_events_get_file_recv_size(events)
-                           + tox_events_get_friend_connection_status_size(events)
-                           + tox_events_get_friend_lossless_packet_size(events)
-                           + tox_events_get_friend_lossy_packet_size(events)
-                           + tox_events_get_friend_message_size(events)
-                           + tox_events_get_friend_name_size(events)
-                           + tox_events_get_friend_read_receipt_size(events)
-                           + tox_events_get_friend_request_size(events)
-                           + tox_events_get_friend_status_message_size(events)
-                           + tox_events_get_friend_status_size(events)
-                           + tox_events_get_friend_typing_size(events)
-                           + tox_events_get_self_connection_status_size(events)
-                           + tox_events_get_group_peer_name_size(events)
-                           + tox_events_get_group_peer_status_size(events)
-                           + tox_events_get_group_topic_size(events)
-                           + tox_events_get_group_privacy_state_size(events)
-                           + tox_events_get_group_voice_state_size(events)
-                           + tox_events_get_group_topic_lock_size(events)
-                           + tox_events_get_group_peer_limit_size(events)
-                           + tox_events_get_group_password_size(events)
-                           + tox_events_get_group_message_size(events)
-                           + tox_events_get_group_private_message_size(events)
-                           + tox_events_get_group_custom_packet_size(events)
-                           + tox_events_get_group_custom_private_packet_size(events)
-                           + tox_events_get_group_invite_size(events)
-                           + tox_events_get_group_peer_join_size(events)
-                           + tox_events_get_group_peer_exit_size(events)
-                           + tox_events_get_group_self_join_size(events)
-                           + tox_events_get_group_join_fail_size(events)
-                           + tox_events_get_group_moderation_size(events);
-
-    return bin_pack_array(bp, count)
-           && tox_events_pack_conference_connected(events, bp)
-           && tox_events_pack_conference_invite(events, bp)
-           && tox_events_pack_conference_message(events, bp)
-           && tox_events_pack_conference_peer_list_changed(events, bp)
-           && tox_events_pack_conference_peer_name(events, bp)
-           && tox_events_pack_conference_title(events, bp)
-           && tox_events_pack_file_chunk_request(events, bp)
-           && tox_events_pack_file_recv_chunk(events, bp)
-           && tox_events_pack_file_recv_control(events, bp)
-           && tox_events_pack_file_recv(events, bp)
-           && tox_events_pack_friend_connection_status(events, bp)
-           && tox_events_pack_friend_lossless_packet(events, bp)
-           && tox_events_pack_friend_lossy_packet(events, bp)
-           && tox_events_pack_friend_message(events, bp)
-           && tox_events_pack_friend_name(events, bp)
-           && tox_events_pack_friend_read_receipt(events, bp)
-           && tox_events_pack_friend_request(events, bp)
-           && tox_events_pack_friend_status_message(events, bp)
-           && tox_events_pack_friend_status(events, bp)
-           && tox_events_pack_friend_typing(events, bp)
-           && tox_events_pack_self_connection_status(events, bp)
-           && tox_events_pack_group_peer_name(events, bp)
-           && tox_events_pack_group_peer_status(events, bp)
-           && tox_events_pack_group_topic(events, bp)
-           && tox_events_pack_group_privacy_state(events, bp)
-           && tox_events_pack_group_voice_state(events, bp)
-           && tox_events_pack_group_topic_lock(events, bp)
-           && tox_events_pack_group_peer_limit(events, bp)
-           && tox_events_pack_group_password(events, bp)
-           && tox_events_pack_group_message(events, bp)
-           && tox_events_pack_group_private_message(events, bp)
-           && tox_events_pack_group_custom_packet(events, bp)
-           && tox_events_pack_group_custom_private_packet(events, bp)
-           && tox_events_pack_group_invite(events, bp)
-           && tox_events_pack_group_peer_join(events, bp)
-           && tox_events_pack_group_peer_exit(events, bp)
-           && tox_events_pack_group_self_join(events, bp)
-           && tox_events_pack_group_join_fail(events, bp)
-           && tox_events_pack_group_moderation(events, bp);
-}
-
-non_null()
-static bool tox_event_unpack(Tox_Events *events, Bin_Unpack *bu)
-{
-    uint32_t size;
-    if (!bin_unpack_array(bu, &size)) {
+    const uint32_t size = tox_events_get_size(events);
+    if (!bin_pack_array(bp, size)) {
         return false;
     }
 
-    if (size != 2) {
-        return false;
-    }
-
-    uint8_t type;
-    if (!bin_unpack_u08(bu, &type)) {
-        return false;
-    }
-
-    switch (type) {
-        case TOX_EVENT_CONFERENCE_CONNECTED:
-            return tox_events_unpack_conference_connected(events, bu);
-
-        case TOX_EVENT_CONFERENCE_INVITE:
-            return tox_events_unpack_conference_invite(events, bu);
-
-        case TOX_EVENT_CONFERENCE_MESSAGE:
-            return tox_events_unpack_conference_message(events, bu);
-
-        case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED:
-            return tox_events_unpack_conference_peer_list_changed(events, bu);
-
-        case TOX_EVENT_CONFERENCE_PEER_NAME:
-            return tox_events_unpack_conference_peer_name(events, bu);
-
-        case TOX_EVENT_CONFERENCE_TITLE:
-            return tox_events_unpack_conference_title(events, bu);
-
-        case TOX_EVENT_FILE_CHUNK_REQUEST:
-            return tox_events_unpack_file_chunk_request(events, bu);
-
-        case TOX_EVENT_FILE_RECV_CHUNK:
-            return tox_events_unpack_file_recv_chunk(events, bu);
-
-        case TOX_EVENT_FILE_RECV_CONTROL:
-            return tox_events_unpack_file_recv_control(events, bu);
-
-        case TOX_EVENT_FILE_RECV:
-            return tox_events_unpack_file_recv(events, bu);
-
-        case TOX_EVENT_FRIEND_CONNECTION_STATUS:
-            return tox_events_unpack_friend_connection_status(events, bu);
-
-        case TOX_EVENT_FRIEND_LOSSLESS_PACKET:
-            return tox_events_unpack_friend_lossless_packet(events, bu);
-
-        case TOX_EVENT_FRIEND_LOSSY_PACKET:
-            return tox_events_unpack_friend_lossy_packet(events, bu);
-
-        case TOX_EVENT_FRIEND_MESSAGE:
-            return tox_events_unpack_friend_message(events, bu);
-
-        case TOX_EVENT_FRIEND_NAME:
-            return tox_events_unpack_friend_name(events, bu);
-
-        case TOX_EVENT_FRIEND_READ_RECEIPT:
-            return tox_events_unpack_friend_read_receipt(events, bu);
-
-        case TOX_EVENT_FRIEND_REQUEST:
-            return tox_events_unpack_friend_request(events, bu);
-
-        case TOX_EVENT_FRIEND_STATUS_MESSAGE:
-            return tox_events_unpack_friend_status_message(events, bu);
-
-        case TOX_EVENT_FRIEND_STATUS:
-            return tox_events_unpack_friend_status(events, bu);
-
-        case TOX_EVENT_FRIEND_TYPING:
-            return tox_events_unpack_friend_typing(events, bu);
-
-        case TOX_EVENT_SELF_CONNECTION_STATUS:
-            return tox_events_unpack_self_connection_status(events, bu);
-
-		case TOX_EVENT_GROUP_PEER_NAME:
-            return tox_events_unpack_group_peer_name(events, bu);
-
-		case TOX_EVENT_GROUP_PEER_STATUS:
-            return tox_events_unpack_group_peer_status(events, bu);
-
-		case TOX_EVENT_GROUP_TOPIC:
-            return tox_events_unpack_group_topic(events, bu);
-
-		case TOX_EVENT_GROUP_PRIVACY_STATE:
-            return tox_events_unpack_group_privacy_state(events, bu);
-
-		case TOX_EVENT_GROUP_VOICE_STATE:
-            return tox_events_unpack_group_voice_state(events, bu);
-
-		case TOX_EVENT_GROUP_TOPIC_LOCK:
-            return tox_events_unpack_group_topic_lock(events, bu);
-
-		case TOX_EVENT_GROUP_PEER_LIMIT:
-            return tox_events_unpack_group_peer_limit(events, bu);
-
-		case TOX_EVENT_GROUP_PASSWORD:
-            return tox_events_unpack_group_password(events, bu);
-
-		case TOX_EVENT_GROUP_MESSAGE:
-            return tox_events_unpack_group_message(events, bu);
-
-		case TOX_EVENT_GROUP_PRIVATE_MESSAGE:
-            return tox_events_unpack_group_private_message(events, bu);
-
-		case TOX_EVENT_GROUP_CUSTOM_PACKET:
-            return tox_events_unpack_group_custom_packet(events, bu);
-
-		case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET:
-            return tox_events_unpack_group_custom_private_packet(events, bu);
-
-		case TOX_EVENT_GROUP_INVITE:
-            return tox_events_unpack_group_invite(events, bu);
-
-		case TOX_EVENT_GROUP_PEER_JOIN:
-            return tox_events_unpack_group_peer_join(events, bu);
-
-		case TOX_EVENT_GROUP_PEER_EXIT:
-            return tox_events_unpack_group_peer_exit(events, bu);
-
-		case TOX_EVENT_GROUP_SELF_JOIN:
-            return tox_events_unpack_group_self_join(events, bu);
-
-		case TOX_EVENT_GROUP_JOIN_FAIL:
-            return tox_events_unpack_group_join_fail(events, bu);
-
-		case TOX_EVENT_GROUP_MODERATION:
-            return tox_events_unpack_group_moderation(events, bu);
-
-        default:
+    for (uint32_t i = 0; i < size; ++i) {
+        if (!tox_event_pack(&events->events[i], bp)) {
             return false;
+        }
     }
 
     return true;
 }
 
-bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu)
+bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem)
 {
     uint32_t size;
     if (!bin_unpack_array(bu, &size)) {
@@ -318,11 +123,20 @@ bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu)
     }
 
     for (uint32_t i = 0; i < size; ++i) {
-        if (!tox_event_unpack(events, bu)) {
+        Tox_Event event = {TOX_EVENT_INVALID};
+        if (!tox_event_unpack_into(&event, bu, mem)) {
+            tox_event_destruct(&event, mem);
+            return false;
+        }
+
+        if (!tox_events_add(events, &event)) {
+            tox_event_destruct(&event, mem);
             return false;
         }
     }
 
+    // Invariant: if all adds worked, the events size must be the input array size.
+    assert(tox_events_get_size(events) == size);
     return true;
 }
 
@@ -337,9 +151,9 @@ uint32_t tox_events_bytes_size(const Tox_Events *events)
     return bin_pack_obj_size(tox_events_bin_pack_handler, nullptr, events);
 }
 
-void tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
+bool tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
 {
-    bin_pack_obj(tox_events_bin_pack_handler, nullptr, events, bytes, UINT32_MAX);
+    return bin_pack_obj(tox_events_bin_pack_handler, nullptr, events, bytes, UINT32_MAX);
 }
 
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
@@ -360,8 +174,9 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     *events = (Tox_Events) {
         nullptr
     };
+    events->mem = sys->mem;
 
-    if (!tox_events_unpack(events, bu)) {
+    if (!tox_events_unpack(events, bu, sys->mem)) {
         tox_events_free(events);
         bin_unpack_free(bu);
         return nullptr;
