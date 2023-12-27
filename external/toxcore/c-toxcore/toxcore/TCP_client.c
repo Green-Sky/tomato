@@ -118,9 +118,9 @@ static bool connect_sock_to(const Logger *logger, const Memory *mem, Socket sock
 non_null()
 static int proxy_http_generate_connection_request(TCP_Client_Connection *tcp_conn)
 {
-    char one[] = "CONNECT ";
-    char two[] = " HTTP/1.1\nHost: ";
-    char three[] = "\r\n\r\n";
+    const char one[] = "CONNECT ";
+    const char two[] = " HTTP/1.1\nHost: ";
+    const char three[] = "\r\n\r\n";
 
     char ip[TOX_INET6_ADDRSTRLEN];
 
@@ -149,7 +149,7 @@ static int proxy_http_generate_connection_request(TCP_Client_Connection *tcp_con
 non_null()
 static int proxy_http_read_connection_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
 {
-    char success[] = "200";
+    const char success[] = "200";
     uint8_t data[16]; // draining works the best if the length is a power of 2
 
     const TCP_Connection *con0 = &tcp_conn->con;
@@ -185,14 +185,16 @@ static int proxy_http_read_connection_response(const Logger *logger, const TCP_C
     return -1;
 }
 
-#define TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5 0x05
-#define TCP_SOCKS5_PROXY_HS_COMM_ESTABLISH_REQUEST 0x01
-#define TCP_SOCKS5_PROXY_HS_COMM_REQUEST_GRANTED 0x00
-#define TCP_SOCKS5_PROXY_HS_AUTH_METHODS_SUPPORTED 0x01
-#define TCP_SOCKS5_PROXY_HS_NO_AUTH 0x00
-#define TCP_SOCKS5_PROXY_HS_RESERVED 0x00
-#define TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV4 0x01
-#define TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6 0x04
+enum Tcp_Socks5_Proxy_Hs {
+    TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5          = 0x05,
+    TCP_SOCKS5_PROXY_HS_COMM_ESTABLISH_REQUEST  = 0x01,
+    TCP_SOCKS5_PROXY_HS_COMM_REQUEST_GRANTED    = 0x00,
+    TCP_SOCKS5_PROXY_HS_AUTH_METHODS_SUPPORTED  = 0x01,
+    TCP_SOCKS5_PROXY_HS_NO_AUTH                 = 0x00,
+    TCP_SOCKS5_PROXY_HS_RESERVED                = 0x00,
+    TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV4          = 0x01,
+    TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6          = 0x04,
+};
 
 non_null()
 static void proxy_socks5_generate_greetings(TCP_Client_Connection *tcp_conn)
@@ -910,8 +912,7 @@ static int do_confirmed_tcp(const Logger *logger, TCP_Client_Connection *conn, c
     }
 
     while (tcp_process_packet(logger, conn, userdata)) {
-        // Keep reading until error or out of data.
-        continue;
+        /* Keep reading until error or out of data. */
     }
 
     return 0;

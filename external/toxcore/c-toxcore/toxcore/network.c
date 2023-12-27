@@ -21,7 +21,7 @@
 #define _XOPEN_SOURCE 700
 #endif
 
-#if defined(_WIN32) && _WIN32_WINNT >= _WIN32_WINNT_WINXP
+#if defined(_WIN32) && defined(_WIN32_WINNT) && _WIN32_WINNT >= _WIN32_WINNT_WINXP
 #undef _WIN32_WINNT
 #define _WIN32_WINNT  0x501
 #endif
@@ -86,11 +86,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifndef VANILLA_NACL
-// Used for sodium_init()
-#include <sodium.h>
-#endif
 
 #include "ccompat.h"
 #include "logger.h"
@@ -361,13 +356,9 @@ IP4 get_ip4_loopback(void)
 
 IP6 get_ip6_loopback(void)
 {
-    IP6 loopback;
-#ifdef ESP_PLATFORM
-    loopback = empty_ip_port.ip.ip.v6;
+    /* in6addr_loopback isn't available everywhere, so we do it ourselves. */
+    IP6 loopback = empty_ip_port.ip.ip.v6;
     loopback.uint8[15] = 1;
-#else
-    get_ip6(&loopback, &in6addr_loopback);
-#endif
     return loopback;
 }
 
@@ -565,7 +556,7 @@ non_null()
 static int sys_getsockopt(void *obj, int sock, int level, int optname, void *optval, size_t *optlen)
 {
     socklen_t len = *optlen;
-    const int ret = getsockopt(sock, level, optname, optval, &len);
+    const int ret = getsockopt(sock, level, optname, (char *)optval, &len);
     *optlen = len;
     return ret;
 }
@@ -573,7 +564,7 @@ static int sys_getsockopt(void *obj, int sock, int level, int optname, void *opt
 non_null()
 static int sys_setsockopt(void *obj, int sock, int level, int optname, const void *optval, size_t optlen)
 {
-    return setsockopt(sock, level, optname, optval, optlen);
+    return setsockopt(sock, level, optname, (const char *)optval, optlen);
 }
 
 static const Network_Funcs system_network_funcs = {
@@ -1340,8 +1331,8 @@ Networking_Core *new_networking_ex(
     Ip_Ntoa ip_str;
     int neterror = net_error();
     char *strerror = net_new_strerror(neterror);
-    LOGGER_ERROR(log, "failed to bind socket: %d, %s IP: %s port_from: %u port_to: %u", neterror, strerror,
-                 net_ip_ntoa(ip, &ip_str), port_from, port_to);
+    LOGGER_ERROR(log, "failed to bind socket: %d, %s IP: %s port_from: %u port_to: %u",
+                 neterror, strerror, net_ip_ntoa(ip, &ip_str), port_from, port_to);
     net_kill_strerror(strerror);
     kill_networking(temp);
 
@@ -1769,6 +1760,8 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
 
 int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type)
 {
+    assert(node != nullptr);
+
     // Try parsing as IP address first.
     IP_Port parsed = {{{0}}};
     // Initialise to nullptr. In error paths, at least we initialise the out
@@ -2031,7 +2024,7 @@ char *net_new_strerror(int error)
     return str;
 }
 #else
-#ifdef _GNU_SOURCE
+#if defined(_GNU_SOURCE) && defined(__GLIBC__)
 non_null()
 static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
 {
