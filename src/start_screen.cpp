@@ -11,7 +11,7 @@
 StartScreen::StartScreen(SDL_Renderer* renderer) : _renderer(renderer) {
 }
 
-Screen* StartScreen::poll(bool&) {
+Screen* StartScreen::render(float, bool&) {
 
 	// TODO: imgui tox profile selector?
 
@@ -134,6 +134,10 @@ Screen* StartScreen::poll(bool&) {
 
 	_fss.render();
 
+	return nullptr;
+}
+
+Screen* StartScreen::tick(float, bool&) {
 	return nullptr;
 }
 

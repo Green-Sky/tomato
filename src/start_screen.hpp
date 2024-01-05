@@ -30,6 +30,9 @@ struct StartScreen final : public Screen {
 
 	// return nullptr if not next
 	// sets bool quit to true if exit
-	Screen* poll(bool&) override;
+	Screen* render(float, bool&) override;
+	Screen* tick(float, bool&) override;
+
+	// use default nextRender and nextTick
 };
 

@@ -21,7 +21,8 @@ int main(int argc, char** argv) {
 		std::cerr << "Failed to set '" << SDL_HINT_VIDEO_ALLOW_SCREENSAVER << "' to 1\n";
 	}
 
-	auto last_time = std::chrono::steady_clock::now();
+	auto last_time_render = std::chrono::steady_clock::now();
+	auto last_time_tick = std::chrono::steady_clock::now();
 
 	// actual setup
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -68,54 +69,96 @@ int main(int argc, char** argv) {
 	bool quit = false;
 	while (!quit) {
 		auto new_time = std::chrono::steady_clock::now();
-		//const float time_delta {std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time).count()};
-		last_time = new_time;
 
-		SDL_Event event;
-		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_EVENT_QUIT) {
-				quit = true;
+		const float time_delta_tick = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_tick).count();
+		const float time_delta_render = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_render).count();
+
+		bool tick = time_delta_tick >= screen->nextTick();
+		bool render = time_delta_render >= screen->nextRender();
+
+		if (tick) {
+			Screen* ret_screen = screen->tick(time_delta_tick, quit);
+			if (ret_screen != nullptr) {
+				screen.reset(ret_screen);
+			}
+			last_time_tick = new_time;
+		}
+
+		// can do both in the same loop
+		if (render) {
+			SDL_Event event;
+			while (SDL_PollEvent(&event)) {
+				if (event.type == SDL_EVENT_QUIT) {
+					quit = true;
+					break;
+				}
+
+				if (screen->handleEvent(event)) {
+					continue;
+				}
+
+				ImGui_ImplSDL3_ProcessEvent(&event);
+			}
+			if (quit) {
 				break;
 			}
 
-			if (screen->handleEvent(event)) {
-				continue;
+			//float fps_target = 60.f;
+			//if (SDL_GetWindowFlags(window.get()) & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED)) {
+				//fps_target = 30.f;
+			//}
+
+			ImGui_ImplSDLRenderer3_NewFrame();
+			ImGui_ImplSDL3_NewFrame();
+			ImGui::NewFrame();
+
+			{ // render
+				Screen* ret_screen = screen->render(time_delta_render, quit);
+				if (ret_screen != nullptr) {
+					screen.reset(ret_screen);
+				}
 			}
 
-			ImGui_ImplSDL3_ProcessEvent(&event);
-		}
-		if (quit) {
-			break;
-		}
+			ImGui::Render();
+			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
 
-		//float fps_target = 60.f;
-		//if (SDL_GetWindowFlags(window.get()) & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED)) {
-			//fps_target = 30.f;
-		//}
+			SDL_RenderPresent(renderer.get());
+			// clearing after present is (should) more performant, but first frame is a mess
+			SDL_SetRenderDrawColor(renderer.get(), 0x10, 0x10, 0x10, SDL_ALPHA_OPAQUE);
+			SDL_RenderClear(renderer.get());
 
-		ImGui_ImplSDLRenderer3_NewFrame();
-		ImGui_ImplSDL3_NewFrame();
-		ImGui::NewFrame();
-
-		//ImGui::ShowDemoWindow();
-
-		Screen* ret_screen = screen->poll(quit);
-		if (ret_screen != nullptr) {
-			screen.reset(ret_screen);
+			last_time_render = new_time;
 		}
 
-		ImGui::Render();
-		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
+		//// TODO: seperate out render and tick
+		//const float time_to_next_loop = std::min<float>(screen->nextRender(), screen->nextTick());
 
-		SDL_RenderPresent(renderer.get());
-		// clearing after present is (should) more performant, but first frame is a mess
-		SDL_SetRenderDrawColor(renderer.get(), 0x10, 0x10, 0x10, SDL_ALPHA_OPAQUE);
-		SDL_RenderClear(renderer.get());
+		//std::this_thread::sleep_for( // time left to get to 60fps
+			//std::chrono::duration<float, std::chrono::seconds::period>(time_to_next_loop)
+			//- std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now() - new_time) // time used for rendering
+		//);
 
-		std::this_thread::sleep_for( // time left to get to 60fps
-			std::chrono::duration<float, std::chrono::seconds::period>(0.0166f) // 60fps frame duration
-			- std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now() - new_time) // time used for rendering
-		);
+
+		if (render || tick) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
+		} else {
+
+#if 0
+			// pretty hacky and spins if close to next update
+			// if next loop >= 1ms away, wait 1ms
+			if (time_delta_tick+0.001f < screen->nextTick() && time_delta_render+0.001f < screen->nextRender()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
+			}
+#else
+			// dynamic sleep, sleeps the reminder till next update
+			std::this_thread::sleep_for(std::chrono::duration<float, std::chrono::seconds::period>(
+				std::min<float>(
+					screen->nextTick() - time_delta_tick,
+					screen->nextRender() - time_delta_render
+				)
+			));
+#endif
+		}
 	}
 
 	return 0;

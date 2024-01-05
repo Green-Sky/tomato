@@ -73,6 +73,13 @@ struct MainScreen final : public Screen {
 
 	// return nullptr if not next
 	// sets bool quit to true if exit
-	Screen* poll(bool&) override;
+	Screen* render(float time_delta, bool&) override;
+	Screen* tick(float time_delta, bool&) override;
+
+	float _render_interval {1.f/60.f};
+	float _min_tick_interval {0.f};
+
+	float nextRender(void) override { return _render_interval; }
+	float nextTick(void) override { return _min_tick_interval; }
 };
 

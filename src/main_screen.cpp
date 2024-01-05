@@ -81,11 +81,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 	return false;
 }
 
-Screen* MainScreen::poll(bool& quit) {
-	auto new_time = std::chrono::high_resolution_clock::now();
-	const float time_delta {std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time).count()};
-	last_time = new_time;
-
+Screen* MainScreen::render(float time_delta, bool& quit) {
 	quit = !tc.iterate();
 
 	tcm.iterate(time_delta);
@@ -123,34 +119,14 @@ Screen* MainScreen::poll(bool& quit) {
 		ImGui::ShowDemoWindow();
 	}
 
-#if 0
-	{ // texture tests
-		const size_t width = 8;
-		const size_t height = 8;
-#define W 0xff, 0xff, 0xff, 0xff
-#define B 0x00, 0x00, 0x00, 0xff
-#define P 0xff, 0x00, 0xff, 0xff
-		static uint8_t raw_pixel[width*height*4] {
-			P, W, W, W, W, W, W, P,
-			W, W, W, W, W, W, W, W,
-			W, W, W, W, W, W, W, W,
-			W, W, W, B, B, W, W, W,
-			W, W, W, B, B, W, W, W,
-			W, W, W, W, W, W, W, W,
-			W, W, W, W, W, W, W, W,
-			P, W, W, W, W, W, W, P,
-		};
+	return nullptr;
+}
 
-		static uint64_t texture = sdlrtu.uploadRGBA(raw_pixel, width, height);
-
-		if (ImGui::Begin("test texture")) {
-			ImGui::Text("test texture windoajsdf");
-
-			ImGui::Image(reinterpret_cast<void*>(texture), {width*10, height*10});
-		}
-		ImGui::End();
-	}
-#endif
+Screen* MainScreen::tick(float time_delta, bool& quit) {
+	_min_tick_interval = std::min<float>(
+		tc.toxIterationInterval()/1000.f,
+		0.03f // HACK: 30ms upper bound, should be the same as tox but will change
+	);
 
 	return nullptr;
 }
