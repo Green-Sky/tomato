@@ -139,26 +139,40 @@ int main(int argc, char** argv) {
 		//);
 
 
+#if 1
 		if (render || tick) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
+			// why is windows like this
+			//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
+			SDL_Delay(1); // yield for 1ms
 		} else {
 
-#if 0
+	#if 0
 			// pretty hacky and spins if close to next update
 			// if next loop >= 1ms away, wait 1ms
 			if (time_delta_tick+0.001f < screen->nextTick() && time_delta_render+0.001f < screen->nextRender()) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
 			}
-#else
+	#else
 			// dynamic sleep, sleeps the reminder till next update
-			std::this_thread::sleep_for(std::chrono::duration<float, std::chrono::seconds::period>(
+			//std::this_thread::sleep_for(std::chrono::duration<float, std::chrono::seconds::period>(
+				//std::min<float>(
+					//screen->nextTick() - time_delta_tick,
+					//screen->nextRender() - time_delta_render
+				//)
+			//));
+			SDL_Delay(uint32_t(
 				std::min<float>(
 					screen->nextTick() - time_delta_tick,
 					screen->nextRender() - time_delta_render
-				)
+				) * 1000.f
 			));
-#endif
+	#endif
 		}
+#else
+		// why is windows like this
+		//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
+		SDL_Delay(1); // yield for 1ms
+#endif
 	}
 
 	return 0;
