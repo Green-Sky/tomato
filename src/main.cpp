@@ -84,30 +84,26 @@ int main(int argc, char** argv) {
 			last_time_tick = new_time;
 		}
 
-		// can do both in the same loop
-		if (render) {
-			SDL_Event event;
-			while (SDL_PollEvent(&event)) {
-				if (event.type == SDL_EVENT_QUIT) {
-					quit = true;
-					break;
-				}
-
-				if (screen->handleEvent(event)) {
-					continue;
-				}
-
-				ImGui_ImplSDL3_ProcessEvent(&event);
-			}
-			if (quit) {
+		// do events outside of tick/render, so they can influence reported intervals
+		SDL_Event event;
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_EVENT_QUIT) {
+				quit = true;
 				break;
 			}
 
-			//float fps_target = 60.f;
-			//if (SDL_GetWindowFlags(window.get()) & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED)) {
-				//fps_target = 30.f;
-			//}
+			if (screen->handleEvent(event)) {
+				continue;
+			}
 
+			ImGui_ImplSDL3_ProcessEvent(&event);
+		}
+		if (quit) {
+			break;
+		}
+
+		// can do both in the same loop
+		if (render) {
 			ImGui_ImplSDLRenderer3_NewFrame();
 			ImGui_ImplSDL3_NewFrame();
 			ImGui::NewFrame();
@@ -160,12 +156,23 @@ int main(int argc, char** argv) {
 					//screen->nextRender() - time_delta_render
 				//)
 			//));
-			SDL_Delay(uint32_t(
-				std::min<float>(
+
+			const float min_delay = std::min<float>(
 					screen->nextTick() - time_delta_tick,
 					screen->nextRender() - time_delta_render
-				) * 1000.f
-			));
+				) * 1000.f;
+
+			if (min_delay > 0.f) {
+				SDL_Delay(uint32_t(min_delay));
+			}
+
+			// better in theory, but consumes more cpu on linux for some reason
+			//SDL_WaitEventTimeout(nullptr, int32_t(
+				//std::min<float>(
+					//screen->nextTick() - time_delta_tick,
+					//screen->nextRender() - time_delta_render
+				//) * 1000.f
+			//));
 	#endif
 		}
 #else
