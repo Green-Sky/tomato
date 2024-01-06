@@ -38,8 +38,6 @@ extern "C" {
 struct MainScreen final : public Screen {
 	SDL_Renderer* renderer;
 
-	std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
-
 	SimpleConfigModel conf;
 	Contact3Registry cr;
 	RegistryMessageModel rmm;
@@ -66,6 +64,9 @@ struct MainScreen final : public Screen {
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
 
+	bool _window_hidden {false};
+	bool _window_hidden_ts {0};
+
 	MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins);
 	~MainScreen(void);
 
@@ -75,6 +76,11 @@ struct MainScreen final : public Screen {
 	// sets bool quit to true if exit
 	Screen* render(float time_delta, bool&) override;
 	Screen* tick(float time_delta, bool&) override;
+
+	// 0 - normal
+	// 1 - power save
+	int _fps_perf_mode {0};
+	int _compute_perf_mode {0};
 
 	float _render_interval {1.f/60.f};
 	float _min_tick_interval {0.f};
