@@ -119,6 +119,24 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 		return true; // forward?
 	}
 
+	if (
+		_fps_perf_mode <= 1 && (
+			e.type == SDL_EVENT_MOUSE_MOTION ||
+			e.type == SDL_EVENT_MOUSE_WHEEL ||
+			e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+			e.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+			e.type == SDL_EVENT_TEXT_INPUT ||
+			e.type == SDL_EVENT_KEY_DOWN ||
+			e.type == SDL_EVENT_KEY_UP ||
+			e.type == SDL_EVENT_WINDOW_MOUSE_ENTER ||
+			e.type == SDL_EVENT_WINDOW_MOUSE_LEAVE ||
+			e.type == SDL_EVENT_WINDOW_FOCUS_GAINED ||
+			e.type == SDL_EVENT_WINDOW_FOCUS_LOST
+		)
+	) {
+		_render_interval = 1.f/60.f; // TODO: magic
+	}
+
 	return false;
 }
 
@@ -162,13 +180,13 @@ Screen* MainScreen::render(float time_delta, bool& quit) {
 				// ImGui::Separator(); // why do we not need this????
 				if (ImGui::BeginMenu("Performance")) {
 					{ // fps
-						const auto targets = "normal\0power save\0";
+						const auto targets = "normal\0reduced\0powersave\0";
 						ImGui::SetNextItemWidth(ImGui::GetFontSize()*10);
 						ImGui::Combo("fps mode", &_fps_perf_mode, targets, 4);
 					}
 
 					{ // compute
-						const auto targets = "normal\0power save\0";
+						const auto targets = "normal\0powersave\0";
 						ImGui::SetNextItemWidth(ImGui::GetFontSize()*10);
 						ImGui::Combo("compute mode", &_compute_perf_mode, targets, 4);
 						ImGui::SetItemTooltip("Limiting compute can slow down things filetransfers.");
@@ -189,7 +207,7 @@ Screen* MainScreen::render(float time_delta, bool& quit) {
 	}
 
 	if (
-		_fps_perf_mode == 1 || // TODO: magic
+		_fps_perf_mode >= 1 || // TODO: magic
 		_window_hidden
 	) {
 		_render_interval = 1.f/4.f;
