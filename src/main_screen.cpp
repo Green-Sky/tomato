@@ -106,6 +106,12 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 		if (event_renderer != nullptr && event_renderer == renderer) {
 			if (_window_hidden_ts <= e.window.timestamp) {
 				_window_hidden_ts = e.window.timestamp;
+
+				if (_window_hidden) {
+					// if window was previously hidden, we shorten the wait for the next frame
+					_render_interval = 1.f/60.f;
+				}
+
 				_window_hidden = false;
 				//std::cout << "TOMAT: window shown " << e.window.timestamp << "\n";
 			}
