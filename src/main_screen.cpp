@@ -75,6 +75,8 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 	if (e.type == SDL_EVENT_DROP_FILE) {
 		std::cout << "DROP FILE: " << e.drop.file << "\n";
 		cg.sendFilePath(e.drop.file);
+		_render_interval = 1.f/60.f; // TODO: magic
+		_time_since_event = 0.f;
 		return true; // TODO: forward return succ from sendFilePath()
 	}
 
@@ -116,11 +118,14 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 				//std::cout << "TOMAT: window shown " << e.window.timestamp << "\n";
 			}
 		}
+		_render_interval = 1.f/60.f; // TODO: magic
+		_time_since_event = 0.f;
 		return true; // forward?
 	}
 
 	if (
 		_fps_perf_mode <= 1 && (
+			// those are all the events imgui polls
 			e.type == SDL_EVENT_MOUSE_MOTION ||
 			e.type == SDL_EVENT_MOUSE_WHEEL ||
 			e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
@@ -135,6 +140,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 		)
 	) {
 		_render_interval = 1.f/60.f; // TODO: magic
+		_time_since_event = 0.f;
 	}
 
 	return false;
@@ -203,13 +209,17 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		// powersave forces 250ms
 		_render_interval = 1.f/4.f;
 	} else if (
-		_fps_perf_mode == 1 || // TODO: magic
-		_window_hidden
+		_time_since_event > 1.f && ( // 1sec cool down
+			_fps_perf_mode == 1 || // TODO: magic
+			_window_hidden
+		)
 	) {
 		_render_interval = std::min<float>(1.f/4.f, pm_interval);
 	} else {
 		_render_interval = std::min<float>(1.f/60.f, pm_interval);
 	}
+
+	_time_since_event += time_delta;
 
 	return nullptr;
 }
