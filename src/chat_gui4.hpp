@@ -46,7 +46,7 @@ class ChatGui4 {
 		);
 
 	public:
-		void render(void);
+		void render(float time_delta);
 
 	public:
 		bool any_unread {false};

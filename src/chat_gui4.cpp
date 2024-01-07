@@ -51,7 +51,7 @@ ChatGui4::ChatGui4(
 ) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu), _msg_tc(_mil, tu), _sip(tu) {
 }
 
-void ChatGui4::render(void) {
+void ChatGui4::render(float time_delta) {
 	if (!_cr.storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
 		std::vector<Contact3> to_purge;
 		_cr.view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact3 c) {
@@ -66,7 +66,7 @@ void ChatGui4::render(void) {
 	_msg_tc.update();
 
 	_fss.render();
-	_sip.render();
+	_sip.render(time_delta);
 
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);

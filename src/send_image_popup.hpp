@@ -71,6 +71,6 @@ struct SendImagePopup {
 		// from file_path
 
 		// call this each frame
-		void render(void);
+		void render(float time_delta);
 };
 

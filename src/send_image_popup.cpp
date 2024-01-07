@@ -158,7 +158,7 @@ void SendImagePopup::sendMemory(
 
 }
 
-void SendImagePopup::render(void) {
+void SendImagePopup::render(float time_delta) {
 	if (_open_popup) {
 		_open_popup = false;
 		ImGui::OpenPopup("send image##SendImagePopup");
@@ -171,7 +171,7 @@ void SendImagePopup::render(void) {
 
 		preview_image.doAnimation(getNowMS());
 
-		time += 1.f/60.f; // TODO: actual delay
+		time += time_delta;
 		time = fmod(time, 1.f); // fract()
 
 		//ImGui::Text("send file....\n......");

@@ -140,13 +140,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 	return false;
 }
 
-Screen* MainScreen::render(float time_delta, bool& quit) {
-	quit = !tc.iterate();
-
-	tcm.iterate(time_delta);
-
-	tam.iterate();
-
+Screen* MainScreen::render(float time_delta, bool&) {
 	// HACK: render the tomato main window first, with proper flags set.
 	// flags need to be set the first time begin() is called.
 	// and plugins are run before the main cg is run.
@@ -164,15 +158,12 @@ Screen* MainScreen::render(float time_delta, bool& quit) {
 		ImGui::End();
 	}
 
-	pm.tick(time_delta);
-	tdch.tick(time_delta);
+	const float pm_interval = pm.render(time_delta); // render
 
-	mts.iterate();
-
-	cg.render();
-	sw.render();
-	tuiu.render();
-	tdch.render();
+	cg.render(time_delta); // render
+	sw.render(); // render
+	tuiu.render(); // render
+	tdch.render(); // render
 
 	{ // main window menubar injection
 		if (ImGui::Begin("tomato")) {
@@ -189,7 +180,7 @@ Screen* MainScreen::render(float time_delta, bool& quit) {
 						const auto targets = "normal\0powersave\0";
 						ImGui::SetNextItemWidth(ImGui::GetFontSize()*10);
 						ImGui::Combo("compute mode", &_compute_perf_mode, targets, 4);
-						ImGui::SetItemTooltip("Limiting compute can slow down things filetransfers.");
+						ImGui::SetItemTooltip("Limiting compute can slow down things like filetransfers!");
 					}
 
 					ImGui::EndMenu();
@@ -207,22 +198,40 @@ Screen* MainScreen::render(float time_delta, bool& quit) {
 	}
 
 	if (
-		_fps_perf_mode >= 1 || // TODO: magic
+		_fps_perf_mode > 1 // TODO: magic
+	) {
+		// powersave forces 250ms
+		_render_interval = 1.f/4.f;
+	} else if (
+		_fps_perf_mode == 1 || // TODO: magic
 		_window_hidden
 	) {
-		_render_interval = 1.f/4.f;
+		_render_interval = std::min<float>(1.f/4.f, pm_interval);
 	} else {
-		_render_interval = 1.f/60.f;
+		_render_interval = std::min<float>(1.f/60.f, pm_interval);
 	}
 
 	return nullptr;
 }
 
 Screen* MainScreen::tick(float time_delta, bool& quit) {
+	quit = !tc.iterate(); // compute
+
+	tcm.iterate(time_delta); // compute
+
+	tam.iterate(); // compute
+
+	const float pm_interval = pm.tick(time_delta); // compute
+
+	tdch.tick(time_delta); // compute
+
+	mts.iterate(); // compute
+
 	_min_tick_interval = std::max<float>(
 		std::min<float>(
 			tc.toxIterationInterval()/1000.f,
-			0.03f // HACK: 30ms upper bound, should be the same as tox but will change
+			pm_interval
+			//0.03f // HACK: 30ms upper bound, should be the same as tox but will change
 		),
 		(_compute_perf_mode == 0 ? 0.001f : 0.1f) // in powersave fix the lowerbound to 100ms
 	);
