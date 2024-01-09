@@ -18,17 +18,19 @@
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
 
+#include <cctype>
 #include <cstdint>
+#include <ctime>
+#include <cstdio>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
-#include <chrono>
-#include <ctime>
-#include <cstdio>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
+
 
 namespace Components {
 
@@ -41,6 +43,32 @@ namespace Components {
 
 static float lerp(float a, float b, float t) {
 	return a + t * (b - a);
+}
+
+static std::string file_url_escape(const std::string&& value) {
+	std::ostringstream escaped;
+
+	escaped << std::hex;
+	escaped.fill('0');
+
+	for (const char c : value) {
+		if (
+			c == '-' || c == '_' || c == '.' || c == '~' || // normal allowed url chars
+			std::isalnum(static_cast<unsigned char>(c)) || // more normal
+			c == '/' // special bc its a file://
+		) {
+			escaped << c;
+		} else {
+			escaped
+				<< std::uppercase
+				<< '%' <<
+				std::setw(2) << static_cast<int>((static_cast<unsigned char>(c)))
+				<< std::nouppercase
+			;
+		}
+	}
+
+	return escaped.str();
 }
 
 ChatGui4::ChatGui4(
@@ -618,9 +646,8 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
 				if (ImGui::MenuItem("open")) {
-					std::string url{"file://" + std::filesystem::canonical(local_info.file_list.at(i)).u8string()};
+					std::string url{"file://" + file_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
 					std::cout << "opening file '" << url << "'\n";
-
 					SDL_OpenURL(url.c_str());
 				}
 				ImGui::EndPopup();
