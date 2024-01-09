@@ -255,11 +255,10 @@ void ChatGui4::render(float time_delta) {
 						// do systems TODO: extract
 						{ // fade system
 							std::vector<Message3> to_remove;
-							msg_reg.view<Components::UnreadFade>().each([&to_remove](const Message3 e, Components::UnreadFade& fade) {
+							msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
 								// TODO: configurable
 								const float fade_duration = 7.5f;
-								// TODO: dynamic fps
-								fade.fade -= 1.f/fade_duration * (1.f/60.f);
+								fade.fade -= 1.f/fade_duration * time_delta;
 								if (fade.fade <= 0.f) {
 									to_remove.push_back(e);
 								}
