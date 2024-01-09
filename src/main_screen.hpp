@@ -79,8 +79,11 @@ struct MainScreen final : public Screen {
 	Screen* tick(float time_delta, bool&) override;
 
 	// 0 - normal
+	// 1 - reduced
+	// 2 - power save
+	int _fps_perf_mode {1};
+	// 0 - normal
 	// 1 - power save
-	int _fps_perf_mode {0};
 	int _compute_perf_mode {0};
 
 	float _render_interval {1.f/60.f};
