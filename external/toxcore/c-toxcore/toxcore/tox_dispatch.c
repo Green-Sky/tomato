@@ -7,8 +7,10 @@
 #include <stdlib.h>
 
 #include "ccompat.h"
-#include "events/events_alloc.h"
+#include "events/events_alloc.h" // IWYU pragma: keep
+#include "tox.h"
 #include "tox_event.h"
+#include "tox_events.h"
 
 struct Tox_Dispatch {
     tox_events_conference_connected_cb *conference_connected_callback;

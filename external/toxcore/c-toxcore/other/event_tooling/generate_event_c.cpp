@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright © 2023 The TokTok team.
+// Copyright © 2023-2024 The TokTok team.
 
 // this file can be used to generate event.c files
 // requires c++17
@@ -119,22 +119,54 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         exit(1);
     }
 
+    bool need_stdlib_h = false;
+    bool need_string_h = false;
+    bool need_tox_unpack_h = false;
+    for (const auto& t : event_types) {
+        std::visit(
+            overloaded{
+                [&](const EventTypeTrivial& t) {
+                    if (bin_unpack_name_from_type(t.type).rfind("tox_", 0) == 0) {
+                        need_tox_unpack_h = true;
+                    }
+                },
+                [&](const EventTypeByteRange&) {
+                    need_stdlib_h = true;
+                    need_string_h = true;
+                }
+            },
+            t
+        );
+    }
+
     f << R"(/* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023 The TokTok team.
+ * Copyright © 2023-2024 The TokTok team.
  */
 
 #include "events_alloc.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <assert.h>)";
+    if (need_stdlib_h) {
+        f << R"(
+#include <stdlib.h>)";
+    }
+    if (need_string_h) {
+        f << R"(
+#include <string.h>)";
+    }
+    f << R"(
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
+#include "../mem.h"
 #include "../tox.h"
-#include "../tox_events.h"
-#include "../tox_unpack.h"
+#include "../tox_events.h")";
+    if (need_tox_unpack_h) {
+        f << R"(
+#include "../tox_unpack.h")";
+    }
+    f << R"(
 
 
 /*****************************************************

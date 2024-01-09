@@ -89,7 +89,7 @@
 
 #include "ccompat.h"
 #include "logger.h"
-#include "mono_time.h"
+#include "mem.h"
 #include "util.h"
 
 // Disable MSG_NOSIGNAL on systems not supporting it, e.g. Windows, FreeBSD
@@ -340,12 +340,20 @@ static void fill_addr6(const IP6 *ip, struct in6_addr *addr)
 #endif
 
 static const IP empty_ip = {{0}};
-const IP_Port empty_ip_port = {{{0}}};
 
-const IP4 ip4_broadcast = { INADDR_BROADCAST };
-const IP6 ip6_broadcast = {
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
-};
+IP4 get_ip4_broadcast(void)
+{
+    const IP4 ip4_broadcast = { INADDR_BROADCAST };
+    return ip4_broadcast;
+}
+
+IP6 get_ip6_broadcast(void)
+{
+    const IP6 ip6_broadcast = {
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+    };
+    return ip6_broadcast;
+}
 
 IP4 get_ip4_loopback(void)
 {
@@ -357,7 +365,7 @@ IP4 get_ip4_loopback(void)
 IP6 get_ip6_loopback(void)
 {
     /* in6addr_loopback isn't available everywhere, so we do it ourselves. */
-    IP6 loopback = empty_ip_port.ip.ip.v6;
+    IP6 loopback = empty_ip.ip.v6;
     loopback.uint8[15] = 1;
     return loopback;
 }
@@ -366,7 +374,11 @@ IP6 get_ip6_loopback(void)
 #define INVALID_SOCKET (-1)
 #endif
 
-const Socket net_invalid_socket = { (int)INVALID_SOCKET };
+Socket net_invalid_socket(void)
+{
+    const Socket invalid_socket = { (int)INVALID_SOCKET };
+    return invalid_socket;
+}
 
 Family net_family_unspec(void)
 {
@@ -460,7 +472,8 @@ bool net_family_is_tox_tcp_ipv6(Family family)
 
 bool sock_valid(Socket sock)
 {
-    return sock.sock != net_invalid_socket.sock;
+    const Socket invalid_socket = net_invalid_socket();
+    return sock.sock != invalid_socket.sock;
 }
 
 struct Network_Addr {
@@ -1447,6 +1460,7 @@ void ipport_reset(IP_Port *ipport)
         return;
     }
 
+    const IP_Port empty_ip_port = {{{0}}};
     *ipport = empty_ip_port;
 }
 
@@ -1748,8 +1762,8 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
         // Non-blocking socket: "Operation in progress" means it's connecting.
         if (!should_ignore_connect_error(error)) {
             char *net_strerror = net_new_strerror(error);
-            LOGGER_ERROR(log, "failed to connect to %s:%d: %d (%s)",
-                         net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error, net_strerror);
+            LOGGER_WARNING(log, "failed to connect to %s:%d: %d (%s)",
+                           net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error, net_strerror);
             net_kill_strerror(net_strerror);
             return false;
         }

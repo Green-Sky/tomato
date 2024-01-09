@@ -5,14 +5,12 @@
 #include "tox_event.h"
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
+#include "bin_pack.h"
 #include "bin_unpack.h"
 #include "ccompat.h"
-#include "events/events_alloc.h"
-#include "tox.h"
+#include "mem.h"
+#include "tox_events.h"
 
 const char *tox_event_type_to_string(Tox_Event_Type type)
 {
