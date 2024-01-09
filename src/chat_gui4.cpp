@@ -266,10 +266,24 @@ void ChatGui4::render(float time_delta) {
 							msg_reg.remove<Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
 						}
 
-						auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
-						tmp_view.use<Message::Components::Timestamp>();
-						tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
-						) {
+						//auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
+						//tmp_view.use<Message::Components::Timestamp>();
+						//tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
+						//) {
+						auto tmp_view = msg_reg.view<Message::Components::Timestamp>();
+						for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
+							const Message3 e = *view_it;
+
+							// manually filter ("reverse" iteration <.<)
+							if (!msg_reg.all_of<Message::Components::ContactFrom, Message::Components::ContactTo>(e)) {
+								continue;
+							}
+
+							Message::Components::ContactFrom& c_from = msg_reg.get<Message::Components::ContactFrom>(e);
+							Message::Components::ContactTo& c_to = msg_reg.get<Message::Components::ContactTo>(e);
+							Message::Components::Timestamp ts = tmp_view.get<Message::Components::Timestamp>(e);
+
+
 							// TODO: why?
 							ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
@@ -356,7 +370,7 @@ void ChatGui4::render(float time_delta) {
 							}
 
 							ImGui::PopID(); // ent
-						});
+						}
 
 						// fake empty placeholders
 						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
