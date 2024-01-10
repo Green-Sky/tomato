@@ -258,7 +258,7 @@ void ChatGui4::render(float time_delta) {
 							msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
 								// TODO: configurable
 								const float fade_duration = 7.5f;
-								fade.fade -= 1.f/fade_duration * time_delta;
+								fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/10.f); // fps but not below 10 for smooth fade
 								if (fade.fade <= 0.f) {
 									to_remove.push_back(e);
 								}
