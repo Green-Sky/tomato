@@ -54,13 +54,14 @@ static bool tox_event_friend_lossless_packet_set_data(Tox_Event_Friend_Lossless_
         friend_lossless_packet->data_length = 0;
     }
 
-    friend_lossless_packet->data = (uint8_t *)malloc(data_length);
+    uint8_t *data_copy = (uint8_t *)malloc(data_length);
 
-    if (friend_lossless_packet->data == nullptr) {
+    if (data_copy == nullptr) {
         return false;
     }
 
-    memcpy(friend_lossless_packet->data, data, data_length);
+    memcpy(data_copy, data, data_length);
+    friend_lossless_packet->data = data_copy;
     friend_lossless_packet->data_length = data_length;
     return true;
 }
@@ -160,42 +161,6 @@ static Tox_Event_Friend_Lossless_Packet *tox_events_add_friend_lossless_packet(T
 
     tox_events_add(events, &event);
     return friend_lossless_packet;
-}
-
-const Tox_Event_Friend_Lossless_Packet *tox_events_get_friend_lossless_packet(const Tox_Events *events, uint32_t index)
-{
-    uint32_t friend_lossless_packet_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (friend_lossless_packet_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_FRIEND_LOSSLESS_PACKET) {
-            const Tox_Event_Friend_Lossless_Packet *friend_lossless_packet = events->events[i].data.friend_lossless_packet;
-            if (friend_lossless_packet_index == index) {
-                return friend_lossless_packet;
-            }
-            ++friend_lossless_packet_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_friend_lossless_packet_size(const Tox_Events *events)
-{
-    uint32_t friend_lossless_packet_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_FRIEND_LOSSLESS_PACKET) {
-            ++friend_lossless_packet_size;
-        }
-    }
-
-    return friend_lossless_packet_size;
 }
 
 bool tox_event_friend_lossless_packet_unpack(

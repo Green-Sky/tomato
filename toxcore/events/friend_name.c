@@ -54,13 +54,14 @@ static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *friend_name,
         friend_name->name_length = 0;
     }
 
-    friend_name->name = (uint8_t *)malloc(name_length);
+    uint8_t *name_copy = (uint8_t *)malloc(name_length);
 
-    if (friend_name->name == nullptr) {
+    if (name_copy == nullptr) {
         return false;
     }
 
-    memcpy(friend_name->name, name, name_length);
+    memcpy(name_copy, name, name_length);
+    friend_name->name = name_copy;
     friend_name->name_length = name_length;
     return true;
 }
@@ -160,42 +161,6 @@ static Tox_Event_Friend_Name *tox_events_add_friend_name(Tox_Events *events, con
 
     tox_events_add(events, &event);
     return friend_name;
-}
-
-const Tox_Event_Friend_Name *tox_events_get_friend_name(const Tox_Events *events, uint32_t index)
-{
-    uint32_t friend_name_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (friend_name_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_FRIEND_NAME) {
-            const Tox_Event_Friend_Name *friend_name = events->events[i].data.friend_name;
-            if (friend_name_index == index) {
-                return friend_name;
-            }
-            ++friend_name_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_friend_name_size(const Tox_Events *events)
-{
-    uint32_t friend_name_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_FRIEND_NAME) {
-            ++friend_name_size;
-        }
-    }
-
-    return friend_name_size;
 }
 
 bool tox_event_friend_name_unpack(

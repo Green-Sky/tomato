@@ -55,13 +55,14 @@ static bool tox_event_friend_request_set_message(Tox_Event_Friend_Request *frien
         friend_request->message_length = 0;
     }
 
-    friend_request->message = (uint8_t *)mem_balloc(mem, message_length * sizeof(uint8_t));
+    uint8_t *message_copy = (uint8_t *)mem_balloc(mem, message_length);
 
-    if (friend_request->message == nullptr) {
+    if (message_copy == nullptr) {
         return false;
     }
 
-    memcpy(friend_request->message, message, message_length * sizeof(uint8_t));
+    memcpy(message_copy, message, message_length);
+    friend_request->message = message_copy;
     friend_request->message_length = message_length;
     return true;
 }
@@ -155,44 +156,6 @@ static Tox_Event_Friend_Request *tox_events_add_friend_request(Tox_Events *event
 
     tox_events_add(events, &event);
     return friend_request;
-}
-
-const Tox_Event_Friend_Request *tox_events_get_friend_request(
-    const Tox_Events *events, uint32_t index)
-{
-    uint32_t friend_request_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (friend_request_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_FRIEND_REQUEST) {
-            const Tox_Event_Friend_Request *friend_request = events->events[i].data.friend_request;
-            if (friend_request_index == index) {
-                return friend_request;
-            }
-            ++friend_request_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_friend_request_size(
-    const Tox_Events *events)
-{
-    uint32_t friend_request_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_FRIEND_REQUEST) {
-            ++friend_request_size;
-        }
-    }
-
-    return friend_request_size;
 }
 
 bool tox_event_friend_request_unpack(

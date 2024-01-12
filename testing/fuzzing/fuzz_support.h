@@ -7,11 +7,12 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <memory>
-#include <vector>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "../../toxcore/tox.h"
 
@@ -20,19 +21,28 @@ struct Fuzz_Data {
     std::size_t size;
 
     Fuzz_Data(const uint8_t *input_data, std::size_t input_size)
-        : data(input_data), size(input_size)
-    {}
+        : data(input_data)
+        , size(input_size)
+    {
+    }
 
     Fuzz_Data &operator=(const Fuzz_Data &rhs) = delete;
     Fuzz_Data(const Fuzz_Data &rhs) = delete;
 
-    uint8_t consume1()
-    {
-        const uint8_t val = data[0];
-        ++data;
-        --size;
-        return val;
-    }
+    struct Consumer {
+        Fuzz_Data &fd;
+
+        template <typename T>
+        operator T()
+        {
+            const uint8_t *bytes = fd.consume(sizeof(T));
+            T val;
+            std::memcpy(&val, bytes, sizeof(T));
+            return val;
+        }
+    };
+
+    Consumer consume1() { return Consumer{*this}; }
 
     const uint8_t *consume(std::size_t count)
     {
@@ -50,14 +60,14 @@ struct Fuzz_Data {
  *
  * @example
  * @code
- * CONSUME1_OR_RETURN(const uint8_t one_byte, input);
+ * CONSUME1_OR_RETURN(const uint8_t, one_byte, input);
  * @endcode
  */
-#define CONSUME1_OR_RETURN(DECL, INPUT) \
-    if (INPUT.size < 1) {               \
-        return;                         \
-    }                                   \
-    DECL = INPUT.consume1()
+#define CONSUME1_OR_RETURN(TYPE, NAME, INPUT) \
+    if (INPUT.size < sizeof(TYPE)) {          \
+        return;                               \
+    }                                         \
+    TYPE NAME = INPUT.consume1()
 
 /** @brief Consumes 1 byte of the fuzzer input or returns a value if no data
  * available.
@@ -70,11 +80,11 @@ struct Fuzz_Data {
  * CONSUME1_OR_RETURN_VAL(const uint8_t one_byte, input, nullptr);
  * @endcode
  */
-#define CONSUME1_OR_RETURN_VAL(DECL, INPUT, VAL) \
-    if (INPUT.size < 1) {                        \
-        return VAL;                              \
-    }                                            \
-    DECL = INPUT.consume1()
+#define CONSUME1_OR_RETURN_VAL(TYPE, NAME, INPUT, VAL) \
+    if (INPUT.size < sizeof(TYPE)) {                   \
+        return VAL;                                    \
+    }                                                  \
+    TYPE NAME = INPUT.consume1()
 
 /** @brief Consumes SIZE bytes of the fuzzer input or returns if not enough data available.
  *
@@ -93,6 +103,12 @@ struct Fuzz_Data {
     }                                        \
     DECL = INPUT.consume(SIZE)
 
+#define CONSUME_OR_RETURN_VAL(DECL, INPUT, SIZE, VAL) \
+    if (INPUT.size < SIZE) {                          \
+        return VAL;                                   \
+    }                                                 \
+    DECL = INPUT.consume(SIZE)
+
 inline void fuzz_select_target(uint8_t selector, Fuzz_Data &input)
 {
     // The selector selected no function, so we do nothing and rely on the
@@ -100,7 +116,7 @@ inline void fuzz_select_target(uint8_t selector, Fuzz_Data &input)
 }
 
 template <typename Arg, typename... Args>
-void fuzz_select_target(uint8_t selector, Fuzz_Data &input, Arg &&fn, Args &&... args)
+void fuzz_select_target(uint8_t selector, Fuzz_Data &input, Arg &&fn, Args &&...args)
 {
     if (selector == sizeof...(Args)) {
         return fn(input);
@@ -109,11 +125,11 @@ void fuzz_select_target(uint8_t selector, Fuzz_Data &input, Arg &&fn, Args &&...
 }
 
 template <typename... Args>
-void fuzz_select_target(const uint8_t *data, std::size_t size, Args &&... args)
+void fuzz_select_target(const uint8_t *data, std::size_t size, Args &&...args)
 {
     Fuzz_Data input{data, size};
 
-    CONSUME1_OR_RETURN(uint8_t selector, input);
+    CONSUME1_OR_RETURN(const uint8_t, selector, input);
     return fuzz_select_target(selector, input, std::forward<Args>(args)...);
 }
 
@@ -126,6 +142,10 @@ struct System {
     std::unique_ptr<Memory> mem;
     std::unique_ptr<Network> ns;
     std::unique_ptr<Random> rng;
+
+    System(std::unique_ptr<Tox_System> sys, std::unique_ptr<Memory> mem,
+        std::unique_ptr<Network> ns, std::unique_ptr<Random> rng);
+    System(System &&);
 
     // Not inline because sizeof of the above 2 structs is not known everywhere.
     ~System();

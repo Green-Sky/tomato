@@ -56,13 +56,14 @@ static bool tox_event_group_invite_set_invite_data(Tox_Event_Group_Invite *group
         group_invite->invite_data_length = 0;
     }
 
-    group_invite->invite_data = (uint8_t *)malloc(invite_data_length);
+    uint8_t *invite_data_copy = (uint8_t *)malloc(invite_data_length);
 
-    if (group_invite->invite_data == nullptr) {
+    if (invite_data_copy == nullptr) {
         return false;
     }
 
-    memcpy(group_invite->invite_data, invite_data, invite_data_length);
+    memcpy(invite_data_copy, invite_data, invite_data_length);
+    group_invite->invite_data = invite_data_copy;
     group_invite->invite_data_length = invite_data_length;
     return true;
 }
@@ -89,13 +90,14 @@ static bool tox_event_group_invite_set_group_name(Tox_Event_Group_Invite *group_
         group_invite->group_name_length = 0;
     }
 
-    group_invite->group_name = (uint8_t *)malloc(group_name_length);
+    uint8_t *group_name_copy = (uint8_t *)malloc(group_name_length);
 
-    if (group_invite->group_name == nullptr) {
+    if (group_name_copy == nullptr) {
         return false;
     }
 
-    memcpy(group_invite->group_name, group_name, group_name_length);
+    memcpy(group_name_copy, group_name, group_name_length);
+    group_invite->group_name = group_name_copy;
     group_invite->group_name_length = group_name_length;
     return true;
 }
@@ -198,42 +200,6 @@ static Tox_Event_Group_Invite *tox_events_add_group_invite(Tox_Events *events, c
 
     tox_events_add(events, &event);
     return group_invite;
-}
-
-const Tox_Event_Group_Invite *tox_events_get_group_invite(const Tox_Events *events, uint32_t index)
-{
-    uint32_t group_invite_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (group_invite_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_GROUP_INVITE) {
-            const Tox_Event_Group_Invite *group_invite = events->events[i].data.group_invite;
-            if (group_invite_index == index) {
-                return group_invite;
-            }
-            ++group_invite_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_group_invite_size(const Tox_Events *events)
-{
-    uint32_t group_invite_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_GROUP_INVITE) {
-            ++group_invite_size;
-        }
-    }
-
-    return group_invite_size;
 }
 
 bool tox_event_group_invite_unpack(

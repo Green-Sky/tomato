@@ -68,13 +68,14 @@ static bool tox_event_group_custom_private_packet_set_data(Tox_Event_Group_Custo
         group_custom_private_packet->data_length = 0;
     }
 
-    group_custom_private_packet->data = (uint8_t *)malloc(data_length);
+    uint8_t *data_copy = (uint8_t *)malloc(data_length);
 
-    if (group_custom_private_packet->data == nullptr) {
+    if (data_copy == nullptr) {
         return false;
     }
 
-    memcpy(group_custom_private_packet->data, data, data_length);
+    memcpy(data_copy, data, data_length);
+    group_custom_private_packet->data = data_copy;
     group_custom_private_packet->data_length = data_length;
     return true;
 }
@@ -176,42 +177,6 @@ static Tox_Event_Group_Custom_Private_Packet *tox_events_add_group_custom_privat
 
     tox_events_add(events, &event);
     return group_custom_private_packet;
-}
-
-const Tox_Event_Group_Custom_Private_Packet *tox_events_get_group_custom_private_packet(const Tox_Events *events, uint32_t index)
-{
-    uint32_t group_custom_private_packet_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (group_custom_private_packet_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET) {
-            const Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = events->events[i].data.group_custom_private_packet;
-            if (group_custom_private_packet_index == index) {
-                return group_custom_private_packet;
-            }
-            ++group_custom_private_packet_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_group_custom_private_packet_size(const Tox_Events *events)
-{
-    uint32_t group_custom_private_packet_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET) {
-            ++group_custom_private_packet_size;
-        }
-    }
-
-    return group_custom_private_packet_size;
 }
 
 bool tox_event_group_custom_private_packet_unpack(
