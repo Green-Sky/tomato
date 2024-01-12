@@ -12,6 +12,11 @@
 #include <cassert>
 #include <vector>
 
+// fwd
+namespace Message {
+uint64_t getTimeMS(void);
+}
+
 MessageImageLoader::MessageImageLoader(void) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
@@ -52,7 +57,7 @@ std::optional<TextureEntry> MessageImageLoader::load(TextureUploaderI& tu, Messa
 				}
 
 				TextureEntry new_entry;
-				new_entry.timestamp_last_rendered = getNowMS();
+				new_entry.timestamp_last_rendered = Message::getTimeMS();
 				new_entry.current_texture = 0;
 				for (const auto& [ms, data] : res.frames) {
 					const auto n_t = tu.uploadRGBA(data.data(), res.width, res.height);

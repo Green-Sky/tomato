@@ -123,14 +123,20 @@ void ChatGui4::render(float time_delta) {
 
 		if (_selected_contact) {
 			const std::string chat_label = "chat " + std::to_string(entt::to_integral(*_selected_contact));
+
+			const std::vector<Contact3>* sub_contacts = nullptr;
+			if (_cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
+				sub_contacts = &_cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
+			}
+
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, true)) {
-				if (_cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
-					const auto sub_contacts = _cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
-					if (!sub_contacts.empty()) {
+				//if (_cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
+				if (sub_contacts != nullptr) {
+					if (!sub_contacts->empty()) {
 						if (ImGui::BeginChild("subcontacts", {150, -100}, true)) {
-							ImGui::Text("subs: %zu", sub_contacts.size());
+							ImGui::Text("subs: %zu", sub_contacts->size());
 							ImGui::Separator();
-							for (const auto& c : sub_contacts) {
+							for (const auto& c : *sub_contacts) {
 								// TODO: can a sub be selected? no
 								if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
 									_text_input_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
@@ -233,9 +239,10 @@ void ChatGui4::render(float time_delta) {
 						ImGuiTableFlags_RowBg |
 						ImGuiTableFlags_SizingFixedFit
 					;
-					if (msg_reg_ptr != nullptr && ImGui::BeginTable("chat_table", 4, table_flags)) {
+					if (msg_reg_ptr != nullptr && ImGui::BeginTable("chat_table", 5, table_flags)) {
 						ImGui::TableSetupColumn("name", 0, TEXT_BASE_WIDTH * 15.f);
 						ImGui::TableSetupColumn("message", ImGuiTableColumnFlags_WidthStretch);
+						ImGui::TableSetupColumn("delivered/read");
 						ImGui::TableSetupColumn("timestamp");
 						ImGui::TableSetupColumn("extra_info", _show_chat_extra_info ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_Disabled);
 
@@ -352,6 +359,84 @@ void ChatGui4::render(float time_delta) {
 								renderMessageBodyFile(msg_reg, e);
 							} else {
 								ImGui::TextDisabled("---");
+							}
+
+							// remote received and read state
+							if (ImGui::TableNextColumn()) {
+								// TODO: theming for hardcoded values
+
+								if (msg_reg.all_of<Message::Components::Remote::TimestampReceived>(e)) {
+									const auto list = msg_reg.get<Message::Components::Remote::TimestampReceived>(e).ts;
+									// wrongly assumes contacts never get removed from a group
+									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
+										// if partically delivered
+										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.5f}, "d");
+									} else {
+										// if fully delivered
+										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.5f}, "D");
+									}
+
+									if (ImGui::BeginItemTooltip()) {
+										std::string synced_by_text {"delivery confirmed by:"};
+										const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+
+										for (const auto& [c, syned_ts] : list) {
+											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+												synced_by_text += "\n sself(!)"; // makes no sense
+											} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+												synced_by_text += "\n wself";
+											} else {
+												synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+											}
+											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
+											synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
+										}
+
+										ImGui::Text("%s", synced_by_text.c_str());
+
+										ImGui::EndTooltip();
+									}
+								} else {
+									ImGui::TextDisabled("_");
+								}
+
+								ImGui::SameLine();
+
+								// TODO: dedup
+								if (msg_reg.all_of<Message::Components::Remote::TimestampRead>(e)) {
+									const auto list = msg_reg.get<Message::Components::Remote::TimestampRead>(e).ts;
+									// wrongly assumes contacts never get removed from a group
+									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
+										// if partially read
+										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.5f}, "r");
+									} else {
+										// if fully read
+										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.5f}, "R");
+									}
+
+									if (ImGui::BeginItemTooltip()) {
+										std::string synced_by_text {"read confirmed by:"};
+										const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+
+										for (const auto& [c, syned_ts] : list) {
+											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+												synced_by_text += "\n sself(!)"; // makes no sense
+											} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+												synced_by_text += "\n wself";
+											} else {
+												synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+											}
+											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
+											synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
+										}
+
+										ImGui::Text("%s", synced_by_text.c_str());
+
+										ImGui::EndTooltip();
+									}
+								} else {
+									ImGui::TextDisabled("_");
+								}
 							}
 
 							// ts
@@ -707,8 +792,9 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 
 	if (reg.all_of<Message::Components::SyncedBy>(e)) {
 		std::string synced_by_text {"syncedBy:"};
-		const auto& synced_by = reg.get<Message::Components::SyncedBy>(e).list;
-		for (const auto& c : synced_by) {
+		const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+
+		for (const auto& [c, syned_ts] : reg.get<Message::Components::SyncedBy>(e).ts) {
 			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 				synced_by_text += "\n sself";
 			} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
@@ -716,7 +802,30 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 			} else {
 				synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
 			}
+			const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
+			synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
 		}
+
+		ImGui::TextDisabled("%s", synced_by_text.c_str());
+	}
+
+	// TODO: remove?
+	if (reg.all_of<Message::Components::Remote::TimestampReceived>(e)) {
+		std::string synced_by_text {"receivedBy:"};
+		const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+
+		for (const auto& [c, syned_ts] : reg.get<Message::Components::Remote::TimestampReceived>(e).ts) {
+			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+				synced_by_text += "\n sself(!)"; // makes no sense
+			} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+				synced_by_text += "\n wself";
+			} else {
+				synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+			}
+			const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
+			synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
+		}
+
 		ImGui::TextDisabled("%s", synced_by_text.c_str());
 	}
 }

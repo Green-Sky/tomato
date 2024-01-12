@@ -6,6 +6,11 @@
 
 #include <imgui/imgui.h>
 
+// fwd
+namespace Message {
+uint64_t getTimeMS(void);
+}
+
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
@@ -76,7 +81,7 @@ bool SendImagePopup::load(void) {
 			}
 		}
 
-		preview_image.timestamp_last_rendered = getNowMS();
+		preview_image.timestamp_last_rendered = Message::getTimeMS();
 		preview_image.current_texture = 0;
 		for (const auto& [ms, data] : original_image.frames) {
 			const auto n_t = _tu.uploadRGBA(data.data(), original_image.width, original_image.height);
@@ -169,7 +174,7 @@ void SendImagePopup::render(float time_delta) {
 		const auto TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
 		const auto TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
-		preview_image.doAnimation(getNowMS());
+		preview_image.doAnimation(Message::getTimeMS());
 
 		time += time_delta;
 		time = fmod(time, 1.f); // fract()

@@ -71,8 +71,10 @@ struct TextureEntry {
 
 TextureEntry generateTestAnim(TextureUploaderI& tu);
 
-// TODO: move to utils or something
-uint64_t getNowMS(void);
+// fwd
+namespace Message {
+uint64_t getTimeMS(void);
+}
 
 template<typename TextureType, typename KeyType, class Loader>
 struct TextureCache {
@@ -132,7 +134,7 @@ struct TextureCache {
 	}
 
 	void update(void) {
-		const uint64_t ts_now = getNowMS();
+		const uint64_t ts_now = Message::getTimeMS();
 
 		std::vector<KeyType> to_purge;
 		for (auto&& [key, te] : _cache) {

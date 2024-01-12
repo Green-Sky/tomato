@@ -21,7 +21,7 @@ void TextureEntry::doAnimation(const int64_t ts_now) {
 
 TextureEntry generateTestAnim(TextureUploaderI& tu) {
 	TextureEntry new_entry;
-	new_entry.timestamp_last_rendered = getNowMS();
+	new_entry.timestamp_last_rendered = Message::getTimeMS();
 	new_entry.current_texture = 0;
 	for (size_t i = 0; i < 4; i++) {
 		// hack
@@ -52,9 +52,5 @@ TextureEntry generateTestAnim(TextureUploaderI& tu) {
 	new_entry.width = 0;
 	new_entry.height = 0;
 	return new_entry;
-}
-
-uint64_t getNowMS(void) {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
