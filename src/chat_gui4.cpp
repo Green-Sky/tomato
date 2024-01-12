@@ -370,10 +370,10 @@ void ChatGui4::render(float time_delta) {
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partically delivered
-										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.5f}, "d");
+										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.7f}, "d");
 									} else {
 										// if fully delivered
-										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.5f}, "D");
+										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "D");
 									}
 
 									if (ImGui::BeginItemTooltip()) {
@@ -408,10 +408,10 @@ void ChatGui4::render(float time_delta) {
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partially read
-										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.5f}, "r");
+										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.7f}, "r");
 									} else {
 										// if fully read
-										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.5f}, "R");
+										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "R");
 									}
 
 									if (ImGui::BeginItemTooltip()) {
