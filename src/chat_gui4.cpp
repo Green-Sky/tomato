@@ -370,7 +370,7 @@ void ChatGui4::render(float time_delta) {
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partically delivered
-										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.7f}, "d");
+										ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "d");
 									} else {
 										// if fully delivered
 										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "D");
@@ -382,9 +382,10 @@ void ChatGui4::render(float time_delta) {
 
 										for (const auto& [c, syned_ts] : list) {
 											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
-												synced_by_text += "\n sself(!)"; // makes no sense
+												//synced_by_text += "\n sself(!)"; // makes no sense
+												continue;
 											} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
-												synced_by_text += "\n wself";
+												synced_by_text += "\n wself"; // TODO: add name?
 											} else {
 												synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
 											}
@@ -408,7 +409,7 @@ void ChatGui4::render(float time_delta) {
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partially read
-										ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.1f, 0.7f}, "r");
+										ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "r");
 									} else {
 										// if fully read
 										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "R");
@@ -420,7 +421,8 @@ void ChatGui4::render(float time_delta) {
 
 										for (const auto& [c, syned_ts] : list) {
 											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
-												synced_by_text += "\n sself(!)"; // makes no sense
+												//synced_by_text += "\n sself(!)"; // makes no sense
+												continue;
 											} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
 												synced_by_text += "\n wself";
 											} else {
