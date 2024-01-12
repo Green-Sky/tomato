@@ -30,6 +30,16 @@ struct Network_Addr {
     size_t size;
 };
 
+System::System(std::unique_ptr<Tox_System> in_sys, std::unique_ptr<Memory> in_mem,
+    std::unique_ptr<Network> in_ns, std::unique_ptr<Random> in_rng)
+    : sys(std::move(in_sys))
+    , mem(std::move(in_mem))
+    , ns(std::move(in_ns))
+    , rng(std::move(in_rng))
+{
+}
+System::System(System &&) = default;
+
 System::~System() { }
 
 static int recv_common(Fuzz_Data &input, uint8_t *buf, size_t buf_len)
@@ -67,7 +77,7 @@ static int recv_common(Fuzz_Data &input, uint8_t *buf, size_t buf_len)
 template <typename F>
 static void *alloc_common(Fuzz_Data &data, F func)
 {
-    CONSUME1_OR_RETURN_VAL(const uint8_t want_alloc, data, func());
+    CONSUME1_OR_RETURN_VAL(const uint8_t, want_alloc, data, func());
     if (!want_alloc) {
         return nullptr;
     }

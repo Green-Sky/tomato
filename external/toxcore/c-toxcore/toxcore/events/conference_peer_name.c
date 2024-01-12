@@ -68,13 +68,14 @@ static bool tox_event_conference_peer_name_set_name(Tox_Event_Conference_Peer_Na
         conference_peer_name->name_length = 0;
     }
 
-    conference_peer_name->name = (uint8_t *)malloc(name_length);
+    uint8_t *name_copy = (uint8_t *)malloc(name_length);
 
-    if (conference_peer_name->name == nullptr) {
+    if (name_copy == nullptr) {
         return false;
     }
 
-    memcpy(conference_peer_name->name, name, name_length);
+    memcpy(name_copy, name, name_length);
+    conference_peer_name->name = name_copy;
     conference_peer_name->name_length = name_length;
     return true;
 }
@@ -176,42 +177,6 @@ static Tox_Event_Conference_Peer_Name *tox_events_add_conference_peer_name(Tox_E
 
     tox_events_add(events, &event);
     return conference_peer_name;
-}
-
-const Tox_Event_Conference_Peer_Name *tox_events_get_conference_peer_name(const Tox_Events *events, uint32_t index)
-{
-    uint32_t conference_peer_name_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (conference_peer_name_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_CONFERENCE_PEER_NAME) {
-            const Tox_Event_Conference_Peer_Name *conference_peer_name = events->events[i].data.conference_peer_name;
-            if (conference_peer_name_index == index) {
-                return conference_peer_name;
-            }
-            ++conference_peer_name_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_conference_peer_name_size(const Tox_Events *events)
-{
-    uint32_t conference_peer_name_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_CONFERENCE_PEER_NAME) {
-            ++conference_peer_name_size;
-        }
-    }
-
-    return conference_peer_name_size;
 }
 
 bool tox_event_conference_peer_name_unpack(

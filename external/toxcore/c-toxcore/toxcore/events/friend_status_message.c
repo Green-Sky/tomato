@@ -54,13 +54,14 @@ static bool tox_event_friend_status_message_set_message(Tox_Event_Friend_Status_
         friend_status_message->message_length = 0;
     }
 
-    friend_status_message->message = (uint8_t *)malloc(message_length);
+    uint8_t *message_copy = (uint8_t *)malloc(message_length);
 
-    if (friend_status_message->message == nullptr) {
+    if (message_copy == nullptr) {
         return false;
     }
 
-    memcpy(friend_status_message->message, message, message_length);
+    memcpy(message_copy, message, message_length);
+    friend_status_message->message = message_copy;
     friend_status_message->message_length = message_length;
     return true;
 }
@@ -160,42 +161,6 @@ static Tox_Event_Friend_Status_Message *tox_events_add_friend_status_message(Tox
 
     tox_events_add(events, &event);
     return friend_status_message;
-}
-
-const Tox_Event_Friend_Status_Message *tox_events_get_friend_status_message(const Tox_Events *events, uint32_t index)
-{
-    uint32_t friend_status_message_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (friend_status_message_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_FRIEND_STATUS_MESSAGE) {
-            const Tox_Event_Friend_Status_Message *friend_status_message = events->events[i].data.friend_status_message;
-            if (friend_status_message_index == index) {
-                return friend_status_message;
-            }
-            ++friend_status_message_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_friend_status_message_size(const Tox_Events *events)
-{
-    uint32_t friend_status_message_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_FRIEND_STATUS_MESSAGE) {
-            ++friend_status_message_size;
-        }
-    }
-
-    return friend_status_message_size;
 }
 
 bool tox_event_friend_status_message_unpack(

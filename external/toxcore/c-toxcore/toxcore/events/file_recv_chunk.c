@@ -82,13 +82,14 @@ static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_r
         file_recv_chunk->data_length = 0;
     }
 
-    file_recv_chunk->data = (uint8_t *)malloc(data_length);
+    uint8_t *data_copy = (uint8_t *)malloc(data_length);
 
-    if (file_recv_chunk->data == nullptr) {
+    if (data_copy == nullptr) {
         return false;
     }
 
-    memcpy(file_recv_chunk->data, data, data_length);
+    memcpy(data_copy, data, data_length);
+    file_recv_chunk->data = data_copy;
     file_recv_chunk->data_length = data_length;
     return true;
 }
@@ -192,42 +193,6 @@ static Tox_Event_File_Recv_Chunk *tox_events_add_file_recv_chunk(Tox_Events *eve
 
     tox_events_add(events, &event);
     return file_recv_chunk;
-}
-
-const Tox_Event_File_Recv_Chunk *tox_events_get_file_recv_chunk(const Tox_Events *events, uint32_t index)
-{
-    uint32_t file_recv_chunk_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (file_recv_chunk_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_FILE_RECV_CHUNK) {
-            const Tox_Event_File_Recv_Chunk *file_recv_chunk = events->events[i].data.file_recv_chunk;
-            if (file_recv_chunk_index == index) {
-                return file_recv_chunk;
-            }
-            ++file_recv_chunk_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_file_recv_chunk_size(const Tox_Events *events)
-{
-    uint32_t file_recv_chunk_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_FILE_RECV_CHUNK) {
-            ++file_recv_chunk_size;
-        }
-    }
-
-    return file_recv_chunk_size;
 }
 
 bool tox_event_file_recv_chunk_unpack(

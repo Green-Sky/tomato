@@ -69,13 +69,14 @@ static bool tox_event_conference_invite_set_cookie(Tox_Event_Conference_Invite *
         conference_invite->cookie_length = 0;
     }
 
-    conference_invite->cookie = (uint8_t *)malloc(cookie_length);
+    uint8_t *cookie_copy = (uint8_t *)malloc(cookie_length);
 
-    if (conference_invite->cookie == nullptr) {
+    if (cookie_copy == nullptr) {
         return false;
     }
 
-    memcpy(conference_invite->cookie, cookie, cookie_length);
+    memcpy(cookie_copy, cookie, cookie_length);
+    conference_invite->cookie = cookie_copy;
     conference_invite->cookie_length = cookie_length;
     return true;
 }
@@ -177,42 +178,6 @@ static Tox_Event_Conference_Invite *tox_events_add_conference_invite(Tox_Events 
 
     tox_events_add(events, &event);
     return conference_invite;
-}
-
-const Tox_Event_Conference_Invite *tox_events_get_conference_invite(const Tox_Events *events, uint32_t index)
-{
-    uint32_t conference_invite_index = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (conference_invite_index > index) {
-            return nullptr;
-        }
-
-        if (events->events[i].type == TOX_EVENT_CONFERENCE_INVITE) {
-            const Tox_Event_Conference_Invite *conference_invite = events->events[i].data.conference_invite;
-            if (conference_invite_index == index) {
-                return conference_invite;
-            }
-            ++conference_invite_index;
-        }
-    }
-
-    return nullptr;
-}
-
-uint32_t tox_events_get_conference_invite_size(const Tox_Events *events)
-{
-    uint32_t conference_invite_size = 0;
-    const uint32_t size = tox_events_get_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (events->events[i].type == TOX_EVENT_CONFERENCE_INVITE) {
-            ++conference_invite_size;
-        }
-    }
-
-    return conference_invite_size;
 }
 
 bool tox_event_conference_invite_unpack(

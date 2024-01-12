@@ -22,17 +22,20 @@ Tox_Events_State *tox_events_alloc(void *user_data)
         return state;
     }
 
-    state->events = (Tox_Events *)mem_alloc(state->mem, sizeof(Tox_Events));
+    Tox_Events *events = (Tox_Events *)mem_alloc(state->mem, sizeof(Tox_Events));
 
-    if (state->events == nullptr) {
+    if (events == nullptr) {
         // It's still null => allocation failed.
+        state->events = nullptr;
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
-    } else {
-        *state->events = (Tox_Events) {
-            nullptr
-        };
-        state->events->mem = state->mem;
+        return state;
     }
+
+    *events = (Tox_Events) {
+        nullptr
+    };
+    state->events = events;
+    state->events->mem = state->mem;
 
     return state;
 }

@@ -92,6 +92,9 @@ struct TCP_Server {
     BS_List accepted_key_list;
 };
 
+static_assert(sizeof(TCP_Server) < 7 * 1024 * 1024,
+              "TCP_Server struct should not grow more; it's already 6MB");
+
 const uint8_t *tcp_server_public_key(const TCP_Server *tcp_server)
 {
     return tcp_server->public_key;
@@ -968,20 +971,22 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     temp->ns = ns;
     temp->rng = rng;
 
-    temp->socks_listening = (Socket *)mem_valloc(mem, num_sockets, sizeof(Socket));
+    Socket *socks_listening = (Socket *)mem_valloc(mem, num_sockets, sizeof(Socket));
 
-    if (temp->socks_listening == nullptr) {
+    if (socks_listening == nullptr) {
         LOGGER_ERROR(logger, "socket allocation failed");
         mem_delete(mem, temp);
         return nullptr;
     }
+
+    temp->socks_listening = socks_listening;
 
 #ifdef TCP_SERVER_USE_EPOLL
     temp->efd = epoll_create(8);
 
     if (temp->efd == -1) {
         LOGGER_ERROR(logger, "epoll initialisation failed");
-        mem_delete(mem, temp->socks_listening);
+        mem_delete(mem, socks_listening);
         mem_delete(mem, temp);
         return nullptr;
     }
