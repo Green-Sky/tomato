@@ -183,7 +183,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 					}
 
 					{ // compute
-						const auto targets = "normal\0powersave\0";
+						const auto targets = "normal\0powersave\0extreme powersave\0";
 						ImGui::SetNextItemWidth(ImGui::GetFontSize()*10);
 						ImGui::Combo("compute mode", &_compute_perf_mode, targets, 4);
 						ImGui::SetItemTooltip("Limiting compute can slow down things like filetransfers!");
@@ -237,14 +237,20 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	mts.iterate(); // compute
 
-	_min_tick_interval = std::max<float>(
-		std::min<float>(
-			tc.toxIterationInterval()/1000.f,
-			pm_interval
-			//0.03f // HACK: 30ms upper bound, should be the same as tox but will change
-		),
-		(_compute_perf_mode == 0 ? 0.001f : 0.1f) // in powersave fix the lowerbound to 100ms
+	_min_tick_interval = std::min<float>(
+		tc.toxIterationInterval()/1000.f,
+		pm_interval
 	);
+
+	switch (_compute_perf_mode) {
+		// normal 1ms lower bound
+		case 0: _min_tick_interval = std::max<float>(_min_tick_interval, 0.001f); break;
+		// in powersave fix the lowerbound to 100ms
+		case 1: _min_tick_interval = std::max<float>(_min_tick_interval, 0.1f); break;
+		// extreme 2s
+		case 2: _min_tick_interval = std::max<float>(_min_tick_interval, 2.f); break;
+		default: std::cerr << "unknown compute perf mode\n"; std::exit(-1);
+	}
 
 	return nullptr;
 }
