@@ -9,7 +9,7 @@
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
 
-#include <solanaceae/toxcore/utils.hpp>
+#include <solanaceae/util/utils.hpp>
 
 #include <filesystem>
 #include <string_view>

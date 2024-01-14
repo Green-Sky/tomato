@@ -3,7 +3,7 @@
 #include <tox/tox.h>
 
 #include <solanaceae/toxcore/tox_interface.hpp>
-#include <solanaceae/toxcore/utils.hpp>
+#include <solanaceae/util/utils.hpp>
 
 #include <solanaceae/util/config_model.hpp>
 

@@ -5,10 +5,10 @@
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
+#include <solanaceae/util/utils.hpp>
 
 // HACK: remove them
 #include <solanaceae/tox_contacts/components.hpp>
-#include <solanaceae/toxcore/utils.hpp>
 
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
@@ -197,6 +197,7 @@ void ChatGui4::render(float time_delta) {
 
 							ImGui::SeparatorText("tox");
 
+							// TODO: cheese it and rename to copy id?
 							if (_cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
 								if (ImGui::MenuItem("copy ngc chatid")) {
 									const auto& chat_id = _cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
