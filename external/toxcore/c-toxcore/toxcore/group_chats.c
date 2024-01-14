@@ -1442,6 +1442,9 @@ non_null(1, 2, 3, 5, 6) nullable(4)
 static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
+    assert(data != nullptr);
+    assert(packet != nullptr);
+
     if (length <= CRYPTO_NONCE_SIZE) {
         LOGGER_FATAL(log, "Invalid packet length: %u", length);
         return -1;
@@ -4073,17 +4076,11 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
         return -1;
     }
 
-    uint8_t *oldpasswd = nullptr;
     const uint16_t oldlen = chat->shared_state.password_length;
+    uint8_t *oldpasswd = memdup(chat->shared_state.password, oldlen);
 
-    if (oldlen > 0) {
-        oldpasswd = (uint8_t *)malloc(oldlen);
-
-        if (oldpasswd == nullptr) {
-            return -4;
-        }
-
-        memcpy(oldpasswd, chat->shared_state.password, oldlen);
+    if (oldpasswd == nullptr && oldlen > 0) {
+        return -4;
     }
 
     if (!set_gc_password_local(chat, password, password_length)) {
