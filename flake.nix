@@ -55,11 +55,18 @@
           libsodium
         ] ++ self.packages.${system}.default.dlopenBuildInputs;
 
+        cmakeFlags = [
+          "TOMATO_ASAN=1"
+          "CMAKE_BUILD_TYPE=RelWithDebInfo"
+        ];
+
         # TODO: replace with install command
         installPhase = ''
           mkdir -p $out/bin
           mv bin/tomato $out/bin
         '';
+
+        dontStrip = true;
 
         # copied from nixpkgs's SDL2 default.nix
         # SDL is weird in that instead of just dynamically linking with

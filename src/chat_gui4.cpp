@@ -520,6 +520,7 @@ void ChatGui4::render(float time_delta) {
 						//} else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 						} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
 							const static std::vector<const char*> image_mime_types {
+								// add apng?
 								"image/png",
 								"image/webp",
 								"image/gif",
