@@ -134,6 +134,8 @@ add_library(toxcore STATIC
 	${TOX_DIR}toxcore/tox.h
 	${TOX_DIR}toxcore/tox_private.c
 	${TOX_DIR}toxcore/tox_private.h
+	${TOX_DIR}toxcore/tox_pack.h
+	${TOX_DIR}toxcore/tox_pack.c
 	${TOX_DIR}toxcore/tox_unpack.c
 	${TOX_DIR}toxcore/tox_unpack.h
 	${TOX_DIR}toxcore/util.c
