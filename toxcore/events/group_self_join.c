@@ -54,10 +54,7 @@ static void tox_event_group_self_join_destruct(Tox_Event_Group_Self_Join *group_
 bool tox_event_group_self_join_pack(
     const Tox_Event_Group_Self_Join *event, Bin_Pack *bp)
 {
-    assert(event != nullptr);
-    return bin_pack_array(bp, 2)
-           && bin_pack_u32(bp, TOX_EVENT_GROUP_SELF_JOIN)
-           && bin_pack_u32(bp, event->group_number);
+    return bin_pack_u32(bp, event->group_number);
 }
 
 non_null()
