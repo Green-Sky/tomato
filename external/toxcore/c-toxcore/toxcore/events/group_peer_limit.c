@@ -68,10 +68,7 @@ static void tox_event_group_peer_limit_destruct(Tox_Event_Group_Peer_Limit *grou
 bool tox_event_group_peer_limit_pack(
     const Tox_Event_Group_Peer_Limit *event, Bin_Pack *bp)
 {
-    assert(event != nullptr);
     return bin_pack_array(bp, 2)
-           && bin_pack_u32(bp, TOX_EVENT_GROUP_PEER_LIMIT)
-           && bin_pack_array(bp, 2)
            && bin_pack_u32(bp, event->group_number)
            && bin_pack_u32(bp, event->peer_limit);
 }
