@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -27,8 +27,6 @@
 #include "../SDL_sysvideo.h"
 #include "../../events/SDL_mouse_c.h"
 #include "../../events/SDL_keyboard_c.h"
-
-#include <SDL3/SDL_syswm.h>
 
 /* VITA declarations */
 #include <psp2/kernel/processmgr.h>
@@ -69,23 +67,20 @@ static SDL_VideoDevice *VITA_Create()
 #endif
     /* Initialize SDL_VideoDevice structure */
     device = (SDL_VideoDevice *)SDL_calloc(1, sizeof(SDL_VideoDevice));
-    if (device == NULL) {
-        SDL_OutOfMemory();
+    if (!device) {
         return NULL;
     }
 
     /* Initialize internal VITA specific data */
     phdata = (SDL_VideoData *)SDL_calloc(1, sizeof(SDL_VideoData));
-    if (phdata == NULL) {
-        SDL_OutOfMemory();
+    if (!phdata) {
         SDL_free(device);
         return NULL;
     }
 #ifdef SDL_VIDEO_VITA_PIB
 
     gldata = (SDL_GLDriverData *)SDL_calloc(1, sizeof(SDL_GLDriverData));
-    if (gldata == NULL) {
-        SDL_OutOfMemory();
+    if (!gldata) {
         SDL_free(device);
         SDL_free(phdata);
         return NULL;
@@ -107,7 +102,6 @@ static SDL_VideoDevice *VITA_Create()
     device->VideoInit = VITA_VideoInit;
     device->VideoQuit = VITA_VideoQuit;
     device->CreateSDLWindow = VITA_CreateWindow;
-    device->CreateSDLWindowFrom = VITA_CreateWindowFrom;
     device->SetWindowTitle = VITA_SetWindowTitle;
     device->SetWindowPosition = VITA_SetWindowPosition;
     device->SetWindowSize = VITA_SetWindowSize;
@@ -221,7 +215,7 @@ void VITA_VideoQuit(SDL_VideoDevice *_this)
     VITA_QuitTouch();
 }
 
-int VITA_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window)
+int VITA_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props)
 {
     SDL_WindowData *wdata;
 #ifdef SDL_VIDEO_VITA_PVR
@@ -233,15 +227,15 @@ int VITA_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window)
 
     /* Allocate window internal data */
     wdata = (SDL_WindowData *)SDL_calloc(1, sizeof(SDL_WindowData));
-    if (wdata == NULL) {
-        return SDL_OutOfMemory();
+    if (!wdata) {
+        return -1;
     }
 
     /* Setup driver data for this window */
     window->driverdata = wdata;
 
     // Vita can only have one window
-    if (Vita_Window != NULL) {
+    if (Vita_Window) {
         return SDL_SetError("Only one window supported");
     }
 
@@ -293,11 +287,6 @@ int VITA_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window)
 
     /* Window has been successfully created */
     return 0;
-}
-
-int VITA_CreateWindowFrom(SDL_VideoDevice *_this, SDL_Window *window, const void *data)
-{
-    return -1;
 }
 
 void VITA_SetWindowTitle(SDL_VideoDevice *_this, SDL_Window *window)

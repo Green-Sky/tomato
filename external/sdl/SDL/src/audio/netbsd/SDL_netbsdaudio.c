@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -34,7 +34,6 @@
 #include <sys/audioio.h>
 
 #include "../../core/unix/SDL_poll.h"
-#include "../SDL_audio_c.h"
 #include "../SDL_audiodev_c.h"
 #include "SDL_netbsdaudio.h"
 
@@ -115,7 +114,7 @@ static void NETBSDAUDIO_Status(SDL_AudioDevice *device)
 #endif // DEBUG_AUDIO
 }
 
-static void NETBSDAUDIO_WaitDevice(SDL_AudioDevice *device)
+static int NETBSDAUDIO_WaitDevice(SDL_AudioDevice *device)
 {
     const SDL_bool iscapture = device->iscapture;
     while (!SDL_AtomicGet(&device->shutdown)) {
@@ -127,8 +126,7 @@ static void NETBSDAUDIO_WaitDevice(SDL_AudioDevice *device)
             }
             // Hmm, not much we can do - abort
             fprintf(stderr, "netbsdaudio WaitDevice ioctl failed (unrecoverable): %s\n", strerror(errno));
-            SDL_AudioDeviceDisconnected(device);
-            return;
+            return -1;
         }
         const size_t remain = (size_t)((iscapture ? info.record.seek : info.play.seek) * SDL_AUDIO_BYTESIZE(device->spec.format));
         if (!iscapture && (remain >= device->buffer_size)) {
@@ -136,9 +134,11 @@ static void NETBSDAUDIO_WaitDevice(SDL_AudioDevice *device)
         } else if (iscapture && (remain < device->buffer_size)) {
             SDL_Delay(10);
         } else {
-            break; /* ready to go! */
+            break; // ready to go!
         }
     }
+
+    return 0;
 }
 
 static int NETBSDAUDIO_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int buflen)
@@ -215,8 +215,8 @@ static int NETBSDAUDIO_OpenDevice(SDL_AudioDevice *device)
 
     // Initialize all variables that we clean on shutdown
     device->hidden = (struct SDL_PrivateAudioData *) SDL_calloc(1, sizeof(*device->hidden));
-    if (device->hidden == NULL) {
-        return SDL_OutOfMemory();
+    if (!device->hidden) {
+        return -1;
     }
 
     // Open the audio device; we hardcode the device path in `device->name` for lack of better info, so use that.
@@ -293,8 +293,8 @@ static int NETBSDAUDIO_OpenDevice(SDL_AudioDevice *device)
         // Allocate mixing buffer
         device->hidden->mixlen = device->buffer_size;
         device->hidden->mixbuf = (Uint8 *)SDL_malloc(device->hidden->mixlen);
-        if (device->hidden->mixbuf == NULL) {
-            return SDL_OutOfMemory();
+        if (!device->hidden->mixbuf) {
+            return -1;
         }
         SDL_memset(device->hidden->mixbuf, device->silence_value, device->buffer_size);
     }
@@ -317,7 +317,6 @@ static SDL_bool NETBSDAUDIO_Init(SDL_AudioDriverImpl *impl)
     impl->FlushCapture = NETBSDAUDIO_FlushCapture;
 
     impl->HasCaptureSupport = SDL_TRUE;
-    impl->AllowsArbitraryDeviceNames = SDL_TRUE;
 
     return SDL_TRUE;
 }

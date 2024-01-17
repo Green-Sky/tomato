@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -489,6 +489,8 @@ int Cocoa_SetDisplayMode(SDL_VideoDevice *_this, SDL_VideoDisplay *display, SDL_
     CGDisplayFadeReservationToken fade_token = kCGDisplayFadeReservationInvalidToken;
     CGError result = kCGErrorSuccess;
 
+    b_inModeTransition = SDL_TRUE;
+
     /* Fade to black to hide resolution-switching flicker */
     if (CGAcquireDisplayFadeReservation(5, &fade_token) == kCGErrorSuccess) {
         CGDisplayFade(fade_token, 0.3, kCGDisplayBlendNormal, kCGDisplayBlendSolidColor, 0.0, 0.0, 0.0, TRUE);
@@ -507,6 +509,8 @@ int Cocoa_SetDisplayMode(SDL_VideoDevice *_this, SDL_VideoDisplay *display, SDL_
         CGDisplayFade(fade_token, 0.5, kCGDisplayBlendSolidColor, kCGDisplayBlendNormal, 0.0, 0.0, 0.0, FALSE);
         CGReleaseDisplayFadeReservation(fade_token);
     }
+
+    b_inModeTransition = SDL_FALSE;
 
     if (result != kCGErrorSuccess) {
         CG_SetError("CGDisplaySwitchToMode()", result);

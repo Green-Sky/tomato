@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -1023,7 +1023,7 @@ static int RLEAlphaSurface(SDL_Surface *surface)
                        SDL_PixelFormat *, SDL_PixelFormat *);
 
     dest = surface->map->dst;
-    if (dest == NULL) {
+    if (!dest) {
         return -1;
     }
     df = dest->format;
@@ -1080,8 +1080,8 @@ static int RLEAlphaSurface(SDL_Surface *surface)
 
     maxsize += sizeof(RLEDestFormat);
     rlebuf = (Uint8 *)SDL_malloc(maxsize);
-    if (rlebuf == NULL) {
-        return SDL_OutOfMemory();
+    if (!rlebuf) {
+        return -1;
     }
     {
         /* save the destination format so we can undo the encoding later */
@@ -1226,7 +1226,7 @@ static int RLEAlphaSurface(SDL_Surface *surface)
     /* reallocate the buffer to release unused memory */
     {
         Uint8 *p = SDL_realloc(rlebuf, dst - rlebuf);
-        if (p == NULL) {
+        if (!p) {
             p = rlebuf;
         }
         surface->map->data = p;
@@ -1299,8 +1299,8 @@ static int RLEColorkeySurface(SDL_Surface *surface)
     }
 
     rlebuf = (Uint8 *)SDL_malloc(maxsize);
-    if (rlebuf == NULL) {
-        return SDL_OutOfMemory();
+    if (!rlebuf) {
+        return -1;
     }
 
     /* Set up the conversion */
@@ -1394,7 +1394,7 @@ static int RLEColorkeySurface(SDL_Surface *surface)
     {
         /* If SDL_realloc returns NULL, the original block is left intact */
         Uint8 *p = SDL_realloc(rlebuf, dst - rlebuf);
-        if (p == NULL) {
+        if (!p) {
             p = rlebuf;
         }
         surface->map->data = p;
@@ -1496,7 +1496,7 @@ static SDL_bool UnRLEAlpha(SDL_Surface *surface)
     }
 
     surface->pixels = SDL_aligned_alloc(SDL_SIMDGetAlignment(), size);
-    if (surface->pixels == NULL) {
+    if (!surface->pixels) {
         return SDL_FALSE;
     }
     surface->flags |= SDL_SIMD_ALIGNED;
@@ -1568,7 +1568,7 @@ void SDL_UnRLESurface(SDL_Surface *surface, int recode)
                     return;
                 }
                 surface->pixels = SDL_aligned_alloc(SDL_SIMDGetAlignment(), size);
-                if (surface->pixels == NULL) {
+                if (!surface->pixels) {
                     /* Oh crap... */
                     surface->flags |= SDL_RLEACCEL;
                     return;

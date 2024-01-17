@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,6 +23,8 @@
 
 #ifndef SDL_sysaudio_h_
 #define SDL_sysaudio_h_
+
+#include "../SDL_hashtable.h"
 
 #define DEBUG_AUDIOSTREAM 0
 #define DEBUG_AUDIO_CONVERT 0
@@ -104,6 +106,9 @@ extern void SDL_UpdatedAudioDeviceFormat(SDL_AudioDevice *device);
 // Backends can call this to get a standardized name for a thread to power a specific audio device.
 extern char *SDL_GetAudioThreadName(SDL_AudioDevice *device, char *buf, size_t buflen);
 
+// Backends can call these to change a device's refcount.
+extern void RefPhysicalAudioDevice(SDL_AudioDevice *device);
+extern void UnrefPhysicalAudioDevice(SDL_AudioDevice *device);
 
 // These functions are the heart of the audio threads. Backends can call them directly if they aren't using the SDL-provided thread.
 extern void SDL_OutputAudioThreadSetup(SDL_AudioDevice *device);
@@ -128,38 +133,48 @@ typedef struct SDL_AudioDriverImpl
     int (*OpenDevice)(SDL_AudioDevice *device);
     void (*ThreadInit)(SDL_AudioDevice *device);   // Called by audio thread at start
     void (*ThreadDeinit)(SDL_AudioDevice *device); // Called by audio thread at end
-    void (*WaitDevice)(SDL_AudioDevice *device);
+    int (*WaitDevice)(SDL_AudioDevice *device);
     int (*PlayDevice)(SDL_AudioDevice *device, const Uint8 *buffer, int buflen);  // buffer and buflen are always from GetDeviceBuf, passed here for convenience.
     Uint8 *(*GetDeviceBuf)(SDL_AudioDevice *device, int *buffer_size);
-    void (*WaitCaptureDevice)(SDL_AudioDevice *device);
+    int (*WaitCaptureDevice)(SDL_AudioDevice *device);
     int (*CaptureFromDevice)(SDL_AudioDevice *device, void *buffer, int buflen);
     void (*FlushCapture)(SDL_AudioDevice *device);
     void (*CloseDevice)(SDL_AudioDevice *device);
     void (*FreeDeviceHandle)(SDL_AudioDevice *device); // SDL is done with this device; free the handle from SDL_AddAudioDevice()
+    void (*DeinitializeStart)(void); // SDL calls this, then starts destroying objects, then calls Deinitialize. This is a good place to stop hotplug detection.
     void (*Deinitialize)(void);
 
     // Some flags to push duplicate code into the core and reduce #ifdefs.
     SDL_bool ProvidesOwnCallbackThread;  // !!! FIXME: rename this, it's not a callback thread anymore.
     SDL_bool HasCaptureSupport;
     SDL_bool OnlyHasDefaultOutputDevice;
-    SDL_bool OnlyHasDefaultCaptureDevice;
-    SDL_bool AllowsArbitraryDeviceNames;
+    SDL_bool OnlyHasDefaultCaptureDevice;   // !!! FIXME: is there ever a time where you'd have a default output and not a default capture (or vice versa)?
 } SDL_AudioDriverImpl;
+
+
+typedef struct SDL_PendingAudioDeviceEvent
+{
+    Uint32 type;
+    SDL_AudioDeviceID devid;
+    struct SDL_PendingAudioDeviceEvent *next;
+} SDL_PendingAudioDeviceEvent;
 
 typedef struct SDL_AudioDriver
 {
     const char *name;  // The name of this audio driver
     const char *desc;  // The description of this audio driver
     SDL_AudioDriverImpl impl; // the backend's interface
-    SDL_RWLock *device_list_lock;  // A mutex for device detection
-    SDL_AudioDevice *output_devices;  // the list of currently-available audio output devices.
-    SDL_AudioDevice *capture_devices;  // the list of currently-available audio capture devices.
+    SDL_RWLock *device_hash_lock;  // A rwlock that protects `device_hash`
+    SDL_HashTable *device_hash;  // the collection of currently-available audio devices (capture, playback, logical and physical!)
     SDL_AudioStream *existing_streams;  // a list of all existing SDL_AudioStreams.
     SDL_AudioDeviceID default_output_device_id;
     SDL_AudioDeviceID default_capture_device_id;
+    SDL_PendingAudioDeviceEvent pending_events;
+    SDL_PendingAudioDeviceEvent *pending_events_tail;
+
+    // !!! FIXME: most (all?) of these don't have to be atomic.
     SDL_AtomicInt output_device_count;
     SDL_AtomicInt capture_device_count;
-    SDL_AtomicInt last_device_instance_id;  // increments on each device add to provide unique instance IDs
     SDL_AtomicInt shutting_down;  // non-zero during SDL_Quit, so we known not to accept any last-minute device hotplugs.
 } SDL_AudioDriver;
 
@@ -168,6 +183,8 @@ struct SDL_AudioQueue; // forward decl.
 struct SDL_AudioStream
 {
     SDL_Mutex* lock;
+
+    SDL_PropertiesID props;
 
     SDL_AudioStreamCallback get_callback;
     void *get_callback_userdata;
@@ -240,6 +257,20 @@ struct SDL_AudioDevice
     // A mutex for locking access to this struct
     SDL_Mutex *lock;
 
+    // A condition variable to protect device close, where we can't hold the device lock forever.
+    SDL_Condition *close_cond;
+
+    // Reference count of the device; logical devices, device threads, etc, add to this.
+    SDL_AtomicInt refcount;
+
+    // These are, initially, set from current_audio, but we might swap them out with Zombie versions on disconnect/failure.
+    int (*WaitDevice)(SDL_AudioDevice *device);
+    int (*PlayDevice)(SDL_AudioDevice *device, const Uint8 *buffer, int buflen);
+    Uint8 *(*GetDeviceBuf)(SDL_AudioDevice *device, int *buffer_size);
+    int (*WaitCaptureDevice)(SDL_AudioDevice *device);
+    int (*CaptureFromDevice)(SDL_AudioDevice *device, void *buffer, int buflen);
+    void (*FlushCapture)(SDL_AudioDevice *device);
+
     // human-readable name of the device. ("SoundBlaster Pro 16")
     char *name;
 
@@ -265,14 +296,8 @@ struct SDL_AudioDevice
     // non-zero if we are signaling the audio thread to end.
     SDL_AtomicInt shutdown;
 
-    // non-zero if we want the device to be destroyed (so audio thread knows to do it on termination).
-    SDL_AtomicInt condemned;
-
-    // non-zero if this was a disconnected default device and we're waiting for its replacement.
+    // non-zero if this was a disconnected device and we're waiting for it to be decommissioned.
     SDL_AtomicInt zombie;
-
-    // non-zero if this has a thread running (which might be `thread` or something provided by the backend!)
-    SDL_AtomicInt thread_alive;
 
     // SDL_TRUE if this is a capture device instead of an output device
     SDL_bool iscapture;
@@ -299,10 +324,6 @@ struct SDL_AudioDevice
 
     // All logical devices associated with this physical device.
     SDL_LogicalAudioDevice *logical_devices;
-
-    // double-linked list of all physical devices.
-    struct SDL_AudioDevice *prev;
-    struct SDL_AudioDevice *next;
 };
 
 typedef struct AudioBootStrap
@@ -329,7 +350,7 @@ extern AudioBootStrap COREAUDIO_bootstrap;
 extern AudioBootStrap DISKAUDIO_bootstrap;
 extern AudioBootStrap DUMMYAUDIO_bootstrap;
 extern AudioBootStrap AAUDIO_bootstrap;
-extern AudioBootStrap openslES_bootstrap;  // !!! FIXME: capitalize this to match the others
+extern AudioBootStrap OPENSLES_bootstrap;
 extern AudioBootStrap ANDROIDAUDIO_bootstrap;
 extern AudioBootStrap PS2AUDIO_bootstrap;
 extern AudioBootStrap PSPAUDIO_bootstrap;

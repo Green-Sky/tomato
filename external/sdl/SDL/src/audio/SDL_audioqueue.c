@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -92,7 +92,7 @@ static SDL_AudioChunk *CreateAudioChunk(size_t chunk_size)
 {
     SDL_AudioChunk *chunk = (SDL_AudioChunk *)SDL_malloc(sizeof(*chunk) + chunk_size);
 
-    if (chunk == NULL) {
+    if (!chunk) {
         return NULL;
     }
 
@@ -146,11 +146,11 @@ static int WriteToChunkedAudioTrack(void *ctx, const Uint8 *data, size_t len)
     SDL_AudioChunk *chunk = track->tail;
 
     // Handle the first chunk
-    if (chunk == NULL) {
+    if (!chunk) {
         chunk = CreateAudioTrackChunk(track);
 
-        if (chunk == NULL) {
-            return SDL_OutOfMemory();
+        if (!chunk) {
+            return -1;
         }
 
         SDL_assert((track->head == NULL) && (track->tail == NULL) && (track->queued_bytes == 0));
@@ -180,7 +180,7 @@ static int WriteToChunkedAudioTrack(void *ctx, const Uint8 *data, size_t len)
     }
 
     // Roll back the changes if we couldn't write all the data
-    if (chunk == NULL) {
+    if (!chunk) {
         chunk = track->tail;
 
         SDL_AudioChunk *next = chunk->next;
@@ -189,7 +189,7 @@ static int WriteToChunkedAudioTrack(void *ctx, const Uint8 *data, size_t len)
 
         DestroyAudioChunks(next);
 
-        return SDL_OutOfMemory();
+        return -1;
     }
 
     track->tail = chunk;
@@ -255,8 +255,7 @@ static SDL_AudioTrack *CreateChunkedAudioTrack(const SDL_AudioSpec *spec, size_t
 {
     SDL_ChunkedAudioTrack *track = (SDL_ChunkedAudioTrack *)SDL_calloc(1, sizeof(*track));
 
-    if (track == NULL) {
-        SDL_OutOfMemory();
+    if (!track) {
         return NULL;
     }
 
@@ -275,8 +274,7 @@ SDL_AudioQueue *SDL_CreateAudioQueue(size_t chunk_size)
 {
     SDL_AudioQueue *queue = (SDL_AudioQueue *)SDL_calloc(1, sizeof(*queue));
 
-    if (queue == NULL) {
-        SDL_OutOfMemory();
+    if (!queue) {
         return NULL;
     }
 
@@ -338,7 +336,7 @@ void SDL_PopAudioQueueHead(SDL_AudioQueue *queue)
 
     queue->head = track;
 
-    if (track == NULL) {
+    if (!track) {
         queue->tail = NULL;
     }
 }
@@ -352,7 +350,7 @@ SDL_AudioTrack *SDL_CreateChunkedAudioTrack(const SDL_AudioSpec *spec, const Uin
 {
     SDL_AudioTrack *track = CreateChunkedAudioTrack(spec, chunk_size);
 
-    if (track == NULL) {
+    if (!track) {
         return NULL;
     }
 
@@ -390,15 +388,15 @@ int SDL_WriteToAudioQueue(SDL_AudioQueue *queue, const SDL_AudioSpec *spec, cons
 
     SDL_AudioTrack *track = queue->tail;
 
-    if ((track != NULL) && !AUDIO_SPECS_EQUAL(track->spec, *spec)) {
+    if ((track) && !AUDIO_SPECS_EQUAL(track->spec, *spec)) {
         SDL_FlushAudioTrack(track);
     }
 
-    if ((track == NULL) || (track->write == NULL)) {
+    if ((!track) || (!track->write)) {
         SDL_AudioTrack *new_track = CreateChunkedAudioTrack(spec, queue->chunk_size);
 
-        if (new_track == NULL) {
-            return SDL_OutOfMemory();
+        if (!new_track) {
+            return -1;
         }
 
         if (track) {
@@ -462,7 +460,7 @@ int SDL_ReadFromAudioQueue(SDL_AudioQueue *queue, Uint8 *data, size_t len)
     SDL_AudioTrack *track = queue->head;
 
     for (;;) {
-        if (track == NULL) {
+        if (!track) {
             return SDL_SetError("Reading past end of queue");
         }
 
@@ -478,7 +476,7 @@ int SDL_ReadFromAudioQueue(SDL_AudioQueue *queue, Uint8 *data, size_t len)
 
         SDL_AudioTrack *next = track->next;
 
-        if (next == NULL) {
+        if (!next) {
             return SDL_SetError("Reading past end of incomplete track");
         }
 
@@ -495,7 +493,7 @@ int SDL_PeekIntoAudioQueue(SDL_AudioQueue *queue, Uint8 *data, size_t len)
     SDL_AudioTrack *track = queue->head;
 
     for (;;) {
-        if (track == NULL) {
+        if (!track) {
             return SDL_SetError("Peeking past end of queue");
         }
 

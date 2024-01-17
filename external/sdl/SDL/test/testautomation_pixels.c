@@ -11,6 +11,8 @@
 static const Uint32 g_AllFormats[] = {
     SDL_PIXELFORMAT_INDEX1LSB,
     SDL_PIXELFORMAT_INDEX1MSB,
+    SDL_PIXELFORMAT_INDEX2LSB,
+    SDL_PIXELFORMAT_INDEX2MSB,
     SDL_PIXELFORMAT_INDEX4LSB,
     SDL_PIXELFORMAT_INDEX4MSB,
     SDL_PIXELFORMAT_INDEX8,
@@ -39,7 +41,10 @@ static const Uint32 g_AllFormats[] = {
     SDL_PIXELFORMAT_RGBA8888,
     SDL_PIXELFORMAT_ABGR8888,
     SDL_PIXELFORMAT_BGRA8888,
+    SDL_PIXELFORMAT_XRGB2101010,
+    SDL_PIXELFORMAT_XBGR2101010,
     SDL_PIXELFORMAT_ARGB2101010,
+    SDL_PIXELFORMAT_ABGR2101010,
     SDL_PIXELFORMAT_YV12,
     SDL_PIXELFORMAT_IYUV,
     SDL_PIXELFORMAT_YUY2,
@@ -53,6 +58,8 @@ static const int g_numAllFormats = SDL_arraysize(g_AllFormats);
 static const char *g_AllFormatsVerbose[] = {
     "SDL_PIXELFORMAT_INDEX1LSB",
     "SDL_PIXELFORMAT_INDEX1MSB",
+    "SDL_PIXELFORMAT_INDEX2LSB",
+    "SDL_PIXELFORMAT_INDEX2MSB",
     "SDL_PIXELFORMAT_INDEX4LSB",
     "SDL_PIXELFORMAT_INDEX4MSB",
     "SDL_PIXELFORMAT_INDEX8",
@@ -81,7 +88,10 @@ static const char *g_AllFormatsVerbose[] = {
     "SDL_PIXELFORMAT_RGBA8888",
     "SDL_PIXELFORMAT_ABGR8888",
     "SDL_PIXELFORMAT_BGRA8888",
+    "SDL_PIXELFORMAT_XRGB2101010",
+    "SDL_PIXELFORMAT_XBGR2101010",
     "SDL_PIXELFORMAT_ARGB2101010",
+    "SDL_PIXELFORMAT_ABGR2101010",
     "SDL_PIXELFORMAT_YV12",
     "SDL_PIXELFORMAT_IYUV",
     "SDL_PIXELFORMAT_YUY2",
@@ -105,7 +115,7 @@ static const char *g_invalidPixelFormatsVerbose[] = {
 /* Test case functions */
 
 /**
- * \brief Call to SDL_CreatePixelFormat and SDL_DestroyPixelFormat
+ * Call to SDL_CreatePixelFormat and SDL_DestroyPixelFormat
  *
  * \sa SDL_CreatePixelFormat
  * \sa SDL_DestroyPixelFormat
@@ -198,7 +208,7 @@ static int pixels_allocFreeFormat(void *arg)
 }
 
 /**
- * \brief Call to SDL_GetPixelFormatName
+ * Call to SDL_GetPixelFormatName
  *
  * \sa SDL_GetPixelFormatName
  */
@@ -265,7 +275,7 @@ static int pixels_getPixelFormatName(void *arg)
 }
 
 /**
- * \brief Call to SDL_CreatePalette and SDL_DestroyPalette
+ * Call to SDL_CreatePalette and SDL_DestroyPalette
  *
  * \sa SDL_CreatePalette
  * \sa SDL_DestroyPalette

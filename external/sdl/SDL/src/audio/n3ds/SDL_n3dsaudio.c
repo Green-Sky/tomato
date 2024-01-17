@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -32,6 +32,7 @@
 static dspHookCookie dsp_hook;
 static SDL_AudioDevice *audio_device;
 
+// fully local functions related to the wavebufs / DSP, not the same as the `device->lock` SDL_Mutex!
 static SDL_INLINE void contextLock(SDL_AudioDevice *device)
 {
     LightLock_Lock(&device->hidden->lock);
@@ -82,8 +83,8 @@ static int N3DSAUDIO_OpenDevice(SDL_AudioDevice *device)
     float mix[12];
 
     device->hidden = (struct SDL_PrivateAudioData *)SDL_calloc(1, sizeof(*device->hidden));
-    if (device->hidden == NULL) {
-        return SDL_OutOfMemory();
+    if (!device->hidden) {
+        return -1;
     }
 
     // Initialise the DSP service
@@ -133,14 +134,14 @@ static int N3DSAUDIO_OpenDevice(SDL_AudioDevice *device)
     }
 
     device->hidden->mixbuf = (Uint8 *)SDL_malloc(device->buffer_size);
-    if (device->hidden->mixbuf == NULL) {
-        return SDL_OutOfMemory();
+    if (!device->hidden->mixbuf) {
+        return -1;
     }
 
     SDL_memset(device->hidden->mixbuf, device->silence_value, device->buffer_size);
 
     data_vaddr = (Uint8 *)linearAlloc(device->buffer_size * NUM_BUFFERS);
-    if (data_vaddr == NULL) {
+    if (!data_vaddr) {
         return SDL_OutOfMemory();
     }
 
@@ -200,7 +201,7 @@ static int N3DSAUDIO_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, in
     return 0;
 }
 
-static void N3DSAUDIO_WaitDevice(SDL_AudioDevice *device)
+static int N3DSAUDIO_WaitDevice(SDL_AudioDevice *device)
 {
     contextLock(device);
     while (!device->hidden->isCancelled && !SDL_AtomicGet(&device->shutdown) &&
@@ -208,6 +209,7 @@ static void N3DSAUDIO_WaitDevice(SDL_AudioDevice *device)
         CondVar_Wait(&device->hidden->cv, &device->hidden->lock);
     }
     contextUnlock(device);
+    return 0;
 }
 
 static Uint8 *N3DSAUDIO_GetDeviceBuf(SDL_AudioDevice *device, int *buffer_size)
@@ -251,7 +253,7 @@ static void N3DSAUDIO_CloseDevice(SDL_AudioDevice *device)
 
 static void N3DSAUDIO_ThreadInit(SDL_AudioDevice *device)
 {
-    s32 current_priority;
+    s32 current_priority = 0x30;
     svcGetThreadPriority(&current_priority, CUR_THREAD_HANDLE);
     current_priority--;
     // 0x18 is reserved for video, 0x30 is the default for main thread

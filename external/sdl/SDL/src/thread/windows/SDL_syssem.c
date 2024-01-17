@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -83,19 +83,15 @@ static SDL_Semaphore *SDL_CreateSemaphore_atom(Uint32 initial_value)
     SDL_sem_atom *sem;
 
     sem = (SDL_sem_atom *)SDL_malloc(sizeof(*sem));
-    if (sem != NULL) {
+    if (sem) {
         sem->count = initial_value;
-    } else {
-        SDL_OutOfMemory();
     }
     return (SDL_Semaphore *)sem;
 }
 
 static void SDL_DestroySemaphore_atom(SDL_Semaphore *sem)
 {
-    if (sem != NULL) {
-        SDL_free(sem);
-    }
+    SDL_free(sem);
 }
 
 static int SDL_WaitSemaphoreTimeoutNS_atom(SDL_Semaphore *_sem, Sint64 timeoutNS)
@@ -106,7 +102,7 @@ static int SDL_WaitSemaphoreTimeoutNS_atom(SDL_Semaphore *_sem, Sint64 timeoutNS
     Uint64 deadline;
     DWORD timeout_eff;
 
-    if (sem == NULL) {
+    if (!sem) {
         return SDL_InvalidParamError("sem");
     }
 
@@ -176,7 +172,7 @@ static Uint32 SDL_GetSemaphoreValue_atom(SDL_Semaphore *_sem)
 {
     SDL_sem_atom *sem = (SDL_sem_atom *)_sem;
 
-    if (sem == NULL) {
+    if (!sem) {
         SDL_InvalidParamError("sem");
         return 0;
     }
@@ -188,7 +184,7 @@ static int SDL_PostSemaphore_atom(SDL_Semaphore *_sem)
 {
     SDL_sem_atom *sem = (SDL_sem_atom *)_sem;
 
-    if (sem == NULL) {
+    if (!sem) {
         return SDL_InvalidParamError("sem");
     }
 
@@ -224,8 +220,9 @@ static SDL_Semaphore *SDL_CreateSemaphore_kern(Uint32 initial_value)
 
     /* Allocate sem memory */
     sem = (SDL_sem_kern *)SDL_malloc(sizeof(*sem));
-    if (sem != NULL) {
+    if (sem) {
         /* Create the semaphore, with max value 32K */
+// !!! FIXME: CreateSemaphoreEx is available in Vista and later, so if XP support is dropped, we can lose this #ifdef.
 #ifdef __WINRT__
         sem->id = CreateSemaphoreEx(NULL, initial_value, 32 * 1024, NULL, 0, SEMAPHORE_ALL_ACCESS);
 #else
@@ -237,8 +234,6 @@ static SDL_Semaphore *SDL_CreateSemaphore_kern(Uint32 initial_value)
             SDL_free(sem);
             sem = NULL;
         }
-    } else {
-        SDL_OutOfMemory();
     }
     return (SDL_Semaphore *)sem;
 }
@@ -247,7 +242,7 @@ static SDL_Semaphore *SDL_CreateSemaphore_kern(Uint32 initial_value)
 static void SDL_DestroySemaphore_kern(SDL_Semaphore *_sem)
 {
     SDL_sem_kern *sem = (SDL_sem_kern *)_sem;
-    if (sem != NULL) {
+    if (sem) {
         if (sem->id) {
             CloseHandle(sem->id);
             sem->id = 0;
@@ -262,7 +257,7 @@ static int SDL_WaitSemaphoreTimeoutNS_kern(SDL_Semaphore *_sem, Sint64 timeoutNS
     int retval;
     DWORD dwMilliseconds;
 
-    if (sem == NULL) {
+    if (!sem) {
         return SDL_InvalidParamError("sem");
     }
 
@@ -290,7 +285,7 @@ static int SDL_WaitSemaphoreTimeoutNS_kern(SDL_Semaphore *_sem, Sint64 timeoutNS
 static Uint32 SDL_GetSemaphoreValue_kern(SDL_Semaphore *_sem)
 {
     SDL_sem_kern *sem = (SDL_sem_kern *)_sem;
-    if (sem == NULL) {
+    if (!sem) {
         SDL_InvalidParamError("sem");
         return 0;
     }
@@ -300,7 +295,7 @@ static Uint32 SDL_GetSemaphoreValue_kern(SDL_Semaphore *_sem)
 static int SDL_PostSemaphore_kern(SDL_Semaphore *_sem)
 {
     SDL_sem_kern *sem = (SDL_sem_kern *)_sem;
-    if (sem == NULL) {
+    if (!sem) {
         return SDL_InvalidParamError("sem");
     }
     /* Increase the counter in the first place, because
@@ -330,7 +325,7 @@ static const SDL_sem_impl_t SDL_sem_impl_kern = {
 
 SDL_Semaphore *SDL_CreateSemaphore(Uint32 initial_value)
 {
-    if (SDL_sem_impl_active.Create == NULL) {
+    if (!SDL_sem_impl_active.Create) {
         /* Default to fallback implementation */
         const SDL_sem_impl_t *impl = &SDL_sem_impl_kern;
 

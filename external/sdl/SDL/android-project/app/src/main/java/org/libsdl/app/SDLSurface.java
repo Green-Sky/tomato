@@ -164,13 +164,10 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
            }
         }
 
-        // Don't skip in MultiWindow.
+        // Don't skip if we might be multi-window or have popup dialogs
         if (skip) {
             if (Build.VERSION.SDK_INT >= 24 /* Android 7.0 (N) */) {
-                if (SDLActivity.mSingleton.isInMultiWindowMode()) {
-                    Log.v("SDL", "Don't skip in Multi-Window");
-                    skip = false;
-                }
+                skip = false;
             }
         }
 
@@ -194,6 +191,24 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onKey(View v, int keyCode, KeyEvent event) {
         return SDLActivity.handleKeyEvent(v, keyCode, event, null);
+    }
+
+    private float getNormalizedX(float x)
+    {
+        if (mWidth <= 1) {
+            return 0.5f;
+        } else {
+            return (x / (mWidth - 1));
+        }
+    }
+
+    private float getNormalizedY(float y)
+    {
+        if (mHeight <= 1) {
+            return 0.5f;
+        } else {
+            return (y / (mHeight - 1));
+        }
     }
 
     // Touch events
@@ -242,8 +257,8 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 case MotionEvent.ACTION_MOVE:
                     for (i = 0; i < pointerCount; i++) {
                         pointerFingerId = event.getPointerId(i);
-                        x = event.getX(i) / mWidth;
-                        y = event.getY(i) / mHeight;
+                        x = getNormalizedX(event.getX(i));
+                        y = getNormalizedY(event.getY(i));
                         p = event.getPressure(i);
                         if (p > 1.0f) {
                             // may be larger than 1.0f on some devices
@@ -267,8 +282,8 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     }
 
                     pointerFingerId = event.getPointerId(i);
-                    x = event.getX(i) / mWidth;
-                    y = event.getY(i) / mHeight;
+                    x = getNormalizedX(event.getX(i));
+                    y = getNormalizedY(event.getY(i));
                     p = event.getPressure(i);
                     if (p > 1.0f) {
                         // may be larger than 1.0f on some devices
@@ -281,8 +296,8 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 case MotionEvent.ACTION_CANCEL:
                     for (i = 0; i < pointerCount; i++) {
                         pointerFingerId = event.getPointerId(i);
-                        x = event.getX(i) / mWidth;
-                        y = event.getY(i) / mHeight;
+                        x = getNormalizedX(event.getX(i));
+                        y = getNormalizedY(event.getY(i));
                         p = event.getPressure(i);
                         if (p > 1.0f) {
                             // may be larger than 1.0f on some devices

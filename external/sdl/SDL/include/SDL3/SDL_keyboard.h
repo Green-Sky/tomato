@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,7 @@
 /**
  *  \file SDL_keyboard.h
  *
- *  \brief Include file for SDL keyboard event handling
+ *  Include file for SDL keyboard event handling
  */
 
 #ifndef SDL_keyboard_h_
@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 /**
- *  \brief The SDL keysym structure, used in key events.
+ *  The SDL keysym structure, used in key events.
  *
  *  \note  If you are looking for translated character input, see the ::SDL_EVENT_TEXT_INPUT event.
  */
@@ -301,6 +301,9 @@ extern DECLSPEC SDL_bool SDLCALL SDL_TextInputShown(void);
 
 /**
  * Set the rectangle used to type Unicode text inputs.
+ *
+ * Native input methods will place a window with word suggestions near it,
+ * without covering the text being inputted.
  *
  * To start text input in a given location, this function is intended to be
  * called before SDL_StartTextInput, although some platforms support moving

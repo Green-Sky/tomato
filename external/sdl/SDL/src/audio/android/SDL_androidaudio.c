@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,7 +25,6 @@
 // Output audio to Android (legacy interface)
 
 #include "../SDL_sysaudio.h"
-#include "../SDL_audio_c.h"
 #include "SDL_androidaudio.h"
 
 #include "../../core/android/SDL_android.h"
@@ -43,8 +42,8 @@ static SDL_AudioDevice *captureDevice = NULL;
 static int ANDROIDAUDIO_OpenDevice(SDL_AudioDevice *device)
 {
     device->hidden = (struct SDL_PrivateAudioData *)SDL_calloc(1, sizeof(*device->hidden));
-    if (device->hidden == NULL) {
-        return SDL_OutOfMemory();
+    if (!device->hidden) {
+        return -1;
     }
 
     const SDL_bool iscapture = device->iscapture;
@@ -132,13 +131,13 @@ void ANDROIDAUDIO_PauseDevices(void)
 {
     // TODO: Handle multiple devices?
     struct SDL_PrivateAudioData *hidden;
-    if (audioDevice != NULL && audioDevice->hidden != NULL) {
+    if (audioDevice && audioDevice->hidden) {
         hidden = (struct SDL_PrivateAudioData *)audioDevice->hidden;
         SDL_LockMutex(audioDevice->lock);
         hidden->resume = SDL_TRUE;
     }
 
-    if (captureDevice != NULL && captureDevice->hidden != NULL) {
+    if (captureDevice && captureDevice->hidden) {
         hidden = (struct SDL_PrivateAudioData *)captureDevice->hidden;
         SDL_LockMutex(captureDevice->lock);
         hidden->resume = SDL_TRUE;
@@ -150,7 +149,7 @@ void ANDROIDAUDIO_ResumeDevices(void)
 {
     // TODO: Handle multiple devices?
     struct SDL_PrivateAudioData *hidden;
-    if (audioDevice != NULL && audioDevice->hidden != NULL) {
+    if (audioDevice && audioDevice->hidden) {
         hidden = (struct SDL_PrivateAudioData *)audioDevice->hidden;
         if (hidden->resume) {
             hidden->resume = SDL_FALSE;
@@ -158,7 +157,7 @@ void ANDROIDAUDIO_ResumeDevices(void)
         }
     }
 
-    if (captureDevice != NULL && captureDevice->hidden != NULL) {
+    if (captureDevice && captureDevice->hidden) {
         hidden = (struct SDL_PrivateAudioData *)captureDevice->hidden;
         if (hidden->resume) {
             hidden->resume = SDL_FALSE;
@@ -172,7 +171,7 @@ static SDL_bool ANDROIDAUDIO_Init(SDL_AudioDriverImpl *impl)
     // !!! FIXME: if on Android API < 24, DetectDevices and Deinitialize should be NULL and OnlyHasDefaultOutputDevice and OnlyHasDefaultCaptureDevice should be SDL_TRUE, since audio device enum and hotplug appears to require Android 7.0+.
     impl->ThreadInit = Android_AudioThreadInit;
     impl->DetectDevices = Android_StartAudioHotplug;
-    impl->Deinitialize = Android_StopAudioHotplug;
+    impl->DeinitializeStart = Android_StopAudioHotplug;
     impl->OpenDevice = ANDROIDAUDIO_OpenDevice;
     impl->PlayDevice = ANDROIDAUDIO_PlayDevice;
     impl->GetDeviceBuf = ANDROIDAUDIO_GetDeviceBuf;

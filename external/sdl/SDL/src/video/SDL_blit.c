@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -126,7 +126,7 @@ static SDL_BlitFunc SDL_ChooseBlitFunc(Uint32 src_format, Uint32 dst_format, int
                                        SDL_BlitFuncEntry *entries)
 {
     int i, flagcheck = (flags & (SDL_COPY_MODULATE_COLOR | SDL_COPY_MODULATE_ALPHA | SDL_COPY_BLEND | SDL_COPY_ADD | SDL_COPY_MOD | SDL_COPY_MUL | SDL_COPY_COLORKEY | SDL_COPY_NEAREST));
-    static int features = 0x7fffffff;
+    static unsigned int features = 0x7fffffff;
 
     /* Get the available CPU features */
     if (features == 0x7fffffff) {
@@ -247,7 +247,7 @@ int SDL_CalculateBlit(SDL_Surface *surface)
     }
 #endif
 #if SDL_HAVE_BLIT_AUTO
-    if (blit == NULL) {
+    if (!blit) {
         Uint32 src_format = surface->format->format;
         Uint32 dst_format = dst->format->format;
 
@@ -258,7 +258,7 @@ int SDL_CalculateBlit(SDL_Surface *surface)
 #endif
 
 #ifndef TEST_SLOW_BLIT
-    if (blit == NULL)
+    if (!blit)
 #endif
     {
         Uint32 src_format = surface->format->format;
@@ -274,7 +274,7 @@ int SDL_CalculateBlit(SDL_Surface *surface)
     map->data = blit;
 
     /* Make sure we have a blit function */
-    if (blit == NULL) {
+    if (!blit) {
         SDL_InvalidateMap(map);
         return SDL_SetError("Blit combination not supported");
     }

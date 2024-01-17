@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -39,7 +39,7 @@
 #include <AudioToolbox/AudioToolbox.h>
 #include <AudioUnit/AudioUnit.h>
 
-/* Things named "Master" were renamed to "Main" in macOS 12.0's SDK. */
+// Things named "Master" were renamed to "Main" in macOS 12.0's SDK.
 #ifdef MACOSX_COREAUDIO
 #include <AvailabilityMacros.h>
 #ifndef MAC_OS_VERSION_12_0
@@ -65,4 +65,4 @@ struct SDL_PrivateAudioData
 #endif
 };
 
-#endif /* SDL_coreaudio_h_ */
+#endif // SDL_coreaudio_h_

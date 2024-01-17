@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -186,9 +186,9 @@ static float WIN_GetContentScale(SDL_VideoDevice *_this, HMONITOR hMonitor)
     }
     if (dpi == 0) {
         /* Safe default */
-        dpi = 96;
+        dpi = USER_DEFAULT_SCREEN_DPI;
     }
-    return dpi / 96.0f;
+    return dpi / (float)USER_DEFAULT_SCREEN_DPI;
 }
 
 static SDL_bool WIN_GetDisplayMode(SDL_VideoDevice *_this, HMONITOR hMonitor, LPCWSTR deviceName, DWORD index, SDL_DisplayMode *mode, SDL_DisplayOrientation *natural_orientation, SDL_DisplayOrientation *current_orientation)
@@ -203,7 +203,7 @@ static SDL_bool WIN_GetDisplayMode(SDL_VideoDevice *_this, HMONITOR hMonitor, LP
     }
 
     data = (SDL_DisplayModeData *)SDL_malloc(sizeof(*data));
-    if (data == NULL) {
+    if (!data) {
         return SDL_FALSE;
     }
 
@@ -251,7 +251,7 @@ static char *WIN_GetDisplayNameVista(const WCHAR *deviceName)
     LONG rc;
 
     dll = SDL_LoadObject("USER32.DLL");
-    if (dll == NULL) {
+    if (!dll) {
         return NULL;
     }
 
@@ -259,7 +259,7 @@ static char *WIN_GetDisplayNameVista(const WCHAR *deviceName)
     pQueryDisplayConfig = (SDL_WIN32PROC_QueryDisplayConfig)SDL_LoadFunction(dll, "QueryDisplayConfig");
     pDisplayConfigGetDeviceInfo = (SDL_WIN32PROC_DisplayConfigGetDeviceInfo)SDL_LoadFunction(dll, "DisplayConfigGetDeviceInfo");
 
-    if (pGetDisplayConfigBufferSizes == NULL || pQueryDisplayConfig == NULL || pDisplayConfigGetDeviceInfo == NULL) {
+    if (!pGetDisplayConfigBufferSizes || !pQueryDisplayConfig || !pDisplayConfigGetDeviceInfo) {
         goto WIN_GetDisplayNameVista_failed;
     }
 
@@ -274,7 +274,7 @@ static char *WIN_GetDisplayNameVista(const WCHAR *deviceName)
 
         paths = (DISPLAYCONFIG_PATH_INFO *)SDL_malloc(sizeof(DISPLAYCONFIG_PATH_INFO) * pathCount);
         modes = (DISPLAYCONFIG_MODE_INFO *)SDL_malloc(sizeof(DISPLAYCONFIG_MODE_INFO) * modeCount);
-        if ((paths == NULL) || (modes == NULL)) {
+        if ((!paths) || (!modes)) {
             goto WIN_GetDisplayNameVista_failed;
         }
 
@@ -401,7 +401,7 @@ static void WIN_AddDisplay(SDL_VideoDevice *_this, HMONITOR hMonitor, const MONI
     }
 
     displaydata = (SDL_DisplayData *)SDL_calloc(1, sizeof(*displaydata));
-    if (displaydata == NULL) {
+    if (!displaydata) {
         return;
     }
     SDL_memcpy(displaydata->DeviceName, info->szDevice, sizeof(displaydata->DeviceName));
@@ -410,7 +410,7 @@ static void WIN_AddDisplay(SDL_VideoDevice *_this, HMONITOR hMonitor, const MONI
 
     SDL_zero(display);
     display.name = WIN_GetDisplayNameVista(info->szDevice);
-    if (display.name == NULL) {
+    if (!display.name) {
         DISPLAY_DEVICEW device;
         SDL_zero(device);
         device.cb = sizeof(device);
@@ -677,7 +677,7 @@ void WIN_RefreshDisplays(SDL_VideoDevice *_this)
         SDL_VideoDisplay *display = _this->displays[i];
         SDL_DisplayData *driverdata = display->driverdata;
         if (driverdata->state == DisplayAdded) {
-            SDL_SendDisplayEvent(display, SDL_EVENT_DISPLAY_CONNECTED, 0);
+            SDL_SendDisplayEvent(display, SDL_EVENT_DISPLAY_ADDED, 0);
         }
     }
 }

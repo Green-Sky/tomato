@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -75,7 +75,7 @@ int SDL_SYS_HapticInit(void)
 
 int SDL_SYS_AddHapticDevice(SDL_hapticlist_item *item)
 {
-    if (SDL_hapticlist_tail == NULL) {
+    if (!SDL_hapticlist_tail) {
         SDL_hapticlist = SDL_hapticlist_tail = item;
     } else {
         SDL_hapticlist_tail->next = item;
@@ -91,7 +91,7 @@ int SDL_SYS_AddHapticDevice(SDL_hapticlist_item *item)
 int SDL_SYS_RemoveHapticDevice(SDL_hapticlist_item *prev, SDL_hapticlist_item *item)
 {
     const int retval = item->haptic ? item->haptic->index : -1;
-    if (prev != NULL) {
+    if (prev) {
         prev->next = item->next;
     } else {
         SDL_assert(SDL_hapticlist == item);
@@ -159,7 +159,7 @@ int SDL_SYS_HapticMouse(void)
     int index = 0;
 
     /* Grab the first mouse haptic device we find. */
-    for (item = SDL_hapticlist; item != NULL; item = item->next) {
+    for (item = SDL_hapticlist; item; item = item->next) {
         if (item->capabilities.dwDevType == DI8DEVCLASS_POINTER) {
             return index;
         }
@@ -291,13 +291,10 @@ int SDL_SYS_HapticNewEffect(SDL_Haptic *haptic, struct haptic_effect *effect,
     int result;
 
     /* Alloc the effect. */
-    effect->hweffect = (struct haptic_hweffect *)
-        SDL_malloc(sizeof(struct haptic_hweffect));
-    if (effect->hweffect == NULL) {
-        SDL_OutOfMemory();
+    effect->hweffect = (struct haptic_hweffect *) SDL_calloc(1, sizeof(struct haptic_hweffect));
+    if (!effect->hweffect) {
         return -1;
     }
-    SDL_zerop(effect->hweffect);
 
     if (haptic->hwdata->bXInputHaptic) {
         result = SDL_XINPUT_HapticNewEffect(haptic, effect, base);

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -75,10 +75,13 @@ typedef struct
     SDL_bool cliprect_dirty;
     SDL_Rect cliprect;
     SDL_bool texturing;
+    SDL_bool texturing_dirty;
     SDL_bool vertex_array;
     SDL_bool color_array;
     SDL_bool texture_array;
+    SDL_bool color_dirty;
     Uint32 color;
+    SDL_bool clear_color_dirty;
     Uint32 clear_color;
 } GL_DrawStateCache;
 
@@ -125,6 +128,7 @@ typedef struct
 typedef struct
 {
     GLuint texture;
+    SDL_bool texture_external;
     GLfloat texw;
     GLfloat texh;
     GLenum format;
@@ -139,7 +143,9 @@ typedef struct
     SDL_bool yuv;
     SDL_bool nv12;
     GLuint utexture;
+    SDL_bool utexture_external;
     GLuint vtexture;
+    SDL_bool vtexture_external;
 #endif
 
     GL_FBOList *fbo;
@@ -183,7 +189,7 @@ static void GL_ClearErrors(SDL_Renderer *renderer)
             data->errors = 0;
             data->error_messages = NULL;
         }
-    } else if (data->glGetError != NULL) {
+    } else if (data->glGetError) {
         while (data->glGetError() != GL_NO_ERROR) {
             /* continue; */
         }
@@ -302,7 +308,7 @@ static GL_FBOList *GL_GetFBO(GL_RenderData *data, Uint32 w, Uint32 h)
         result = result->next;
     }
 
-    if (result == NULL) {
+    if (!result) {
         result = SDL_malloc(sizeof(GL_FBOList));
         if (result) {
             result->w = w;
@@ -434,7 +440,7 @@ static SDL_bool convert_format(GL_RenderData *renderdata, Uint32 pixel_format,
     return SDL_TRUE;
 }
 
-static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
+static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture, SDL_PropertiesID create_props)
 {
     GL_RenderData *renderdata = (GL_RenderData *)renderer->driverdata;
     const GLenum textype = renderdata->textype;
@@ -447,6 +453,7 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
     GL_ActivateRenderer(renderer);
 
     renderdata->drawstate.texture = NULL; /* we trash this state. */
+    renderdata->drawstate.texturing_dirty = SDL_TRUE; /* we trash this state. */
 
     if (texture->access == SDL_TEXTUREACCESS_TARGET &&
         !renderdata->GL_EXT_framebuffer_object_supported) {
@@ -460,8 +467,8 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
     }
 
     data = (GL_TextureData *)SDL_calloc(1, sizeof(*data));
-    if (data == NULL) {
-        return SDL_OutOfMemory();
+    if (!data) {
+        return -1;
     }
 
     if (texture->access == SDL_TEXTUREACCESS_STREAMING) {
@@ -481,7 +488,7 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
         data->pixels = SDL_calloc(1, size);
         if (!data->pixels) {
             SDL_free(data);
-            return SDL_OutOfMemory();
+            return -1;
         }
     }
 
@@ -491,14 +498,19 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
         data->fbo = NULL;
     }
 
-    GL_CheckError("", renderer);
-    renderdata->glGenTextures(1, &data->texture);
-    if (GL_CheckError("glGenTextures()", renderer) < 0) {
-        if (data->pixels) {
-            SDL_free(data->pixels);
+    data->texture = (GLuint)SDL_GetNumberProperty(create_props, SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_NUMBER, 0);
+    if (data->texture) {
+        data->texture_external = SDL_TRUE;
+    } else {
+        GL_CheckError("", renderer);
+        renderdata->glGenTextures(1, &data->texture);
+        if (GL_CheckError("glGenTextures()", renderer) < 0) {
+            if (data->pixels) {
+                SDL_free(data->pixels);
+            }
+            SDL_free(data);
+            return -1;
         }
-        SDL_free(data);
-        return -1;
     }
     texture->driverdata = data;
 
@@ -518,6 +530,11 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
         data->texw = (GLfloat)(texture->w) / texture_w;
         data->texh = (GLfloat)texture->h / texture_h;
     }
+    SDL_PropertiesID props = SDL_GetTextureProperties(texture);
+    SDL_SetNumberProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_NUMBER, data->texture);
+    SDL_SetNumberProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_TARGET, (Sint64) textype);
+    SDL_SetFloatProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEX_W_FLOAT, data->texw);
+    SDL_SetFloatProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEX_H_FLOAT, data->texh);
 
     data->format = format;
     data->formattype = type;
@@ -576,8 +593,18 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
         texture->format == SDL_PIXELFORMAT_IYUV) {
         data->yuv = SDL_TRUE;
 
-        renderdata->glGenTextures(1, &data->utexture);
-        renderdata->glGenTextures(1, &data->vtexture);
+        data->utexture = (GLuint)SDL_GetNumberProperty(create_props, SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_U_NUMBER, 0);
+        if (data->utexture) {
+            data->utexture_external = SDL_TRUE;
+        } else {
+            renderdata->glGenTextures(1, &data->utexture);
+        }
+        data->vtexture = (GLuint)SDL_GetNumberProperty(create_props, SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER, 0);
+        if (data->vtexture) {
+            data->vtexture_external = SDL_TRUE;
+        } else {
+            renderdata->glGenTextures(1, &data->vtexture);
+        }
 
         renderdata->glBindTexture(textype, data->utexture);
         renderdata->glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
@@ -590,6 +617,7 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
                                     GL_CLAMP_TO_EDGE);
         renderdata->glTexImage2D(textype, 0, internalFormat, (texture_w + 1) / 2,
                                  (texture_h + 1) / 2, 0, format, type, NULL);
+        SDL_SetNumberProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_U_NUMBER, data->utexture);
 
         renderdata->glBindTexture(textype, data->vtexture);
         renderdata->glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
@@ -602,13 +630,19 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
                                     GL_CLAMP_TO_EDGE);
         renderdata->glTexImage2D(textype, 0, internalFormat, (texture_w + 1) / 2,
                                  (texture_h + 1) / 2, 0, format, type, NULL);
+        SDL_SetNumberProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_V_NUMBER, data->vtexture);
     }
 
     if (texture->format == SDL_PIXELFORMAT_NV12 ||
         texture->format == SDL_PIXELFORMAT_NV21) {
         data->nv12 = SDL_TRUE;
 
-        renderdata->glGenTextures(1, &data->utexture);
+        data->utexture = (GLuint)SDL_GetNumberProperty(create_props, SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_UV_NUMBER, 0);
+        if (data->utexture) {
+            data->utexture_external = SDL_TRUE;
+        } else {
+            renderdata->glGenTextures(1, &data->utexture);
+        }
         renderdata->glBindTexture(textype, data->utexture);
         renderdata->glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
                                     scaleMode);
@@ -620,6 +654,7 @@ static int GL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
                                     GL_CLAMP_TO_EDGE);
         renderdata->glTexImage2D(textype, 0, GL_LUMINANCE_ALPHA, (texture_w + 1) / 2,
                                  (texture_h + 1) / 2, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, NULL);
+        SDL_SetNumberProperty(props, SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_UV_NUMBER, data->utexture);
     }
 #endif
 
@@ -877,7 +912,7 @@ static int GL_SetRenderTarget(SDL_Renderer *renderer, SDL_Texture *texture)
 
     data->drawstate.viewport_dirty = SDL_TRUE;
 
-    if (texture == NULL) {
+    if (!texture) {
         data->glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         return 0;
     }
@@ -907,7 +942,7 @@ static int GL_QueueDrawPoints(SDL_Renderer *renderer, SDL_RenderCommand *cmd, co
     GLfloat *verts = (GLfloat *)SDL_AllocateRenderVertices(renderer, count * 2 * sizeof(GLfloat), 0, &cmd->data.draw.first);
     int i;
 
-    if (verts == NULL) {
+    if (!verts) {
         return -1;
     }
 
@@ -927,7 +962,7 @@ static int GL_QueueDrawLines(SDL_Renderer *renderer, SDL_RenderCommand *cmd, con
     const size_t vertlen = (sizeof(GLfloat) * 2) * count;
     GLfloat *verts = (GLfloat *)SDL_AllocateRenderVertices(renderer, vertlen, 0, &cmd->data.draw.first);
 
-    if (verts == NULL) {
+    if (!verts) {
         return -1;
     }
     cmd->data.draw.count = count;
@@ -972,7 +1007,7 @@ static int GL_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_
     size_t sz = 2 * sizeof(GLfloat) + 4 * sizeof(Uint8) + (texture ? 2 : 0) * sizeof(GLfloat);
 
     verts = (GLfloat *)SDL_AllocateRenderVertices(renderer, count * sz, 0, &cmd->data.draw.first);
-    if (verts == NULL) {
+    if (!verts) {
         return -1;
     }
 
@@ -1077,14 +1112,15 @@ static int SetDrawState(GL_RenderData *data, const SDL_RenderCommand *cmd, const
         data->drawstate.shader = shader;
     }
 
-    if ((cmd->data.draw.texture != NULL) != data->drawstate.texturing) {
-        if (cmd->data.draw.texture == NULL) {
+    if (data->drawstate.texturing_dirty || ((cmd->data.draw.texture != NULL) != data->drawstate.texturing)) {
+        if (!cmd->data.draw.texture) {
             data->glDisable(data->textype);
             data->drawstate.texturing = SDL_FALSE;
         } else {
             data->glEnable(data->textype);
             data->drawstate.texturing = SDL_TRUE;
         }
+        data->drawstate.texturing_dirty = SDL_FALSE;
     }
 
     vertex_array = cmd->command == SDL_RENDERCMD_DRAW_POINTS || cmd->command == SDL_RENDERCMD_DRAW_LINES || cmd->command == SDL_RENDERCMD_GEOMETRY;
@@ -1110,7 +1146,7 @@ static int SetDrawState(GL_RenderData *data, const SDL_RenderCommand *cmd, const
     }
 
     /* This is a little awkward but should avoid texcoord arrays getting into
-       a bad state if SDL_GL_BindTexture/UnbindTexture are called. */
+       a bad state if the application is manually binding textures */
     if (texture_array != data->drawstate.texture_array) {
         if (texture_array) {
             data->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1162,6 +1198,25 @@ static int SetCopyState(GL_RenderData *data, const SDL_RenderCommand *cmd)
     return 0;
 }
 
+static void GL_InvalidateCachedState(SDL_Renderer *renderer)
+{
+    GL_DrawStateCache *cache = &((GL_RenderData *)renderer->driverdata)->drawstate;
+    cache->viewport_dirty = SDL_TRUE;
+    cache->texture = NULL;
+    cache->drawablew = 0;
+    cache->drawableh = 0;
+    cache->blend = SDL_BLENDMODE_INVALID;
+    cache->shader = SHADER_INVALID;
+    cache->cliprect_enabled_dirty = SDL_TRUE;
+    cache->cliprect_dirty = SDL_TRUE;
+    cache->texturing_dirty = SDL_TRUE;
+    cache->vertex_array = SDL_FALSE;  /* !!! FIXME: this resets to false at the end of GL_RunCommandQueue, but we could cache this more aggressively. */
+    cache->color_array = SDL_FALSE;  /* !!! FIXME: this resets to false at the end of GL_RunCommandQueue, but we could cache this more aggressively. */
+    cache->texture_array = SDL_FALSE;  /* !!! FIXME: this resets to false at the end of GL_RunCommandQueue, but we could cache this more aggressively. */
+    cache->color_dirty = SDL_TRUE;
+    cache->clear_color_dirty = SDL_TRUE;
+}
+
 static int GL_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, void *vertices, size_t vertsize)
 {
     /* !!! FIXME: it'd be nice to use a vertex buffer instead of immediate mode... */
@@ -1199,9 +1254,10 @@ static int GL_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, vo
             const Uint8 b = cmd->data.color.b;
             const Uint8 a = cmd->data.color.a;
             const Uint32 color = (((Uint32)a << 24) | (r << 16) | (g << 8) | b);
-            if (color != data->drawstate.color) {
+            if ((data->drawstate.color_dirty) || (color != data->drawstate.color)) {
                 data->glColor4ub((GLubyte)r, (GLubyte)g, (GLubyte)b, (GLubyte)a);
                 data->drawstate.color = color;
+                data->drawstate.color_dirty = SDL_FALSE;
             }
             break;
         }
@@ -1238,13 +1294,14 @@ static int GL_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, vo
             const Uint8 b = cmd->data.color.b;
             const Uint8 a = cmd->data.color.a;
             const Uint32 color = (((Uint32)a << 24) | (r << 16) | (g << 8) | b);
-            if (color != data->drawstate.clear_color) {
+            if ((data->drawstate.clear_color_dirty) || (color != data->drawstate.clear_color)) {
                 const GLfloat fr = ((GLfloat)r) * inv255f;
                 const GLfloat fg = ((GLfloat)g) * inv255f;
                 const GLfloat fb = ((GLfloat)b) * inv255f;
                 const GLfloat fa = ((GLfloat)a) * inv255f;
                 data->glClearColor(fr, fg, fb, fa);
                 data->drawstate.clear_color = color;
+                data->drawstate.clear_color_dirty = SDL_FALSE;
             }
 
             if (data->drawstate.cliprect_enabled || data->drawstate.cliprect_enabled_dirty) {
@@ -1283,7 +1340,7 @@ static int GL_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, vo
                     SDL_RenderCommand *nextcmd = cmd->next;
                     SDL_BlendMode thisblend = cmd->data.draw.blend;
 
-                    while (nextcmd != NULL) {
+                    while (nextcmd) {
                         const SDL_RenderCommandType nextcmdtype = nextcmd->command;
                         if (nextcmdtype != SDL_RENDERCMD_DRAW_LINES) {
                             break; /* can't go any further on this draw call, different render command up next. */
@@ -1317,7 +1374,7 @@ static int GL_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, vo
             SDL_RenderCommand *nextcmd = cmd->next;
             size_t count = cmd->data.draw.count;
             int ret;
-            while (nextcmd != NULL) {
+            while (nextcmd) {
                 const SDL_RenderCommandType nextcmdtype = nextcmd->command;
                 if (nextcmdtype != thiscmdtype) {
                     break; /* can't go any further on this draw call, different render command up next. */
@@ -1426,8 +1483,8 @@ static int GL_RenderReadPixels(SDL_Renderer *renderer, const SDL_Rect *rect,
 
     temp_pitch = rect->w * SDL_BYTESPERPIXEL(temp_format);
     temp_pixels = SDL_malloc((size_t)rect->h * temp_pitch);
-    if (temp_pixels == NULL) {
-        return SDL_OutOfMemory();
+    if (!temp_pixels) {
+        return -1;
     }
 
     SDL_GetCurrentRenderOutputSize(renderer, &w, &h);
@@ -1491,16 +1548,25 @@ static void GL_DestroyTexture(SDL_Renderer *renderer, SDL_Texture *texture)
         renderdata->drawstate.target = NULL;
     }
 
-    if (data == NULL) {
+    if (!data) {
         return;
     }
-    if (data->texture) {
+    if (data->texture && !data->texture_external) {
         renderdata->glDeleteTextures(1, &data->texture);
     }
 #if SDL_HAVE_YUV
     if (data->yuv) {
-        renderdata->glDeleteTextures(1, &data->utexture);
-        renderdata->glDeleteTextures(1, &data->vtexture);
+        if (!data->utexture_external) {
+            renderdata->glDeleteTextures(1, &data->utexture);
+        }
+        if (!data->vtexture_external) {
+            renderdata->glDeleteTextures(1, &data->vtexture);
+        }
+    }
+    if (data->nv12) {
+        if (!data->utexture_external) {
+            renderdata->glDeleteTextures(1, &data->utexture);
+        }
     }
 #endif
     SDL_free(data->pixels);
@@ -1513,7 +1579,7 @@ static void GL_DestroyRenderer(SDL_Renderer *renderer)
     GL_RenderData *data = (GL_RenderData *)renderer->driverdata;
 
     if (data) {
-        if (data->context != NULL) {
+        if (data->context) {
             /* make sure we delete the right resources! */
             GL_ActivateRenderer(renderer);
         }
@@ -1545,105 +1611,6 @@ static void GL_DestroyRenderer(SDL_Renderer *renderer)
     SDL_free(renderer);
 }
 
-static int GL_BindTexture(SDL_Renderer *renderer, SDL_Texture *texture, float *texw, float *texh)
-{
-    GL_RenderData *data = (GL_RenderData *)renderer->driverdata;
-    GL_TextureData *texturedata = (GL_TextureData *)texture->driverdata;
-    const GLenum textype = data->textype;
-
-    GL_ActivateRenderer(renderer);
-
-    data->glEnable(textype);
-#if SDL_HAVE_YUV
-    if (texturedata->yuv) {
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE2_ARB);
-        }
-        data->glBindTexture(textype, texturedata->vtexture);
-
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE1_ARB);
-        }
-        data->glBindTexture(textype, texturedata->utexture);
-
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE0_ARB);
-        }
-    }
-    if (texturedata->nv12) {
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE1_ARB);
-        }
-        data->glBindTexture(textype, texturedata->utexture);
-
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE0_ARB);
-        }
-    }
-#endif
-    data->glBindTexture(textype, texturedata->texture);
-
-    data->drawstate.texturing = SDL_TRUE;
-    data->drawstate.texture = texture;
-
-    if (texw) {
-        *texw = (float)texturedata->texw;
-    }
-    if (texh) {
-        *texh = (float)texturedata->texh;
-    }
-    return 0;
-}
-
-static int GL_UnbindTexture(SDL_Renderer *renderer, SDL_Texture *texture)
-{
-    GL_RenderData *data = (GL_RenderData *)renderer->driverdata;
-    const GLenum textype = data->textype;
-#if SDL_HAVE_YUV
-    GL_TextureData *texturedata = (GL_TextureData *)texture->driverdata;
-#endif
-
-    GL_ActivateRenderer(renderer);
-
-#if SDL_HAVE_YUV
-    if (texturedata->yuv) {
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE2_ARB);
-        }
-        data->glBindTexture(textype, 0);
-        data->glDisable(textype);
-
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE1_ARB);
-        }
-        data->glBindTexture(textype, 0);
-        data->glDisable(textype);
-
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE0_ARB);
-        }
-    }
-    if (texturedata->nv12) {
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE1_ARB);
-        }
-        data->glBindTexture(textype, 0);
-        data->glDisable(textype);
-
-        if (data->GL_ARB_multitexture_supported) {
-            data->glActiveTextureARB(GL_TEXTURE0_ARB);
-        }
-    }
-#endif
-    data->glBindTexture(textype, 0);
-    data->glDisable(textype);
-
-    data->drawstate.texturing = SDL_FALSE;
-    data->drawstate.texture = NULL;
-
-    return 0;
-}
-
 static int GL_SetVSync(SDL_Renderer *renderer, const int vsync)
 {
     int retval;
@@ -1662,7 +1629,7 @@ static int GL_SetVSync(SDL_Renderer *renderer, const int vsync)
         return retval;
     }
 
-    if (interval > 0) {
+    if (interval != 0) {
         renderer->info.flags |= SDL_RENDERER_PRESENTVSYNC;
     } else {
         renderer->info.flags &= ~SDL_RENDERER_PRESENTVSYNC;
@@ -1696,7 +1663,7 @@ static SDL_bool GL_IsProbablyAccelerated(const GL_RenderData *data)
     return SDL_TRUE;
 }
 
-static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
+static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_props)
 {
     SDL_Renderer *renderer;
     GL_RenderData *data;
@@ -1712,6 +1679,7 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
 
 #ifndef SDL_VIDEO_VITA_PVR_OGL
+    SDL_SyncWindow(window);
     window_flags = SDL_GetWindowFlags(window);
     if (!(window_flags & SDL_WINDOW_OPENGL) ||
         profile_mask == SDL_GL_CONTEXT_PROFILE_ES || major != RENDERER_CONTEXT_MAJOR || minor != RENDERER_CONTEXT_MINOR) {
@@ -1728,15 +1696,13 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
 #endif
 
     renderer = (SDL_Renderer *)SDL_calloc(1, sizeof(*renderer));
-    if (renderer == NULL) {
-        SDL_OutOfMemory();
+    if (!renderer) {
         goto error;
     }
 
     data = (GL_RenderData *)SDL_calloc(1, sizeof(*data));
-    if (data == NULL) {
+    if (!data) {
         SDL_free(renderer);
-        SDL_OutOfMemory();
         goto error;
     }
 
@@ -1757,17 +1723,17 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
     renderer->QueueDrawPoints = GL_QueueDrawPoints;
     renderer->QueueDrawLines = GL_QueueDrawLines;
     renderer->QueueGeometry = GL_QueueGeometry;
+    renderer->InvalidateCachedState = GL_InvalidateCachedState;
     renderer->RunCommandQueue = GL_RunCommandQueue;
     renderer->RenderReadPixels = GL_RenderReadPixels;
     renderer->RenderPresent = GL_RenderPresent;
     renderer->DestroyTexture = GL_DestroyTexture;
     renderer->DestroyRenderer = GL_DestroyRenderer;
     renderer->SetVSync = GL_SetVSync;
-    renderer->GL_BindTexture = GL_BindTexture;
-    renderer->GL_UnbindTexture = GL_UnbindTexture;
     renderer->info = GL_RenderDriver.info;
     renderer->info.flags = 0; /* will set some flags below. */
     renderer->driverdata = data;
+    GL_InvalidateCachedState(renderer);
     renderer->window = window;
 
     data->context = SDL_GL_CreateContext(window);
@@ -1801,7 +1767,7 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
      */
 #endif
 
-    if (flags & SDL_RENDERER_PRESENTVSYNC) {
+    if (SDL_GetBooleanProperty(create_props, SDL_PROPERTY_RENDERER_CREATE_PRESENT_VSYNC_BOOLEAN, SDL_FALSE)) {
         SDL_GL_SetSwapInterval(1);
     } else {
         SDL_GL_SetSwapInterval(0);
@@ -1811,10 +1777,8 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
         int interval = 0;
         if (SDL_GL_GetSwapInterval(&interval) < 0) {
             /* Error */
-        } else {
-            if (interval > 0) {
-                renderer->info.flags |= SDL_RENDERER_PRESENTVSYNC;
-            }
+        } else if (interval != 0) {
+            renderer->info.flags |= SDL_RENDERER_PRESENTVSYNC;
         }
     }
 
@@ -1836,7 +1800,7 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
     }
 
     hint = SDL_getenv("GL_ARB_texture_non_power_of_two");
-    if (hint == NULL || *hint != '0') {
+    if (!hint || *hint != '0') {
         SDL_bool isGL2 = SDL_FALSE;
         const char *verstr = (const char *)data->glGetString(GL_VERSION);
         if (verstr) {
@@ -1946,8 +1910,6 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, Uint32 flags)
     /* This ended up causing video discrepancies between OpenGL and Direct3D */
     /* data->glEnable(GL_LINE_SMOOTH); */
 
-    data->drawstate.blend = SDL_BLENDMODE_INVALID;
-    data->drawstate.shader = SHADER_INVALID;
     data->drawstate.color = 0xFFFFFFFF;
     data->drawstate.clear_color = 0xFFFFFFFF;
 

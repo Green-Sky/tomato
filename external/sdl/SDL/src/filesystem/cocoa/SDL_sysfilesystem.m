@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -52,9 +52,7 @@ char *SDL_GetBasePath(void)
         if (base) {
             const size_t len = SDL_strlen(base) + 2;
             retval = (char *)SDL_malloc(len);
-            if (retval == NULL) {
-                SDL_OutOfMemory();
-            } else {
+            if (retval != NULL) {
                 SDL_snprintf(retval, len, "%s/", base);
             }
         }
@@ -105,9 +103,7 @@ char *SDL_GetPrefPath(const char *org, const char *app)
             if (base) {
                 const size_t len = SDL_strlen(base) + SDL_strlen(org) + SDL_strlen(app) + 4;
                 retval = (char *)SDL_malloc(len);
-                if (retval == NULL) {
-                    SDL_OutOfMemory();
-                } else {
+                if (retval != NULL) {
                     char *ptr;
                     if (*org) {
                         SDL_snprintf(retval, len, "%s/%s/%s/", base, org, app);
@@ -152,13 +148,7 @@ char *SDL_GetUserFolder(SDL_Folder folder)
                 SDL_SetError("No $HOME environment variable available");
             }
 
-            retval = SDL_strdup(base);
-
-            if (!retval) {
-                SDL_OutOfMemory();
-            }
-
-            return retval;
+            return SDL_strdup(base);
 
         case SDL_FOLDER_DESKTOP:
             dir = NSDesktopDirectory;
@@ -221,7 +211,6 @@ char *SDL_GetUserFolder(SDL_Folder folder)
 
         retval = SDL_strdup(base);
         if (retval == NULL) {
-            SDL_OutOfMemory();
             return NULL;
         }
 

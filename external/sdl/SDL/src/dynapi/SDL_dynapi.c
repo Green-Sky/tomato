@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -21,6 +21,7 @@
 
 #include "build_config/SDL_build_config.h"
 #include "SDL_dynapi.h"
+#include "SDL_dynapi_unsupported.h"
 
 #if SDL_DYNAMIC_API
 
@@ -36,7 +37,6 @@
 
 
 /* These headers have system specific definitions, so aren't included above */
-#include <SDL3/SDL_syswm.h>
 #include <SDL3/SDL_vulkan.h>
 
 /* This is the version of the dynamic API. This doesn't match the SDL version
@@ -140,6 +140,16 @@ static void SDL_InitDynamicAPI(void);
         initcall;                                                                                                                         \
         va_start(ap, fmt);                                                                                                                \
         retval = jump_table.SDL_vasprintf(strp, fmt, ap);                                                                                 \
+        va_end(ap);                                                                                                                       \
+        return retval;                                                                                                                    \
+    }                                                                                                                                     \
+    _static size_t SDLCALL SDL_RWprintf##name(SDL_RWops *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)                          \
+    {                                                                                                                                     \
+        size_t retval;                                                                                                                    \
+        va_list ap;                                                                                                                       \
+        initcall;                                                                                                                         \
+        va_start(ap, fmt);                                                                                                                \
+        retval = jump_table.SDL_RWvprintf(context, fmt, ap);                                                                              \
         va_end(ap);                                                                                                                       \
         return retval;                                                                                                                    \
     }                                                                                                                                     \
@@ -274,6 +284,26 @@ static int SDLCALL SDL_asprintf_LOGSDLCALLS(char **strp, SDL_PRINTF_FORMAT_STRIN
     va_end(ap);
     return retval;
 }
+static int SDLCALL SDL_swprintf_LOGSDLCALLS(SDL_OUT_Z_CAP(maxlen) wchar_t *buf, size_t maxlen, SDL_PRINTF_FORMAT_STRING const wchar_t *fmt, ...)
+{
+    int retval;
+    va_list ap;
+    SDL_Log_REAL("SDL3CALL SDL_swprintf");
+    va_start(ap, fmt);
+    retval = SDL_vswprintf_REAL(buf, maxlen, fmt, ap);
+    va_end(ap);
+    return retval;
+}
+_static size_t SDLCALL SDL_RWprintf_LOGSDLCALLS(SDL_RWops *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)
+{
+    size_t retval;
+    va_list ap;
+    SDL_Log_REAL("SDL3CALL SDL_RWprintf");
+    va_start(ap, fmt);
+    retval = SDL_RWvprintf_REAL(context, fmt, ap);
+    va_end(ap);
+    return retval;
+}
 static void SDLCALL SDL_Log_LOGSDLCALLS(SDL_PRINTF_FORMAT_STRING const char *fmt, ...)
 {
     va_list ap;
@@ -388,7 +418,7 @@ static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
     void *retval = NULL;
     if (lib) {
         retval = (void *) GetProcAddress(lib, sym);
-        if (retval == NULL) {
+        if (!retval) {
             FreeLibrary(lib);
         }
     }
@@ -401,9 +431,9 @@ static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
 {
     void *lib = dlopen(fname, RTLD_NOW | RTLD_LOCAL);
     void *retval = NULL;
-    if (lib != NULL) {
+    if (lib) {
         retval = dlsym(lib, sym);
-        if (retval == NULL) {
+        if (!retval) {
             dlclose(lib);
         }
     }
@@ -521,6 +551,19 @@ static void SDL_InitDynamicAPI(void)
     #ifndef SDL_ATOMIC_DISABLED
     SDL_AtomicUnlock_REAL(&lock);
     #endif
+}
+
+#else /* SDL_DYNAMIC_API */
+
+#include <SDL3/SDL.h>
+
+Sint32 SDL_DYNAPI_entry(Uint32 apiver, void *table, Uint32 tablesize);
+Sint32 SDL_DYNAPI_entry(Uint32 apiver, void *table, Uint32 tablesize)
+{
+    (void)apiver;
+    (void)table;
+    (void)tablesize;
+    return -1; /* not compatible. */
 }
 
 #endif /* SDL_DYNAMIC_API */

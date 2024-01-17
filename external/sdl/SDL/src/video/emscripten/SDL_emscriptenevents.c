@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -759,8 +759,16 @@ static EM_BOOL Emscripten_HandleTouch(int eventType, const EmscriptenTouchEvent 
         }
 
         id = touchEvent->touches[i].identifier;
-        x = touchEvent->touches[i].targetX / client_w;
-        y = touchEvent->touches[i].targetY / client_h;
+        if (client_w <= 1) {
+            x = 0.5f;
+        } else {
+            x = touchEvent->touches[i].targetX / (client_w - 1);
+        }
+        if (client_h <= 1) {
+            y = 0.5f;
+        } else {
+            y = touchEvent->touches[i].targetY / (client_h - 1);
+        }
 
         if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
             SDL_SendTouch(0, deviceId, id, window_data->window, SDL_TRUE, x, y, 1.0f);
@@ -835,22 +843,15 @@ static EM_BOOL Emscripten_HandleKeyPress(int eventType, const EmscriptenKeyboard
 static EM_BOOL Emscripten_HandleFullscreenChange(int eventType, const EmscriptenFullscreenChangeEvent *fullscreenChangeEvent, void *userData)
 {
     SDL_WindowData *window_data = userData;
-    SDL_VideoDisplay *display;
 
     if (fullscreenChangeEvent->isFullscreen) {
-        window_data->window->flags |= window_data->fullscreen_mode_flags;
-
+        SDL_SendWindowEvent(window_data->window, SDL_EVENT_WINDOW_ENTER_FULLSCREEN, 0, 0);
         window_data->fullscreen_mode_flags = 0;
     } else {
-        window_data->window->flags &= ~SDL_WINDOW_FULLSCREEN;
-
-        /* reset fullscreen window if the browser left fullscreen */
-        display = SDL_GetVideoDisplayForWindow(window_data->window);
-
-        if (display->fullscreen_window == window_data->window) {
-            display->fullscreen_window = NULL;
-        }
+        SDL_SendWindowEvent(window_data->window, SDL_EVENT_WINDOW_LEAVE_FULLSCREEN, 0, 0);
     }
+
+    SDL_UpdateFullscreenMode(window_data->window, fullscreenChangeEvent->isFullscreen, SDL_FALSE);
 
     return 0;
 }
@@ -956,7 +957,7 @@ void Emscripten_RegisterEventHandlers(SDL_WindowData *data)
 
     /* Keyboard events are awkward */
     keyElement = SDL_GetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT);
-    if (keyElement == NULL) {
+    if (!keyElement) {
         keyElement = EMSCRIPTEN_EVENT_TARGET_WINDOW;
     }
 
@@ -999,7 +1000,7 @@ void Emscripten_UnregisterEventHandlers(SDL_WindowData *data)
     emscripten_set_pointerlockchange_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, NULL, 0, NULL);
 
     target = SDL_GetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT);
-    if (target == NULL) {
+    if (!target) {
         target = EMSCRIPTEN_EVENT_TARGET_WINDOW;
     }
 
