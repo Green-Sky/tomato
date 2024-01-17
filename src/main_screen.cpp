@@ -42,7 +42,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 
 	{ // setup plugin instances
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
-		g_provideInstance<Contact3Registry>("Contact3Registry", "host", &cr);
+		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
@@ -53,7 +53,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 		// TODO: pm?
 
 		// graphics
-		g_provideInstance("ImGuiContext", "host", ImGui::GetCurrentContext());
+		g_provideInstance("ImGuiContext", "v1.90.1", "host", ImGui::GetCurrentContext());
 		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
 	}
 

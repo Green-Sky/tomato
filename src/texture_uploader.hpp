@@ -3,6 +3,8 @@
 #include <cstdint>
 
 struct TextureUploaderI {
+	static constexpr const char* version {"1"};
+
 	virtual ~TextureUploaderI(void) {}
 
 	//virtual uint64_t uploadRGBA(const uint8_t* data, uint64_t data_size) = 0;
