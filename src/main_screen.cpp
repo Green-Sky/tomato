@@ -73,8 +73,8 @@ MainScreen::~MainScreen(void) {
 
 bool MainScreen::handleEvent(SDL_Event& e) {
 	if (e.type == SDL_EVENT_DROP_FILE) {
-		std::cout << "DROP FILE: " << e.drop.file << "\n";
-		cg.sendFilePath(e.drop.file);
+		std::cout << "DROP FILE: " << e.drop.data << "\n";
+		cg.sendFilePath(e.drop.data);
 		_render_interval = 1.f/60.f; // TODO: magic
 		_time_since_event = 0.f;
 		return true; // TODO: forward return succ from sendFilePath()

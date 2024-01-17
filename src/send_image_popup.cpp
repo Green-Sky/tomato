@@ -445,7 +445,8 @@ void SendImagePopup::render(float time_delta) {
 			ImGui::Unindent();
 		}
 
-		if (ImGui::Button("X cancel", {ImGui::GetWindowContentRegionWidth()/2.f, TEXT_BASE_HEIGHT*2})) {
+		//if (ImGui::Button("X cancel", {ImGui::GetWindowContentRegionWidth()/2.f, TEXT_BASE_HEIGHT*2})) {
+		if (ImGui::Button("X cancel", {ImGui::GetContentRegionAvail().x/2.f, TEXT_BASE_HEIGHT*2})) {
 			_on_cancel();
 			ImGui::CloseCurrentPopup();
 			reset();

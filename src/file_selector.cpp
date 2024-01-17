@@ -229,7 +229,8 @@ void FileSelector::render(void) {
 			ImGui::EndTable();
 		}
 
-		if (ImGui::Button("X cancel", {ImGui::GetWindowContentRegionWidth()/2.f, TEXT_BASE_HEIGHT*2})) {
+		//if (ImGui::Button("X cancel", {ImGui::GetWindowContentRegionWidth()/2.f, TEXT_BASE_HEIGHT*2})) {
+		if (ImGui::Button("X cancel", {ImGui::GetContentRegionAvail().x/2.f, TEXT_BASE_HEIGHT*2})) {
 			ImGui::CloseCurrentPopup();
 			_on_cancel();
 			reset();
