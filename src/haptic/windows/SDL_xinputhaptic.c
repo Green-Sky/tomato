@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -43,7 +43,7 @@ static SDL_bool loaded_xinput = SDL_FALSE;
 int SDL_XINPUT_HapticInit(void)
 {
     if (SDL_GetHintBoolean(SDL_HINT_XINPUT_ENABLED, SDL_TRUE)) {
-        loaded_xinput = (WIN_LoadXInputDLL() == 0) ? SDL_TRUE : SDL_FALSE;
+        loaded_xinput = (WIN_LoadXInputDLL() == 0);
     }
 
     /* If the joystick subsystem is active, it will manage adding XInput haptic devices */
@@ -78,17 +78,15 @@ int SDL_XINPUT_HapticMaybeAddDevice(const DWORD dwUserid)
         return -1; /* no force feedback on this device. */
     }
 
-    item = (SDL_hapticlist_item *)SDL_malloc(sizeof(SDL_hapticlist_item));
-    if (item == NULL) {
-        return SDL_OutOfMemory();
+    item = (SDL_hapticlist_item *)SDL_calloc(1, sizeof(SDL_hapticlist_item));
+    if (!item) {
+        return -1;
     }
-
-    SDL_zerop(item);
 
     /* !!! FIXME: I'm not bothering to query for a real name right now (can we even?) */
     {
         char buf[64];
-        (void)SDL_snprintf(buf, sizeof(buf), "XInput Controller #%u", userid + 1);
+        (void)SDL_snprintf(buf, sizeof(buf), "XInput Controller #%d", 1 + userid);
         item->name = SDL_strdup(buf);
     }
 
@@ -114,7 +112,7 @@ int SDL_XINPUT_HapticMaybeRemoveDevice(const DWORD dwUserid)
         return -1;
     }
 
-    for (item = SDL_hapticlist; item != NULL; item = item->next) {
+    for (item = SDL_hapticlist; item; item = item->next) {
         if (item->bXInputHaptic && item->userid == userid) {
             /* found it, remove it. */
             return SDL_SYS_RemoveHapticDevice(prev, item);
@@ -173,36 +171,35 @@ static int SDL_XINPUT_HapticOpenFromUserIndex(SDL_Haptic *haptic, const Uint8 us
     /* Prepare effects memory. */
     haptic->effects = (struct haptic_effect *)
         SDL_malloc(sizeof(struct haptic_effect) * haptic->neffects);
-    if (haptic->effects == NULL) {
-        return SDL_OutOfMemory();
+    if (!haptic->effects) {
+        return -1;
     }
     /* Clear the memory */
     SDL_memset(haptic->effects, 0,
                sizeof(struct haptic_effect) * haptic->neffects);
 
-    haptic->hwdata = (struct haptic_hwdata *)SDL_malloc(sizeof(*haptic->hwdata));
-    if (haptic->hwdata == NULL) {
+    haptic->hwdata = (struct haptic_hwdata *)SDL_calloc(1, sizeof(*haptic->hwdata));
+    if (!haptic->hwdata) {
         SDL_free(haptic->effects);
         haptic->effects = NULL;
-        return SDL_OutOfMemory();
+        return -1;
     }
-    SDL_memset(haptic->hwdata, 0, sizeof(*haptic->hwdata));
 
     haptic->hwdata->bXInputHaptic = 1;
     haptic->hwdata->userid = userid;
 
     haptic->hwdata->mutex = SDL_CreateMutex();
-    if (haptic->hwdata->mutex == NULL) {
+    if (!haptic->hwdata->mutex) {
         SDL_free(haptic->effects);
         SDL_free(haptic->hwdata);
         haptic->effects = NULL;
         return SDL_SetError("Couldn't create XInput haptic mutex");
     }
 
-    (void)SDL_snprintf(threadName, sizeof(threadName), "SDLXInputDev%d", userid);
+    (void)SDL_snprintf(threadName, sizeof(threadName), "SDLXInputDev%u", userid);
     haptic->hwdata->thread = SDL_CreateThreadInternal(SDL_RunXInputHaptic, threadName, 64 * 1024, haptic->hwdata);
 
-    if (haptic->hwdata->thread == NULL) {
+    if (!haptic->hwdata->thread) {
         SDL_DestroyMutex(haptic->hwdata->mutex);
         SDL_free(haptic->effects);
         SDL_free(haptic->hwdata);
@@ -229,7 +226,7 @@ int SDL_XINPUT_HapticOpenFromJoystick(SDL_Haptic *haptic, SDL_Joystick *joystick
     Uint8 index = 0;
 
     /* Since it comes from a joystick we have to try to match it with a haptic device on our haptic list. */
-    for (item = SDL_hapticlist; item != NULL; item = item->next) {
+    for (item = SDL_hapticlist; item; item = item->next) {
         if (item->bXInputHaptic && item->userid == joystick->hwdata->userid) {
             haptic->index = index;
             return SDL_XINPUT_HapticOpenFromUserIndex(haptic, joystick->hwdata->userid);
@@ -286,7 +283,7 @@ int SDL_XINPUT_HapticRunEffect(SDL_Haptic *haptic, struct haptic_effect *effect,
     } else if ((!effect->effect.leftright.length) || (!iterations)) {
         /* do nothing. Effect runs for zero milliseconds. */
     } else {
-        haptic->hwdata->stopTicks = SDL_GetTicks() + (effect->effect.leftright.length * iterations);
+        haptic->hwdata->stopTicks = SDL_GetTicks() + ((Uint64)effect->effect.leftright.length * iterations);
     }
     SDL_UnlockMutex(haptic->hwdata->mutex);
     return (XINPUTSETSTATE(haptic->hwdata->userid, vib) == ERROR_SUCCESS) ? 0 : -1;

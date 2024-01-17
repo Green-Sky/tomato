@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,7 @@
 
 #ifdef SDL_AUDIO_DRIVER_EMSCRIPTEN
 
-#include "../SDL_audio_c.h"
+#include "../SDL_sysaudio.h"
 #include "SDL_emscriptenaudio.h"
 
 #include <emscripten/emscripten.h>
@@ -177,8 +177,8 @@ static int EMSCRIPTENAUDIO_OpenDevice(SDL_AudioDevice *device)
 
     // Initialize all variables that we clean on shutdown
     device->hidden = (struct SDL_PrivateAudioData *)SDL_calloc(1, sizeof(*device->hidden));
-    if (device->hidden == NULL) {
-        return SDL_OutOfMemory();
+    if (!device->hidden) {
+        return -1;
     }
 
     // limit to native freq
@@ -188,8 +188,8 @@ static int EMSCRIPTENAUDIO_OpenDevice(SDL_AudioDevice *device)
 
     if (!device->iscapture) {
         device->hidden->mixbuf = (Uint8 *)SDL_malloc(device->buffer_size);
-        if (device->hidden->mixbuf == NULL) {
-            return SDL_OutOfMemory();
+        if (!device->hidden->mixbuf) {
+            return -1;
         }
         SDL_memset(device->hidden->mixbuf, device->silence_value, device->buffer_size);
     }
@@ -321,7 +321,7 @@ static SDL_bool EMSCRIPTENAUDIO_Init(SDL_AudioDriverImpl *impl)
             return true;
         }
         return false;
-    }) ? SDL_TRUE : SDL_FALSE;
+    });
 
     if (!available) {
         SDL_SetError("No audio context available");
@@ -334,10 +334,10 @@ static SDL_bool EMSCRIPTENAUDIO_Init(SDL_AudioDriverImpl *impl)
             return true;
         }
         return false;
-    }) ? SDL_TRUE : SDL_FALSE;
+    });
 
-    impl->HasCaptureSupport = capture_available ? SDL_TRUE : SDL_FALSE;
-    impl->OnlyHasDefaultCaptureDevice = capture_available ? SDL_TRUE : SDL_FALSE;
+    impl->HasCaptureSupport = capture_available;
+    impl->OnlyHasDefaultCaptureDevice = capture_available;
 
     return available;
 }

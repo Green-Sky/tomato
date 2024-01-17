@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -79,7 +79,7 @@ typedef struct
     Uint32 src_format;
     Uint32 dst_format;
     int flags;
-    int cpu;
+    unsigned int cpu;
     SDL_BlitFunc func;
 } SDL_BlitFuncEntry;
 
@@ -260,6 +260,14 @@ extern SDL_BlitFunc SDL_CalculateBlitA(SDL_Surface *surface);
         a = (a * 3) / 255;                             \
         Pixel = (a << 30) | (r << 20) | (g << 10) | b; \
     }
+#define ABGR2101010_FROM_RGBA(Pixel, r, g, b, a)       \
+    {                                                  \
+        r = r ? ((r << 2) | 0x3) : 0;                  \
+        g = g ? ((g << 2) | 0x3) : 0;                  \
+        b = b ? ((b << 2) | 0x3) : 0;                  \
+        a = (a * 3) / 255;                             \
+        Pixel = (a << 30) | (b << 20) | (g << 10) | r; \
+    }
 #define ASSEMBLE_RGB(buf, bpp, fmt, r, g, b)        \
     {                                               \
         switch (bpp) {                              \
@@ -350,6 +358,13 @@ extern SDL_BlitFunc SDL_CalculateBlitA(SDL_Surface *surface);
         r = ((Pixel >> 22) & 0xFF);              \
         g = ((Pixel >> 12) & 0xFF);              \
         b = ((Pixel >> 2) & 0xFF);               \
+        a = SDL_expand_byte[6][(Pixel >> 30)];   \
+    }
+#define RGBA_FROM_ABGR2101010(Pixel, r, g, b, a) \
+    {                                            \
+        r = ((Pixel >> 2) & 0xFF);               \
+        g = ((Pixel >> 12) & 0xFF);              \
+        b = ((Pixel >> 22) & 0xFF);              \
         a = SDL_expand_byte[6][(Pixel >> 30)];   \
     }
 #define DISEMBLE_RGBA(buf, bpp, fmt, Pixel, r, g, b, a) \

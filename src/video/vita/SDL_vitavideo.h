@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -62,8 +62,7 @@ int VITA_VideoInit(SDL_VideoDevice *_this);
 void VITA_VideoQuit(SDL_VideoDevice *_this);
 int VITA_GetDisplayModes(SDL_VideoDevice *_this, SDL_VideoDisplay *display);
 int VITA_SetDisplayMode(SDL_VideoDevice *_this, SDL_VideoDisplay *display, SDL_DisplayMode *mode);
-int VITA_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window);
-int VITA_CreateWindowFrom(SDL_VideoDevice *_this, SDL_Window *window, const void *data);
+int VITA_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props);
 void VITA_SetWindowTitle(SDL_VideoDevice *_this, SDL_Window *window);
 int VITA_SetWindowPosition(SDL_VideoDevice *_this, SDL_Window *window);
 void VITA_SetWindowSize(SDL_VideoDevice *_this, SDL_Window *window);

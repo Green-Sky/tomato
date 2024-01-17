@@ -1240,18 +1240,8 @@ typedef SDL_GameControllerButton, SDL_GamepadButton;
   (...)
 @@
 @@
-- SDL_GameControllerMappingForIndex
-+ SDL_GetGamepadMappingForIndex
-  (...)
-@@
-@@
 - SDL_GameControllerName
 + SDL_GetGamepadName
-  (...)
-@@
-@@
-- SDL_GameControllerNumMappings
-+ SDL_GetNumGamepadMappings
   (...)
 @@
 @@
@@ -1934,10 +1924,10 @@ expression e2;
 + SDL_BlitSurfaceUnchecked
   (...)
 @@
+expression e1, e2, e3, e4;
 @@
-- SDL_LowerBlitScaled
-+ SDL_BlitSurfaceUncheckedScaled
-  (...)
+- SDL_LowerBlitScaled(e1, e2, e3, e4)
++ SDL_BlitSurfaceUncheckedScaled(e1, e2, e3, e4, SDL_SCALEMODE_NEAREST)
 @@
 @@
 - SDL_SetClipRect
@@ -1954,10 +1944,10 @@ expression e2;
 + SDL_BlitSurface
   (...)
 @@
+expression e1, e2, e3, e4;
 @@
-- SDL_UpperBlitScaled
-+ SDL_BlitSurfaceScaled
-  (...)
+- SDL_UpperBlitScaled(e1, e2, e3, e4)
++ SDL_BlitSurfaceScaled(e1, e2, e3, e4, SDL_SCALEMODE_NEAREST)
 @@
 @@
 - SDL_RenderGetD3D11Device
@@ -2735,3 +2725,42 @@ typedef SDL_cond, SDL_Condition;
 - SDL_WriteBE64
 + SDL_WriteU64BE
   (...)
+@@
+expression e, n;
+@@
+- SDL_GetWindowData(e, n)
++ SDL_GetProperty(SDL_GetWindowProperties(e), n)
+@@
+expression e, n, v;
+@@
+- SDL_SetWindowData(e, n, v)
++ SDL_SetProperty(SDL_GetWindowProperties(e), n, v, NULL, NULL)
+@@
+expression w, i, s;
+@@
+- SDL_Vulkan_CreateSurface(w, i, s)
++ SDL_Vulkan_CreateSurface(w, i, NULL, s)
+@@
+@@
+- SDL_RenderFlush
++ SDL_FlushRenderer
+  (...)
+@@
+@@
+- SDL_CONTROLLERSTEAMHANDLEUPDATED
++ SDL_EVENT_GAMEPAD_STEAM_HANDLE_UPDATED
+@@
+@@
+- SDL_GameControllerGetSteamHandle
++ SDL_GetGamepadSteamHandle
+  (...)
+@@
+expression e1, e2, e3, e4;
+@@
+- SDL_SoftStretch(e1, e2, e3, e4)
++ SDL_SoftStretch(e1, e2, e3, e4, SDL_SCALEMODE_NEAREST)
+@@
+expression e1, e2, e3, e4;
+@@
+- SDL_SoftStretchLinear(e1, e2, e3, e4)
++ SDL_SoftStretch(e1, e2, e3, e4, SDL_SCALEMODE_LINEAR)

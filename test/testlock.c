@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -80,17 +80,12 @@ Run(void *data)
     SDL_Log("Thread %lu: starting up", SDL_ThreadID());
     while (!SDL_AtomicGet(&doterminate)) {
         SDL_Log("Thread %lu: ready to work\n", SDL_ThreadID());
-        if (SDL_LockMutex(mutex) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't lock mutex: %s", SDL_GetError());
-            exit(1);
-        }
+        SDL_LockMutex(mutex);
         SDL_Log("Thread %lu: start work!\n", SDL_ThreadID());
         SDL_Delay(1 * worktime);
         SDL_Log("Thread %lu: work done!\n", SDL_ThreadID());
-        if (SDL_UnlockMutex(mutex) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't unlock mutex: %s", SDL_GetError());
-            exit(1);
-        }
+        SDL_UnlockMutex(mutex);
+
         /* If this sleep isn't done, then threads may starve */
         SDL_Delay(10);
     }
@@ -119,7 +114,7 @@ int main(int argc, char *argv[])
 
     /* Initialize test framework */
     state = SDLTest_CommonCreateState(argv, 0);
-    if (state == NULL) {
+    if (!state) {
         return 1;
     }
 
@@ -187,7 +182,7 @@ int main(int argc, char *argv[])
     SDL_AtomicSet(&doterminate, 0);
 
     mutex = SDL_CreateMutex();
-    if (mutex == NULL) {
+    if (!mutex) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create mutex: %s\n", SDL_GetError());
         exit(1);
     }

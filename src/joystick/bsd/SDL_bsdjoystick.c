@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -69,7 +69,7 @@
 #include <sys/joystick.h>
 #endif
 
-#if SDL_HAVE_MACHINE_JOYSTICK_H
+#ifdef SDL_HAVE_MACHINE_JOYSTICK_H
 #include <machine/joystick.h>
 #endif
 
@@ -268,9 +268,8 @@ CreateHwData(const char *path)
 
     hw = (struct joystick_hwdata *)
         SDL_calloc(1, sizeof(struct joystick_hwdata));
-    if (hw == NULL) {
+    if (!hw) {
         close(fd);
-        SDL_OutOfMemory();
         return NULL;
     }
     hw->fd = fd;
@@ -291,7 +290,7 @@ CreateHwData(const char *path)
             }
         }
         hw->repdesc = hid_get_report_desc(fd);
-        if (hw->repdesc == NULL) {
+        if (!hw->repdesc) {
             SDL_SetError("%s: USB_GET_REPORT_DESC: %s", path,
                          strerror(errno));
             goto usberr;
@@ -318,7 +317,7 @@ CreateHwData(const char *path)
 #else
         hdata = hid_start_parse(hw->repdesc, 1 << hid_input);
 #endif
-        if (hdata == NULL) {
+        if (!hdata) {
             SDL_SetError("%s: Cannot start HID parser", path);
             goto usberr;
         }
@@ -398,7 +397,7 @@ static int MaybeAddDevice(const char *path)
     SDL_joylist_item *item;
     struct joystick_hwdata *hw;
 
-    if (path == NULL) {
+    if (!path) {
         return -1;
     }
 
@@ -407,14 +406,14 @@ static int MaybeAddDevice(const char *path)
     }
 
     /* Check to make sure it's not already in list. */
-    for (item = SDL_joylist; item != NULL; item = item->next) {
+    for (item = SDL_joylist; item; item = item->next) {
         if (sb.st_rdev == item->devnum) {
             return -1; /* already have this one */
         }
     }
 
     hw = CreateHwData(path);
-    if (hw == NULL) {
+    if (!hw) {
         return -1;
     }
 
@@ -426,7 +425,7 @@ static int MaybeAddDevice(const char *path)
         struct usb_device_info di;
         if (ioctl(hw->fd, USB_GET_DEVICEINFO, &di) != -1) {
             name = SDL_CreateJoystickName(di.udi_vendorNo, di.udi_productNo, di.udi_vendor, di.udi_product);
-            guid = SDL_CreateJoystickGUID(SDL_HARDWARE_BUS_USB, di.udi_vendorNo, di.udi_productNo, di.udi_releaseNo, name, 0, 0);
+            guid = SDL_CreateJoystickGUID(SDL_HARDWARE_BUS_USB, di.udi_vendorNo, di.udi_productNo, di.udi_releaseNo, di.udi_vendor, di.udi_product, 0, 0);
 
 #ifdef SDL_JOYSTICK_HIDAPI
             if (HIDAPI_IsDevicePresent(di.udi_vendorNo, di.udi_productNo, di.udi_releaseNo, name)) {
@@ -444,14 +443,14 @@ static int MaybeAddDevice(const char *path)
         }
 #endif /* USB_GET_DEVICEINFO */
     }
-    if (name == NULL) {
+    if (!name) {
         name = SDL_strdup(path);
         guid = SDL_CreateJoystickGUIDForName(name);
     }
     FreeHwData(hw);
 
     item = (SDL_joylist_item *)SDL_calloc(1, sizeof(SDL_joylist_item));
-    if (item == NULL) {
+    if (!item) {
         SDL_free(name);
         return -1;
     }
@@ -461,13 +460,13 @@ static int MaybeAddDevice(const char *path)
     item->name = name;
     item->guid = guid;
 
-    if ((item->path == NULL) || (item->name == NULL)) {
+    if ((!item->path) || (!item->name)) {
         FreeJoylistItem(item);
         return -1;
     }
 
-    item->device_instance = SDL_GetNextJoystickInstanceID();
-    if (SDL_joylist_tail == NULL) {
+    item->device_instance = SDL_GetNextObjectID();
+    if (!SDL_joylist_tail) {
         SDL_joylist = SDL_joylist_tail = item;
     } else {
         SDL_joylist_tail->next = item;
@@ -544,6 +543,11 @@ static const char *BSD_JoystickGetDevicePath(int device_index)
     return GetJoystickByDevIndex(device_index)->path;
 }
 
+static int BSD_JoystickGetDeviceSteamVirtualGamepadSlot(int device_index)
+{
+    return -1;
+}
+
 static int BSD_JoystickGetDevicePlayerIndex(int device_index)
 {
     return -1;
@@ -583,12 +587,12 @@ static int BSD_JoystickOpen(SDL_Joystick *joy, int device_index)
     SDL_joylist_item *item = GetJoystickByDevIndex(device_index);
     struct joystick_hwdata *hw;
 
-    if (item == NULL) {
+    if (!item) {
         return SDL_SetError("No such device");
     }
 
     hw = CreateHwData(item->path);
-    if (hw == NULL) {
+    if (!hw) {
         return -1;
     }
 
@@ -664,7 +668,7 @@ static void BSD_JoystickUpdate(SDL_Joystick *joy)
 #else
         hdata = hid_start_parse(joy->hwdata->repdesc, 1 << hid_input);
 #endif
-        if (hdata == NULL) {
+        if (!hdata) {
             /*fprintf(stderr, "%s: Cannot start HID parser\n", joy->hwdata->path);*/
             continue;
         }
@@ -694,7 +698,7 @@ static void BSD_JoystickUpdate(SDL_Joystick *joy)
                      * calculate the SDL hat value from the 4 separate values.
                      */
                     switch (usage) {
-	            case HUG_DPAD_UP:
+                    case HUG_DPAD_UP:
                         dpad[0] = (Sint32)hid_get_data(REP_BUF_DATA(rep), &hitem);
                         break;
                     case HUG_DPAD_DOWN:
@@ -707,7 +711,7 @@ static void BSD_JoystickUpdate(SDL_Joystick *joy)
                         dpad[3] = (Sint32)hid_get_data(REP_BUF_DATA(rep), &hitem);
                         break;
                     //default:
-	                // no-op
+                        // no-op
                     }
                     SDL_PrivateJoystickHat(joy, 0, (dpad[0] * HAT_UP) |
                                                    (dpad[1] * HAT_DOWN) |
@@ -763,7 +767,7 @@ static int report_alloc(struct report *r, struct report_desc *rd, int repind)
 
 #ifdef __DragonFly__
     len = hid_report_size(rd, repinfo[repind].kind, r->rid);
-#elif __FREEBSD__
+#elif defined __FREEBSD__
 #if (__FreeBSD_kernel_version >= 460000) || defined(__FreeBSD_kernel__)
 #if (__FreeBSD_kernel_version <= 500111)
     len = hid_report_size(rd, r->rid, repinfo[repind].kind);
@@ -793,8 +797,8 @@ static int report_alloc(struct report *r, struct report_desc *rd, int repind)
         r->buf = SDL_malloc(sizeof(*r->buf) - sizeof(REP_BUF_DATA(r)) +
                             r->size);
 #endif
-        if (r->buf == NULL) {
-            return SDL_OutOfMemory();
+        if (!r->buf) {
+            return -1;
         }
     } else {
         r->buf = NULL;
@@ -851,6 +855,7 @@ SDL_JoystickDriver SDL_BSD_JoystickDriver = {
     BSD_JoystickDetect,
     BSD_JoystickGetDeviceName,
     BSD_JoystickGetDevicePath,
+    BSD_JoystickGetDeviceSteamVirtualGamepadSlot,
     BSD_JoystickGetDevicePlayerIndex,
     BSD_JoystickSetDevicePlayerIndex,
     BSD_JoystickGetDeviceGUID,

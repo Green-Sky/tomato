@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -55,7 +55,7 @@ static int ValidHaptic(SDL_Haptic *haptic)
     SDL_Haptic *hapticlist;
 
     valid = 0;
-    if (haptic != NULL) {
+    if (haptic) {
         hapticlist = SDL_haptics;
         while (hapticlist) {
             if (hapticlist == haptic) {
@@ -124,8 +124,7 @@ SDL_Haptic *SDL_HapticOpen(int device_index)
 
     /* Create the haptic device */
     haptic = (SDL_Haptic *)SDL_malloc(sizeof(*haptic));
-    if (haptic == NULL) {
-        SDL_OutOfMemory();
+    if (!haptic) {
         return NULL;
     }
 
@@ -296,8 +295,7 @@ SDL_Haptic *SDL_HapticOpenFromJoystick(SDL_Joystick *joystick)
 
         /* Create the haptic device */
         haptic = (SDL_Haptic *)SDL_malloc(sizeof(*haptic));
-        if (haptic == NULL) {
-            SDL_OutOfMemory();
+        if (!haptic) {
             SDL_UnlockJoysticks();
             return NULL;
         }
@@ -609,7 +607,7 @@ int SDL_HapticSetGain(SDL_Haptic *haptic, int gain)
 
     /* We use the envvar to get the maximum gain. */
     env = SDL_getenv("SDL_HAPTIC_GAIN_MAX");
-    if (env != NULL) {
+    if (env) {
         max_gain = SDL_atoi(env);
 
         /* Check for sanity. */

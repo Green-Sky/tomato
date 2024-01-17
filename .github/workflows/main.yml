@@ -43,6 +43,7 @@ jobs:
           ${{ matrix.platform.msys-env }}-cc
           ${{ matrix.platform.msys-env }}-cmake
           ${{ matrix.platform.msys-env }}-ninja
+          ${{ matrix.platform.msys-env }}-perl
           ${{ matrix.platform.msys-env }}-pkg-config
           ${{ matrix.platform.msys-env }}-clang-tools-extra
 
@@ -65,6 +66,8 @@ jobs:
     - name: Setup Macos dependencies
       if: runner.os == 'macOS'
       run: |
+        export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
+        brew update
         brew install \
           ninja \
           pkg-config \
@@ -73,12 +76,16 @@ jobs:
     - name: Setup Intel oneAPI
       if: matrix.platform.intel
       run: |
-        # Setup oneAPI repo
-        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        # Download the key to system keyring
+        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+          | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+
+        # Add signed entry to apt sources and configure the APT client to use Intel repository:
+        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+
+        # Update package list
         sudo apt-get update -y
-        
+
         # Install oneAPI
         sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
 
@@ -103,6 +110,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           ${{ matrix.platform.cmake }}
     - name: Build (CMake)
+      id: build
       run: |
         ${{ matrix.platform.source_cmd }}
         cmake --build build/ --config Release --verbose --parallel
@@ -123,6 +131,7 @@ jobs:
         cmake --install build/ --config Release
         ( cd cmake_prefix; find . ) | LC_ALL=C sort -u
     - name: Package (CPack)
+      if: ${{ always() && steps.build.outcome == 'success' }}
       run: |
         cmake --build build/ --config Release --target package
     - name: Verify CMake configuration files
@@ -141,6 +150,7 @@ jobs:
         export PKG_CONFIG_PATH=$(echo "${{ github.workspace }}/cmake_prefix/lib/pkgconfig" | sed  -e 's#\\#/#g')
         cmake/test/test_pkgconfig.sh
     - uses: actions/upload-artifact@v3
+      if: ${{ always() && steps.build.outcome == 'success' }}
       with:
         if-no-files-found: error
         name: ${{ matrix.platform.artifact }}

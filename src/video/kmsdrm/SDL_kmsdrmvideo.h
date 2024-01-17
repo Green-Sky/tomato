@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -121,12 +121,11 @@ int KMSDRM_VideoInit(SDL_VideoDevice *_this);
 void KMSDRM_VideoQuit(SDL_VideoDevice *_this);
 int KMSDRM_GetDisplayModes(SDL_VideoDevice *_this, SDL_VideoDisplay *display);
 int KMSDRM_SetDisplayMode(SDL_VideoDevice *_this, SDL_VideoDisplay *display, SDL_DisplayMode *mode);
-int KMSDRM_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window);
-int KMSDRM_CreateWindowFrom(SDL_VideoDevice *_this, SDL_Window *window, const void *data);
+int KMSDRM_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props);
 void KMSDRM_SetWindowTitle(SDL_VideoDevice *_this, SDL_Window *window);
 int KMSDRM_SetWindowPosition(SDL_VideoDevice *_this, SDL_Window *window);
 void KMSDRM_SetWindowSize(SDL_VideoDevice *_this, SDL_Window *window);
-void KMSDRM_SetWindowFullscreen(SDL_VideoDevice *_this, SDL_Window *window, SDL_VideoDisplay *_display, SDL_bool fullscreen);
+int KMSDRM_SetWindowFullscreen(SDL_VideoDevice *_this, SDL_Window *window, SDL_VideoDisplay *_display, SDL_bool fullscreen);
 void KMSDRM_ShowWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void KMSDRM_HideWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void KMSDRM_RaiseWindow(SDL_VideoDevice *_this, SDL_Window *window);
@@ -134,9 +133,6 @@ void KMSDRM_MaximizeWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void KMSDRM_MinimizeWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void KMSDRM_RestoreWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void KMSDRM_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window);
-
-/* Window manager function */
-int KMSDRM_GetWindowWMInfo(SDL_VideoDevice *_this, SDL_Window *window, struct SDL_SysWMinfo *info);
 
 /* OpenGL/OpenGL ES functions */
 int KMSDRM_GLES_LoadLibrary(SDL_VideoDevice *_this, const char *path);

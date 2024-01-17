@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -67,13 +67,11 @@ static SDL_VideoDevice *UIKit_CreateDevice(void)
 
         /* Initialize all variables that we clean on shutdown */
         device = (SDL_VideoDevice *)SDL_calloc(1, sizeof(SDL_VideoDevice));
-        if (device) {
-            data = [SDL_UIKitVideoData new];
-        } else {
-            SDL_free(device);
-            SDL_OutOfMemory();
-            return (0);
+        if (!device) {
+            return NULL;
         }
+
+        data = [SDL_UIKitVideoData new];
 
         device->driverdata = (SDL_VideoData *)CFBridgingRetain(data);
         device->system_theme = UIKit_GetSystemTheme();
@@ -94,7 +92,6 @@ static SDL_VideoDevice *UIKit_CreateDevice(void)
         device->SetWindowFullscreen = UIKit_SetWindowFullscreen;
         device->SetWindowMouseGrab = UIKit_SetWindowMouseGrab;
         device->DestroyWindow = UIKit_DestroyWindow;
-        device->GetWindowWMInfo = UIKit_GetWindowWMInfo;
         device->GetDisplayUsableBounds = UIKit_GetDisplayUsableBounds;
         device->GetWindowSizeInPixels = UIKit_GetWindowSizeInPixels;
 
@@ -133,6 +130,8 @@ static SDL_VideoDevice *UIKit_CreateDevice(void)
         device->Metal_DestroyView = UIKit_Metal_DestroyView;
         device->Metal_GetLayer = UIKit_Metal_GetLayer;
 #endif
+
+        device->device_caps = VIDEO_DEVICE_CAPS_SENDS_FULLSCREEN_DIMENSIONS;
 
         device->gl_config.accelerated = 1;
 

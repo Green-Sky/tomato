@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#include "../SDL_audio_c.h"
+#include "../SDL_sysaudio.h"
 #include "SDL_ps2audio.h"
 
 #include <kernel.h>
@@ -30,8 +30,8 @@
 static int PS2AUDIO_OpenDevice(SDL_AudioDevice *device)
 {
     device->hidden = (struct SDL_PrivateAudioData *) SDL_calloc(1, sizeof(*device->hidden));
-    if (device->hidden == NULL) {
-        return SDL_OutOfMemory();
+    if (!device->hidden) {
+        return -1;
     }
 
     // These are the native supported audio PS2 configs
@@ -73,7 +73,7 @@ static int PS2AUDIO_OpenDevice(SDL_AudioDevice *device)
        64, so spec->size should be a multiple of 64 as well. */
     const int mixlen = device->buffer_size * NUM_BUFFERS;
     device->hidden->rawbuf = (Uint8 *)SDL_aligned_alloc(64, mixlen);
-    if (device->hidden->rawbuf == NULL) {
+    if (!device->hidden->rawbuf) {
         return SDL_SetError("Couldn't allocate mixing buffer");
     }
 
@@ -91,9 +91,10 @@ static int PS2AUDIO_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int
     return (audsrv_play_audio((char *)buffer, buflen) != buflen) ? -1 : 0;
 }
 
-static void PS2AUDIO_WaitDevice(SDL_AudioDevice *device)
+static int PS2AUDIO_WaitDevice(SDL_AudioDevice *device)
 {
     audsrv_wait_audio(device->buffer_size);
+    return 0;
 }
 
 static Uint8 *PS2AUDIO_GetDeviceBuf(SDL_AudioDevice *device, int *buffer_size)
@@ -111,7 +112,7 @@ static void PS2AUDIO_CloseDevice(SDL_AudioDevice *device)
             device->hidden->channel = -1;
         }
 
-        if (device->hidden->rawbuf != NULL) {
+        if (device->hidden->rawbuf) {
             SDL_aligned_free(device->hidden->rawbuf);
             device->hidden->rawbuf = NULL;
         }

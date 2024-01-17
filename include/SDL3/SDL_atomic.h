@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,7 @@
 /**
  * \file SDL_atomic.h
  *
- * \brief Atomic operations.
+ * Atomic operations.
  *
  * IMPORTANT:
  * If you are not an expert in concurrent lockless programming, you should
@@ -213,7 +213,7 @@ typedef void (*SDL_KernelMemoryBarrierFunc)();
 #if defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__) || defined(__ARM_ARCH_8A__)
 #define SDL_MemoryBarrierRelease()   __asm__ __volatile__ ("dmb ish" : : : "memory")
 #define SDL_MemoryBarrierAcquire()   __asm__ __volatile__ ("dmb ish" : : : "memory")
-#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_5TE__)
+#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__)
 #ifdef __thumb__
 /* The mcr instruction isn't available in thumb mode, use real functions */
 #define SDL_MEMORY_BARRIER_USES_FUNCTION
@@ -263,8 +263,9 @@ typedef void (*SDL_KernelMemoryBarrierFunc)();
 
 
 /**
- * \brief A type representing an atomic integer value.  It is a struct
- *        so people don't accidentally use numeric operations on it.
+ * A type representing an atomic integer value.
+ *
+ * It is a struct so people don't accidentally use numeric operations on it.
  */
 typedef struct { int value; } SDL_AtomicInt;
 
@@ -340,14 +341,14 @@ extern DECLSPEC int SDLCALL SDL_AtomicGet(SDL_AtomicInt *a);
 extern DECLSPEC int SDLCALL SDL_AtomicAdd(SDL_AtomicInt *a, int v);
 
 /**
- * \brief Increment an atomic variable used as a reference count.
+ * Increment an atomic variable used as a reference count.
  */
 #ifndef SDL_AtomicIncRef
 #define SDL_AtomicIncRef(a)    SDL_AtomicAdd(a, 1)
 #endif
 
 /**
- * \brief Decrement an atomic variable used as a reference count.
+ * Decrement an atomic variable used as a reference count.
  *
  * \return SDL_TRUE if the variable reached zero after decrementing,
  *         SDL_FALSE otherwise

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,8 +26,6 @@
 
 #include "../SDL_sysvideo.h"
 #include "../../events/SDL_touch_c.h"
-
-#include <SDL3/SDL_syswm.h>
 
 #include "SDL_waylandvideo.h"
 
@@ -72,7 +70,8 @@ struct SDL_WindowData
         WAYLAND_SURFACE_UNKNOWN = 0,
         WAYLAND_SURFACE_XDG_TOPLEVEL,
         WAYLAND_SURFACE_XDG_POPUP,
-        WAYLAND_SURFACE_LIBDECOR
+        WAYLAND_SURFACE_LIBDECOR,
+        WAYLAND_SURFACE_CUSTOM
     } shell_surface_type;
     enum
     {
@@ -97,14 +96,7 @@ struct SDL_WindowData
     struct wp_viewport *draw_viewport;
     struct wp_fractional_scale_v1 *fractional_scale;
 
-    /* floating dimensions for restoring from maximized and fullscreen */
-    int floating_width, floating_height;
-
     SDL_AtomicInt swap_interval_ready;
-
-#ifdef SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH
-    struct qt_extended_surface *extended_surface;
-#endif /* SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH */
 
     SDL_DisplayData **outputs;
     int num_outputs;
@@ -115,24 +107,37 @@ struct SDL_WindowData
     float windowed_scale_factor;
     float pointer_scale_x;
     float pointer_scale_y;
+
+    struct
+    {
+        int width, height;
+    } pending_size_event;
+
+    int last_configure_width, last_configure_height;
     int requested_window_width, requested_window_height;
     int drawable_width, drawable_height;
     int wl_window_width, wl_window_height;
     int system_min_required_width;
     int system_min_required_height;
     SDL_DisplayID last_displayID;
+    int fullscreen_deadline_count;
     SDL_bool floating;
     SDL_bool suspended;
     SDL_bool active;
     SDL_bool is_fullscreen;
-    SDL_bool in_fullscreen_transition;
+    SDL_bool drop_fullscreen_requests;
     SDL_bool fullscreen_was_positioned;
+    SDL_bool show_hide_sync_required;
+
+    SDL_HitTestResult hit_test_result;
+
+    struct wl_list external_window_list_link;
 };
 
 extern void Wayland_ShowWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern void Wayland_HideWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern void Wayland_RaiseWindow(SDL_VideoDevice *_this, SDL_Window *window);
-extern void Wayland_SetWindowFullscreen(SDL_VideoDevice *_this, SDL_Window *window,
+extern int Wayland_SetWindowFullscreen(SDL_VideoDevice *_this, SDL_Window *window,
                                         SDL_VideoDisplay *_display,
                                         SDL_bool fullscreen);
 extern void Wayland_MaximizeWindow(SDL_VideoDevice *_this, SDL_Window *window);
@@ -143,7 +148,7 @@ extern void Wayland_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *wi
 extern void Wayland_RestoreWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern void Wayland_SetWindowBordered(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool bordered);
 extern void Wayland_SetWindowResizable(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool resizable);
-extern int Wayland_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window);
+extern int Wayland_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props);
 extern int Wayland_SetWindowPosition(SDL_VideoDevice *_this, SDL_Window *window);
 extern void Wayland_SetWindowSize(SDL_VideoDevice *_this, SDL_Window *window);
 extern void Wayland_SetWindowMinimumSize(SDL_VideoDevice *_this, SDL_Window *window);
@@ -155,8 +160,8 @@ extern void Wayland_ShowWindowSystemMenu(SDL_Window *window, int x, int y);
 extern void Wayland_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern int Wayland_SuspendScreenSaver(SDL_VideoDevice *_this);
 
-extern int Wayland_GetWindowWMInfo(SDL_VideoDevice *_this, SDL_Window *window, SDL_SysWMinfo *info);
 extern int Wayland_SetWindowHitTest(SDL_Window *window, SDL_bool enabled);
 extern int Wayland_FlashWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_FlashOperation operation);
+extern int Wayland_SyncWindow(SDL_VideoDevice *_this, SDL_Window *window);
 
 #endif /* SDL_waylandwindow_h_ */

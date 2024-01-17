@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -72,16 +72,13 @@ int VIVANTE_VideoInit(SDL_VideoDevice *_this);
 void VIVANTE_VideoQuit(SDL_VideoDevice *_this);
 int VIVANTE_GetDisplayModes(SDL_VideoDevice *_this, SDL_VideoDisplay *display);
 int VIVANTE_SetDisplayMode(SDL_VideoDevice *_this, SDL_VideoDisplay *display, SDL_DisplayMode *mode);
-int VIVANTE_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window);
+int VIVANTE_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props);
 void VIVANTE_SetWindowTitle(SDL_VideoDevice *_this, SDL_Window *window);
 int VIVANTE_SetWindowPosition(SDL_VideoDevice *_this, SDL_Window *window);
 void VIVANTE_SetWindowSize(SDL_VideoDevice *_this, SDL_Window *window);
 void VIVANTE_ShowWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void VIVANTE_HideWindow(SDL_VideoDevice *_this, SDL_Window *window);
 void VIVANTE_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window);
-
-/* Window manager function */
-int VIVANTE_GetWindowWMInfo(SDL_VideoDevice *_this, SDL_Window *window, struct SDL_SysWMinfo *info);
 
 /* Event functions */
 void VIVANTE_PumpEvents(SDL_VideoDevice *_this);

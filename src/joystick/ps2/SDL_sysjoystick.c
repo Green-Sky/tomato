@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -157,6 +157,12 @@ static const char *PS2_JoystickGetDevicePath(int index)
     return NULL;
 }
 
+/* Function to get the Steam virtual gamepad slot of a joystick */
+static int PS2_JoystickGetDeviceSteamVirtualGamepadSlot(int device_index)
+{
+    return -1;
+}
+
 /* Function to get the player index of a joystick */
 static int PS2_JoystickGetDevicePlayerIndex(int device_index)
 {
@@ -179,7 +185,7 @@ static SDL_JoystickGUID PS2_JoystickGetDeviceGUID(int device_index)
 /* Function to get the current instance id of the joystick located at device_index */
 static SDL_JoystickID PS2_JoystickGetDeviceInstanceID(int device_index)
 {
-    return device_index;
+    return device_index + 1;
 }
 
 /*  Function to open a joystick for use.
@@ -341,6 +347,7 @@ SDL_JoystickDriver SDL_PS2_JoystickDriver = {
     PS2_JoystickDetect,
     PS2_JoystickGetDeviceName,
     PS2_JoystickGetDevicePath,
+    PS2_JoystickGetDeviceSteamVirtualGamepadSlot,
     PS2_JoystickGetDevicePlayerIndex,
     PS2_JoystickSetDevicePlayerIndex,
     PS2_JoystickGetDeviceGUID,

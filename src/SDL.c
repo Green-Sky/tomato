@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -38,7 +38,8 @@
 
 #include "SDL_assert_c.h"
 #include "SDL_log_c.h"
-#include "audio/SDL_audio_c.h"
+#include "SDL_properties_c.h"
+#include "audio/SDL_sysaudio.h"
 #include "video/SDL_video_c.h"
 #include "events/SDL_events_c.h"
 #include "haptic/SDL_haptic_c.h"
@@ -47,9 +48,7 @@
 #include "sensor/SDL_sensor_c.h"
 
 /* Initialization/Cleanup routines */
-#ifndef SDL_TIMERS_DISABLED
 #include "timer/SDL_timer_c.h"
-#endif
 #ifdef SDL_VIDEO_DRIVER_WINDOWS
 extern int SDL_HelperWindowCreate(void);
 extern int SDL_HelperWindowDestroy(void);
@@ -136,7 +135,7 @@ static SDL_bool SDL_ShouldInitSubsystem(Uint32 subsystem)
 {
     const int subsystem_index = SDL_MostSignificantBitIndex32(subsystem);
     SDL_assert((subsystem_index < 0) || (SDL_SubsystemRefCount[subsystem_index] < 255));
-    return ((subsystem_index >= 0) && (SDL_SubsystemRefCount[subsystem_index] == 0)) ? SDL_TRUE : SDL_FALSE;
+    return ((subsystem_index >= 0) && (SDL_SubsystemRefCount[subsystem_index] == 0));
 }
 
 /* Private helper to check if a system needs to be quit. */
@@ -150,7 +149,23 @@ static SDL_bool SDL_ShouldQuitSubsystem(Uint32 subsystem)
     /* If we're in SDL_Quit, we shut down every subsystem, even if refcount
      * isn't zero.
      */
-    return (((subsystem_index >= 0) && (SDL_SubsystemRefCount[subsystem_index] == 1)) || SDL_bInMainQuit) ? SDL_TRUE : SDL_FALSE;
+    return (((subsystem_index >= 0) && (SDL_SubsystemRefCount[subsystem_index] == 1)) || SDL_bInMainQuit);
+}
+
+/* Private helper to either increment's existing ref counter,
+ * or fully init a new subsystem. */
+static SDL_bool SDL_InitOrIncrementSubsystem(Uint32 subsystem)
+{
+    int subsystem_index = SDL_MostSignificantBitIndex32(subsystem);
+    SDL_assert((subsystem_index < 0) || (SDL_SubsystemRefCount[subsystem_index] < 255));
+    if (subsystem_index < 0) {
+        return SDL_FALSE;
+    }
+    if (SDL_SubsystemRefCount[subsystem_index] > 0) {
+        ++SDL_SubsystemRefCount[subsystem_index];
+        return SDL_TRUE;
+    }
+    return SDL_InitSubSystem(subsystem) == 0;
 }
 
 void SDL_SetMainReady(void)
@@ -167,6 +182,8 @@ int SDL_InitSubSystem(Uint32 flags)
     }
 
     SDL_InitLog();
+    SDL_InitProperties();
+    SDL_GetGlobalProperties();
 
     /* Clear the error message */
     SDL_ClearError();
@@ -174,16 +191,6 @@ int SDL_InitSubSystem(Uint32 flags)
 #ifdef SDL_USE_LIBDBUS
     SDL_DBus_Init();
 #endif
-
-    if (flags & SDL_INIT_GAMEPAD) {
-        /* game controller implies joystick */
-        flags |= SDL_INIT_JOYSTICK;
-    }
-
-    if (flags & (SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO)) {
-        /* video or joystick or audio implies events */
-        flags |= SDL_INIT_EVENTS;
-    }
 
 #ifdef SDL_VIDEO_DRIVER_WINDOWS
     if (flags & (SDL_INIT_HAPTIC | SDL_INIT_JOYSTICK)) {
@@ -193,9 +200,7 @@ int SDL_InitSubSystem(Uint32 flags)
     }
 #endif
 
-#ifndef SDL_TIMERS_DISABLED
     SDL_InitTicks();
-#endif
 
     /* Initialize the event subsystem */
     if (flags & SDL_INIT_EVENTS) {
@@ -218,7 +223,6 @@ int SDL_InitSubSystem(Uint32 flags)
 
     /* Initialize the timer subsystem */
     if (flags & SDL_INIT_TIMER) {
-#if !defined(SDL_TIMERS_DISABLED) && !defined(SDL_TIMER_DUMMY)
         if (SDL_ShouldInitSubsystem(SDL_INIT_TIMER)) {
             SDL_IncrementSubsystemRefCount(SDL_INIT_TIMER);
             if (SDL_InitTimers() < 0) {
@@ -229,16 +233,17 @@ int SDL_InitSubSystem(Uint32 flags)
             SDL_IncrementSubsystemRefCount(SDL_INIT_TIMER);
         }
         flags_initialized |= SDL_INIT_TIMER;
-#else
-        SDL_SetError("SDL not built with timer support");
-        goto quit_and_error;
-#endif
     }
 
     /* Initialize the video subsystem */
     if (flags & SDL_INIT_VIDEO) {
 #ifndef SDL_VIDEO_DISABLED
         if (SDL_ShouldInitSubsystem(SDL_INIT_VIDEO)) {
+            /* video implies events */
+            if (!SDL_InitOrIncrementSubsystem(SDL_INIT_EVENTS)) {
+                goto quit_and_error;
+            }
+
             SDL_IncrementSubsystemRefCount(SDL_INIT_VIDEO);
             if (SDL_VideoInit(NULL) < 0) {
                 SDL_DecrementSubsystemRefCount(SDL_INIT_VIDEO);
@@ -258,6 +263,11 @@ int SDL_InitSubSystem(Uint32 flags)
     if (flags & SDL_INIT_AUDIO) {
 #ifndef SDL_AUDIO_DISABLED
         if (SDL_ShouldInitSubsystem(SDL_INIT_AUDIO)) {
+            /* audio implies events */
+            if (!SDL_InitOrIncrementSubsystem(SDL_INIT_EVENTS)) {
+                goto quit_and_error;
+            }
+
             SDL_IncrementSubsystemRefCount(SDL_INIT_AUDIO);
             if (SDL_InitAudio(NULL) < 0) {
                 SDL_DecrementSubsystemRefCount(SDL_INIT_AUDIO);
@@ -277,6 +287,11 @@ int SDL_InitSubSystem(Uint32 flags)
     if (flags & SDL_INIT_JOYSTICK) {
 #ifndef SDL_JOYSTICK_DISABLED
         if (SDL_ShouldInitSubsystem(SDL_INIT_JOYSTICK)) {
+            /* joystick implies events */
+            if (!SDL_InitOrIncrementSubsystem(SDL_INIT_EVENTS)) {
+                goto quit_and_error;
+            }
+
             SDL_IncrementSubsystemRefCount(SDL_INIT_JOYSTICK);
             if (SDL_InitJoysticks() < 0) {
                 SDL_DecrementSubsystemRefCount(SDL_INIT_JOYSTICK);
@@ -295,6 +310,11 @@ int SDL_InitSubSystem(Uint32 flags)
     if (flags & SDL_INIT_GAMEPAD) {
 #ifndef SDL_JOYSTICK_DISABLED
         if (SDL_ShouldInitSubsystem(SDL_INIT_GAMEPAD)) {
+            /* game controller implies joystick */
+            if (!SDL_InitOrIncrementSubsystem(SDL_INIT_JOYSTICK)) {
+                goto quit_and_error;
+            }
+
             SDL_IncrementSubsystemRefCount(SDL_INIT_GAMEPAD);
             if (SDL_InitGamepads() < 0) {
                 SDL_DecrementSubsystemRefCount(SDL_INIT_GAMEPAD);
@@ -376,21 +396,19 @@ void SDL_QuitSubSystem(Uint32 flags)
 
 #ifndef SDL_JOYSTICK_DISABLED
     if (flags & SDL_INIT_GAMEPAD) {
-        /* game controller implies joystick */
-        flags |= SDL_INIT_JOYSTICK;
-
         if (SDL_ShouldQuitSubsystem(SDL_INIT_GAMEPAD)) {
             SDL_QuitGamepads();
+            /* game controller implies joystick */
+            SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
         }
         SDL_DecrementSubsystemRefCount(SDL_INIT_GAMEPAD);
     }
 
     if (flags & SDL_INIT_JOYSTICK) {
-        /* joystick implies events */
-        flags |= SDL_INIT_EVENTS;
-
         if (SDL_ShouldQuitSubsystem(SDL_INIT_JOYSTICK)) {
             SDL_QuitJoysticks();
+            /* joystick implies events */
+            SDL_QuitSubSystem(SDL_INIT_EVENTS);
         }
         SDL_DecrementSubsystemRefCount(SDL_INIT_JOYSTICK);
     }
@@ -407,11 +425,10 @@ void SDL_QuitSubSystem(Uint32 flags)
 
 #ifndef SDL_AUDIO_DISABLED
     if (flags & SDL_INIT_AUDIO) {
-        /* audio implies events */
-        flags |= SDL_INIT_EVENTS;
-
         if (SDL_ShouldQuitSubsystem(SDL_INIT_AUDIO)) {
             SDL_QuitAudio();
+            /* audio implies events */
+            SDL_QuitSubSystem(SDL_INIT_EVENTS);
         }
         SDL_DecrementSubsystemRefCount(SDL_INIT_AUDIO);
     }
@@ -419,24 +436,21 @@ void SDL_QuitSubSystem(Uint32 flags)
 
 #ifndef SDL_VIDEO_DISABLED
     if (flags & SDL_INIT_VIDEO) {
-        /* video implies events */
-        flags |= SDL_INIT_EVENTS;
-
         if (SDL_ShouldQuitSubsystem(SDL_INIT_VIDEO)) {
             SDL_VideoQuit();
+            /* video implies events */
+            SDL_QuitSubSystem(SDL_INIT_EVENTS);
         }
         SDL_DecrementSubsystemRefCount(SDL_INIT_VIDEO);
     }
 #endif
 
-#if !defined(SDL_TIMERS_DISABLED) && !defined(SDL_TIMER_DUMMY)
     if (flags & SDL_INIT_TIMER) {
         if (SDL_ShouldQuitSubsystem(SDL_INIT_TIMER)) {
             SDL_QuitTimers();
         }
         SDL_DecrementSubsystemRefCount(SDL_INIT_TIMER);
     }
-#endif
 
 #ifndef SDL_EVENTS_DISABLED
     if (flags & SDL_INIT_EVENTS) {
@@ -488,17 +502,16 @@ void SDL_Quit(void)
 #endif
     SDL_QuitSubSystem(SDL_INIT_EVERYTHING);
 
-#ifndef SDL_TIMERS_DISABLED
     SDL_QuitTicks();
-#endif
-
-    SDL_ClearHints();
-    SDL_AssertionsQuit();
 
 #ifdef SDL_USE_LIBDBUS
     SDL_DBus_Quit();
 #endif
 
+    SDL_ClearHints();
+    SDL_AssertionsQuit();
+
+    SDL_QuitProperties();
     SDL_QuitLog();
 
     /* Now that every subsystem has been quit, we reset the subsystem refcount
@@ -511,13 +524,27 @@ void SDL_Quit(void)
     SDL_bInMainQuit = SDL_FALSE;
 }
 
+/* Assume we can wrap SDL_AtomicInt values and cast to Uint32 */
+SDL_COMPILE_TIME_ASSERT(sizeof_object_id, sizeof(int) == sizeof(Uint32));
+
+Uint32 SDL_GetNextObjectID(void)
+{
+    static SDL_AtomicInt last_id;
+
+    Uint32 id = (Uint32)SDL_AtomicIncRef(&last_id) + 1;
+    if (id == 0) {
+        id = (Uint32)SDL_AtomicIncRef(&last_id) + 1;
+    }
+    return id;
+}
+
 /* Get the library version number */
 int SDL_GetVersion(SDL_version *ver)
 {
     static SDL_bool check_hint = SDL_TRUE;
     static SDL_bool legacy_version = SDL_FALSE;
 
-    if (ver == NULL) {
+    if (!ver) {
         return SDL_InvalidParamError("ver");
     }
 

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -41,17 +41,35 @@
 #  undef main
 #endif /* main */
 
+#ifdef SDL_MAIN_USE_CALLBACKS
+
+#if 0
+    /* currently there are no platforms that _need_ a magic entry point here
+       for callbacks, but if one shows up, implement it here. */
+
+#else /* use a standard SDL_main, which the app SHOULD NOT ALSO SUPPLY. */
+
+/* this define makes the normal SDL_main entry point stuff work...we just provide SDL_main() instead of the app. */
+#define SDL_MAIN_CALLBACK_STANDARD 1
+
+int SDL_main(int argc, char **argv)
+{
+    return SDL_EnterAppMainCallbacks(argc, argv, SDL_AppInit, SDL_AppIterate, SDL_AppEvent, SDL_AppQuit);
+}
+
+#endif  /* platform-specific tests */
+
+#endif  /* SDL_MAIN_USE_CALLBACKS */
+
+
+/* set up the usual SDL_main stuff if we're not using callbacks or if we are but need the normal entry point. */
+#if !defined(SDL_MAIN_USE_CALLBACKS) || defined(SDL_MAIN_CALLBACK_STANDARD)
+
 #if defined(__WIN32__) || defined(__GDK__)
 
 /* these defines/typedefs are needed for the WinMain() definition */
 #ifndef WINAPI
 #define WINAPI __stdcall
-#endif
-
-#include <SDL3/SDL_begin_code.h>
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 typedef struct HINSTANCE__ * HINSTANCE;
@@ -82,6 +100,10 @@ int main(int argc, char *argv[])
 #endif /* _MSC_VER && ! __GDK__ */
 
 /* This is where execution begins [windowed apps and GDK] */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #if defined( UNICODE ) && UNICODE
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR szCmdLine, int sw)
 #else /* ANSI */
@@ -94,12 +116,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
     (void)sw;
     return SDL_RunApp(0, NULL, SDL_main, NULL);
 }
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#include <SDL3/SDL_close_code.h>
 
 /* end of __WIN32__ and __GDK__ impls */
 #elif defined(__WINRT__)
@@ -151,10 +170,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 #pragma comment(lib, "runtimeobject.lib")
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     return SDL_RunApp(0, NULL, SDL_main, NULL);
 }
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 /* end of WinRT impl */
 #elif defined(__NGAGE__)
@@ -172,26 +197,16 @@ TInt E32Main()
 
 #else /* platforms that use a standard main() and just call SDL_RunApp(), like iOS and 3DS */
 
-#include <SDL3/SDL_begin_code.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int main(int argc, char *argv[])
 {
     return SDL_RunApp(argc, argv, SDL_main, NULL);
 }
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
-
-#include <SDL3/SDL_close_code.h>
-
 /* end of impls for standard-conforming platforms */
 
 #endif /* __WIN32__ etc */
+
+#endif /* !defined(SDL_MAIN_USE_CALLBACKS) || defined(SDL_MAIN_CALLBACK_STANDARD) */
 
 /* rename users main() function to SDL_main() so it can be called from the wrappers above */
 #define main    SDL_main

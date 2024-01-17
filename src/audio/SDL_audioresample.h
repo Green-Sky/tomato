@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,7 +26,7 @@
 // Internal functions used by SDL_AudioStream for resampling audio.
 // The resampler uses 32:32 fixed-point arithmetic to track its position.
 
-Sint64 SDL_GetResampleRate(const int src_rate, const int dst_rate);
+Sint64 SDL_GetResampleRate(int src_rate, int dst_rate);
 
 int SDL_GetResamplerHistoryFrames(void);
 int SDL_GetResamplerPaddingFrames(Sint64 resample_rate);

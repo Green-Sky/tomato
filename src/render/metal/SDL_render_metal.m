@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -35,7 +35,6 @@
 #ifdef SDL_VIDEO_DRIVER_UIKIT
 #import <UIKit/UIKit.h>
 #endif
-#include <SDL3/SDL_syswm.h>
 
 /* Regenerate these with build-metal-shaders.sh */
 #ifdef __MACOS__
@@ -160,20 +159,16 @@ typedef struct METAL_ShaderPipelines
 @implementation METAL_TextureData
 @end
 
-static int IsMetalAvailable(const SDL_SysWMinfo *syswm)
+static SDL_bool IsMetalAvailable()
 {
-    if (syswm->subsystem != SDL_SYSWM_COCOA && syswm->subsystem != SDL_SYSWM_UIKIT) {
-        return SDL_SetError("Metal render target only supports Cocoa and UIKit video targets at the moment.");
-    }
-
-    // this checks a weak symbol.
 #if (defined(__MACOS__) && (MAC_OS_X_VERSION_MIN_REQUIRED < 101100))
+    // this checks a weak symbol.
     if (MTLCreateSystemDefaultDevice == NULL) { // probably on 10.10 or lower.
-        return SDL_SetError("Metal framework not available on this system");
+        SDL_SetError("Metal framework not available on this system");
+        return SDL_FALSE;
     }
 #endif
-
-    return 0;
+    return SDL_TRUE;
 }
 
 static const MTLBlendOperation invalidBlendOperation = (MTLBlendOperation)0xFFFFFFFF;
@@ -344,7 +339,6 @@ static id<MTLRenderPipelineState> MakePipelineState(METAL_RenderData *data, META
         return (__bridge id<MTLRenderPipelineState>)pipeline.pipe;
     } else {
         CFBridgingRelease(pipeline.pipe);
-        SDL_OutOfMemory();
         return NULL;
     }
 }
@@ -406,7 +400,6 @@ static METAL_ShaderPipelines *ChooseShaderPipelines(METAL_RenderData *data, MTLP
     allpipelines = SDL_realloc(allpipelines, (count + 1) * sizeof(METAL_ShaderPipelines));
 
     if (allpipelines == NULL) {
-        SDL_OutOfMemory();
         return NULL;
     }
 
@@ -549,7 +542,7 @@ static SDL_bool METAL_SupportsBlendMode(SDL_Renderer *renderer, SDL_BlendMode bl
     return SDL_TRUE;
 }
 
-static int METAL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture)
+static int METAL_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture, SDL_PropertiesID create_props)
 {
     @autoreleasepool {
         METAL_RenderData *data = (__bridge METAL_RenderData *)renderer->driverdata;
@@ -1315,6 +1308,11 @@ static SDL_bool SetCopyState(SDL_Renderer *renderer, const SDL_RenderCommand *cm
     return SDL_TRUE;
 }
 
+static void METAL_InvalidateCachedState(SDL_Renderer *renderer)
+{
+    // METAL_DrawStateCache only exists during a run of METAL_RunCommandQueue, so there's nothing to invalidate!
+}
+
 static int METAL_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, void *vertices, size_t vertsize)
 {
     @autoreleasepool {
@@ -1507,7 +1505,7 @@ static int METAL_RenderReadPixels(SDL_Renderer *renderer, const SDL_Rect *rect,
         temp_pitch = rect->w * 4UL;
         temp_pixels = SDL_malloc(temp_pitch * rect->h);
         if (!temp_pixels) {
-            return SDL_OutOfMemory();
+            return -1;
         }
 
         [mtltexture getBytes:temp_pixels bytesPerRow:temp_pitch fromRegion:mtlregion mipmapLevel:0];
@@ -1527,9 +1525,10 @@ static int METAL_RenderPresent(SDL_Renderer *renderer)
 
         // If we don't have a command buffer, we can't present, so activate to get one.
         if (data.mtlcmdencoder == nil) {
-            // We haven't even gotten a backbuffer yet? Clear it to black. Otherwise, load the existing data.
+            // We haven't even gotten a backbuffer yet? Load and clear it. Otherwise, load the existing data.
             if (data.mtlbackbuffer == nil) {
-                MTLClearColor color = MTLClearColorMake(0.0f, 0.0f, 0.0f, 1.0f);
+                float alpha = (SDL_GetWindowFlags(renderer->window) & SDL_WINDOW_TRANSPARENT) ? 0.0f : 1.0f;
+                MTLClearColor color = MTLClearColorMake(0.0f, 0.0f, 0.0f, alpha);
                 ready = METAL_ActivateRenderCommandEncoder(renderer, MTLLoadActionClear, &color, nil);
             } else {
                 ready = METAL_ActivateRenderCommandEncoder(renderer, MTLLoadActionLoad, NULL, nil);
@@ -1630,33 +1629,35 @@ static int METAL_SetVSync(SDL_Renderer *renderer, const int vsync)
 
 static SDL_MetalView GetWindowView(SDL_Window *window)
 {
-    SDL_SysWMinfo info;
-
-    if (SDL_GetWindowWMInfo(window, &info, SDL_SYSWM_CURRENT_VERSION) == 0) {
-#ifdef SDL_ENABLE_SYSWM_COCOA
-        if (info.subsystem == SDL_SYSWM_COCOA) {
-            NSView *view = info.info.cocoa.window.contentView;
-            if (view.subviews.count > 0) {
-                view = view.subviews[0];
-                if (view.tag == SDL_METALVIEW_TAG) {
-                    return (SDL_MetalView)CFBridgingRetain(view);
-                }
-            }
-        }
-#endif
-#ifdef SDL_ENABLE_SYSWM_UIKIT
-        if (info.subsystem == SDL_SYSWM_UIKIT) {
-            UIView *view = info.info.uikit.window.rootViewController.view;
-            if (view.tag == SDL_METALVIEW_TAG) {
+#ifdef SDL_VIDEO_DRIVER_COCOA
+    NSWindow *nswindow = (__bridge NSWindow *)SDL_GetProperty(SDL_GetWindowProperties(window), SDL_PROPERTY_WINDOW_COCOA_WINDOW_POINTER, NULL);
+    NSInteger tag = (NSInteger)SDL_GetNumberProperty(SDL_GetWindowProperties(window), SDL_PROPERTY_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER, 0);
+    if (nswindow && tag) {
+        NSView *view = nswindow.contentView;
+        if (view.subviews.count > 0) {
+            view = view.subviews[0];
+            if (view.tag == tag) {
                 return (SDL_MetalView)CFBridgingRetain(view);
             }
         }
-#endif
     }
+#endif
+
+#ifdef SDL_VIDEO_DRIVER_UIKIT
+    UIWindow *uiwindow = (__bridge UIWindow *)SDL_GetProperty(SDL_GetWindowProperties(window), SDL_PROPERTY_WINDOW_UIKIT_WINDOW_POINTER, NULL);
+    NSInteger tag = (NSInteger)SDL_GetNumberProperty(SDL_GetWindowProperties(window), SDL_PROPERTY_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER, 0);
+    if (uiwindow && tag) {
+        UIView *view = uiwindow.rootViewController.view;
+        if (view.tag == tag) {
+            return (SDL_MetalView)CFBridgingRetain(view);
+        }
+    }
+#endif
+
     return nil;
 }
 
-static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, Uint32 flags)
+static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_props)
 {
     @autoreleasepool {
         SDL_Renderer *renderer = NULL;
@@ -1664,7 +1665,6 @@ static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, Uint32 flags)
         id<MTLDevice> mtldevice = nil;
         SDL_MetalView view = NULL;
         CAMetalLayer *layer = nil;
-        SDL_SysWMinfo syswm;
         NSError *err = nil;
         dispatch_data_t mtllibdata;
         char *constantdata;
@@ -1740,17 +1740,12 @@ static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, Uint32 flags)
             1.0000, 1.7720, 0.0000, 0.0,          /* Bcoeff */
         };
 
-        if (SDL_GetWindowWMInfo(window, &syswm, SDL_SYSWM_CURRENT_VERSION) < 0) {
-            return NULL;
-        }
-
-        if (IsMetalAvailable(&syswm) == -1) {
+        if (!IsMetalAvailable()) {
             return NULL;
         }
 
         renderer = (SDL_Renderer *)SDL_calloc(1, sizeof(*renderer));
         if (!renderer) {
-            SDL_OutOfMemory();
             return NULL;
         }
 
@@ -1801,6 +1796,7 @@ static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, Uint32 flags)
         }
 
         renderer->driverdata = (void *)CFBridgingRetain(data);
+        METAL_InvalidateCachedState(renderer);
         renderer->window = window;
 
         data.mtlview = view;
@@ -1913,6 +1909,7 @@ static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, Uint32 flags)
         renderer->QueueDrawPoints = METAL_QueueDrawPoints;
         renderer->QueueDrawLines = METAL_QueueDrawLines;
         renderer->QueueGeometry = METAL_QueueGeometry;
+        renderer->InvalidateCachedState = METAL_InvalidateCachedState;
         renderer->RunCommandQueue = METAL_RunCommandQueue;
         renderer->RenderReadPixels = METAL_RenderReadPixels;
         renderer->RenderPresent = METAL_RenderPresent;
@@ -1925,11 +1922,9 @@ static SDL_Renderer *METAL_CreateRenderer(SDL_Window *window, Uint32 flags)
         renderer->info = METAL_RenderDriver.info;
         renderer->info.flags = SDL_RENDERER_ACCELERATED;
 
-        renderer->always_batch = SDL_TRUE;
-
 #if (defined(__MACOS__) && defined(MAC_OS_X_VERSION_10_13)) || TARGET_OS_MACCATALYST
         if (@available(macOS 10.13, *)) {
-            data.mtllayer.displaySyncEnabled = (flags & SDL_RENDERER_PRESENTVSYNC) != 0;
+            data.mtllayer.displaySyncEnabled = SDL_GetBooleanProperty(create_props, SDL_PROPERTY_RENDERER_CREATE_PRESENT_VSYNC_BOOLEAN, SDL_FALSE);
             if (data.mtllayer.displaySyncEnabled) {
                 renderer->info.flags |= SDL_RENDERER_PRESENTVSYNC;
             }

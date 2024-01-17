@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,7 @@
 /**
  *  \file SDL_render.h
  *
- *  \brief Header file for SDL 2D rendering functions.
+ *  Header file for SDL 2D rendering functions.
  *
  *  This API supports the following features:
  *      * single pixel points
@@ -50,6 +50,7 @@
 
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_video.h>
 
@@ -95,16 +96,6 @@ typedef struct SDL_Vertex
 } SDL_Vertex;
 
 /**
- * The scaling mode for a texture.
- */
-typedef enum
-{
-    SDL_SCALEMODE_NEAREST, /**< nearest pixel sampling */
-    SDL_SCALEMODE_LINEAR,  /**< linear filtering */
-    SDL_SCALEMODE_BEST     /**< anisotropic filtering */
-} SDL_ScaleMode;
-
-/**
  * The access pattern allowed for a texture.
  */
 typedef enum
@@ -113,16 +104,6 @@ typedef enum
     SDL_TEXTUREACCESS_STREAMING, /**< Changes frequently, lockable */
     SDL_TEXTUREACCESS_TARGET     /**< Texture can be used as a render target */
 } SDL_TextureAccess;
-
-/**
- * The texture channel modulation used in SDL_RenderTexture().
- */
-typedef enum
-{
-    SDL_TEXTUREMODULATE_NONE = 0x00000000,     /**< No modulation */
-    SDL_TEXTUREMODULATE_COLOR = 0x00000001,    /**< srcC = srcC * color */
-    SDL_TEXTUREMODULATE_ALPHA = 0x00000002     /**< srcA = srcA * alpha */
-} SDL_TextureModulate;
 
 /**
  * Flip constants for SDL_RenderTextureRotated
@@ -204,7 +185,6 @@ extern DECLSPEC int SDLCALL SDL_GetNumRenderDrivers(void);
  */
 extern DECLSPEC const char *SDLCALL SDL_GetRenderDriver(int index);
 
-
 /**
  * Create a window and default renderer.
  *
@@ -224,14 +204,13 @@ extern DECLSPEC const char *SDLCALL SDL_GetRenderDriver(int index);
  */
 extern DECLSPEC int SDLCALL SDL_CreateWindowAndRenderer(int width, int height, Uint32 window_flags, SDL_Window **window, SDL_Renderer **renderer);
 
-
 /**
  * Create a 2D rendering context for a window.
  *
  * If you want a specific renderer, you can specify its name here. A list of
  * available renderers can be obtained by calling SDL_GetRenderDriver multiple
  * times, with indices from 0 to SDL_GetNumRenderDrivers()-1. If you don't
- * need a specific renderer, specify NULL and SDL will attempt to chooes the
+ * need a specific renderer, specify NULL and SDL will attempt to choose the
  * best option for you, based on what is available on the user's system.
  *
  * By default the rendering size matches the window size in pixels, but you
@@ -247,13 +226,46 @@ extern DECLSPEC int SDLCALL SDL_CreateWindowAndRenderer(int width, int height, U
  *
  * \since This function is available since SDL 3.0.0.
  *
+ * \sa SDL_CreateRendererWithProperties
  * \sa SDL_CreateSoftwareRenderer
  * \sa SDL_DestroyRenderer
  * \sa SDL_GetNumRenderDrivers
  * \sa SDL_GetRenderDriver
  * \sa SDL_GetRendererInfo
  */
-extern DECLSPEC SDL_Renderer *SDLCALL SDL_CreateRenderer(SDL_Window *window, const char *name, Uint32 flags);
+extern DECLSPEC SDL_Renderer * SDLCALL SDL_CreateRenderer(SDL_Window *window, const char *name, Uint32 flags);
+
+/**
+ * Create a 2D rendering context for a window, with the specified properties.
+ *
+ * These are the supported properties:
+ *
+ * - `SDL_PROPERTY_RENDERER_CREATE_WINDOW_POINTER`: the window where rendering
+ *   is displayed
+ * - `SDL_PROPERTY_RENDERER_CREATE_SURFACE_POINTER`: the surface where
+ *   rendering is displayed, if you want a software renderer without a window
+ * - `SDL_PROPERTY_RENDERER_CREATE_NAME_STRING`: the name of the rendering
+ *   driver to use, if a specific one is desired
+ * - `SDL_PROPERTY_RENDERER_CREATE_PRESENT_VSYNC_BOOLEAN`: true if you want
+ *   present synchronized with the refresh rate
+ *
+ * \param props the properties to use
+ * \returns a valid rendering context or NULL if there was an error; call
+ *          SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 3.0.0.
+ *
+ * \sa SDL_CreateRenderer
+ * \sa SDL_CreateSoftwareRenderer
+ * \sa SDL_DestroyRenderer
+ * \sa SDL_GetRendererInfo
+ */
+extern DECLSPEC SDL_Renderer * SDLCALL SDL_CreateRendererWithProperties(SDL_PropertiesID props);
+
+#define SDL_PROPERTY_RENDERER_CREATE_WINDOW_POINTER         "window"
+#define SDL_PROPERTY_RENDERER_CREATE_SURFACE_POINTER        "surface"
+#define SDL_PROPERTY_RENDERER_CREATE_NAME_STRING            "name"
+#define SDL_PROPERTY_RENDERER_CREATE_PRESENT_VSYNC_BOOLEAN  "present_vsync"
 
 /**
  * Create a 2D software rendering context for a surface.
@@ -316,6 +328,36 @@ extern DECLSPEC SDL_Window *SDLCALL SDL_GetRenderWindow(SDL_Renderer *renderer);
 extern DECLSPEC int SDLCALL SDL_GetRendererInfo(SDL_Renderer *renderer, SDL_RendererInfo *info);
 
 /**
+ * Get the properties associated with a renderer.
+ *
+ * The following read-only properties are provided by SDL:
+ *
+ * - `SDL_PROPERTY_RENDERER_D3D9_DEVICE_POINTER`: the IDirect3DDevice9
+ *   associated with the renderer
+ * - `SDL_PROPERTY_RENDERER_D3D11_DEVICE_POINTER`: the ID3D11Device associated
+ *   with the renderer
+ * - `SDL_PROPERTY_RENDERER_D3D12_DEVICE_POINTER`: the ID3D12Device associated
+ *   with the renderer
+ * - `SDL_PROPERTY_RENDERER_D3D12_COMMAND_QUEUE_POINTER`: the
+ *   ID3D12CommandQueue associated with the renderer
+ *
+ * \param renderer the rendering context
+ * \returns a valid property ID on success or 0 on failure; call
+ *          SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 3.0.0.
+ *
+ * \sa SDL_GetProperty
+ * \sa SDL_SetProperty
+ */
+extern DECLSPEC SDL_PropertiesID SDLCALL SDL_GetRendererProperties(SDL_Renderer *renderer);
+
+#define SDL_PROPERTY_RENDERER_D3D9_DEVICE_POINTER           "SDL.renderer.d3d9.device"
+#define SDL_PROPERTY_RENDERER_D3D11_DEVICE_POINTER          "SDL.renderer.d3d11.device"
+#define SDL_PROPERTY_RENDERER_D3D12_DEVICE_POINTER          "SDL.renderer.d3d12.device"
+#define SDL_PROPERTY_RENDERER_D3D12_COMMAND_QUEUE_POINTER   "SDL.renderer.d3d12.command_queue"
+
+/**
  * Get the output size in pixels of a rendering context.
  *
  * This returns the true output size in pixels, ignoring any render targets or
@@ -372,6 +414,7 @@ extern DECLSPEC int SDLCALL SDL_GetCurrentRenderOutputSize(SDL_Renderer *rendere
  * \since This function is available since SDL 3.0.0.
  *
  * \sa SDL_CreateTextureFromSurface
+ * \sa SDL_CreateTextureWithProperties
  * \sa SDL_DestroyTexture
  * \sa SDL_QueryTexture
  * \sa SDL_UpdateTexture
@@ -399,10 +442,216 @@ extern DECLSPEC SDL_Texture *SDLCALL SDL_CreateTexture(SDL_Renderer *renderer, U
  * \since This function is available since SDL 3.0.0.
  *
  * \sa SDL_CreateTexture
+ * \sa SDL_CreateTextureWithProperties
  * \sa SDL_DestroyTexture
  * \sa SDL_QueryTexture
  */
 extern DECLSPEC SDL_Texture *SDLCALL SDL_CreateTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *surface);
+
+/**
+ * Create a texture for a rendering context with the specified properties.
+ *
+ * These are the supported properties:
+ *
+ * - `SDL_PROPERTY_TEXTURE_CREATE_FORMAT_NUMBER`: one of the enumerated values
+ *   in SDL_PixelFormatEnum, defaults to the best RGBA format for the renderer
+ * - `SDL_PROPERTY_TEXTURE_CREATE_ACCESS_NUMBER`: one of the enumerated values
+ *   in SDL_TextureAccess, defaults to SDL_TEXTUREACCESS_STATIC
+ * - `SDL_PROPERTY_TEXTURE_CREATE_WIDTH_NUMBER`: the width of the texture in
+ *   pixels, required
+ * - `SDL_PROPERTY_TEXTURE_CREATE_HEIGHT_NUMBER`: the height of the texture in
+ *   pixels, required
+ *
+ * With the direct3d11 renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_CREATE_D3D11_TEXTURE_POINTER`: the ID3D11Texture2D
+ *   associated with the texture, if you want to wrap an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_D3D11_TEXTURE_U_POINTER`: the
+ *   ID3D11Texture2D associated with the U plane of a YUV texture, if you want
+ *   to wrap an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_D3D11_TEXTURE_V_POINTER`: the
+ *   ID3D11Texture2D associated with the V plane of a YUV texture, if you want
+ *   to wrap an existing texture.
+ *
+ * With the direct3d12 renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_CREATE_D3D12_TEXTURE_POINTER`: the ID3D12Resource
+ *   associated with the texture, if you want to wrap an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_D3D12_TEXTURE_U_POINTER`: the ID3D12Resource
+ *   associated with the U plane of a YUV texture, if you want to wrap an
+ *   existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_D3D12_TEXTURE_V_POINTER`: the ID3D12Resource
+ *   associated with the V plane of a YUV texture, if you want to wrap an
+ *   existing texture.
+ *
+ * With the opengl renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_NUMBER`: the GLuint texture
+ *   associated with the texture, if you want to wrap an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_UV_NUMBER`: the GLuint
+ *   texture associated with the UV plane of an NV12 texture, if you want to
+ *   wrap an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_U_NUMBER`: the GLuint texture
+ *   associated with the U plane of a YUV texture, if you want to wrap an
+ *   existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`: the GLuint texture
+ *   associated with the V plane of a YUV texture, if you want to wrap an
+ *   existing texture.
+ *
+ * With the opengles2 renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER`: the GLuint
+ *   texture associated with the texture, if you want to wrap an existing
+ *   texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER`: the GLuint
+ *   texture associated with the texture, if you want to wrap an existing
+ *   texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_UV_NUMBER`: the GLuint
+ *   texture associated with the UV plane of an NV12 texture, if you want to
+ *   wrap an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_U_NUMBER`: the GLuint
+ *   texture associated with the U plane of a YUV texture, if you want to wrap
+ *   an existing texture.
+ * - `SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER`: the GLuint
+ *   texture associated with the V plane of a YUV texture, if you want to wrap
+ *   an existing texture.
+ *
+ * \param renderer the rendering context
+ * \param props the properties to use
+ * \returns a pointer to the created texture or NULL if no rendering context
+ *          was active, the format was unsupported, or the width or height
+ *          were out of range; call SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 3.0.0.
+ *
+ * \sa SDL_CreateTextureFromSurface
+ * \sa SDL_CreateTexture
+ * \sa SDL_DestroyTexture
+ * \sa SDL_QueryTexture
+ * \sa SDL_UpdateTexture
+ */
+extern DECLSPEC SDL_Texture *SDLCALL SDL_CreateTextureWithProperties(SDL_Renderer *renderer, SDL_PropertiesID props);
+
+#define SDL_PROPERTY_TEXTURE_CREATE_FORMAT_NUMBER               "format"
+#define SDL_PROPERTY_TEXTURE_CREATE_ACCESS_NUMBER               "access"
+#define SDL_PROPERTY_TEXTURE_CREATE_WIDTH_NUMBER                "width"
+#define SDL_PROPERTY_TEXTURE_CREATE_HEIGHT_NUMBER               "height"
+#define SDL_PROPERTY_TEXTURE_CREATE_D3D11_TEXTURE_POINTER       "d3d11.texture"
+#define SDL_PROPERTY_TEXTURE_CREATE_D3D11_TEXTURE_U_POINTER     "d3d11.texture_u"
+#define SDL_PROPERTY_TEXTURE_CREATE_D3D11_TEXTURE_V_POINTER     "d3d11.texture_v"
+#define SDL_PROPERTY_TEXTURE_CREATE_D3D12_TEXTURE_POINTER       "d3d12.texture"
+#define SDL_PROPERTY_TEXTURE_CREATE_D3D12_TEXTURE_U_POINTER     "d3d12.texture_u"
+#define SDL_PROPERTY_TEXTURE_CREATE_D3D12_TEXTURE_V_POINTER     "d3d12.texture_v"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_NUMBER       "opengl.texture"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_UV_NUMBER    "opengl.texture_uv"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_U_NUMBER     "opengl.texture_u"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER     "opengl.texture_v"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER    "opengles2.texture"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER    "opengles2.texture"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_UV_NUMBER "opengles2.texture_uv"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_U_NUMBER  "opengles2.texture_u"
+#define SDL_PROPERTY_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER  "opengles2.texture_v"
+
+
+/**
+ * Get the properties associated with a texture.
+ *
+ * The following read-only properties are provided by SDL:
+ *
+ * With the direct3d11 renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_D3D11_TEXTURE_POINTER`: the ID3D11Texture2D
+ *   associated with the texture
+ * - `SDL_PROPERTY_TEXTURE_D3D11_TEXTURE_U_POINTER`: the ID3D11Texture2D
+ *   associated with the U plane of a YUV texture
+ * - `SDL_PROPERTY_TEXTURE_D3D11_TEXTURE_V_POINTER`: the ID3D11Texture2D
+ *   associated with the V plane of a YUV texture
+ *
+ * With the direct3d12 renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_D3D12_TEXTURE_POINTER`: the ID3D12Resource
+ *   associated with the texture
+ * - `SDL_PROPERTY_TEXTURE_D3D12_TEXTURE_U_POINTER`: the ID3D12Resource
+ *   associated with the U plane of a YUV texture
+ * - `SDL_PROPERTY_TEXTURE_D3D12_TEXTURE_V_POINTER`: the ID3D12Resource
+ *   associated with the V plane of a YUV texture
+ *
+ * With the opengl renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_NUMBER`: the GLuint texture
+ *   associated with the texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_UV_NUMBER`: the GLuint texture
+ *   associated with the UV plane of an NV12 texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_U_NUMBER`: the GLuint texture
+ *   associated with the U plane of a YUV texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_V_NUMBER`: the GLuint texture
+ *   associated with the V plane of a YUV texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_TARGET`: the GLenum for the texture
+ *   target (`GL_TEXTURE_2D`, `GL_TEXTURE_RECTANGLE_ARB`, etc)
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEX_W_FLOAT`: the texture coordinate width
+ *   of the texture (0.0 - 1.0)
+ * - `SDL_PROPERTY_TEXTURE_OPENGL_TEX_H_FLOAT`: the texture coordinate height
+ *   of the texture (0.0 - 1.0)
+ *
+ * With the opengles2 renderer:
+ *
+ * - `SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_NUMBER`: the GLuint texture
+ *   associated with the texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER`: the GLuint texture
+ *   associated with the UV plane of an NV12 texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER`: the GLuint texture
+ *   associated with the U plane of a YUV texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER`: the GLuint texture
+ *   associated with the V plane of a YUV texture
+ * - `SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_TARGET`: the GLenum for the
+ *   texture target (`GL_TEXTURE_2D`, `GL_TEXTURE_EXTERNAL_OES`, etc)
+ *
+ * \param texture the texture to query
+ * \returns a valid property ID on success or 0 on failure; call
+ *          SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 3.0.0.
+ *
+ * \sa SDL_GetProperty
+ * \sa SDL_SetProperty
+ */
+extern DECLSPEC SDL_PropertiesID SDLCALL SDL_GetTextureProperties(SDL_Texture *texture);
+
+#define SDL_PROPERTY_TEXTURE_D3D11_TEXTURE_POINTER              "SDL.texture.d3d11.texture"
+#define SDL_PROPERTY_TEXTURE_D3D11_TEXTURE_U_POINTER            "SDL.texture.d3d11.texture_u"
+#define SDL_PROPERTY_TEXTURE_D3D11_TEXTURE_V_POINTER            "SDL.texture.d3d11.texture_v"
+#define SDL_PROPERTY_TEXTURE_D3D12_TEXTURE_POINTER              "SDL.texture.d3d12.texture"
+#define SDL_PROPERTY_TEXTURE_D3D12_TEXTURE_U_POINTER            "SDL.texture.d3d12.texture_u"
+#define SDL_PROPERTY_TEXTURE_D3D12_TEXTURE_V_POINTER            "SDL.texture.d3d12.texture_v"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_NUMBER              "SDL.texture.opengl.texture"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_UV_NUMBER           "SDL.texture.opengl.texture_uv"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_U_NUMBER            "SDL.texture.opengl.texture_u"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_V_NUMBER            "SDL.texture.opengl.texture_v"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEXTURE_TARGET              "SDL.texture.opengl.target"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEX_W_FLOAT                 "SDL.texture.opengl.tex_w"
+#define SDL_PROPERTY_TEXTURE_OPENGL_TEX_H_FLOAT                 "SDL.texture.opengl.tex_h"
+#define SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_NUMBER           "SDL.texture.opengles2.texture"
+#define SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER        "SDL.texture.opengles2.texture_uv"
+#define SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER         "SDL.texture.opengles2.texture_u"
+#define SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER         "SDL.texture.opengles2.texture_v"
+#define SDL_PROPERTY_TEXTURE_OPENGLES2_TEXTURE_TARGET           "SDL.texture.opengles2.target"
+
+/**
+ * Get the renderer that created an SDL_Texture.
+ *
+ * \param texture the texture to query
+ * \returns a pointer to the SDL_Renderer that created the texture, or NULL on
+ *          failure; call SDL_GetError() for more information.
+ *
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.0.0.
+ *
+ * \sa SDL_CreateTexture
+ * \sa SDL_CreateTextureFromSurface
+ * \sa SDL_CreateTextureWithProperties
+ */
+extern DECLSPEC SDL_Renderer *SDLCALL SDL_GetRendererFromTexture(SDL_Texture *texture);
 
 /**
  * Query the attributes of a texture.
@@ -571,33 +820,6 @@ extern DECLSPEC int SDLCALL SDL_SetTextureScaleMode(SDL_Texture *texture, SDL_Sc
  * \sa SDL_SetTextureScaleMode
  */
 extern DECLSPEC int SDLCALL SDL_GetTextureScaleMode(SDL_Texture *texture, SDL_ScaleMode *scaleMode);
-
-/**
- * Associate a user-specified pointer with a texture.
- *
- * \param texture the texture to update.
- * \param userdata the pointer to associate with the texture.
- * \returns 0 on success or a negative error code on failure; call
- *          SDL_GetError() for more information.
- *
- * \since This function is available since SDL 3.0.0.
- *
- * \sa SDL_GetTextureUserData
- */
-extern DECLSPEC int SDLCALL SDL_SetTextureUserData(SDL_Texture *texture, void *userdata);
-
-/**
- * Get the user-specified pointer associated with a texture
- *
- * \param texture the texture to query.
- * \returns the pointer associated with the texture, or NULL if the texture is
- *          not valid.
- *
- * \since This function is available since SDL 3.0.0.
- *
- * \sa SDL_SetTextureUserData
- */
-extern DECLSPEC void *SDLCALL SDL_GetTextureUserData(SDL_Texture *texture);
 
 /**
  * Update the given texture rectangle with new pixel data.
@@ -1445,27 +1667,27 @@ extern DECLSPEC void SDLCALL SDL_DestroyTexture(SDL_Texture *texture);
 extern DECLSPEC void SDLCALL SDL_DestroyRenderer(SDL_Renderer *renderer);
 
 /**
- * Force the rendering context to flush any pending commands to the underlying
- * rendering API.
+ * Force the rendering context to flush any pending commands and state.
  *
  * You do not need to (and in fact, shouldn't) call this function unless you
- * are planning to call into OpenGL/Direct3D/Metal/whatever directly in
+ * are planning to call into OpenGL/Direct3D/Metal/whatever directly, in
  * addition to using an SDL_Renderer.
  *
- * This is for a very-specific case: if you are using SDL's render API, you
- * asked for a specific renderer backend (OpenGL, Direct3D, etc), you set
- * SDL_HINT_RENDER_BATCHING to "1", and you plan to make OpenGL/D3D/whatever
- * calls in addition to SDL render API calls. If all of this applies, you
- * should call SDL_RenderFlush() between calls to SDL's render API and the
- * low-level API you're using in cooperation.
+ * This is for a very-specific case: if you are using SDL's render API, and
+ * you plan to make OpenGL/D3D/whatever calls in addition to SDL render API
+ * calls. If this applies, you should call this function between calls to
+ * SDL's render API and the low-level API you're using in cooperation.
  *
- * In all other cases, you can ignore this function. This is only here to get
- * maximum performance out of a specific situation. In all other cases, SDL
- * will do the right thing, perhaps at a performance loss.
+ * In all other cases, you can ignore this function.
  *
- * This function is first available in SDL 2.0.10, and is not needed in 2.0.9
- * and earlier, as earlier versions did not queue rendering commands at all,
- * instead flushing them to the OS immediately.
+ * This call makes SDL flush any pending rendering work it was queueing up to
+ * do later in a single batch, and marks any internal cached state as invalid,
+ * so it'll prepare all its state again later, from scratch.
+ *
+ * This means you do not need to save state in your rendering code to protect
+ * the SDL renderer. However, there lots of arbitrary pieces of Direct3D and
+ * OpenGL state that can confuse things; you should use your best judgement
+ * and be prepared to make changes if specific state needs to be protected.
  *
  * \param renderer the rendering context
  * \returns 0 on success or a negative error code on failure; call
@@ -1473,61 +1695,7 @@ extern DECLSPEC void SDLCALL SDL_DestroyRenderer(SDL_Renderer *renderer);
  *
  * \since This function is available since SDL 3.0.0.
  */
-extern DECLSPEC int SDLCALL SDL_RenderFlush(SDL_Renderer *renderer);
-
-
-/**
- * Bind an OpenGL/ES/ES2 texture to the current context.
- *
- * This is for use with OpenGL instructions when rendering OpenGL primitives
- * directly.
- *
- * If not NULL, `texw` and `texh` will be filled with the width and height
- * values suitable for the provided texture. In most cases, both will be 1.0,
- * however, on systems that support the GL_ARB_texture_rectangle extension,
- * these values will actually be the pixel width and height used to create the
- * texture, so this factor needs to be taken into account when providing
- * texture coordinates to OpenGL.
- *
- * You need a renderer to create an SDL_Texture, therefore you can only use
- * this function with an implicit OpenGL context from SDL_CreateRenderer(),
- * not with your own OpenGL context. If you need control over your OpenGL
- * context, you need to write your own texture-loading methods.
- *
- * Also note that SDL may upload RGB textures as BGR (or vice-versa), and
- * re-order the color channels in the shaders phase, so the uploaded texture
- * may have swapped color channels.
- *
- * \param texture the texture to bind to the current OpenGL/ES/ES2 context
- * \param texw a pointer to a float value which will be filled with the
- *             texture width or NULL if you don't need that value
- * \param texh a pointer to a float value which will be filled with the
- *             texture height or NULL if you don't need that value
- * \returns 0 on success or a negative error code on failure; call
- *          SDL_GetError() for more information.
- *
- * \since This function is available since SDL 3.0.0.
- *
- * \sa SDL_GL_MakeCurrent
- * \sa SDL_GL_UnbindTexture
- */
-extern DECLSPEC int SDLCALL SDL_GL_BindTexture(SDL_Texture *texture, float *texw, float *texh);
-
-/**
- * Unbind an OpenGL/ES/ES2 texture from the current context.
- *
- * See SDL_GL_BindTexture() for examples on how to use these functions
- *
- * \param texture the texture to unbind from the current OpenGL/ES/ES2 context
- * \returns 0 on success or a negative error code on failure; call
- *          SDL_GetError() for more information.
- *
- * \since This function is available since SDL 3.0.0.
- *
- * \sa SDL_GL_BindTexture
- * \sa SDL_GL_MakeCurrent
- */
-extern DECLSPEC int SDLCALL SDL_GL_UnbindTexture(SDL_Texture *texture);
+extern DECLSPEC int SDLCALL SDL_FlushRenderer(SDL_Renderer *renderer);
 
 /**
  * Get the CAMetalLayer associated with the given Metal renderer.

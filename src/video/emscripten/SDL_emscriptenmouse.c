@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -42,14 +42,11 @@
 
 static SDL_Cursor *Emscripten_CreateCursorFromString(const char *cursor_str, SDL_bool is_custom)
 {
-    SDL_Cursor *cursor;
     Emscripten_CursorData *curdata;
-
-    cursor = SDL_calloc(1, sizeof(SDL_Cursor));
+    SDL_Cursor *cursor = SDL_calloc(1, sizeof(SDL_Cursor));
     if (cursor) {
         curdata = (Emscripten_CursorData *)SDL_calloc(1, sizeof(*curdata));
-        if (curdata == NULL) {
-            SDL_OutOfMemory();
+        if (!curdata) {
             SDL_free(cursor);
             return NULL;
         }
@@ -57,8 +54,6 @@ static SDL_Cursor *Emscripten_CreateCursorFromString(const char *cursor_str, SDL
         curdata->system_cursor = cursor_str;
         curdata->is_custom = is_custom;
         cursor->driverdata = curdata;
-    } else {
-        SDL_OutOfMemory();
     }
 
     return cursor;
@@ -78,7 +73,7 @@ static SDL_Cursor *Emscripten_CreateCursor(SDL_Surface *surface, int hot_x, int 
 
     conv_surf = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888);
 
-    if (conv_surf == NULL) {
+    if (!conv_surf) {
         return NULL;
     }
 
@@ -161,6 +156,30 @@ static SDL_Cursor *Emscripten_CreateSystemCursor(SDL_SystemCursor id)
     case SDL_SYSTEM_CURSOR_HAND:
         cursor_name = "pointer";
         break;
+    case SDL_SYSTEM_CURSOR_WINDOW_TOPLEFT:
+        cursor_name = "nwse-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_TOP:
+        cursor_name = "ns-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_TOPRIGHT:
+        cursor_name = "nesw-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_RIGHT:
+        cursor_name = "ew-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_BOTTOMRIGHT:
+        cursor_name = "nwse-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_BOTTOM:
+        cursor_name = "ns-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_BOTTOMLEFT:
+        cursor_name = "nesw-resize";
+        break;
+    case SDL_SYSTEM_CURSOR_WINDOW_LEFT:
+        cursor_name = "ew-resize";
+        break;
     default:
         SDL_assert(0);
         return NULL;
@@ -175,7 +194,7 @@ static void Emscripten_FreeCursor(SDL_Cursor *cursor)
     if (cursor) {
         curdata = (Emscripten_CursorData *)cursor->driverdata;
 
-        if (curdata != NULL) {
+        if (curdata) {
             if (curdata->is_custom) {
                 SDL_free((char *)curdata->system_cursor);
             }
@@ -223,7 +242,7 @@ static int Emscripten_SetRelativeMouseMode(SDL_bool enabled)
     /* TODO: pointer lock isn't actually enabled yet */
     if (enabled) {
         window = SDL_GetMouseFocus();
-        if (window == NULL) {
+        if (!window) {
             return -1;
         }
 

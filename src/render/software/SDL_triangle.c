@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -86,9 +86,9 @@ int SDL_FillTriangle(SDL_Surface *dst, const SDL_Point points[3], Uint32 color)
 #endif
 
 /* cross product AB x AC */
-static int cross_product(const SDL_Point *a, const SDL_Point *b, int c_x, int c_y)
+static Sint64 cross_product(const SDL_Point *a, const SDL_Point *b, int c_x, int c_y)
 {
-    return (b->x - a->x) * (c_y - a->y) - (b->y - a->y) * (c_x - a->x);
+    return ((Sint64)(b->x - a->x)) * ((Sint64)(c_y - a->y)) - ((Sint64)(b->y - a->y)) * ((Sint64)(c_x - a->x));
 }
 
 /* check for top left rules */
@@ -112,10 +112,23 @@ static int is_top_left(const SDL_Point *a, const SDL_Point *b, int is_clockwise)
     return 0;
 }
 
+/* x = (y << FP_BITS) */
+/* prevent runtime error: left shift of negative value */
+#define PRECOMP(x, y)               \
+        val = y;                    \
+        if (val >= 0) {             \
+            x = val << FP_BITS;     \
+        } else {                    \
+            val *= -1;              \
+            x = val << FP_BITS;     \
+            x *= -1;                \
+        }
+
 void trianglepoint_2_fixedpoint(SDL_Point *a)
 {
-    a->x <<= FP_BITS;
-    a->y <<= FP_BITS;
+    int val;
+    PRECOMP(a->x, a->x);
+    PRECOMP(a->y, a->y);
 }
 
 /* bounding rect of three points (in fixed point) */
@@ -157,9 +170,9 @@ static void bounding_rect(const SDL_Point *a, const SDL_Point *b, const SDL_Poin
         int x, y;                                                                  \
         for (y = 0; y < dstrect.h; y++) {                                          \
             /* y start */                                                          \
-            int w0 = w0_row;                                                       \
-            int w1 = w1_row;                                                       \
-            int w2 = w2_row;                                                       \
+            Sint64 w0 = w0_row;                                                    \
+            Sint64 w1 = w1_row;                                                    \
+            Sint64 w2 = w2_row;                                                    \
             for (x = 0; x < dstrect.w; x++) {                                      \
                 /* In triangle */                                                  \
                 if (w0 + bias_w0 >= 0 && w1 + bias_w1 >= 0 && w2 + bias_w2 >= 0) { \
@@ -212,14 +225,14 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
     int area, is_clockwise;
 
     int d2d1_y, d1d2_x, d0d2_y, d2d0_x, d1d0_y, d0d1_x;
-    int w0_row, w1_row, w2_row;
+    Sint64 w0_row, w1_row, w2_row;
     int bias_w0, bias_w1, bias_w2;
 
     int is_uniform;
 
     SDL_Surface *tmp = NULL;
 
-    if (dst == NULL) {
+    if (!dst) {
         return -1;
     }
 
@@ -271,7 +284,7 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
 
         /* Use an intermediate surface */
         tmp = SDL_CreateSurface(dstrect.w, dstrect.h, format);
-        if (tmp == NULL) {
+        if (!tmp) {
             ret = -1;
             goto end;
         }
@@ -297,12 +310,15 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
     is_clockwise = area > 0;
     area = SDL_abs(area);
 
-    d2d1_y = (d1->y - d2->y) << FP_BITS;
-    d0d2_y = (d2->y - d0->y) << FP_BITS;
-    d1d0_y = (d0->y - d1->y) << FP_BITS;
-    d1d2_x = (d2->x - d1->x) << FP_BITS;
-    d2d0_x = (d0->x - d2->x) << FP_BITS;
-    d0d1_x = (d1->x - d0->x) << FP_BITS;
+    {
+        int val;
+        PRECOMP(d2d1_y, d1->y - d2->y)
+        PRECOMP(d0d2_y, d2->y - d0->y)
+        PRECOMP(d1d0_y, d0->y - d1->y)
+        PRECOMP(d1d2_x, d2->x - d1->x)
+        PRECOMP(d2d0_x, d0->x - d2->x)
+        PRECOMP(d0d1_x, d1->x - d0->x)
+    }
 
     /* Starting point for rendering, at the middle of a pixel */
     {
@@ -338,12 +354,7 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
     if (is_uniform) {
         Uint32 color;
         if (tmp) {
-            if (dst->format->Amask) {
-                color = SDL_MapRGBA(tmp->format, c0.r, c0.g, c0.b, c0.a);
-            } else {
-                // color = SDL_MapRGB(tmp->format, c0.r, c0.g, c0.b);
-                color = SDL_MapRGBA(tmp->format, c0.r, c0.g, c0.b, c0.a);
-            }
+            color = SDL_MapRGBA(tmp->format, c0.r, c0.g, c0.b, c0.a);
         } else {
             color = SDL_MapRGBA(dst->format, c0.r, c0.g, c0.b, c0.a);
         }
@@ -457,14 +468,14 @@ int SDL_SW_BlitTriangle(
     int d2d1_y, d1d2_x, d0d2_y, d2d0_x, d1d0_y, d0d1_x;
     int s2s0_x, s2s1_x, s2s0_y, s2s1_y;
 
-    int w0_row, w1_row, w2_row;
+    Sint64 w0_row, w1_row, w2_row;
     int bias_w0, bias_w1, bias_w2;
 
     int is_uniform;
 
     int has_modulation;
 
-    if (src == NULL || dst == NULL) {
+    if (!src || !dst) {
         return -1;
     }
 
@@ -569,13 +580,15 @@ int SDL_SW_BlitTriangle(
     is_clockwise = area > 0;
     area = SDL_abs(area);
 
-    d2d1_y = (d1->y - d2->y) << FP_BITS;
-    d0d2_y = (d2->y - d0->y) << FP_BITS;
-    d1d0_y = (d0->y - d1->y) << FP_BITS;
-
-    d1d2_x = (d2->x - d1->x) << FP_BITS;
-    d2d0_x = (d0->x - d2->x) << FP_BITS;
-    d0d1_x = (d1->x - d0->x) << FP_BITS;
+    {
+        int val;
+        PRECOMP(d2d1_y, d1->y - d2->y)
+        PRECOMP(d0d2_y, d2->y - d0->y)
+        PRECOMP(d1d0_y, d0->y - d1->y)
+        PRECOMP(d1d2_x, d2->x - d1->x)
+        PRECOMP(d2d0_x, d0->x - d2->x)
+        PRECOMP(d0d1_x, d1->x - d0->x)
+    }
 
     s2s0_x = s0->x - s2->x;
     s2s1_x = s1->x - s2->x;
@@ -788,15 +801,20 @@ static void SDL_BlitTriangle_Slow(SDL_BlitInfo *info,
                 continue;
             }
         }
-        if (FORMAT_HAS_ALPHA(dstfmt_val)) {
-            DISEMBLE_RGBA(dst, dstbpp, dst_fmt, dstpixel, dstR, dstG, dstB, dstA);
-        } else if (FORMAT_HAS_NO_ALPHA(dstfmt_val)) {
-            DISEMBLE_RGB(dst, dstbpp, dst_fmt, dstpixel, dstR, dstG, dstB);
-            dstA = 0xFF;
+        if ((flags & (SDL_COPY_BLEND | SDL_COPY_ADD | SDL_COPY_MOD | SDL_COPY_MUL))) {
+            if (FORMAT_HAS_ALPHA(dstfmt_val)) {
+                DISEMBLE_RGBA(dst, dstbpp, dst_fmt, dstpixel, dstR, dstG, dstB, dstA);
+            } else if (FORMAT_HAS_NO_ALPHA(dstfmt_val)) {
+                DISEMBLE_RGB(dst, dstbpp, dst_fmt, dstpixel, dstR, dstG, dstB);
+                dstA = 0xFF;
+            } else {
+                /* SDL_PIXELFORMAT_ARGB2101010 */
+                dstpixel = *((Uint32 *) (dst));
+                RGBA_FROM_ARGB2101010(dstpixel, dstR, dstG, dstB, dstA);
+            }
         } else {
-            /* SDL_PIXELFORMAT_ARGB2101010 */
-            dstpixel = *((Uint32 *)(dst));
-            RGBA_FROM_ARGB2101010(dstpixel, dstR, dstG, dstB, dstA);
+            /* don't care */
+            dstR = dstG = dstB = dstA = 0;
         }
 
         if (!is_uniform) {

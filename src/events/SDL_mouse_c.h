@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -162,6 +162,9 @@ extern void SDL_PerformWarpMouseInWindow(SDL_Window *window, float x, float y, S
 #if 0
 extern void SDL_ResetMouse(void);
 #endif /* 0 */
+
+/* Check if mouse position is within window or captured by window */
+extern SDL_bool SDL_MousePositionInWindow(SDL_Window *window, SDL_MouseID mouseID, float x, float y);
 
 /* Shutdown the mouse subsystem */
 extern void SDL_QuitMouse(void);

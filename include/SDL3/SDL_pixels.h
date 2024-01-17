@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,43 @@
 /**
  *  \file SDL_pixels.h
  *
- *  \brief Header for the enumerated pixel format definitions.
+ *  Header for the enumerated pixel format definitions.
+ *
+ *  SDL's pixel formats have the following naming convention:
+ *
+ *      * Names with a list of components and a single bit count, such as
+ *        RGB24 and ABGR32, define a platform-independent encoding into
+ *        bytes in the order specified. For example, in RGB24 data, each
+ *        pixel is encoded in 3 bytes (red, green, blue) in that order,
+ *        and in ABGR32 data, each pixel is encoded in 4 bytes
+ *        (alpha, blue, green, red) in that order. Use these names if the
+ *        property of a format that is important to you is the order of
+ *        the bytes in memory or on disk.
+ *
+ *      * Names with a bit count per component, such as ARGB8888 and
+ *        XRGB1555, are "packed" into an appropriately-sized integer in
+ *        the platform's native endianness. For example, ARGB8888 is
+ *        a sequence of 32-bit integers; in each integer, the most
+ *        significant bits are alpha, and the least significant bits are
+ *        blue. On a little-endian CPU such as x86, the least significant
+ *        bits of each integer are arranged first in memory, but on a
+ *        big-endian CPU such as s390x, the most significant bits are
+ *        arranged first. Use these names if the property of a format that
+ *        is important to you is the meaning of each bit position within a
+ *        native-endianness integer.
+ *
+ *      * In indexed formats such as INDEX4LSB, each pixel is represented
+ *        by encoding an index into the palette into the indicated number
+ *        of bits, with multiple pixels packed into each byte if appropriate.
+ *        In LSB formats, the first (leftmost) pixel is stored in the
+ *        least-significant bits of the byte; in MSB formats, it's stored
+ *        in the most-significant bits. INDEX8 does not need LSB/MSB
+ *        variants, because each pixel exactly fills one byte.
+ *
+ *  The 32-bit byte-array encodings such as RGBA32 are aliases for the
+ *  appropriate 8888 encoding for the current platform. For example,
+ *  RGBA32 is an alias for ABGR8888 on little-endian CPUs like x86,
+ *  or an alias for RGBA8888 on big-endian CPUs.
  */
 
 #ifndef SDL_pixels_h_
@@ -61,7 +97,9 @@ typedef enum
     SDL_PIXELTYPE_ARRAYU16,
     SDL_PIXELTYPE_ARRAYU32,
     SDL_PIXELTYPE_ARRAYF16,
-    SDL_PIXELTYPE_ARRAYF32
+    SDL_PIXELTYPE_ARRAYF32,
+    /* appended at the end for compatibility with sdl2-compat:  */
+    SDL_PIXELTYPE_INDEX2
 } SDL_PixelType;
 
 /** Bitmap pixel order, high bit -> low bit. */
@@ -130,6 +168,7 @@ typedef enum
 #define SDL_ISPIXELFORMAT_INDEXED(format)   \
     (!SDL_ISPIXELFORMAT_FOURCC(format) && \
      ((SDL_PIXELTYPE(format) == SDL_PIXELTYPE_INDEX1) || \
+      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_INDEX2) || \
       (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_INDEX4) || \
       (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_INDEX8)))
 
@@ -154,6 +193,10 @@ typedef enum
       (SDL_PIXELORDER(format) == SDL_PACKEDORDER_ABGR) || \
       (SDL_PIXELORDER(format) == SDL_PACKEDORDER_BGRA))))
 
+#define SDL_ISPIXELFORMAT_10BIT(format)    \
+      ((SDL_PIXELTYPE(format) == SDL_PIXELTYPE_PACKED32) && \
+       (SDL_PIXELLAYOUT(format) == SDL_PACKEDLAYOUT_2101010))
+
 /* The flag is set to 1 because 0x1? is not in the printable ASCII range */
 #define SDL_ISPIXELFORMAT_FOURCC(format)    \
     ((format) && (SDL_PIXELFLAG(format) != 1))
@@ -168,6 +211,12 @@ typedef enum
     SDL_PIXELFORMAT_INDEX1MSB =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_INDEX1, SDL_BITMAPORDER_1234, 0,
                                1, 0),
+    SDL_PIXELFORMAT_INDEX2LSB =
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_INDEX2, SDL_BITMAPORDER_4321, 0,
+                               2, 0),
+    SDL_PIXELFORMAT_INDEX2MSB =
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_INDEX2, SDL_BITMAPORDER_1234, 0,
+                               2, 0),
     SDL_PIXELFORMAT_INDEX4LSB =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_INDEX4, SDL_BITMAPORDER_4321, 0,
                                4, 0),
@@ -255,8 +304,17 @@ typedef enum
     SDL_PIXELFORMAT_BGRA8888 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_BGRA,
                                SDL_PACKEDLAYOUT_8888, 32, 4),
+    SDL_PIXELFORMAT_XRGB2101010 =
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_XRGB,
+                               SDL_PACKEDLAYOUT_2101010, 32, 4),
+    SDL_PIXELFORMAT_XBGR2101010 =
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_XBGR,
+                               SDL_PACKEDLAYOUT_2101010, 32, 4),
     SDL_PIXELFORMAT_ARGB2101010 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_ARGB,
+                               SDL_PACKEDLAYOUT_2101010, 32, 4),
+    SDL_PIXELFORMAT_ABGR2101010 =
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_ABGR,
                                SDL_PACKEDLAYOUT_2101010, 32, 4),
 
     /* Aliases for RGBA byte arrays of color data, for the current platform */

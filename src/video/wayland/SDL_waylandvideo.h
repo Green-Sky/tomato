@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -34,12 +34,6 @@
 struct xkb_context;
 struct SDL_WaylandInput;
 struct SDL_WaylandTabletManager;
-
-#ifdef SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH
-struct SDL_WaylandTouch;
-struct qt_surface_extension;
-struct qt_windowmanager;
-#endif /* SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH */
 
 typedef struct
 {
@@ -84,13 +78,8 @@ struct SDL_VideoData
     struct SDL_WaylandTabletManager *tablet_manager;
     struct wl_list output_list;
 
-#ifdef SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH
-    struct SDL_WaylandTouch *touch;
-    struct qt_surface_extension *surface_extension;
-    struct qt_windowmanager *windowmanager;
-#endif /* SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH */
-
     int relative_mouse_mode;
+    SDL_bool display_externally_owned;
 };
 
 struct SDL_DisplayData
@@ -118,6 +107,10 @@ extern void SDL_WAYLAND_register_surface(struct wl_surface *surface);
 extern void SDL_WAYLAND_register_output(struct wl_output *output);
 extern SDL_bool SDL_WAYLAND_own_surface(struct wl_surface *surface);
 extern SDL_bool SDL_WAYLAND_own_output(struct wl_output *output);
+
+extern SDL_WindowData *Wayland_GetWindowDataForOwnedSurface(struct wl_surface *surface);
+void Wayland_AddWindowDataToExternalList(SDL_WindowData *data);
+void Wayland_RemoveWindowDataFromExternalList(SDL_WindowData *data);
 
 extern SDL_bool Wayland_LoadLibdecor(SDL_VideoData *data, SDL_bool ignore_xdg);
 
