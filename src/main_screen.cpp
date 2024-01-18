@@ -53,7 +53,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 		// TODO: pm?
 
 		// graphics
-		g_provideInstance("ImGuiContext", "v1.90.1", "host", ImGui::GetCurrentContext());
+		g_provideInstance("ImGuiContext", ImGui::GetVersion(), "host", ImGui::GetCurrentContext());
 		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
 	}
 
