@@ -45,7 +45,7 @@ static float lerp(float a, float b, float t) {
 	return a + t * (b - a);
 }
 
-static std::string file_url_escape(const std::string&& value) {
+static std::string file_path_url_escape(const std::string&& value) {
 	std::ostringstream escaped;
 
 	escaped << std::hex;
@@ -748,7 +748,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
 				if (ImGui::MenuItem("open")) {
-					std::string url{"file://" + file_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
+					std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
 					std::cout << "opening file '" << url << "'\n";
 					SDL_OpenURL(url.c_str());
 				}
@@ -759,26 +759,49 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		ImGui::PopID();
 	}
 
-	if (file_list.size() == 1 && reg.all_of<Message::Components::Transfer::FileInfoLocal, Message::Components::FrameDims>(e)) {
-		auto [id, width, height] = _msg_tc.get(Message3Handle{reg, e});
-
-		// if cache gives 0s, fall back to frame dims (eg if pic not loaded yet)
-		if (width == 0 || height == 0) {
-			const auto& frame_dims = reg.get<Message::Components::FrameDims>(e);
-			width = frame_dims.width;
-			height = frame_dims.height;
-		}
+	if (reg.all_of<Message::Components::FrameDims>(e)) {
+		const auto& frame_dims = reg.get<Message::Components::FrameDims>(e);
 
 		// TODO: config
 		const auto max_inline_height = 10*TEXT_BASE_HEIGHT;
+
+		float height = frame_dims.height;
+		float width = frame_dims.width;
+
 		if (height > max_inline_height) {
 			const float scale = max_inline_height / height;
 			height = max_inline_height;
 			width *= scale;
 		}
 
-		ImGui::Image(id, ImVec2{static_cast<float>(width), static_cast<float>(height)});
-		// TODO: clickable to open in internal image viewer
+		ImVec2 orig_curser_pos = ImGui::GetCursorPos();
+		ImGui::Dummy(ImVec2{width, height});
+
+		// deploy dummy of framedim size and check visibility
+		bool image_preview_visible = ImGui::IsItemVisible();
+
+
+		if (image_preview_visible && file_list.size() == 1 && reg.all_of<Message::Components::Transfer::FileInfoLocal>(e)) {
+			ImGui::SetCursorPos(orig_curser_pos); // reset for actual img
+
+			auto [id, img_width, img_height] = _msg_tc.get(Message3Handle{reg, e});
+
+			// if cache gives 0s, fall back to frame dims (eg if pic not loaded yet)
+			//if (img_width == 0 || img_height == 0) {
+				//width = frame_dims.width;
+				//height = frame_dims.height;
+			//}
+
+			//if (height > max_inline_height) {
+				//const float scale = max_inline_height / height;
+				//height = max_inline_height;
+				//width *= scale;
+			//}
+
+			ImGui::Image(id, ImVec2{width, height});
+
+			// TODO: clickable to open in internal image viewer
+		}
 	}
 }
 
