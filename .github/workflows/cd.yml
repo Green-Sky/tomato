@@ -8,6 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Release
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   linux-ubuntu:
@@ -32,12 +33,31 @@ jobs:
     - name: temp test
       run: ${{github.workspace}}/build/bin/mono_time_test
 
-    - uses: actions/upload-artifact@v3
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      # taken from llama.cpp
+      run: |
+        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
+          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+        else
+          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
+          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Compress artifacts
+      shell: bash
+      run: |
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu20.04-x86_64.tar.gz -C ${{github.workspace}}/build/bin/ .
+
+    - uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.repository.name }}-ubuntu20.04-x86_64
+        # TODO: simpler name?
+        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu20.04-x86_64
         # TODO: do propper packing
         path: |
-          ${{github.workspace}}/build/bin/
+          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu20.04-x86_64.tar.gz
 
 
   windows:
@@ -62,18 +82,37 @@ jobs:
       run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: temp test
       run: ${{github.workspace}}/build/bin/mono_time_test.exe
 
-    - uses: actions/upload-artifact@v3
-      if: success() || failure()
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      # taken from llama.cpp
+      run: |
+        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
+          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+        else
+          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
+          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Compress artifacts
+      shell: powershell
+      run: |
+        Compress-Archive -Path ${{github.workspace}}/build/bin/* -Destination ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64.zip
+
+    - uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.repository.name }}-windows-msvc-x86_64
+        # TODO: simpler name?
+        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64
         # TODO: do propper packing
         path: |
-          ${{github.workspace}}/build/bin/
+          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64.zip
+
 
   windows-asan:
     timeout-minutes: 15
@@ -102,12 +141,88 @@ jobs:
     - name: temp test
       run: ${{github.workspace}}/build/bin/mono_time_test.exe
 
-    - uses: actions/upload-artifact@v3
-      if: success() || failure()
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      # taken from llama.cpp
+      run: |
+        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
+          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+        else
+          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
+          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Compress artifacts
+      shell: powershell
+      run: |
+        Compress-Archive -Path ${{github.workspace}}/build/bin/* -Destination ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64.zip
+
+    - uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.repository.name }}-windows-msvc-asan-x86_64
+        # TODO: simpler name?
+        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64
         # TODO: do propper packing
-        # TODO: also switch to asan dlls
         path: |
-          ${{github.workspace}}/build/bin/
+          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64.zip
+
+  release:
+    if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) }}
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - linux-ubuntu
+      - windows
+      - windows-asan
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      # taken from llama.cpp
+      run: |
+        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
+          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+        else
+          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
+          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download artifacts
+      id: download-artifact
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts/
+
+    - name: Create release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ steps.tag.outputs.name }}
+      shell: bash
+      run: |
+        gh release create "$tag" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="nightly ${tag#v}" \
+            --notes="nightly build" \
+            --prerelease
+
+    - name: Upload artifacts
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ steps.tag.outputs.name }}
+      shell: bash
+      run: |
+        ls -laR ./artifacts
+        gh release upload "$tag" ./artifacts/*/* \
+            --repo="$GITHUB_REPOSITORY"
 
