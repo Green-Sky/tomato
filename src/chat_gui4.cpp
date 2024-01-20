@@ -17,6 +17,7 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
+#include "SDL_clipboard.h"
 
 #include <cctype>
 #include <cstdint>
@@ -491,6 +492,18 @@ void ChatGui4::render(float time_delta) {
 						_rmm.sendText(*_selected_contact, _text_input_buffer);
 						_text_input_buffer.clear();
 						evil_enter_looses_focus_hack = true;
+					}
+
+					// welcome to linux
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
+						if (!ImGui::IsItemFocused()) {
+							ImGui::SetKeyboardFocusHere(-1);
+						}
+						char* primary_text = SDL_GetPrimarySelectionText();
+						if (primary_text != nullptr) {
+							ImGui::GetIO().AddInputCharactersUTF8(primary_text);
+							SDL_free(primary_text);
+						}
 					}
 				}
 				ImGui::EndChild();
