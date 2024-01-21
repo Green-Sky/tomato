@@ -55,8 +55,12 @@ int main(int argc, char** argv) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
-	//ImGui::StyleColorsDark();
-	setThemeGreen();
+	if (SDL_GetSystemTheme() == SDL_SYSTEM_THEME_LIGHT) {
+		ImGui::StyleColorsLight();
+	} else {
+		//ImGui::StyleColorsDark();
+		setThemeGreen();
+	}
 
 	{
 		ImGui::GetIO().Fonts->ClearFonts();
