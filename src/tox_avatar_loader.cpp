@@ -203,7 +203,7 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 	new_entry.timestamp_last_rendered = Message::getTimeMS();
 	new_entry.current_texture = 0;
 
-	const auto n_t = tu.uploadRGBA(pixels.data(), 5, 5);
+	const auto n_t = tu.uploadRGBA(pixels.data(), 5, 5, TextureUploaderI::NEAREST);
 	new_entry.textures.push_back(n_t);
 	new_entry.frame_duration.push_back(250);
 

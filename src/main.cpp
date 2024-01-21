@@ -58,6 +58,23 @@ int main(int argc, char** argv) {
 	//ImGui::StyleColorsDark();
 	setThemeGreen();
 
+	{
+		ImGui::GetIO().Fonts->ClearFonts();
+		ImFontConfig fontcfg;
+
+		// upsampling to int looks almost ok
+		const float font_size_scale = 1.3f;
+		const float font_oversample = 4.f;
+
+		// default font is pixel perfect at 13
+		fontcfg.SizePixels = 13.f * font_size_scale;
+		fontcfg.RasterizerDensity = font_oversample/font_size_scale;
+		// normally density would be set to dpi scale of the display
+
+		ImGui::GetIO().Fonts->AddFontDefault(&fontcfg);
+		ImGui::GetIO().Fonts->Build();
+	}
+
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());
 	auto imgui_sdl_scope = std::async(std::launch::deferred, &ImGui_ImplSDL3_Shutdown);
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
