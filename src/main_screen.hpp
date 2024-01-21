@@ -64,6 +64,8 @@ struct MainScreen final : public Screen {
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
 
+	bool _show_tool_style_editor {false};
+
 	bool _window_hidden {false};
 	bool _window_hidden_ts {0};
 	float _time_since_event {0.f};

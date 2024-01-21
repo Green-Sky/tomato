@@ -191,6 +191,12 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 					ImGui::EndMenu();
 				}
+				if (ImGui::BeginMenu("Settings")) {
+					if (ImGui::MenuItem("ImGui Style Editor")) {
+						_show_tool_style_editor = true;
+					}
+					ImGui::EndMenu();
+				}
 				ImGui::EndMenuBar();
 			}
 
@@ -198,6 +204,12 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		ImGui::End();
 	}
 
+	if (_show_tool_style_editor) {
+		if (ImGui::Begin("Dear ImGui Style Editor", &_show_tool_style_editor)) {
+			ImGui::ShowStyleEditor();
+		}
+		ImGui::End();
+	}
 
 	if constexpr (false) {
 		ImGui::ShowDemoWindow();

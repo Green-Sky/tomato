@@ -17,15 +17,14 @@ uint64_t SDLRendererTextureUploader::uploadRGBA(const uint8_t* data, uint32_t wi
 	);
 	assert(surf); // TODO: add error reporting
 
-	// TODO: this touches global state, reset?
-	if (filter == NEAREST) {
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
-	} else if (filter == LINEAR) {
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	}
-
 	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
 	assert(tex); // TODO: add error reporting
+
+	if (filter == NEAREST) {
+		SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
+	} else if (filter == LINEAR) {
+		SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_LINEAR);
+	}
 
 	SDL_DestroySurface(surf);
 

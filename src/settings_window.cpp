@@ -116,7 +116,6 @@ void SettingsWindow::render(void) {
 				}
 				ImGui::EndMenuBar();
 			}
-
 		}
 		ImGui::End();
 	}
