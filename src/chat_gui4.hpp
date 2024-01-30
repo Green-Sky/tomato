@@ -9,9 +9,13 @@
 #include "./message_image_loader.hpp"
 #include "./file_selector.hpp"
 #include "./send_image_popup.hpp"
+#include "entt/container/dense_map.hpp"
 
+#include <cstdint>
 #include <vector>
-#include <set>
+#include <string>
+#include <mutex>
+#include <memory>
 
 class ChatGui4 {
 	ConfigModelI& _conf;
@@ -37,6 +41,12 @@ class ChatGui4 {
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};
 
+	// mimetype -> data
+	entt::dense_map<std::string, std::shared_ptr<std::vector<uint8_t>>> _set_clipboard_data;
+	std::mutex _set_clipboard_data_mutex; // might be called out of order
+	friend const void* clipboard_callback(void* userdata, const char* mime_type, size_t* size);
+	void setClipboardData(std::vector<std::string> mime_types, std::shared_ptr<std::vector<uint8_t>>&& data);
+
 	public:
 		ChatGui4(
 			ConfigModelI& conf,
@@ -44,6 +54,7 @@ class ChatGui4 {
 			Contact3Registry& cr,
 			TextureUploaderI& tu
 		);
+		~ChatGui4(void);
 
 	public:
 		void render(float time_delta);

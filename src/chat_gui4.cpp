@@ -17,10 +17,8 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
-#include "SDL_clipboard.h"
 
 #include <cctype>
-#include <cstdint>
 #include <ctime>
 #include <cstdio>
 #include <chrono>
@@ -28,10 +26,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <string>
 #include <variant>
-#include <vector>
-
 
 namespace Components {
 
@@ -72,12 +67,65 @@ static std::string file_path_url_escape(const std::string&& value) {
 	return escaped.str();
 }
 
+const void* clipboard_callback(void* userdata, const char* mime_type, size_t* size) {
+	if (mime_type == nullptr) {
+		// cleared or new data is set
+		return nullptr;
+	}
+
+	if (userdata == nullptr) {
+		// error
+		return nullptr;
+	}
+
+	auto* cg = static_cast<ChatGui4*>(userdata);
+	std::lock_guard lg{cg->_set_clipboard_data_mutex};
+	if (!cg->_set_clipboard_data.count(mime_type)) {
+		return nullptr;
+	}
+
+	const auto& sh_vec = cg->_set_clipboard_data.at(mime_type);
+	if (!static_cast<bool>(sh_vec)) {
+		// error, empty shared pointer
+		return nullptr;
+	}
+
+	*size = sh_vec->size();
+
+	return sh_vec->data();
+}
+
+void ChatGui4::setClipboardData(std::vector<std::string> mime_types, std::shared_ptr<std::vector<uint8_t>>&& data) {
+	std::vector<const char*> tmp_mimetype_list;
+	for (const auto& mime_type : mime_types) {
+		tmp_mimetype_list.push_back(mime_type.data());
+	}
+
+	std::lock_guard lg{_set_clipboard_data_mutex};
+	for (const auto& mime_type : mime_types) {
+		_set_clipboard_data[mime_type] = data;
+	}
+
+	SDL_SetClipboardData(clipboard_callback, nullptr, this, tmp_mimetype_list.data(), tmp_mimetype_list.size());
+}
+
 ChatGui4::ChatGui4(
 	ConfigModelI& conf,
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu
 ) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu), _msg_tc(_mil, tu), _sip(tu) {
+}
+
+ChatGui4::~ChatGui4(void) {
+	// TODO: this is bs
+	SDL_ClearClipboardData();
+
+	// this might be better, need to see if this works (docs needs improving)
+	//for (const auto& [k, _] : _set_clipboard_data) {
+		//const auto* tmp_mime_type = k.c_str();
+		//SDL_SetClipboardData(nullptr, nullptr, nullptr, &tmp_mime_type, 1);
+	//}
 }
 
 void ChatGui4::render(float time_delta) {
@@ -761,9 +809,18 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
 				if (ImGui::MenuItem("open")) {
-					std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
+					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
 					std::cout << "opening file '" << url << "'\n";
 					SDL_OpenURL(url.c_str());
+				}
+				if (ImGui::MenuItem("copy file")) {
+					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
+					//ImGui::SetClipboardText(url.c_str());
+					setClipboardData({"text/uri-list", "text/x-moz-url"}, std::make_shared<std::vector<uint8_t>>(url.begin(), url.end()));
+				}
+				if (ImGui::MenuItem("copy filepath")) {
+					const auto file_path = std::filesystem::canonical(local_info.file_list.at(i)).u8string();
+					ImGui::SetClipboardText(file_path.c_str());
 				}
 				ImGui::EndPopup();
 			}
