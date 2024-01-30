@@ -562,7 +562,7 @@ void ChatGui4::render(float time_delta) {
 						_fss.requestFile(
 							[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
 							[this](const auto& path){
-								_rmm.sendFilePath(*_selected_contact, path.filename().u8string(), path.u8string());
+								_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
 							},
 							[](){}
 						);
@@ -625,7 +625,7 @@ void ChatGui4::render(float time_delta) {
 
 void ChatGui4::sendFilePath(const char* file_path) {
 	if (_selected_contact && std::filesystem::is_regular_file(file_path)) {
-		_rmm.sendFilePath(*_selected_contact, std::filesystem::path(file_path).filename().u8string(), file_path);
+		_rmm.sendFilePath(*_selected_contact, std::filesystem::path(file_path).filename().generic_u8string(), file_path);
 	}
 }
 
@@ -719,10 +719,10 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			//for (const auto& c : _cr.view<entt::get_t<Contact::Components::TagBig>, entt::exclude_t<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>>()) {
 			for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
 				if (renderContactListContactSmall(c, false)) {
-					//_rmm.sendFilePath(*_selected_contact, path.filename().u8string(), path.u8string());
+					//_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
 					const auto& fil = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 					for (const auto& path : fil.file_list) {
-						_rmm.sendFilePath(c, std::filesystem::path{path}.filename().u8string(), path);
+						_rmm.sendFilePath(c, std::filesystem::path{path}.filename().generic_u8string(), path);
 					}
 				}
 			}
@@ -809,17 +809,17 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
 				if (ImGui::MenuItem("open")) {
-					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
+					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).generic_u8string())};
 					std::cout << "opening file '" << url << "'\n";
 					SDL_OpenURL(url.c_str());
 				}
 				if (ImGui::MenuItem("copy file")) {
-					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).u8string())};
+					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).generic_u8string())};
 					//ImGui::SetClipboardText(url.c_str());
 					setClipboardData({"text/uri-list", "text/x-moz-url"}, std::make_shared<std::vector<uint8_t>>(url.begin(), url.end()));
 				}
 				if (ImGui::MenuItem("copy filepath")) {
-					const auto file_path = std::filesystem::canonical(local_info.file_list.at(i)).u8string();
+					const auto file_path = std::filesystem::canonical(local_info.file_list.at(i)).u8string(); //TODO: use generic over native?
 					ImGui::SetClipboardText(file_path.c_str());
 				}
 				ImGui::EndPopup();
@@ -1122,7 +1122,7 @@ void ChatGui4::pasteFile(const char* mime_type) {
 			std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
 				.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
 
-			_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.u8string());
+			_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.generic_u8string());
 		},
 		[](){}
 	);

@@ -83,7 +83,7 @@ std::string ToxAvatarManager::getAvatarPath(const ToxKey& key) const {
 	const std::string_view avatar_save_path {_conf.get_string("ToxAvatarManager", "save_path").value()};
 	const auto pub_key_string = bin2hex({key.data.cbegin(), key.data.cend()});
 	const auto file_path = std::filesystem::path(avatar_save_path) / (pub_key_string + ".png");
-	return file_path.u8string();
+	return file_path.generic_u8string();
 }
 
 void ToxAvatarManager::addAvatarFileToContact(const Contact3 c, const ToxKey& key) {
