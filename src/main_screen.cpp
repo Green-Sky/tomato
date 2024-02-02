@@ -16,6 +16,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
+	tffom(cr, rmm, tcm, tc, tc),
 	mmil(rmm),
 	tam(rmm, cr, conf),
 	sdlrtu(renderer_),
@@ -241,6 +242,8 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	tcm.iterate(time_delta); // compute
 
+	const float fo_interval = tffom.tick(time_delta);
+
 	tam.iterate(); // compute
 
 	const float pm_interval = pm.tick(time_delta); // compute
@@ -252,6 +255,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	_min_tick_interval = std::min<float>(
 		tc.toxIterationInterval()/1000.f,
 		pm_interval
+	);
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		fo_interval
 	);
 
 	switch (_compute_perf_mode) {

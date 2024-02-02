@@ -25,6 +25,7 @@
 #include "./settings_window.hpp"
 #include "./tox_ui_utils.hpp"
 #include "./tox_dht_cap_histo.hpp"
+#include "./tox_friend_faux_offline_messaging.hpp"
 
 #include <string>
 #include <iostream>
@@ -52,6 +53,7 @@ struct MainScreen final : public Screen {
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
 	ToxTransferManager ttm;
+	ToxFriendFauxOfflineMessaging tffom;
 
 	MediaMetaInfoLoader mmil;
 	ToxAvatarManager tam;

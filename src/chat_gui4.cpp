@@ -96,13 +96,21 @@ const void* clipboard_callback(void* userdata, const char* mime_type, size_t* si
 }
 
 void ChatGui4::setClipboardData(std::vector<std::string> mime_types, std::shared_ptr<std::vector<uint8_t>>&& data) {
-	std::vector<const char*> tmp_mimetype_list;
-	for (const auto& mime_type : mime_types) {
-		tmp_mimetype_list.push_back(mime_type.data());
+	if (!static_cast<bool>(data)) {
+		std::cerr << "CG error: tried to set clipboard with empty shp\n";
+		return;
 	}
+
+	if (data->empty()) {
+		std::cerr << "CG error: tried to set clipboard with empty data\n";
+		return;
+	}
+
+	std::vector<const char*> tmp_mimetype_list;
 
 	std::lock_guard lg{_set_clipboard_data_mutex};
 	for (const auto& mime_type : mime_types) {
+		tmp_mimetype_list.push_back(mime_type.data());
 		_set_clipboard_data[mime_type] = data;
 	}
 
