@@ -69,7 +69,7 @@ struct MainScreen final : public Screen {
 	bool _show_tool_style_editor {false};
 
 	bool _window_hidden {false};
-	bool _window_hidden_ts {0};
+	uint64_t _window_hidden_ts {0};
 	float _time_since_event {0.f};
 
 	MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins);
