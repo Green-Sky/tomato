@@ -178,9 +178,13 @@ int main(int argc, char** argv) {
 				//)
 			//));
 
-			const float min_delay = std::min<float>(
-					screen->nextTick() - time_delta_tick,
-					screen->nextRender() - time_delta_render
+			const float min_delay =
+				std::min<float>(
+					std::min<float>(
+						screen->nextTick() - time_delta_tick,
+						screen->nextRender() - time_delta_render
+					),
+					0.25f // dont sleep too long
 				) * 1000.f;
 
 			if (min_delay > 0.f) {
