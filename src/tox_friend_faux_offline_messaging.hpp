@@ -24,7 +24,7 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 
 	// TODO: increase timer?
 	const float _delay_after_cc {4.5f};
-	const float _delay_inbetween {1.3f};
+	const float _delay_inbetween {0.3f};
 	const float _delay_retry {10.f}; // retry sending after 10s
 
 	public:

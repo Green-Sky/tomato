@@ -5,6 +5,7 @@
 #include <SDL3/SDL.h>
 
 #include <memory>
+#include <cmath>
 
 MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins) :
 	renderer(renderer_),
@@ -253,13 +254,17 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	mts.iterate(); // compute
 
 	_min_tick_interval = std::min<float>(
-		tc.toxIterationInterval()/1000.f,
+		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)
+		// and it does not change 1
+		std::pow(tc.toxIterationInterval(), 1.6f)/1000.f,
 		pm_interval
 	);
 	_min_tick_interval = std::min<float>(
 		_min_tick_interval,
 		fo_interval
 	);
+
+	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";
 
 	switch (_compute_perf_mode) {
 		// normal 1ms lower bound
