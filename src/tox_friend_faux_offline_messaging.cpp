@@ -10,6 +10,8 @@
 #include <limits>
 #include <cstdint>
 
+//#include <iostream>
+
 namespace Message::Components {
 	struct LastSendAttempt {
 		uint64_t ts {0};
@@ -29,15 +31,17 @@ ToxFriendFauxOfflineMessaging::ToxFriendFauxOfflineMessaging(
 	ToxI& t,
 	ToxEventProviderI& tep
 ) : _cr(cr), _rmm(rmm), _tcm(tcm), _t(t), _tep(tep) {
+	_tep.subscribe(this, Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS);
 }
 
 float ToxFriendFauxOfflineMessaging::tick(float time_delta) {
-	// hard limit interval to once per minute
-	_interval_timer += time_delta;
-	if (_interval_timer < 1.f * 60.f) {
-		return std::max(60.f - _interval_timer, 0.001f); // TODO: min next timer
+	_interval_timer -= time_delta;
+	if (_interval_timer > 0.f) {
+		return std::max(_interval_timer, 0.001f); // TODO: min next timer
 	}
-	_interval_timer = 0.f;
+	// interval ~ once per minute
+	_interval_timer = 60.f;
+
 
 	const uint64_t ts_now = Message::getTimeMS();
 
@@ -50,37 +54,47 @@ float ToxFriendFauxOfflineMessaging::tick(float time_delta) {
 			// cleanup
 			if (_cr.all_of<Contact::Components::NextSendAttempt>(c)) {
 				_cr.remove<Contact::Components::NextSendAttempt>(c);
+				auto* mr = static_cast<const RegistryMessageModel&>(_rmm).get(c);
+				if (mr != nullptr) {
+					mr->storage<Message::Components::LastSendAttempt>().clear();
+				}
 			}
 		} else {
 			if (!_cr.all_of<Contact::Components::NextSendAttempt>(c)) {
-				const auto& nsa = _cr.emplace<Contact::Components::NextSendAttempt>(c, ts_now + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
-				min_next_attempt_ts = std::min(min_next_attempt_ts, nsa.ts);
-			} else {
-				auto& next_attempt = _cr.get<Contact::Components::NextSendAttempt>(c).ts;
-
-				if (doFriendMessageCheck(c, tfe)) {
-					next_attempt = ts_now + uint64_t(_delay_inbetween*1000);
+				if (false) { // has unsent messages
+					const auto& nsa = _cr.emplace<Contact::Components::NextSendAttempt>(c, ts_now + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
+					min_next_attempt_ts = std::min(min_next_attempt_ts, nsa.ts);
 				}
-
-				min_next_attempt_ts = std::min(min_next_attempt_ts, next_attempt);
+			} else {
+				auto ret = doFriendMessageCheck(c, tfe);
+				if (ret == dfmc_Ret::SENT_THIS_TICK) {
+					const auto ts = _cr.get<Contact::Components::NextSendAttempt>(c).ts = ts_now + uint64_t(_delay_inbetween*1000);
+					min_next_attempt_ts = std::min(min_next_attempt_ts, ts);
+				} else if (ret == dfmc_Ret::TOO_SOON) {
+					// TODO: set to _delay_inbetween? prob expensive for no good reason
+					min_next_attempt_ts = std::min(min_next_attempt_ts, _cr.get<Contact::Components::NextSendAttempt>(c).ts);
+				} else {
+					_cr.remove<Contact::Components::NextSendAttempt>(c);
+				}
 			}
 		}
 	});
 
 	if (min_next_attempt_ts <= ts_now) {
 		// we (probably) sent this iterate
-		_interval_timer = 60.f - 0.1f; // TODO: ugly magic
-		return 0.1f;
+		_interval_timer = 0.1f; // TODO: ugly magic
 	} else if (min_next_attempt_ts == std::numeric_limits<uint64_t>::max()) {
 		// nothing to sync or all offline that need syncing
-		return 60.f; // TODO: ugly magic
 	} else {
-		// TODO: ugly magic
-		return _interval_timer = 60.f - std::min(60.f, (min_next_attempt_ts - ts_now) / 1000.f);
+		_interval_timer = std::min(_interval_timer, (min_next_attempt_ts - ts_now) / 1000.f);
 	}
+
+	//std::cout << "TFFOM: iterate (i:" << _interval_timer << ")\n";
+
+	return _interval_timer;
 }
 
-bool ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const Contact::Components::ToxFriendEphemeral& tfe) {
+ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const Contact::Components::ToxFriendEphemeral& tfe) {
 	// walk all messages and check if
 	// unacked message
 	// timeouts for exising unacked messages expired (send)
@@ -88,7 +102,7 @@ bool ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const
 	auto* mr = static_cast<const RegistryMessageModel&>(_rmm).get(c);
 	if (mr == nullptr) {
 		// no messages
-		return false;
+		return dfmc_Ret::NO_MSG;
 	}
 
 	const uint64_t ts_now = Message::getTimeMS();
@@ -98,6 +112,7 @@ bool ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const
 	// we assume sorted
 	// ("reverse" iteration <.<)
 	auto msg_view = mr->view<Message::Components::Timestamp>();
+	bool valid_unsent {false};
 	// we search for the oldest, not too recently sent, unconfirmed message
 	for (auto it = msg_view.rbegin(), view_end = msg_view.rend(); it != view_end; it++) {
 		const Message3 msg = *it;
@@ -118,6 +133,12 @@ bool ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const
 		) {
 			continue; // skip
 		}
+
+		if (mr->get<Message::Components::ContactTo>(msg).c != c) {
+			continue; // not outbound (in private)
+		}
+
+		valid_unsent = true;
 
 		uint64_t msg_ts = msg_view.get<Message::Components::Timestamp>(msg).ts;
 		if (mr->all_of<Message::Components::TimestampWritten>(msg)) {
@@ -155,12 +176,17 @@ bool ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const
 		} // else error
 
 		// we sent our message, no point further iterating
-		return true;
+		return dfmc_Ret::SENT_THIS_TICK;
 	}
 
-	// TODO: somehow cleanup lsa
+	if (!valid_unsent) {
+		// somehow cleanup lsa
+		mr->storage<Message::Components::LastSendAttempt>().clear();
+		//std::cout << "TFFOM: all sent, deleting lsa\n";
+		return dfmc_Ret::NO_MSG;
+	}
 
-	return false;
+	return dfmc_Ret::TOO_SOON;
 }
 
 bool ToxFriendFauxOfflineMessaging::onToxEvent(const Tox_Event_Friend_Connection_Status* e) {
@@ -180,8 +206,7 @@ bool ToxFriendFauxOfflineMessaging::onToxEvent(const Tox_Event_Friend_Connection
 
 	_cr.emplace_or_replace<Contact::Components::NextSendAttempt>(c, Message::getTimeMS() + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
 
-	// TODO: ugly magic
-	_interval_timer = 60.f - 0.1f;
+	_interval_timer = 0.f;
 
 	return false;
 }

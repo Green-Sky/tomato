@@ -24,7 +24,7 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 
 	// TODO: increase timer?
 	const float _delay_after_cc {4.5f};
-	const float _delay_inbetween {0.3f};
+	const float _delay_inbetween {1.3f};
 	const float _delay_retry {10.f}; // retry sending after 10s
 
 	public:
@@ -39,10 +39,15 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 		float tick(float time_delta);
 
 	private:
+		enum class dfmc_Ret {
+			TOO_SOON,
+			SENT_THIS_TICK,
+			NO_MSG,
+		};
 		// only called for online friends
 		// returns true if a message was sent
 		// dont call this too often
-		bool doFriendMessageCheck(const Contact3 c, const Contact::Components::ToxFriendEphemeral& tfe);
+		dfmc_Ret doFriendMessageCheck(const Contact3 c, const Contact::Components::ToxFriendEphemeral& tfe);
 
 	protected:
 		bool onToxEvent(const Tox_Event_Friend_Connection_Status* e) override;
