@@ -228,7 +228,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 			_window_hidden
 		)
 	) {
-		_render_interval = std::min<float>(1.f/4.f, pm_interval);
+		_render_interval = std::min<float>(1.f/1.f, pm_interval);
 	} else {
 		_render_interval = std::min<float>(1.f/60.f, pm_interval);
 	}
