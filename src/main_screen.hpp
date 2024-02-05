@@ -94,7 +94,7 @@ struct MainScreen final : public Screen {
 	// 0 - normal
 	// 1 - reduced
 	// 2 - power save
-	int _fps_perf_mode {1};
+	int _fps_perf_mode {0};
 	// 0 - normal
 	// 1 - power save
 	int _compute_perf_mode {0};
