@@ -168,7 +168,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	const float pm_interval = pm.render(time_delta); // render
 
-	cg.render(time_delta); // render
+	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
 	tuiu.render(); // render
 	tdch.render(); // render
@@ -217,6 +217,8 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		ImGui::ShowDemoWindow();
 	}
 
+	_render_interval = std::min<float>(pm_interval, cg_interval);
+
 	if (
 		_fps_perf_mode > 1 // TODO: magic
 	) {
@@ -228,9 +230,9 @@ Screen* MainScreen::render(float time_delta, bool&) {
 			_window_hidden
 		)
 	) {
-		_render_interval = std::min<float>(1.f/1.f, pm_interval);
+		_render_interval = std::min<float>(1.f/1.f, _render_interval);
 	} else {
-		_render_interval = std::min<float>(1.f/60.f, pm_interval);
+		_render_interval = std::min<float>(1.f/60.f, _render_interval);
 	}
 
 	_time_since_event += time_delta;

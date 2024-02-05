@@ -136,7 +136,7 @@ ChatGui4::~ChatGui4(void) {
 	//}
 }
 
-void ChatGui4::render(float time_delta) {
+float ChatGui4::render(float time_delta) {
 	if (!_cr.storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
 		std::vector<Contact3> to_purge;
 		_cr.view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact3 c) {
@@ -627,8 +627,14 @@ void ChatGui4::render(float time_delta) {
 	}
 	ImGui::End();
 
-	_contact_tc.workLoadQueue();
-	_msg_tc.workLoadQueue();
+	bool unfinished_work_queue = _contact_tc.workLoadQueue();
+	unfinished_work_queue = unfinished_work_queue || _msg_tc.workLoadQueue();
+
+	if (unfinished_work_queue) {
+		return 0.1f; // so we can get images loaded faster
+	} else {
+		return 1.f; // TODO: higher min fps?
+	}
 }
 
 void ChatGui4::sendFilePath(const char* file_path) {

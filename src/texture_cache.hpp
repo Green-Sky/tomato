@@ -162,8 +162,10 @@ struct TextureCache {
 		}
 	}
 
-	void workLoadQueue(void) {
-		for (auto it = _to_load.begin(); it != _to_load.end(); it++) {
+	// returns true if there is still work queued up
+	bool workLoadQueue(void) {
+		auto it = _to_load.begin();
+		for (; it != _to_load.end(); it++) {
 			auto new_entry_opt = _l.load(_tu, *it);
 			if (new_entry_opt.has_value()) {
 				_cache.emplace(*it, new_entry_opt.value());
@@ -172,6 +174,10 @@ struct TextureCache {
 				break; // end load from queue/onlyload 1 per update
 			}
 		}
+
+		it++;
+
+		return it != _to_load.end();
 	}
 };
 
