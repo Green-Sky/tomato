@@ -275,7 +275,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	struct PerfProfileRender {
 		float low_delay_window {1.5f};
 		float low_delay_min {1.f/60.f};
-		float low_delay_max {1.f/30.f};
+		float low_delay_max {1.f/60.f};
 
 		float mid_delay_window {30.f};
 		float mid_delay_min {1.f/60.f};
@@ -289,7 +289,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	const static PerfProfileRender normalPerfProfile{
 		//1.5f,		// low_delay_window
 		//1.f/60.f,	// low_delay_min
-		//1.f/30.f,	// low_delay_max
+		//1.f/60.f,	// low_delay_max
 
 		//30.f,		// mid_delay_window
 		//1.f/60.f,	// mid_delay_min
