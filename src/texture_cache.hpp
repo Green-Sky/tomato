@@ -50,7 +50,8 @@ struct TextureEntry {
 		current_texture = (current_texture + 1) % frame_duration.size();
 	}
 
-	void doAnimation(const int64_t ts_now);
+	// returns ts for next frame
+	int64_t doAnimation(const int64_t ts_now);
 
 	template<typename TextureType>
 	TextureType getID(void) {
@@ -133,14 +134,16 @@ struct TextureCache {
 		}
 	}
 
-	void update(void) {
+	float update(void) {
 		const uint64_t ts_now = Message::getTimeMS();
+		uint64_t ts_min_next = ts_now + ms_before_purge;
 
 		std::vector<KeyType> to_purge;
 		for (auto&& [key, te] : _cache) {
 			if (te.rendered_this_frame) {
-				te.doAnimation(ts_now);
+				const uint64_t ts_next = te.doAnimation(ts_now);
 				te.rendered_this_frame = false;
+				ts_min_next = std::min(ts_min_next, ts_next);
 			} else if (_cache.size() > min_count_before_purge && ts_now - te.timestamp_last_rendered >= ms_before_purge) {
 				to_purge.push_back(key);
 			}
@@ -148,7 +151,10 @@ struct TextureCache {
 
 		invalidate(to_purge);
 
+		// we ignore the default texture ts :)
 		_default_texture.doAnimation(ts_now);
+
+		return (ts_min_next - ts_now) / 1000.f;
 	}
 
 	void invalidate(const std::vector<KeyType>& to_purge) {
@@ -169,14 +175,14 @@ struct TextureCache {
 			auto new_entry_opt = _l.load(_tu, *it);
 			if (new_entry_opt.has_value()) {
 				_cache.emplace(*it, new_entry_opt.value());
-				_to_load.erase(it);
-				// TODO: not a good idea
+				it = _to_load.erase(it);
+
+				// TODO: not a good idea?
 				break; // end load from queue/onlyload 1 per update
 			}
 		}
 
-		it++;
-
+		// peak
 		return it != _to_load.end();
 	}
 };

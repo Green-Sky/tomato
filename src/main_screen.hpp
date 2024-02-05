@@ -21,6 +21,10 @@
 #include "./tox_avatar_manager.hpp"
 
 #include "./sdlrenderer_texture_uploader.hpp"
+#include "./texture_cache.hpp"
+#include "./tox_avatar_loader.hpp"
+#include "./message_image_loader.hpp"
+
 #include "./chat_gui4.hpp"
 #include "./settings_window.hpp"
 #include "./tox_ui_utils.hpp"
@@ -60,6 +64,11 @@ struct MainScreen final : public Screen {
 
 	SDLRendererTextureUploader sdlrtu;
 	//OpenGLTextureUploader ogltu;
+
+	ToxAvatarLoader tal;
+	TextureCache<void*, Contact3, ToxAvatarLoader> contact_tc;
+	MessageImageLoader mil;
+	TextureCache<void*, Message3Handle, MessageImageLoader> msg_tc;
 
 	ChatGui4 cg;
 	SettingsWindow sw;

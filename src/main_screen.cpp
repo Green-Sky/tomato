@@ -1,5 +1,7 @@
 #include "./main_screen.hpp"
 
+#include <solanaceae/contact/components.hpp>
+
 #include <imgui/imgui.h>
 
 #include <SDL3/SDL.h>
@@ -21,7 +23,11 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	mmil(rmm),
 	tam(rmm, cr, conf),
 	sdlrtu(renderer_),
-	cg(conf, rmm, cr, sdlrtu),
+	tal(cr),
+	contact_tc(tal, sdlrtu),
+	mil(),
+	msg_tc(mil, sdlrtu),
+	cg(conf, rmm, cr, sdlrtu, contact_tc, msg_tc),
 	sw(conf),
 	tuiu(tc, conf),
 	tdch(tpi)
@@ -168,6 +174,21 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	const float pm_interval = pm.render(time_delta); // render
 
+	// TODO: move this somewhere else!!!
+	// needs both tal and tc <.<
+	if (!cr.storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
+		std::vector<Contact3> to_purge;
+		cr.view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact3 c) {
+			to_purge.push_back(c);
+		});
+		cr.remove<Contact::Components::TagAvatarInvalidate>(to_purge.cbegin(), to_purge.cend());
+		contact_tc.invalidate(to_purge);
+	}
+	// ACTUALLY NOT IF RENDERED, MOVED LOGIC TO ABOVE
+	// it might unload textures, so it needs to be done before rendering
+	const float ctc_interval = contact_tc.update();
+	const float msgtc_interval = msg_tc.update();
+
 	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
 	tuiu.render(); // render
@@ -217,22 +238,136 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		ImGui::ShowDemoWindow();
 	}
 
-	_render_interval = std::min<float>(pm_interval, cg_interval);
+	float tc_unfinished_queue_interval;
+	{ // load rendered but not loaded textures
+		bool unfinished_work_queue = contact_tc.workLoadQueue();
+		unfinished_work_queue = unfinished_work_queue || msg_tc.workLoadQueue();
 
-	if (
-		_fps_perf_mode > 1 // TODO: magic
-	) {
-		// powersave forces 250ms
-		_render_interval = 1.f/4.f;
-	} else if (
-		_time_since_event > 1.f && ( // 1sec cool down
-			_fps_perf_mode == 1 || // TODO: magic
-			_window_hidden
+		if (unfinished_work_queue) {
+			tc_unfinished_queue_interval = 0.1f; // so we can get images loaded faster
+		} else {
+			tc_unfinished_queue_interval = 1.f; // TODO: higher min fps?
+		}
+	}
+
+	// calculate interval for next frame
+	// normal:
+	//  - if < 1.5sec since last event
+	//    - min all and clamp(1/60, 1/1)
+	//  - if < 30sec since last event
+	//    - min all (anim + everything else) clamp(1/60, 1/1) (maybe less?)
+	//  - else
+	//    - min without anim and clamp(1/60, 1/1) (maybe more?)
+	// reduced:
+	//  - if < 1sec since last event
+	//    - min all and clamp(1/60, 1/1)
+	//  - if < 10sec since last event
+	//    - min all (anim + everything else) clamp(1/10, 1/1)
+	//  - else
+	//    - min without anim and max clamp(1/10, 1/1)
+	// powersave:
+	//  - if < 0sec since last event
+	//    - (ignored)
+	//  - if < 1sec since last event
+	//    - min all (anim + everything else) clamp(1/8, 1/1)
+	//  - else
+	//    - min without anim and clamp(1/1, 1/1)
+	struct PerfProfileRender {
+		float low_delay_window {1.5f};
+		float low_delay_min {1.f/60.f};
+		float low_delay_max {1.f/30.f};
+
+		float mid_delay_window {30.f};
+		float mid_delay_min {1.f/60.f};
+		float mid_delay_max {1.f/2.f};
+
+		// also when main window hidden
+		float else_delay_min {1.f/60.f};
+		float else_delay_max {1.f/2.f};
+	};
+
+	const static PerfProfileRender normalPerfProfile{
+		//1.5f,		// low_delay_window
+		//1.f/60.f,	// low_delay_min
+		//1.f/30.f,	// low_delay_max
+
+		//30.f,		// mid_delay_window
+		//1.f/60.f,	// mid_delay_min
+		//1.f/2.f,	// mid_delay_max
+
+		//1.f/60.f,	// else_delay_min
+		//1.f/2.f,	// else_delay_max
+	};
+	const static PerfProfileRender reducedPerfProfile{
+		1.f,		// low_delay_window
+		1.f/60.f,	// low_delay_min
+		1.f/30.f,	// low_delay_max
+
+		10.f,		// mid_delay_window
+		1.f/10.f,	// mid_delay_min
+		1.f/4.f,	// mid_delay_max
+
+		1.f/10.f,	// else_delay_min
+		1.f,		// else_delay_max
+	};
+	// TODO: fix powersave by adjusting it in the events handler (make ppr member)
+	const static PerfProfileRender powersavePerfProfile{
+		// no window -> ignore first case
+		0.f,		// low_delay_window
+		1.f,		// low_delay_min
+		1.f,		// low_delay_max
+
+		1.f,		// mid_delay_window
+		1.f/8.f,	// mid_delay_min
+		1.f/4.f,	// mid_delay_max
+
+		1.f,		// else_delay_min
+		1.f,		// else_delay_max
+	};
+
+	const PerfProfileRender& curr_profile =
+		// TODO: magic
+		_fps_perf_mode > 1
+		? powersavePerfProfile
+		: (
+			_fps_perf_mode == 1
+			? reducedPerfProfile
+			: normalPerfProfile
 		)
-	) {
-		_render_interval = std::min<float>(1.f/1.f, _render_interval);
+	;
+
+	// min over non animations in all cases
+	_render_interval = std::min<float>(pm_interval, cg_interval);
+	_render_interval = std::min<float>(_render_interval, tc_unfinished_queue_interval);
+
+	// low delay time window
+	if (!_window_hidden && _time_since_event < curr_profile.low_delay_window) {
+		_render_interval = std::min<float>(_render_interval, ctc_interval);
+		_render_interval = std::min<float>(_render_interval, msgtc_interval);
+
+		_render_interval = std::clamp(
+			_render_interval,
+			curr_profile.low_delay_min,
+			curr_profile.low_delay_max
+		);
+	// mid delay time window
+	} else if (!_window_hidden && _time_since_event < curr_profile.mid_delay_window) {
+		_render_interval = std::min<float>(_render_interval, ctc_interval);
+		_render_interval = std::min<float>(_render_interval, msgtc_interval);
+
+		_render_interval = std::clamp(
+			_render_interval,
+			curr_profile.mid_delay_min,
+			curr_profile.mid_delay_max
+		);
+	// timed out or window hidden
 	} else {
-		_render_interval = std::min<float>(1.f/60.f, _render_interval);
+		// no animation timing here
+		_render_interval = std::clamp(
+			_render_interval,
+			curr_profile.else_delay_min,
+			curr_profile.else_delay_max
+		);
 	}
 
 	_time_since_event += time_delta;

@@ -9,7 +9,8 @@
 #include "./message_image_loader.hpp"
 #include "./file_selector.hpp"
 #include "./send_image_popup.hpp"
-#include "entt/container/dense_map.hpp"
+
+#include <entt/container/dense_map.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -17,15 +18,16 @@
 #include <mutex>
 #include <memory>
 
+using ContactTextureCache = TextureCache<void*, Contact3, ToxAvatarLoader>;
+using MessageTextureCache = TextureCache<void*, Message3Handle, MessageImageLoader>;
+
 class ChatGui4 {
 	ConfigModelI& _conf;
 	RegistryMessageModel& _rmm;
 	Contact3Registry& _cr;
 
-	ToxAvatarLoader _tal;
-	TextureCache<void*, Contact3, ToxAvatarLoader> _contact_tc;
-	MessageImageLoader _mil;
-	TextureCache<void*, Message3Handle, MessageImageLoader> _msg_tc;
+	ContactTextureCache& _contact_tc;
+	MessageTextureCache& _msg_tc;
 
 	FileSelector _fss;
 	SendImagePopup _sip;
@@ -52,7 +54,9 @@ class ChatGui4 {
 			ConfigModelI& conf,
 			RegistryMessageModel& rmm,
 			Contact3Registry& cr,
-			TextureUploaderI& tu
+			TextureUploaderI& tu,
+			ContactTextureCache& contact_tc,
+			MessageTextureCache& msg_tc
 		);
 		~ChatGui4(void);
 

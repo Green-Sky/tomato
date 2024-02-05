@@ -37,7 +37,7 @@ namespace Components {
 
 } // Components
 
-static float lerp(float a, float b, float t) {
+static constexpr float lerp(float a, float b, float t) {
 	return a + t * (b - a);
 }
 
@@ -121,8 +121,10 @@ ChatGui4::ChatGui4(
 	ConfigModelI& conf,
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
-	TextureUploaderI& tu
-) : _conf(conf), _rmm(rmm), _cr(cr), _tal(_cr), _contact_tc(_tal, tu), _msg_tc(_mil, tu), _sip(tu) {
+	TextureUploaderI& tu,
+	ContactTextureCache& contact_tc,
+	MessageTextureCache& msg_tc
+) : _conf(conf), _rmm(rmm), _cr(cr), _contact_tc(contact_tc), _msg_tc(msg_tc), _sip(tu) {
 }
 
 ChatGui4::~ChatGui4(void) {
@@ -137,19 +139,6 @@ ChatGui4::~ChatGui4(void) {
 }
 
 float ChatGui4::render(float time_delta) {
-	if (!_cr.storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
-		std::vector<Contact3> to_purge;
-		_cr.view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact3 c) {
-			to_purge.push_back(c);
-		});
-		_cr.remove<Contact::Components::TagAvatarInvalidate>(to_purge.cbegin(), to_purge.cend());
-		_contact_tc.invalidate(to_purge);
-	}
-	// ACTUALLY NOT IF RENDERED, MOVED LOGIC TO ABOVE
-	// it might unload textures, so it needs to be done before rendering
-	_contact_tc.update();
-	_msg_tc.update();
-
 	_fss.render();
 	_sip.render(time_delta);
 
@@ -627,14 +616,7 @@ float ChatGui4::render(float time_delta) {
 	}
 	ImGui::End();
 
-	bool unfinished_work_queue = _contact_tc.workLoadQueue();
-	unfinished_work_queue = unfinished_work_queue || _msg_tc.workLoadQueue();
-
-	if (unfinished_work_queue) {
-		return 0.1f; // so we can get images loaded faster
-	} else {
-		return 1.f; // TODO: higher min fps?
-	}
+	return 1000.f; // TODO: higher min fps?
 }
 
 void ChatGui4::sendFilePath(const char* file_path) {

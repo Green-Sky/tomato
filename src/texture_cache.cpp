@@ -2,8 +2,9 @@
 
 #include <chrono>
 #include <array>
+#include <limits>
 
-void TextureEntry::doAnimation(const int64_t ts_now) {
+int64_t TextureEntry::doAnimation(const int64_t ts_now) {
 	if (frame_duration.size() > 1) { // is animation
 		do { // why is this loop so ugly
 			const int64_t duration = getDuration();
@@ -11,11 +12,13 @@ void TextureEntry::doAnimation(const int64_t ts_now) {
 				timestamp_last_rendered += duration;
 				next();
 			} else {
-				break;
+				// return ts for next frame
+				return timestamp_last_rendered + duration;
 			}
-		} while(true);
+		} while (true);
 	} else {
 		timestamp_last_rendered = ts_now;
+		return std::numeric_limits<int64_t>::max(); // static image
 	}
 }
 
