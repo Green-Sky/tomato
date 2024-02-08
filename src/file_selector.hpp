@@ -8,7 +8,7 @@ struct FileSelector {
 
 	bool _open_popup {false};
 
-	std::function<bool(const std::filesystem::path& path)> _is_valid = [](auto){ return true; };
+	std::function<bool(std::filesystem::path& path)> _is_valid = [](auto){ return true; };
 	std::function<void(const std::filesystem::path& path)> _on_choose = [](auto){};
 	std::function<void(void)> _on_cancel = [](){};
 
@@ -18,8 +18,9 @@ struct FileSelector {
 		FileSelector(void);
 
 		// TODO: supply hints
+		// HACK: until we supply hints, is_valid can modify
 		void requestFile(
-			std::function<bool(const std::filesystem::path& path)>&& is_valid,
+			std::function<bool(std::filesystem::path& path)>&& is_valid,
 			std::function<void(const std::filesystem::path& path)>&& on_choose,
 			std::function<void(void)>&& on_cancel
 		);

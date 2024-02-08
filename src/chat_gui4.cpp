@@ -737,7 +737,11 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	) {
 		if (ImGui::Button("save to")) {
 			_fss.requestFile(
-				[](const auto& path) -> bool { return std::filesystem::is_directory(path); },
+				[](std::filesystem::path& path) -> bool {
+					// remove file path
+					path.remove_filename();
+					return std::filesystem::is_directory(path);
+				},
 				[this, &reg, e](const auto& path) {
 					if (reg.valid(e)) { // still valid
 						// TODO: trim file?

@@ -18,7 +18,7 @@ FileSelector::FileSelector(void) {
 }
 
 void FileSelector::requestFile(
-	std::function<bool(const std::filesystem::path& path)>&& is_valid,
+	std::function<bool(std::filesystem::path& path)>&& is_valid,
 	std::function<void(const std::filesystem::path& path)>&& on_choose,
 	std::function<void(void)>&& on_cancel
 ) {
@@ -77,7 +77,9 @@ void FileSelector::render(void) {
 			if (current_path.has_parent_path()) {
 				if (ImGui::TableNextColumn()) {
 					if (ImGui::Selectable("D##..", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
-						_current_file_path = _current_file_path.parent_path();
+						// the first "parent_path()" only removes the filename and the ending "/"
+						_current_file_path = _current_file_path.parent_path().parent_path() / "";
+						//_current_file_path = _current_file_path.remove_filename().parent_path() / "";
 					}
 				}
 
