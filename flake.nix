@@ -58,6 +58,8 @@
         cmakeFlags = [
           "-DTOMATO_ASAN=OFF"
           "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+          "-DFETCHCONTENT_SOURCE_DIR_JSON=${pkgs.nlohmann_json.src}" # we care less about version here
+          # do we really care less about the version? do we need a stable abi?
         ];
 
         # TODO: replace with install command

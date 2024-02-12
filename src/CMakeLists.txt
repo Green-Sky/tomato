@@ -1,5 +1,29 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
+add_library(fragment_store
+	./fragment_store/fragment_store_i.hpp
+	./fragment_store/fragment_store.hpp
+	./fragment_store/fragment_store.cpp
+)
+
+target_link_libraries(fragment_store PUBLIC
+	nlohmann_json::nlohmann_json
+	EnTT::EnTT
+	solanaceae_util
+)
+
+########################################
+
+add_executable(fragment_store_test
+	fragment_store/test_fragstore.cpp
+)
+
+target_link_libraries(fragment_store_test PUBLIC
+	fragment_store
+)
+
+########################################
+
 add_executable(tomato
 	./main.cpp
 	./icon.rc
