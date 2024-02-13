@@ -422,6 +422,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	tdch.tick(time_delta); // compute
 
 	mts.iterate(); // compute
+	mfs.tick(time_delta); // TODO: use delta
 
 	_min_tick_interval = std::min<float>(
 		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)
