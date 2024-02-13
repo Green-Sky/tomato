@@ -27,6 +27,21 @@ static const char* metaFileTypeSuffix(MetaFileType mft) {
 }
 
 FragmentStore::FragmentStore(void) {
+	{ // random namespace
+		const auto num0 = _rng();
+		const auto num1 = _rng();
+
+		_session_uuid_namespace[0] = (num0 >> 0) & 0xff;
+		_session_uuid_namespace[1] = (num0 >> 8) & 0xff;
+		_session_uuid_namespace[2] = (num0 >> 16) & 0xff;
+		_session_uuid_namespace[3] = (num0 >> 24) & 0xff;
+
+		_session_uuid_namespace[4] = (num1 >> 0) & 0xff;
+		_session_uuid_namespace[5] = (num1 >> 8) & 0xff;
+		_session_uuid_namespace[6] = (num1 >> 16) & 0xff;
+		_session_uuid_namespace[7] = (num1 >> 24) & 0xff;
+
+	}
 	registerSerializers();
 }
 
@@ -38,6 +53,30 @@ FragmentStore::FragmentStore(
 
 entt::basic_handle<entt::basic_registry<FragmentID>> FragmentStore::fragmentHandle(FragmentID fid) {
 	return {_reg, fid};
+}
+
+std::vector<uint8_t> FragmentStore::generateNewUID(std::array<uint8_t, 8>& uuid_namespace) {
+	std::vector<uint8_t> new_uid(uuid_namespace.cbegin(), uuid_namespace.cend());
+	new_uid.resize(new_uid.size() + 8);
+
+	const auto num0 = _rng();
+	const auto num1 = _rng();
+
+	new_uid[uuid_namespace.size()+0] = (num0 >> 0) & 0xff;
+	new_uid[uuid_namespace.size()+1] = (num0 >> 8) & 0xff;
+	new_uid[uuid_namespace.size()+2] = (num0 >> 16) & 0xff;
+	new_uid[uuid_namespace.size()+3] = (num0 >> 24) & 0xff;
+
+	new_uid[uuid_namespace.size()+4] = (num1 >> 0) & 0xff;
+	new_uid[uuid_namespace.size()+5] = (num1 >> 8) & 0xff;
+	new_uid[uuid_namespace.size()+6] = (num1 >> 16) & 0xff;
+	new_uid[uuid_namespace.size()+7] = (num1 >> 24) & 0xff;
+
+	return new_uid;
+}
+
+std::vector<uint8_t> FragmentStore::generateNewUID(void) {
+	return generateNewUID(_session_uuid_namespace);
 }
 
 FragmentID FragmentStore::newFragmentMemoryOwned(
@@ -125,6 +164,12 @@ FragmentID FragmentStore::newFragmentFile(
 	}
 
 	return new_frag;
+}
+FragmentID FragmentStore::newFragmentFile(
+	std::string_view store_path,
+	MetaFileType mft
+) {
+	return newFragmentFile(store_path, mft, generateNewUID());
 }
 
 FragmentID FragmentStore::getFragmentByID(

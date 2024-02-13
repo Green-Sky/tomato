@@ -1,7 +1,6 @@
 #pragma once
 
 #include "./fragment_store_i.hpp"
-#include "entt/entity/fwd.hpp"
 
 #include <entt/core/fwd.hpp>
 #include <entt/core/type_info.hpp>
@@ -14,6 +13,7 @@
 #include <vector>
 #include <array>
 #include <cstdint>
+#include <random>
 
 enum class Encryption : uint8_t {
 	NONE = 0x00,
@@ -99,6 +99,7 @@ struct SerializerCallbacks {
 struct FragmentStore : public FragmentStoreI {
 	entt::basic_registry<FragmentID> _reg;
 
+	std::minstd_rand _rng{std::random_device{}()};
 	std::array<uint8_t, 8> _session_uuid_namespace;
 
 	std::string _default_store_path;
@@ -115,6 +116,9 @@ struct FragmentStore : public FragmentStoreI {
 	entt::basic_handle<entt::basic_registry<FragmentID>> fragmentHandle(FragmentID fid);
 
 	// TODO: make the frags ref counted
+
+	std::vector<uint8_t> generateNewUID(std::array<uint8_t, 8>& uuid_namespace);
+	std::vector<uint8_t> generateNewUID(void);
 
 	// ========== new fragment ==========
 
