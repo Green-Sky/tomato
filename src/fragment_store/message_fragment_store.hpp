@@ -4,13 +4,14 @@
 #include "./fragment_store_i.hpp"
 #include "./fragment_store.hpp"
 
-#include <cstdint>
 #include <entt/entity/registry.hpp>
 #include <entt/container/dense_map.hpp>
 
 #include <solanaceae/message3/registry_message_model.hpp>
 
-#include <map>
+#include <queue>
+#include <vector>
+#include <cstdint>
 
 namespace Message::Components {
 
@@ -41,14 +42,20 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 
 		void handleMessage(const Message3Handle& m);
 
-		struct TSRange final {
+		struct OpenFrag final {
 			uint64_t ts_begin {0};
 			uint64_t ts_end {0};
+			std::vector<uint8_t> uid;
 		};
 		// only contains fragments with <1024 messages and <28h tsrage
-		std::map<TSRange, std::vector<uint8_t>> _fuid_open;
+		// TODO: this needs to move into the message reg
+		std::vector<OpenFrag> _fuid_open;
 
-		std::map<uint64_t, std::vector<uint8_t>> _fuid_save_queue;
+		struct QueueEntry final {
+			uint64_t ts_since_dirty{0};
+			std::vector<uint8_t> id;
+		};
+		std::queue<QueueEntry> _fuid_save_queue;
 
 	public:
 		MessageFragmentStore(
