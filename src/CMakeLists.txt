@@ -19,6 +19,18 @@ target_link_libraries(fragment_store PUBLIC
 
 ########################################
 
+add_library(message_fragment_store
+	./fragment_store/message_fragment_store.hpp
+	./fragment_store/message_fragment_store.cpp
+)
+target_compile_features(message_fragment_store PRIVATE cxx_std_20)
+target_link_libraries(message_fragment_store PUBLIC
+	fragment_store
+	solanaceae_message3
+)
+
+########################################
+
 add_executable(fragment_store_test
 	fragment_store/test_fragstore.cpp
 )
@@ -112,6 +124,7 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_tox_messages
 
 	fragment_store
+	message_fragment_store
 
 	SDL3::SDL3
 
