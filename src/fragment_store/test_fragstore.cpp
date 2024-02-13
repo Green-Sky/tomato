@@ -36,7 +36,9 @@ int main(void) {
 
 	const auto frag0 = fs.newFragmentFile("", MetaFileType::TEXT_JSON, {0xff, 0xf1, 0xf2, 0xf0, 0xff, 0xff, 0xff, 0xf9});
 
-	const auto frag1 = fs.newFragmentFile("", MetaFileType::BINARY_MSGPACK, {0xff, 0xff, 0xf0, 0xf0, 0xf0, 0xf0, 0xff, 0xf9});
+	const auto frag1 = fs.newFragmentFile("", MetaFileType::BINARY_MSGPACK);
+
+	const auto frag2 = fs.newFragmentFile("", MetaFileType::BINARY_MSGPACK);
 
 	{
 		auto frag0h = fs.fragmentHandle(frag0);
@@ -62,7 +64,6 @@ int main(void) {
 
 		frag1h.emplace_or_replace<Components::DataCompressionType>();
 		frag1h.emplace_or_replace<Components::DataEncryptionType>();
-		//frag1h.emplace_or_replace<Components::Ephemeral::MetaFileType>(MetaFileType::BINARY_MSGPACK);
 
 		std::function<FragmentStore::write_to_storage_fetch_data_cb> fn_cb = [read = 0ul](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {
 			static constexpr std::string_view text = "This is some random data";
