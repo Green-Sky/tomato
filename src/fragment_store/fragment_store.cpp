@@ -51,7 +51,7 @@ FragmentStore::FragmentStore(
 	registerSerializers();
 }
 
-entt::basic_handle<entt::basic_registry<FragmentID>> FragmentStore::fragmentHandle(FragmentID fid) {
+FragmentStore::FragmentHandle FragmentStore::fragmentHandle(FragmentID fid) {
 	return {_reg, fid};
 }
 
@@ -107,7 +107,7 @@ FragmentID FragmentStore::newFragmentMemoryOwned(
 
 	const auto new_frag = _reg.create();
 
-	_reg.emplace<Components::ID>(new_frag, id);
+	_reg.emplace<FragComp::ID>(new_frag, id);
 	// TODO: memory comp
 	_reg.emplace<std::unique_ptr<std::vector<uint8_t>>>(new_frag) = std::move(new_data);
 
@@ -149,12 +149,12 @@ FragmentID FragmentStore::newFragmentFile(
 
 	const auto new_frag = _reg.create();
 
-	_reg.emplace<Components::ID>(new_frag, id);
+	_reg.emplace<FragComp::ID>(new_frag, id);
 
 	// file (info) comp
-	_reg.emplace<Components::Ephemeral::FilePath>(new_frag, fragment_file_path.generic_u8string());
+	_reg.emplace<FragComp::Ephemeral::FilePath>(new_frag, fragment_file_path.generic_u8string());
 
-	_reg.emplace<Components::Ephemeral::MetaFileType>(new_frag, mft);
+	_reg.emplace<FragComp::Ephemeral::MetaFileType>(new_frag, mft);
 
 	// meta needs to be synced to file
 	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](const uint8_t*, uint64_t) -> uint64_t { return 0; };
@@ -177,7 +177,7 @@ FragmentID FragmentStore::getFragmentByID(
 ) {
 	// TODO: accelerate
 	// maybe keep it sorted and binary search? hash table lookup?
-	for (const auto& [frag, id_comp] : _reg.view<Components::ID>().each()) {
+	for (const auto& [frag, id_comp] : _reg.view<FragComp::ID>().each()) {
 		if (id == id_comp.v) {
 			return frag;
 		}
@@ -206,7 +206,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		return false;
 	}
 
-	if (!_reg.all_of<Components::Ephemeral::FilePath>(fid)) {
+	if (!_reg.all_of<FragComp::Ephemeral::FilePath>(fid)) {
 		// not a file fragment?
 		return false;
 	}
@@ -214,20 +214,20 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	// split object storage
 
 	MetaFileType meta_type = MetaFileType::TEXT_JSON; // TODO: better defaults
-	if (_reg.all_of<Components::Ephemeral::MetaFileType>(fid)) {
-		meta_type = _reg.get<Components::Ephemeral::MetaFileType>(fid).type;
+	if (_reg.all_of<FragComp::Ephemeral::MetaFileType>(fid)) {
+		meta_type = _reg.get<FragComp::Ephemeral::MetaFileType>(fid).type;
 	}
 
 	Encryption meta_enc = Encryption::NONE; // TODO: better defaults
 	Compression meta_comp = Compression::NONE; // TODO: better defaults
 
 	if (meta_type != MetaFileType::TEXT_JSON) {
-		if (_reg.all_of<Components::Ephemeral::MetaEncryptionType>(fid)) {
-			meta_enc = _reg.get<Components::Ephemeral::MetaEncryptionType>(fid).enc;
+		if (_reg.all_of<FragComp::Ephemeral::MetaEncryptionType>(fid)) {
+			meta_enc = _reg.get<FragComp::Ephemeral::MetaEncryptionType>(fid).enc;
 		}
 
-		if (_reg.all_of<Components::Ephemeral::MetaCompressionType>(fid)) {
-			meta_comp = _reg.get<Components::Ephemeral::MetaCompressionType>(fid).comp;
+		if (_reg.all_of<FragComp::Ephemeral::MetaCompressionType>(fid)) {
+			meta_comp = _reg.get<FragComp::Ephemeral::MetaCompressionType>(fid).comp;
 		}
 	} else {
 		// we cant have encryption or compression
@@ -236,15 +236,15 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 
 		// TODO: forcing for testing
 		//if (_reg.all_of<Components::Ephemeral::MetaEncryptionType>(fid)) {
-			_reg.emplace_or_replace<Components::Ephemeral::MetaEncryptionType>(fid, Encryption::NONE);
+			_reg.emplace_or_replace<FragComp::Ephemeral::MetaEncryptionType>(fid, Encryption::NONE);
 		//}
 		//if (_reg.all_of<Components::Ephemeral::MetaCompressionType>(fid)) {
-			_reg.emplace_or_replace<Components::Ephemeral::MetaCompressionType>(fid, Compression::NONE);
+			_reg.emplace_or_replace<FragComp::Ephemeral::MetaCompressionType>(fid, Compression::NONE);
 		//}
 	}
 
 	std::ofstream meta_file{
-		_reg.get<Components::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type),
+		_reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type),
 		std::ios::out | std::ios::trunc | std::ios::binary // always binary, also for text
 	};
 
@@ -253,7 +253,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	}
 
 	std::ofstream data_file{
-		_reg.get<Components::Ephemeral::FilePath>(fid).path,
+		_reg.get<FragComp::Ephemeral::FilePath>(fid).path,
 		std::ios::out | std::ios::trunc | std::ios::binary // always binary, also for text
 	};
 
@@ -320,11 +320,24 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 
 	// TODO: use temp files and move to old location
 
-	if (_reg.all_of<Components::Ephemeral::DirtyTag>(fid)) {
-		_reg.remove<Components::Ephemeral::DirtyTag>(fid);
+	if (_reg.all_of<FragComp::Ephemeral::DirtyTag>(fid)) {
+		_reg.remove<FragComp::Ephemeral::DirtyTag>(fid);
 	}
 
 	return true;
+}
+
+bool FragmentStore::syncToStorage(FragmentID fid, const uint8_t* data, const uint64_t data_size) {
+	std::function<FragmentStore::write_to_storage_fetch_data_cb> fn_cb = [read = 0ull, data, data_size](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {
+		uint64_t i = 0;
+		for (; i+read < data_size && i < buffer_size; i++) {
+			request_buffer[i] = data[i+read];
+		}
+		read += i;
+
+		return i;
+	};
+	return syncToStorage(fid, fn_cb);
 }
 
 static bool serl_json_data_enc_type(void* comp, nlohmann::json& out) {
@@ -332,7 +345,7 @@ static bool serl_json_data_enc_type(void* comp, nlohmann::json& out) {
 		return false;
 	}
 
-	auto& r_comp = *reinterpret_cast<Components::DataEncryptionType*>(comp);
+	auto& r_comp = *reinterpret_cast<FragComp::DataEncryptionType*>(comp);
 
 	out = static_cast<std::underlying_type_t<Encryption>>(r_comp.enc);
 
@@ -344,7 +357,7 @@ static bool serl_json_data_comp_type(void* comp, nlohmann::json& out) {
 		return false;
 	}
 
-	auto& r_comp = *reinterpret_cast<Components::DataCompressionType*>(comp);
+	auto& r_comp = *reinterpret_cast<FragComp::DataCompressionType*>(comp);
 
 	out = static_cast<std::underlying_type_t<Compression>>(r_comp.comp);
 
@@ -352,8 +365,8 @@ static bool serl_json_data_comp_type(void* comp, nlohmann::json& out) {
 }
 
 void FragmentStore::registerSerializers(void) {
-	_sc.registerSerializerJson<Components::DataEncryptionType>(serl_json_data_enc_type);
-	_sc.registerSerializerJson<Components::DataCompressionType>(serl_json_data_comp_type);
+	_sc.registerSerializerJson<FragComp::DataEncryptionType>(serl_json_data_enc_type);
+	_sc.registerSerializerJson<FragComp::DataCompressionType>(serl_json_data_comp_type);
 
 	std::cout << "registered serl text json cbs:\n";
 	for (const auto& [type_id, _] : _sc._serl_json) {

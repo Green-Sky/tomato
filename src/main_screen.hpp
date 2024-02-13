@@ -2,6 +2,7 @@
 
 #include "./screen.hpp"
 
+#include "./fragment_store/fragment_store.hpp"
 #include <solanaceae/util/simple_config_model.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
@@ -42,6 +43,8 @@ extern "C" {
 
 struct MainScreen final : public Screen {
 	SDL_Renderer* renderer;
+
+	FragmentStore fs;
 
 	SimpleConfigModel conf;
 	Contact3Registry cr;
