@@ -40,20 +40,15 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 		RegistryMessageModel& _rmm;
 		FragmentStore& _fs;
 
-		void handleMessage(const Message3Handle& m);
+		// for message components only
+		SerializerCallbacks _sc;
 
-		struct OpenFrag final {
-			uint64_t ts_begin {0};
-			uint64_t ts_end {0};
-			std::vector<uint8_t> uid;
-		};
-		// only contains fragments with <1024 messages and <28h tsrage
-		// TODO: this needs to move into the message reg
-		std::vector<OpenFrag> _fuid_open;
+		void handleMessage(const Message3Handle& m);
 
 		struct QueueEntry final {
 			uint64_t ts_since_dirty{0};
 			std::vector<uint8_t> id;
+			Message3Registry* reg{nullptr};
 		};
 		std::queue<QueueEntry> _fuid_save_queue;
 
