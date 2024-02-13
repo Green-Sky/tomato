@@ -7,6 +7,7 @@
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/message3/message_time_sort.hpp>
+#include "./fragment_store/message_fragment_store.hpp"
 #include <solanaceae/plugin/plugin_manager.hpp>
 #include <solanaceae/toxcore/tox_event_logger.hpp>
 #include "./tox_private_impl.hpp"
@@ -50,6 +51,7 @@ struct MainScreen final : public Screen {
 	Contact3Registry cr;
 	RegistryMessageModel rmm;
 	MessageTimeSort mts;
+	MessageFragmentStore mfs;
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;

@@ -14,6 +14,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	renderer(renderer_),
 	rmm(cr),
 	mts(rmm),
+	mfs(rmm, fs),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
