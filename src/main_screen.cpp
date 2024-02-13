@@ -1,4 +1,5 @@
 #include "./main_screen.hpp"
+#include "fragment_store/fragment_store.hpp"
 
 #include <solanaceae/contact/components.hpp>
 
@@ -49,6 +50,10 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	std::cout << "own address: " << tc.toxSelfGetAddressStr() << "\n";
 
 	{ // setup plugin instances
+		// TODO: make interface useful
+		g_provideInstance<FragmentStoreI>("FragmentStoreI", "host", &fs);
+		g_provideInstance<FragmentStore>("FragmentStore", "host", &fs);
+
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);

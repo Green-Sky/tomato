@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 add_library(fragment_store
 	./fragment_store/fragment_store_i.hpp
+	./fragment_store/types.hpp
+	./fragment_store/meta_components.hpp
+	./fragment_store/meta_components_id.inl
+	./fragment_store/serializer.hpp
+	./fragment_store/serializer.cpp
 	./fragment_store/fragment_store.hpp
 	./fragment_store/fragment_store.cpp
 )
@@ -105,6 +110,8 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_toxcore
 	solanaceae_tox_contacts
 	solanaceae_tox_messages
+
+	fragment_store
 
 	SDL3::SDL3
 

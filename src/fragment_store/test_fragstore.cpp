@@ -43,8 +43,8 @@ int main(void) {
 	{
 		auto frag0h = fs.fragmentHandle(frag0);
 
-		frag0h.emplace_or_replace<Components::DataCompressionType>();
-		frag0h.emplace_or_replace<Components::DataEncryptionType>();
+		frag0h.emplace_or_replace<FragComp::DataCompressionType>();
+		frag0h.emplace_or_replace<FragComp::DataEncryptionType>();
 		frag0h.emplace_or_replace<Components::MessagesTimestampRange>();
 
 		std::function<FragmentStore::write_to_storage_fetch_data_cb> fn_cb = [read = 0ul](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {
@@ -62,8 +62,8 @@ int main(void) {
 	{
 		auto frag1h = fs.fragmentHandle(frag1);
 
-		frag1h.emplace_or_replace<Components::DataCompressionType>();
-		frag1h.emplace_or_replace<Components::DataEncryptionType>();
+		frag1h.emplace_or_replace<FragComp::DataCompressionType>();
+		frag1h.emplace_or_replace<FragComp::DataEncryptionType>();
 
 		std::function<FragmentStore::write_to_storage_fetch_data_cb> fn_cb = [read = 0ul](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {
 			static constexpr std::string_view text = "This is some random data";
@@ -78,6 +78,15 @@ int main(void) {
 		fs.syncToStorage(frag1, fn_cb);
 	}
 
+	{
+		auto frag2h = fs.fragmentHandle(frag2);
+
+		frag2h.emplace_or_replace<FragComp::DataCompressionType>();
+		frag2h.emplace_or_replace<FragComp::DataEncryptionType>();
+
+		static constexpr std::string_view text = "This is more random data";
+		fs.syncToStorage(frag2, reinterpret_cast<const uint8_t*>(text.data()), text.size());
+	}
 	return 0;
 }
 
