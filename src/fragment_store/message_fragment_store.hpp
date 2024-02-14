@@ -7,6 +7,7 @@
 #include <entt/entity/registry.hpp>
 #include <entt/container/dense_map.hpp>
 
+#include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 
 #include <queue>
@@ -29,6 +30,10 @@ namespace Fragment::Components {
 		uint64_t begin {0};
 		uint64_t end {0};
 	};
+
+	struct MessagesContact {
+		std::vector<uint8_t> id;
+	};
 } // Fragment::Components
 
 struct MessageSerializerCallbacks : public SerializerCallbacks {
@@ -41,6 +46,7 @@ struct MessageSerializerCallbacks : public SerializerCallbacks {
 // on delete: mark as fragment dirty?
 class MessageFragmentStore : public RegistryMessageModelEventI {
 	protected:
+		Contact3Registry& _cr;
 		RegistryMessageModel& _rmm;
 		FragmentStore& _fs;
 
@@ -58,6 +64,7 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 
 	public:
 		MessageFragmentStore(
+			Contact3Registry& cr,
 			RegistryMessageModel& rmm,
 			FragmentStore& fs
 		);

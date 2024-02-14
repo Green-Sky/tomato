@@ -2,6 +2,7 @@
 
 #include <solanaceae/util/utils.hpp>
 
+#include <solanaceae/contact/components.hpp>
 #include <solanaceae/message3/components.hpp>
 
 #include <nlohmann/json.hpp>
@@ -59,6 +60,20 @@ static bool serl_json_msg_ts_range(void* comp, nlohmann::json& out) {
 
 	out["begin"] = r_comp.begin;
 	out["end"] = r_comp.end;
+
+	return true;
+}
+
+static bool serl_json_msg_c_id(void* comp, nlohmann::json& out) {
+	if (comp == nullptr) {
+		return false;
+	}
+
+	out = nlohmann::json::object();
+
+	auto& r_comp = *reinterpret_cast<FragComp::MessagesContact*>(comp);
+
+	out["id"] = r_comp.id;
 
 	return true;
 }
@@ -153,6 +168,15 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			new_ts_range.begin = msg_ts;
 			new_ts_range.end = msg_ts;
 
+			{
+				const auto msg_reg_contact = m.registry()->ctx().get<Contact3>();
+				if (_cr.all_of<Contact::Components::ID>(msg_reg_contact)) {
+					fh.emplace<FragComp::MessagesContact>(_cr.get<Contact::Components::ID>(msg_reg_contact).data);
+				} else {
+					// ? rage quit?
+				}
+			}
+
 			fuid_open.emplace_back(Message::Components::OpenFragments::OpenFrag{msg_ts, msg_ts, fragment_uid});
 
 			std::cout << "MFS: created new fragment " << bin2hex(fragment_uid) << "\n";
@@ -177,14 +201,16 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 }
 
 MessageFragmentStore::MessageFragmentStore(
+	Contact3Registry& cr,
 	RegistryMessageModel& rmm,
 	FragmentStore& fs
-) : _rmm(rmm), _fs(fs) {
+) : _cr(cr), _rmm(rmm), _fs(fs) {
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
 	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(serl_json_msg_ts_range);
+	_fs._sc.registerSerializerJson<FragComp::MessagesContact>(serl_json_msg_c_id);
 
 	_sc.registerSerializerJson<Message::Components::Timestamp>(serl_json_default<Message::Components::Timestamp>);
 	_sc.registerSerializerJson<Message::Components::TimestampProcessed>(serl_json_default<Message::Components::TimestampProcessed>);
