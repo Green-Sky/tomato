@@ -34,7 +34,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessageText, text)
 
 template<typename T>
 static bool serl_json_default(void* comp, nlohmann::json& out) {
-	out = *reinterpret_cast<T*>(comp);
+	if constexpr (!std::is_empty_v<T>) {
+		out = *reinterpret_cast<T*>(comp);
+	} // do nothing if empty type
 	return true;
 }
 
@@ -180,7 +182,7 @@ MessageFragmentStore::MessageFragmentStore(
 	_sc.registerSerializerJson<Message::Components::ContactFrom>(serl_json_default<Message::Components::ContactFrom>);
 	_sc.registerSerializerJson<Message::Components::ContactTo>(serl_json_default<Message::Components::ContactTo>);
 	_sc.registerSerializerJson<Message::Components::MessageText>(serl_json_default<Message::Components::MessageText>);
-	//_sc.registerSerializerJson<Message::Components::TagMessageIsAction>(serl_json_default<);
+	_sc.registerSerializerJson<Message::Components::TagMessageIsAction>(serl_json_default<Message::Components::TagMessageIsAction>);
 
 	// files
 	//_sc.registerSerializerJson<Message::Components::Transfer::FileID>()
