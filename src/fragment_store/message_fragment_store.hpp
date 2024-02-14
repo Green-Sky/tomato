@@ -31,6 +31,10 @@ namespace Fragment::Components {
 	};
 } // Fragment::Components
 
+struct MessageSerializerCallbacks : public SerializerCallbacks {
+	// TODO: add contact and message reg, so entities can be looked up and be converted to fragment uids OR persistent ids
+};
+
 // handles fragments for messages
 // on new message: assign fuid
 // on new and update: mark as fragment dirty
@@ -41,7 +45,7 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 		FragmentStore& _fs;
 
 		// for message components only
-		SerializerCallbacks _sc;
+		MessageSerializerCallbacks _sc;
 
 		void handleMessage(const Message3Handle& m);
 

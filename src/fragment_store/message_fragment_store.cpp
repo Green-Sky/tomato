@@ -12,23 +12,31 @@
 
 namespace Message::Components {
 
-// ctx
-struct OpenFragments {
-	struct OpenFrag final {
-		uint64_t ts_begin {0};
-		uint64_t ts_end {0};
-		std::vector<uint8_t> uid;
+	// ctx
+	struct OpenFragments {
+		struct OpenFrag final {
+			uint64_t ts_begin {0};
+			uint64_t ts_end {0};
+			std::vector<uint8_t> uid;
+		};
+		// only contains fragments with <1024 messages and <28h tsrage
+		// TODO: this needs to move into the message reg
+		std::vector<OpenFrag> fuid_open;
 	};
-	// only contains fragments with <1024 messages and <28h tsrage
-	// TODO: this needs to move into the message reg
-	std::vector<OpenFrag> fuid_open;
-};
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Timestamp, ts)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ContactFrom, c)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ContactTo, c)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessageText, text)
-//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TagMessageIsAction, void)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Timestamp, ts)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TimestampProcessed, ts)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TimestampWritten, ts)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ContactFrom, c)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ContactTo, c)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Read, ts)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessageText, text)
+
+	namespace Transfer {
+		NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FileInfo::FileDirEntry, file_name, file_size)
+		NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FileInfo, file_list, total_size)
+		NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FileInfoLocal, file_list)
+	} // Transfer
 
 } // Message::Components
 
@@ -179,16 +187,20 @@ MessageFragmentStore::MessageFragmentStore(
 	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(serl_json_msg_ts_range);
 
 	_sc.registerSerializerJson<Message::Components::Timestamp>(serl_json_default<Message::Components::Timestamp>);
+	_sc.registerSerializerJson<Message::Components::TimestampProcessed>(serl_json_default<Message::Components::TimestampProcessed>);
+	_sc.registerSerializerJson<Message::Components::TimestampWritten>(serl_json_default<Message::Components::TimestampWritten>);
 	_sc.registerSerializerJson<Message::Components::ContactFrom>(serl_json_default<Message::Components::ContactFrom>);
 	_sc.registerSerializerJson<Message::Components::ContactTo>(serl_json_default<Message::Components::ContactTo>);
+	_sc.registerSerializerJson<Message::Components::TagUnread>(serl_json_default<Message::Components::TagUnread>);
+	_sc.registerSerializerJson<Message::Components::Read>(serl_json_default<Message::Components::Read>);
 	_sc.registerSerializerJson<Message::Components::MessageText>(serl_json_default<Message::Components::MessageText>);
 	_sc.registerSerializerJson<Message::Components::TagMessageIsAction>(serl_json_default<Message::Components::TagMessageIsAction>);
 
 	// files
 	//_sc.registerSerializerJson<Message::Components::Transfer::FileID>()
-	//_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>();
-	//_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>();
-	//_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
+	_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>(serl_json_default<Message::Components::Transfer::FileInfo>);
+	_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>(serl_json_default<Message::Components::Transfer::FileInfoLocal>);
+	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>(serl_json_default<Message::Components::Transfer::TagHaveAll>);
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
@@ -228,6 +240,7 @@ float MessageFragmentStore::tick(float time_delta) {
 				auto s_cb_it = _sc._serl_json.find(type_id);
 				if (s_cb_it == _sc._serl_json.end()) {
 					// could not find serializer, not saving
+					std::cout << "missing " << storage.type().name() << "\n";
 					continue;
 				}
 
