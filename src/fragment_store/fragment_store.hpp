@@ -17,9 +17,6 @@
 #include <cstdint>
 #include <random>
 
-// fwd
-struct SerializerCallbacks;
-
 struct FragmentStore : public FragmentStoreI {
 	FragmentRegistry _reg;
 
@@ -31,7 +28,7 @@ struct FragmentStore : public FragmentStoreI {
 	uint64_t _memory_budget {10u*1024u*1024u};
 	uint64_t _memory_usage {0u};
 
-	SerializerCallbacks _sc;
+	SerializerCallbacks<FragmentID> _sc;
 
 	FragmentStore(void);
 	FragmentStore(std::array<uint8_t, 8> session_uuid_namespace);

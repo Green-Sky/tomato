@@ -36,7 +36,7 @@ namespace Fragment::Components {
 	};
 } // Fragment::Components
 
-struct MessageSerializerCallbacks : public SerializerCallbacks {
+struct MessageSerializerCallbacks : public SerializerCallbacks<Message3> {
 	// TODO: add contact and message reg, so entities can be looked up and be converted to fragment uids OR persistent ids
 };
 
