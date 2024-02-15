@@ -41,6 +41,11 @@ namespace Message::Components {
 
 } // Message::Components
 
+namespace Fragment::Components {
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesTSRange, begin, end)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesContact, id)
+} // Fragment::Components
+
 template<typename T>
 static bool serl_json_default(void* comp, nlohmann::json& out) {
 	if constexpr (!std::is_empty_v<T>) {
@@ -64,19 +69,6 @@ static bool serl_json_msg_ts_range(void* comp, nlohmann::json& out) {
 	return true;
 }
 
-static bool deserl_json_msg_ts_range(FragmentHandle fh, const nlohmann::json& in) {
-	// TODO: this is ugly in multiple places
-	try {
-		fh.emplace_or_replace<FragComp::MessagesTSRange>(FragComp::MessagesTSRange{
-			in["begin"],
-			in["end"]
-		});
-	} catch(...) {
-		return false;
-	}
-	return true;
-}
-
 static bool serl_json_msg_c_id(void* comp, nlohmann::json& out) {
 	if (comp == nullptr) {
 		return false;
@@ -88,18 +80,6 @@ static bool serl_json_msg_c_id(void* comp, nlohmann::json& out) {
 
 	out["id"] = r_comp.id;
 
-	return true;
-}
-
-static bool deserl_json_msg_c_id(FragmentHandle fh, const nlohmann::json& in) {
-	// TODO: this is ugly in multiple places
-	try {
-		fh.emplace_or_replace<FragComp::MessagesContact>(FragComp::MessagesContact{
-			in["id"]
-		});
-	} catch(...) {
-		return false;
-	}
 	return true;
 }
 
@@ -235,25 +215,37 @@ MessageFragmentStore::MessageFragmentStore(
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
 	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(serl_json_msg_ts_range);
-	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>(deserl_json_msg_ts_range);
+	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>();
 	_fs._sc.registerSerializerJson<FragComp::MessagesContact>(serl_json_msg_c_id);
-	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>(deserl_json_msg_c_id);
+	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>();
 
 	_sc.registerSerializerJson<Message::Components::Timestamp>(serl_json_default<Message::Components::Timestamp>);
+	_sc.registerDeSerializerJson<Message::Components::Timestamp>();
 	_sc.registerSerializerJson<Message::Components::TimestampProcessed>(serl_json_default<Message::Components::TimestampProcessed>);
+	_sc.registerDeSerializerJson<Message::Components::TimestampProcessed>();
 	_sc.registerSerializerJson<Message::Components::TimestampWritten>(serl_json_default<Message::Components::TimestampWritten>);
+	_sc.registerDeSerializerJson<Message::Components::TimestampWritten>();
 	_sc.registerSerializerJson<Message::Components::ContactFrom>(serl_json_default<Message::Components::ContactFrom>);
+	_sc.registerDeSerializerJson<Message::Components::ContactFrom>();
 	_sc.registerSerializerJson<Message::Components::ContactTo>(serl_json_default<Message::Components::ContactTo>);
+	_sc.registerDeSerializerJson<Message::Components::ContactTo>();
 	_sc.registerSerializerJson<Message::Components::TagUnread>(serl_json_default<Message::Components::TagUnread>);
+	_sc.registerDeSerializerJson<Message::Components::TagUnread>();
 	_sc.registerSerializerJson<Message::Components::Read>(serl_json_default<Message::Components::Read>);
+	_sc.registerDeSerializerJson<Message::Components::Read>();
 	_sc.registerSerializerJson<Message::Components::MessageText>(serl_json_default<Message::Components::MessageText>);
+	_sc.registerDeSerializerJson<Message::Components::MessageText>();
 	_sc.registerSerializerJson<Message::Components::TagMessageIsAction>(serl_json_default<Message::Components::TagMessageIsAction>);
+	_sc.registerDeSerializerJson<Message::Components::TagMessageIsAction>();
 
 	// files
 	//_sc.registerSerializerJson<Message::Components::Transfer::FileID>()
 	_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>(serl_json_default<Message::Components::Transfer::FileInfo>);
+	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfo>();
 	_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>(serl_json_default<Message::Components::Transfer::FileInfoLocal>);
+	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
 	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>(serl_json_default<Message::Components::Transfer::TagHaveAll>);
+	_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
 
 	_fs.scanStoragePath("test_message_store/");
 }
