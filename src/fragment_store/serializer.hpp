@@ -5,13 +5,15 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "./fragment_store_i.hpp"
+
 struct SerializerCallbacks {
 	// nlohmann
 	// json/msgpack
 	using serialize_json_fn = bool(*)(void* comp, nlohmann::json& out);
 	entt::dense_map<entt::id_type, serialize_json_fn> _serl_json;
 
-	using deserialize_json_fn = bool(*)(void* comp, const nlohmann::json& in);
+	using deserialize_json_fn = bool(*)(FragmentHandle fh, const nlohmann::json& in);
 	entt::dense_map<entt::id_type, deserialize_json_fn> _deserl_json;
 
 	void registerSerializerJson(serialize_json_fn fn, const entt::type_info& type_info);

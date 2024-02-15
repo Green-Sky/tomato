@@ -17,10 +17,11 @@
 #include <cstdint>
 #include <random>
 
-struct FragmentStore : public FragmentStoreI {
-	using FragmentHandle = entt::basic_handle<entt::basic_registry<FragmentID>>;
+// fwd
+struct SerializerCallbacks;
 
-	entt::basic_registry<FragmentID> _reg;
+struct FragmentStore : public FragmentStoreI {
+	FragmentRegistry _reg;
 
 	std::minstd_rand _rng{std::random_device{}()};
 	std::array<uint8_t, 8> _session_uuid_namespace;
@@ -87,6 +88,9 @@ struct FragmentStore : public FragmentStoreI {
 	bool syncToStorage(FragmentID fid, const uint8_t* data, const uint64_t data_size);
 
 	// fragment discovery?
+	// returns number of new fragments
+	size_t scanStoragePath(std::string_view path);
+	void scanStoragePathAsync(std::string path);
 
 	private:
 		void registerSerializers(void); // internal comps
