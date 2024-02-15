@@ -359,8 +359,8 @@ float ChatGui4::render(float time_delta) {
 									// msg
 									if (ImGui::TableNextColumn()) {
 										ImGui::TextDisabled("DATE CHANGED from %d.%d.%d to %d.%d.%d",
-											1900+prev_tm.tm_year, prev_tm.tm_mon, prev_tm.tm_mday,
-											1900+next_tm.tm_year, next_tm.tm_mon, next_tm.tm_mday
+											1900+prev_tm.tm_year, 1+prev_tm.tm_mon, prev_tm.tm_mday,
+											1900+next_tm.tm_year, 1+next_tm.tm_mon, next_tm.tm_mday
 										);
 									}
 									ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
