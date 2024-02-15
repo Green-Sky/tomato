@@ -324,6 +324,7 @@ float ChatGui4::render(float time_delta) {
 						//tmp_view.use<Message::Components::Timestamp>();
 						//tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
 						//) {
+						uint64_t prev_ts {0};
 						auto tmp_view = msg_reg.view<Message::Components::Timestamp>();
 						for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
 							const Message3 e = *view_it;
@@ -340,6 +341,34 @@ float ChatGui4::render(float time_delta) {
 
 							// TODO: why?
 							ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+
+							{ // check if date changed
+								// TODO: find defined ways of casting to time_t
+								std::time_t prev = prev_ts / 1000;
+								std::time_t next = ts.ts / 1000;
+								std::tm prev_tm = *std::localtime(&prev);
+								std::tm next_tm = *std::localtime(&next);
+								if (
+									prev_tm.tm_yday != next_tm.tm_yday ||
+									prev_tm.tm_year != next_tm.tm_year // making sure
+								) {
+									// name
+									if (ImGui::TableNextColumn()) {
+										//ImGui::TextDisabled("---");
+									}
+									// msg
+									if (ImGui::TableNextColumn()) {
+										ImGui::TextDisabled("DATE CHANGED from %d.%d.%d to %d.%d.%d",
+											1900+prev_tm.tm_year, prev_tm.tm_mon, prev_tm.tm_mday,
+											1900+next_tm.tm_year, next_tm.tm_mon, next_tm.tm_mday
+										);
+									}
+									ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+								}
+
+								prev_ts = ts.ts;
+							}
+
 
 							ImGui::PushID(entt::to_integral(e));
 
