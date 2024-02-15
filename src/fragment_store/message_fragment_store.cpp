@@ -64,6 +64,19 @@ static bool serl_json_msg_ts_range(void* comp, nlohmann::json& out) {
 	return true;
 }
 
+static bool deserl_json_msg_ts_range(FragmentHandle fh, const nlohmann::json& in) {
+	// TODO: this is ugly in multiple places
+	try {
+		fh.emplace_or_replace<FragComp::MessagesTSRange>(FragComp::MessagesTSRange{
+			in["begin"],
+			in["end"]
+		});
+	} catch(...) {
+		return false;
+	}
+	return true;
+}
+
 static bool serl_json_msg_c_id(void* comp, nlohmann::json& out) {
 	if (comp == nullptr) {
 		return false;
@@ -75,6 +88,18 @@ static bool serl_json_msg_c_id(void* comp, nlohmann::json& out) {
 
 	out["id"] = r_comp.id;
 
+	return true;
+}
+
+static bool deserl_json_msg_c_id(FragmentHandle fh, const nlohmann::json& in) {
+	// TODO: this is ugly in multiple places
+	try {
+		fh.emplace_or_replace<FragComp::MessagesContact>(FragComp::MessagesContact{
+			in["id"]
+		});
+	} catch(...) {
+		return false;
+	}
 	return true;
 }
 
@@ -210,7 +235,9 @@ MessageFragmentStore::MessageFragmentStore(
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
 	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(serl_json_msg_ts_range);
+	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>(deserl_json_msg_ts_range);
 	_fs._sc.registerSerializerJson<FragComp::MessagesContact>(serl_json_msg_c_id);
+	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>(deserl_json_msg_c_id);
 
 	_sc.registerSerializerJson<Message::Components::Timestamp>(serl_json_default<Message::Components::Timestamp>);
 	_sc.registerSerializerJson<Message::Components::TimestampProcessed>(serl_json_default<Message::Components::TimestampProcessed>);
@@ -227,9 +254,12 @@ MessageFragmentStore::MessageFragmentStore(
 	_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>(serl_json_default<Message::Components::Transfer::FileInfo>);
 	_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>(serl_json_default<Message::Components::Transfer::FileInfoLocal>);
 	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>(serl_json_default<Message::Components::Transfer::TagHaveAll>);
+
+	_fs.scanStoragePath("test_message_store/");
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
+	// TODO: sync all dirty fragments
 }
 
 float MessageFragmentStore::tick(float time_delta) {
