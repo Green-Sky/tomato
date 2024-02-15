@@ -291,7 +291,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		//if (meta_type == MetaFileType::BINARY_MSGPACK) { // msgpack uses the hash id instead
 			//s_cb_it->second(storage.value(fid), meta_data[storage.type().hash()]);
 		//} else if (meta_type == MetaFileType::TEXT_JSON) {
-		s_cb_it->second(storage.value(fid), meta_data[storage.type().name()]);
+		s_cb_it->second({_reg, fid}, meta_data[storage.type().name()]);
 		//}
 	}
 
@@ -521,52 +521,44 @@ void FragmentStore::scanStoragePathAsync(std::string path) {
 	scanStoragePath(path); // TODO: make async and post result
 }
 
-static bool serl_json_data_enc_type(void* comp, nlohmann::json& out) {
-	if (comp == nullptr) {
-		return false;
-	}
-
-	auto& r_comp = *reinterpret_cast<FragComp::DataEncryptionType*>(comp);
-
-	out = static_cast<std::underlying_type_t<Encryption>>(r_comp.enc);
-
+static bool serl_json_data_enc_type(const FragmentHandle fh, nlohmann::json& out) {
+	out = static_cast<std::underlying_type_t<Encryption>>(
+		fh.get<FragComp::DataEncryptionType>().enc
+	);
 	return true;
 }
 
 static bool deserl_json_data_enc_type(FragmentHandle fh, const nlohmann::json& in) {
-	// TODO: this is ugly in multiple places
-	try {
-		fh.emplace_or_replace<FragComp::DataEncryptionType>(
-			static_cast<Encryption>(
-				static_cast<std::underlying_type_t<Encryption>>(in)
-			)
-		);
-	} catch(...) {
-		return false;
-	}
+	fh.emplace_or_replace<FragComp::DataEncryptionType>(
+		static_cast<Encryption>(
+			static_cast<std::underlying_type_t<Encryption>>(in)
+		)
+	);
 	return true;
 }
 
-static bool serl_json_data_comp_type(void* comp, nlohmann::json& out) {
-	if (comp == nullptr) {
-		return false;
-	}
-
-	auto& r_comp = *reinterpret_cast<FragComp::DataCompressionType*>(comp);
-
-	out = static_cast<std::underlying_type_t<Compression>>(r_comp.comp);
-
+static bool serl_json_data_comp_type(const FragmentHandle fh, nlohmann::json& out) {
+	out = static_cast<std::underlying_type_t<Compression>>(
+		fh.get<FragComp::DataCompressionType>().comp
+	);
 	return true;
 }
+
+static bool deserl_json_data_comp_type(FragmentHandle fh, const nlohmann::json& in) {
+	fh.emplace_or_replace<FragComp::DataCompressionType>(
+		static_cast<Compression>(
+			static_cast<std::underlying_type_t<Compression>>(in)
+		)
+	);
+	return true;
+}
+
+// TODO: dserl comp type
 
 void FragmentStore::registerSerializers(void) {
 	_sc.registerSerializerJson<FragComp::DataEncryptionType>(serl_json_data_enc_type);
 	_sc.registerDeSerializerJson<FragComp::DataEncryptionType>(deserl_json_data_enc_type);
 	_sc.registerSerializerJson<FragComp::DataCompressionType>(serl_json_data_comp_type);
-
-	std::cout << "registered serl text json cbs:\n";
-	for (const auto& [type_id, _] : _sc._serl_json) {
-		std::cout << "  " << type_id << "\n";
-	}
+	_sc.registerDeSerializerJson<FragComp::DataCompressionType>(deserl_json_data_comp_type);
 }
 

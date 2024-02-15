@@ -214,37 +214,37 @@ MessageFragmentStore::MessageFragmentStore(
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
-	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(serl_json_msg_ts_range);
+	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>();
 	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>();
-	_fs._sc.registerSerializerJson<FragComp::MessagesContact>(serl_json_msg_c_id);
+	_fs._sc.registerSerializerJson<FragComp::MessagesContact>();
 	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>();
 
-	_sc.registerSerializerJson<Message::Components::Timestamp>(serl_json_default<Message::Components::Timestamp>);
+	_sc.registerSerializerJson<Message::Components::Timestamp>();
 	_sc.registerDeSerializerJson<Message::Components::Timestamp>();
-	_sc.registerSerializerJson<Message::Components::TimestampProcessed>(serl_json_default<Message::Components::TimestampProcessed>);
+	_sc.registerSerializerJson<Message::Components::TimestampProcessed>();
 	_sc.registerDeSerializerJson<Message::Components::TimestampProcessed>();
-	_sc.registerSerializerJson<Message::Components::TimestampWritten>(serl_json_default<Message::Components::TimestampWritten>);
+	_sc.registerSerializerJson<Message::Components::TimestampWritten>();
 	_sc.registerDeSerializerJson<Message::Components::TimestampWritten>();
-	_sc.registerSerializerJson<Message::Components::ContactFrom>(serl_json_default<Message::Components::ContactFrom>);
+	_sc.registerSerializerJson<Message::Components::ContactFrom>();
 	_sc.registerDeSerializerJson<Message::Components::ContactFrom>();
-	_sc.registerSerializerJson<Message::Components::ContactTo>(serl_json_default<Message::Components::ContactTo>);
+	_sc.registerSerializerJson<Message::Components::ContactTo>();
 	_sc.registerDeSerializerJson<Message::Components::ContactTo>();
-	_sc.registerSerializerJson<Message::Components::TagUnread>(serl_json_default<Message::Components::TagUnread>);
+	_sc.registerSerializerJson<Message::Components::TagUnread>();
 	_sc.registerDeSerializerJson<Message::Components::TagUnread>();
-	_sc.registerSerializerJson<Message::Components::Read>(serl_json_default<Message::Components::Read>);
+	_sc.registerSerializerJson<Message::Components::Read>();
 	_sc.registerDeSerializerJson<Message::Components::Read>();
-	_sc.registerSerializerJson<Message::Components::MessageText>(serl_json_default<Message::Components::MessageText>);
+	_sc.registerSerializerJson<Message::Components::MessageText>();
 	_sc.registerDeSerializerJson<Message::Components::MessageText>();
-	_sc.registerSerializerJson<Message::Components::TagMessageIsAction>(serl_json_default<Message::Components::TagMessageIsAction>);
+	_sc.registerSerializerJson<Message::Components::TagMessageIsAction>();
 	_sc.registerDeSerializerJson<Message::Components::TagMessageIsAction>();
 
 	// files
 	//_sc.registerSerializerJson<Message::Components::Transfer::FileID>()
-	_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>(serl_json_default<Message::Components::Transfer::FileInfo>);
+	_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>();
 	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfo>();
-	_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>(serl_json_default<Message::Components::Transfer::FileInfoLocal>);
+	_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>();
 	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
-	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>(serl_json_default<Message::Components::Transfer::TagHaveAll>);
+	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
 	_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
 
 	_fs.scanStoragePath("test_message_store/");
@@ -292,7 +292,7 @@ float MessageFragmentStore::tick(float time_delta) {
 					continue;
 				}
 
-				s_cb_it->second(storage.value(m), j_entry[storage.type().name()]);
+				s_cb_it->second({*reg, m}, j_entry[storage.type().name()]);
 			}
 		}
 

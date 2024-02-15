@@ -11,28 +11,16 @@ namespace Components {
 		uint64_t begin {0};
 		uint64_t end {1000};
 	};
+
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesTimestampRange, begin, end)
 } // Components
 
-
-static bool serl_json_msg_ts_range(void* comp, nlohmann::json& out) {
-	if (comp == nullptr) {
-		return false;
-	}
-
-	out = nlohmann::json::object();
-
-	auto& r_comp = *reinterpret_cast<Components::MessagesTimestampRange*>(comp);
-
-	out["begin"] = r_comp.begin;
-	out["end"] = r_comp.end;
-
-	return true;
-}
 
 int main(void) {
 	FragmentStore fs;
 	fs._default_store_path = "test_store/";
-	fs._sc.registerSerializerJson<Components::MessagesTimestampRange>(serl_json_msg_ts_range);
+	fs._sc.registerSerializerJson<Components::MessagesTimestampRange>();
+	fs._sc.registerDeSerializerJson<Components::MessagesTimestampRange>();
 
 	const auto frag0 = fs.newFragmentFile("", MetaFileType::TEXT_JSON, {0xff, 0xf1, 0xf2, 0xf0, 0xff, 0xff, 0xff, 0xf9});
 

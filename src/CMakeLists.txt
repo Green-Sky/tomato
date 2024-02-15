@@ -6,7 +6,6 @@ add_library(fragment_store
 	./fragment_store/meta_components.hpp
 	./fragment_store/meta_components_id.inl
 	./fragment_store/serializer.hpp
-	./fragment_store/serializer.cpp
 	./fragment_store/fragment_store.hpp
 	./fragment_store/fragment_store.cpp
 )
