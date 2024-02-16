@@ -250,8 +250,6 @@ MessageFragmentStore::MessageFragmentStore(
 	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
 	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
 	_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
-
-	_fs.scanStoragePath("test_message_store/");
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
@@ -311,6 +309,10 @@ float MessageFragmentStore::tick(float time_delta) {
 	}
 
 	return 1000.f*60.f*60.f;
+}
+
+void MessageFragmentStore::triggerScan(void) {
+	_fs.scanStoragePath("test_message_store/");
 }
 
 bool MessageFragmentStore::onEvent(const Message::Events::MessageConstruct& e) {

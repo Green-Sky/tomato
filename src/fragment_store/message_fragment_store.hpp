@@ -71,6 +71,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 
 		float tick(float time_delta);
 
+		void triggerScan(void);
+
 	protected: // rmm
 		bool onEvent(const Message::Events::MessageConstruct& e) override;
 		bool onEvent(const Message::Events::MessageUpdated& e) override;
