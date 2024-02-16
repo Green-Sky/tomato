@@ -209,7 +209,7 @@ MessageFragmentStore::MessageFragmentStore(
 	Contact3Registry& cr,
 	RegistryMessageModel& rmm,
 	FragmentStore& fs
-) : _cr(cr), _rmm(rmm), _fs(fs) {
+) : _cr(cr), _rmm(rmm), _fs(fs), _sc{_cr, {}, {}} {
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
@@ -292,7 +292,7 @@ float MessageFragmentStore::tick(float time_delta) {
 					continue;
 				}
 
-				s_cb_it->second({*reg, m}, j_entry[storage.type().name()]);
+				s_cb_it->second(_sc, {*reg, m}, j_entry[storage.type().name()]);
 			}
 		}
 

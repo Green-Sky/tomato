@@ -4,6 +4,8 @@
 #include "./fragment_store_i.hpp"
 #include "./fragment_store.hpp"
 
+#include "./message_serializer.hpp"
+
 #include <entt/entity/registry.hpp>
 #include <entt/container/dense_map.hpp>
 
@@ -35,10 +37,6 @@ namespace Fragment::Components {
 		std::vector<uint8_t> id;
 	};
 } // Fragment::Components
-
-struct MessageSerializerCallbacks : public SerializerCallbacks<Message3> {
-	// TODO: add contact and message reg, so entities can be looked up and be converted to fragment uids OR persistent ids
-};
 
 // handles fragments for messages
 // on new message: assign fuid
