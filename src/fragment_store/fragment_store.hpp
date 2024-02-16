@@ -18,10 +18,8 @@
 #include <random>
 
 struct FragmentStore : public FragmentStoreI {
-	FragmentRegistry _reg;
-
 	std::minstd_rand _rng{std::random_device{}()};
-	std::array<uint8_t, 8> _session_uuid_namespace;
+	std::array<uint8_t, 16> _session_uuid_namespace;
 
 	std::string _default_store_path;
 
@@ -31,7 +29,7 @@ struct FragmentStore : public FragmentStoreI {
 	SerializerCallbacks<FragmentID> _sc;
 
 	FragmentStore(void);
-	FragmentStore(std::array<uint8_t, 8> session_uuid_namespace);
+	FragmentStore(std::array<uint8_t, 16> session_uuid_namespace);
 
 	// HACK: get access to the reg
 	FragmentHandle fragmentHandle(FragmentID fid);
@@ -39,7 +37,7 @@ struct FragmentStore : public FragmentStoreI {
 	// TODO: make the frags ref counted
 
 	// TODO: check for exising
-	std::vector<uint8_t> generateNewUID(std::array<uint8_t, 8>& uuid_namespace);
+	std::vector<uint8_t> generateNewUID(std::array<uint8_t, 16>& uuid_namespace);
 	std::vector<uint8_t> generateNewUID(void);
 
 	// ========== new fragment ==========

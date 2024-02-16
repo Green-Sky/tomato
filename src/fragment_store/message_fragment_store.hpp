@@ -47,6 +47,7 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 		Contact3Registry& _cr;
 		RegistryMessageModel& _rmm;
 		FragmentStore& _fs;
+		bool _fs_ignore_event {false};
 
 		// for message components only
 		MessageSerializerCallbacks _sc;
