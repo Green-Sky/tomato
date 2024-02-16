@@ -19,6 +19,8 @@ target_link_libraries(fragment_store PUBLIC
 ########################################
 
 add_library(message_fragment_store
+	./fragment_store/message_serializer.hpp
+	./fragment_store/message_serializer.cpp
 	./fragment_store/message_fragment_store.hpp
 	./fragment_store/message_fragment_store.cpp
 )
