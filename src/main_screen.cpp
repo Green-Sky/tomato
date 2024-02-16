@@ -80,6 +80,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	}
 
 	conf.dump();
+
+	mfs.triggerScan(); // HACK: after plugins and tox contacts got loaded
 }
 
 MainScreen::~MainScreen(void) {
