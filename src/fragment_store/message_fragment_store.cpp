@@ -185,6 +185,10 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			fuid_open.emplace_back(Message::Components::OpenFragments::OpenFrag{msg_ts, msg_ts, fragment_uid});
 
 			std::cout << "MFS: created new fragment " << bin2hex(fragment_uid) << "\n";
+
+			_fs_ignore_event = true;
+			_fs.throwEventConstruct(fh);
+			_fs_ignore_event = false;
 		}
 
 		// if this is still empty, something is very wrong and we exit here

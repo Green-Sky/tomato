@@ -33,23 +33,34 @@ FragmentStore::FragmentStore(void) {
 	{ // random namespace
 		const auto num0 = _rng();
 		const auto num1 = _rng();
+		const auto num2 = _rng();
+		const auto num3 = _rng();
 
-		_session_uuid_namespace[0] = (num0 >> 0) & 0xff;
-		_session_uuid_namespace[1] = (num0 >> 8) & 0xff;
-		_session_uuid_namespace[2] = (num0 >> 16) & 0xff;
-		_session_uuid_namespace[3] = (num0 >> 24) & 0xff;
+		_session_uuid_namespace[0+0] = (num0 >> 0) & 0xff;
+		_session_uuid_namespace[0+1] = (num0 >> 8) & 0xff;
+		_session_uuid_namespace[0+2] = (num0 >> 16) & 0xff;
+		_session_uuid_namespace[0+3] = (num0 >> 24) & 0xff;
 
-		_session_uuid_namespace[4] = (num1 >> 0) & 0xff;
-		_session_uuid_namespace[5] = (num1 >> 8) & 0xff;
-		_session_uuid_namespace[6] = (num1 >> 16) & 0xff;
-		_session_uuid_namespace[7] = (num1 >> 24) & 0xff;
+		_session_uuid_namespace[4+0] = (num1 >> 0) & 0xff;
+		_session_uuid_namespace[4+1] = (num1 >> 8) & 0xff;
+		_session_uuid_namespace[4+2] = (num1 >> 16) & 0xff;
+		_session_uuid_namespace[4+3] = (num1 >> 24) & 0xff;
 
+		_session_uuid_namespace[8+0] = (num2 >> 0) & 0xff;
+		_session_uuid_namespace[8+1] = (num2 >> 8) & 0xff;
+		_session_uuid_namespace[8+2] = (num2 >> 16) & 0xff;
+		_session_uuid_namespace[8+3] = (num2 >> 24) & 0xff;
+
+		_session_uuid_namespace[12+0] = (num3 >> 0) & 0xff;
+		_session_uuid_namespace[12+1] = (num3 >> 8) & 0xff;
+		_session_uuid_namespace[12+2] = (num3 >> 16) & 0xff;
+		_session_uuid_namespace[12+3] = (num3 >> 24) & 0xff;
 	}
 	registerSerializers();
 }
 
 FragmentStore::FragmentStore(
-	std::array<uint8_t, 8> session_uuid_namespace
+	std::array<uint8_t, 16> session_uuid_namespace
 ) : _session_uuid_namespace(std::move(session_uuid_namespace)) {
 	registerSerializers();
 }
@@ -58,22 +69,34 @@ FragmentHandle FragmentStore::fragmentHandle(FragmentID fid) {
 	return {_reg, fid};
 }
 
-std::vector<uint8_t> FragmentStore::generateNewUID(std::array<uint8_t, 8>& uuid_namespace) {
+std::vector<uint8_t> FragmentStore::generateNewUID(std::array<uint8_t, 16>& uuid_namespace) {
 	std::vector<uint8_t> new_uid(uuid_namespace.cbegin(), uuid_namespace.cend());
-	new_uid.resize(new_uid.size() + 8);
+	new_uid.resize(new_uid.size() + 16);
 
 	const auto num0 = _rng();
 	const auto num1 = _rng();
+	const auto num2 = _rng();
+	const auto num3 = _rng();
 
 	new_uid[uuid_namespace.size()+0] = (num0 >> 0) & 0xff;
 	new_uid[uuid_namespace.size()+1] = (num0 >> 8) & 0xff;
 	new_uid[uuid_namespace.size()+2] = (num0 >> 16) & 0xff;
 	new_uid[uuid_namespace.size()+3] = (num0 >> 24) & 0xff;
 
-	new_uid[uuid_namespace.size()+4] = (num1 >> 0) & 0xff;
-	new_uid[uuid_namespace.size()+5] = (num1 >> 8) & 0xff;
-	new_uid[uuid_namespace.size()+6] = (num1 >> 16) & 0xff;
-	new_uid[uuid_namespace.size()+7] = (num1 >> 24) & 0xff;
+	new_uid[uuid_namespace.size()+4+0] = (num1 >> 0) & 0xff;
+	new_uid[uuid_namespace.size()+4+1] = (num1 >> 8) & 0xff;
+	new_uid[uuid_namespace.size()+4+2] = (num1 >> 16) & 0xff;
+	new_uid[uuid_namespace.size()+4+3] = (num1 >> 24) & 0xff;
+
+	new_uid[uuid_namespace.size()+8+0] = (num2 >> 0) & 0xff;
+	new_uid[uuid_namespace.size()+8+1] = (num2 >> 8) & 0xff;
+	new_uid[uuid_namespace.size()+8+2] = (num2 >> 16) & 0xff;
+	new_uid[uuid_namespace.size()+8+3] = (num2 >> 24) & 0xff;
+
+	new_uid[uuid_namespace.size()+12+0] = (num3 >> 0) & 0xff;
+	new_uid[uuid_namespace.size()+12+1] = (num3 >> 8) & 0xff;
+	new_uid[uuid_namespace.size()+12+2] = (num3 >> 16) & 0xff;
+	new_uid[uuid_namespace.size()+12+3] = (num3 >> 24) & 0xff;
 
 	return new_uid;
 }
@@ -113,6 +136,8 @@ FragmentID FragmentStore::newFragmentMemoryOwned(
 	_reg.emplace<FragComp::ID>(new_frag, id);
 	// TODO: memory comp
 	_reg.emplace<std::unique_ptr<std::vector<uint8_t>>>(new_frag) = std::move(new_data);
+
+	throwEventConstruct(new_frag);
 
 	return new_frag;
 }
@@ -158,6 +183,8 @@ FragmentID FragmentStore::newFragmentFile(
 	_reg.emplace<FragComp::Ephemeral::FilePath>(new_frag, fragment_file_path.generic_u8string());
 
 	_reg.emplace<FragComp::Ephemeral::MetaFileType>(new_frag, mft);
+
+	throwEventConstruct(new_frag);
 
 	// meta needs to be synced to file
 	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](const uint8_t*, uint64_t) -> uint64_t { return 0; };
@@ -476,6 +503,7 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 		if (it.meta_ext == ".meta.msgpack") {
 			// uh
 			// read binary header
+			assert(false);
 		} else if (it.meta_ext == ".meta.json") {
 			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext);
 			if (!file.is_open()) {
@@ -506,6 +534,8 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 					std::cerr << "FS warning: missing deserializer for meta key '" << k << "'\n";
 				}
 			}
+			// throw new frag event here
+			throwEventConstruct(fh);
 			count++;
 		} else {
 			assert(false);
@@ -552,8 +582,6 @@ static bool deserl_json_data_comp_type(FragmentHandle fh, const nlohmann::json& 
 	);
 	return true;
 }
-
-// TODO: dserl comp type
 
 void FragmentStore::registerSerializers(void) {
 	_sc.registerSerializerJson<FragComp::DataEncryptionType>(serl_json_data_enc_type);

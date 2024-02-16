@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 add_library(fragment_store
 	./fragment_store/fragment_store_i.hpp
+	./fragment_store/fragment_store_i.cpp
 	./fragment_store/types.hpp
 	./fragment_store/meta_components.hpp
 	./fragment_store/meta_components_id.inl
