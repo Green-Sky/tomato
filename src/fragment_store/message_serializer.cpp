@@ -36,7 +36,7 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 		return true;
 	}
 
-	const auto id = static_cast<std::vector<uint8_t>>(j.is_binary()?j:j["bytes"]);
+	const std::vector<uint8_t> id = j.is_binary()?j:j["bytes"];
 
 	// TODO: id lookup table, this is very inefficent
 	for (const auto& [c_it, id_it] : msc.cr.view<Contact::Components::ID>().each()) {
@@ -79,7 +79,7 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 		return true;
 	}
 
-	const auto id = static_cast<std::vector<uint8_t>>(j.is_binary()?j:j["bytes"]);
+	const std::vector<uint8_t> id = j.is_binary()?j:j["bytes"];
 
 	// TODO: id lookup table, this is very inefficent
 	for (const auto& [c_it, id_it] : msc.cr.view<Contact::Components::ID>().each()) {
