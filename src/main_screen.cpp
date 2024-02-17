@@ -1,5 +1,7 @@
 #include "./main_screen.hpp"
-#include "fragment_store/fragment_store.hpp"
+
+#include "./fragment_store/register_mfs_json_message_components.hpp"
+#include "./fragment_store/register_mfs_json_tox_message_components.hpp"
 
 #include <solanaceae/contact/components.hpp>
 
@@ -35,6 +37,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tdch(tpi)
 {
 	tel.subscribeAll(tc);
+	registerMFSJsonMessageComponents(mfs.getMSC());
+	registerMFSJsonToxMessageComponents(mfs.getMSC());
 
 	conf.set("tox", "save_file_path", save_path);
 
