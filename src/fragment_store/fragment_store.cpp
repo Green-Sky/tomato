@@ -370,6 +370,64 @@ bool FragmentStore::syncToStorage(FragmentID fid, const uint8_t* data, const uin
 	return syncToStorage(fid, fn_cb);
 }
 
+bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_storage_put_data_cb>& data_cb) {
+	if (!_reg.valid(fid)) {
+		return false;
+	}
+
+	if (!_reg.all_of<FragComp::Ephemeral::FilePath>(fid)) {
+		// not a file fragment?
+		// TODO: memory fragments
+		return false;
+	}
+
+	const auto& frag_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path;
+
+	// TODO: check if metadata dirty?
+	// TODO: what if file changed on disk?
+
+	std::cout << "FS: loading fragment '" << frag_path << "'\n";
+
+	std::ifstream data_file{
+		frag_path,
+		std::ios::in | std::ios::binary // always binary, also for text
+	};
+
+	if (!data_file.is_open()) {
+		std::cerr << "FS error: fragment data file failed to open '" << frag_path << "'\n";
+		// error
+		return false;
+	}
+
+	std::array<uint8_t, 1024> buffer;
+	uint64_t buffer_actual_size {0};
+	do {
+		data_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+		buffer_actual_size = data_file.gcount();
+
+		if (buffer_actual_size == 0) {
+			break;
+		}
+
+		data_cb(buffer.data(), buffer_actual_size);
+	} while (buffer_actual_size == buffer.size() && !data_file.eof());
+
+	return true;
+}
+
+nlohmann::json FragmentStore::loadFromStorageNJ(FragmentID fid) {
+	std::vector<uint8_t> tmp_buffer;
+	std::function<read_from_storage_put_data_cb> cb = [&tmp_buffer](const uint8_t* buffer, const uint64_t buffer_size) {
+		tmp_buffer.insert(tmp_buffer.end(), buffer, buffer+buffer_size);
+	};
+
+	if (!loadFromStorage(fid, cb)) {
+		return nullptr;
+	}
+
+	return nlohmann::json::parse(tmp_buffer);
+}
+
 size_t FragmentStore::scanStoragePath(std::string_view path) {
 	if (path.empty()) {
 		path = _default_store_path;
@@ -505,7 +563,7 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 			// read binary header
 			assert(false);
 		} else if (it.meta_ext == ".meta.json") {
-			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext);
+			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
 			if (!file.is_open()) {
 				std::cout << "FS error: failed opening meta " << it.frag_path << "\n";
 				continue;
@@ -522,6 +580,8 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 			//newFragmentFile();
 			FragmentHandle fh{_reg, _reg.create()};
 			fh.emplace<FragComp::ID>(hex2bin(it.id_str));
+
+			fh.emplace<FragComp::Ephemeral::FilePath>(it.frag_path.generic_u8string());
 
 			for (const auto& [k, v] : j.items()) {
 				// type id from string hash

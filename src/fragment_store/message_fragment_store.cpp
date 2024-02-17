@@ -7,9 +7,12 @@
 
 #include <nlohmann/json.hpp>
 
+#include <string>
 #include <cstdint>
 #include <cassert>
 #include <iostream>
+
+// https://youtu.be/CU2exyhYPfA
 
 namespace Message::Components {
 
@@ -46,43 +49,6 @@ namespace Fragment::Components {
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesContact, id)
 } // Fragment::Components
 
-template<typename T>
-static bool serl_json_default(void* comp, nlohmann::json& out) {
-	if constexpr (!std::is_empty_v<T>) {
-		out = *reinterpret_cast<T*>(comp);
-	} // do nothing if empty type
-	return true;
-}
-
-static bool serl_json_msg_ts_range(void* comp, nlohmann::json& out) {
-	if (comp == nullptr) {
-		return false;
-	}
-
-	out = nlohmann::json::object();
-
-	auto& r_comp = *reinterpret_cast<FragComp::MessagesTSRange*>(comp);
-
-	out["begin"] = r_comp.begin;
-	out["end"] = r_comp.end;
-
-	return true;
-}
-
-static bool serl_json_msg_c_id(void* comp, nlohmann::json& out) {
-	if (comp == nullptr) {
-		return false;
-	}
-
-	out = nlohmann::json::object();
-
-	auto& r_comp = *reinterpret_cast<FragComp::MessagesContact*>(comp);
-
-	out["id"] = r_comp.id;
-
-	return true;
-}
-
 void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (!static_cast<bool>(m)) {
 		return; // huh?
@@ -95,6 +61,30 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
 		// first message in this reg
 		m.registry()->ctx().emplace<Message::Components::OpenFragments>();
+
+		// TODO: move this to async
+		// new reg -> load all fragments for this contact (for now, ranges later)
+		for (const auto& [fid, tsrange, fmc] : _fs._reg.view<FragComp::MessagesTSRange, FragComp::MessagesContact>().each()) {
+			Contact3 frag_contact = entt::null;
+			// TODO: id lookup table, this is very inefficent
+			for (const auto& [c_it, id_it] : _cr.view<Contact::Components::ID>().each()) {
+				if (fmc.id == id_it.data) {
+					//h.emplace_or_replace<Message::Components::ContactTo>(c_it);
+					//return true;
+					frag_contact = c_it;
+					break;
+				}
+			}
+			if (!_cr.valid(frag_contact)) {
+				// unkown contact
+				continue;
+			}
+
+			// registry is the same as the one the message event is for
+			if (static_cast<const RegistryMessageModel&>(_rmm).get(frag_contact) == m.registry()) {
+				loadFragment(*m.registry(), FragmentHandle{_fs._reg, fid});
+			}
+		}
 	}
 
 	auto& fuid_open = m.registry()->ctx().get<Message::Components::OpenFragments>().fuid_open;
@@ -209,6 +199,60 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	// on new and update: mark as fragment dirty
 }
 
+void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh) {
+	std::cout << "MFS: loadFragment\n";
+	const auto j = _fs.loadFromStorageNJ(fh);
+
+	if (!j.is_array()) {
+		// wrong data
+		return;
+	}
+
+	for (const auto& j_entry : j) {
+		auto new_real_msg = Message3Handle{reg, reg.create()};
+		// load into staging reg
+		for (const auto& [k, v] : j_entry.items()) {
+			std::cout << "K:" << k << " V:" << v.dump() << "\n";
+			const auto type_id = entt::hashed_string(k.data(), k.size());
+			const auto deserl_fn_it = _sc._deserl_json.find(type_id);
+			if (deserl_fn_it != _sc._deserl_json.cend()) {
+				try {
+					if (!deserl_fn_it->second(_sc, new_real_msg, v)) {
+						std::cerr << "MFS error: failed deserializing '" << k << "'\n";
+					}
+				} catch(...) {
+					std::cerr << "MFS error: failed deserializing (threw) '" << k << "'\n";
+				}
+			} else {
+				std::cerr << "MFS warning: missing deserializer for meta key '" << k << "'\n";
+			}
+		}
+
+		new_real_msg.emplace_or_replace<Message::Components::FUID>(fh.get<FragComp::ID>());
+
+		// TODO: dup checking
+		const bool is_dup {false};
+
+		// dup check (hacky, specific to protocols)
+		if (is_dup) {
+			//  -> merge with preexisting
+			//  -> throw update
+			reg.destroy(new_real_msg);
+			//_rmm.throwEventUpdate(reg, new_real_msg);
+		} else {
+			if (!new_real_msg.all_of<Message::Components::Timestamp, Message::Components::ContactFrom, Message::Components::ContactTo>()) {
+				// does not have needed components to be stand alone
+				reg.destroy(new_real_msg);
+				std::cerr << "MFS warning: message with missing basic compoments\n";
+				continue;
+			}
+
+			//  -> throw create
+			_rmm.throwEventConstruct(reg, new_real_msg);
+		}
+	}
+}
+
 MessageFragmentStore::MessageFragmentStore(
 	Contact3Registry& cr,
 	RegistryMessageModel& rmm,
@@ -250,6 +294,8 @@ MessageFragmentStore::MessageFragmentStore(
 	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
 	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
 	_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
+
+	_fs.subscribe(this, FragmentStore_Event::fragment_construct);
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
@@ -302,7 +348,7 @@ float MessageFragmentStore::tick(float time_delta) {
 		//nlohmann::json::to_msgpack(j);
 		auto j_dump = j.dump(2, ' ', true);
 		if (_fs.syncToStorage(fid, reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size())) {
-			std::cout << "MFS: dumped " << j_dump << "\n";
+			//std::cout << "MFS: dumped " << j_dump << "\n";
 			// succ
 			_fuid_save_queue.pop();
 		}
@@ -326,4 +372,48 @@ bool MessageFragmentStore::onEvent(const Message::Events::MessageUpdated& e) {
 }
 
 // TODO: handle deletes? diff between unload?
+
+bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e) {
+	if (_fs_ignore_event) {
+		return false; // skip self
+	}
+
+	if (!e.e.all_of<FragComp::MessagesTSRange, FragComp::MessagesContact>()) {
+		return false; // not for us
+	}
+
+	// TODO: are we sure it is a *new* fragment?
+
+	//std::cout << "MFS: got frag for us!\n";
+
+	Contact3 frag_contact = entt::null;
+	{ // get contact
+		const auto& frag_contact_id = e.e.get<FragComp::MessagesContact>().id;
+		// TODO: id lookup table, this is very inefficent
+		for (const auto& [c_it, id_it] : _cr.view<Contact::Components::ID>().each()) {
+			if (frag_contact_id == id_it.data) {
+				//h.emplace_or_replace<Message::Components::ContactTo>(c_it);
+				//return true;
+				frag_contact = c_it;
+				break;
+			}
+		}
+		if (!_cr.valid(frag_contact)) {
+			// unkown contact
+			return false;
+		}
+	}
+
+	// only load if msg reg open
+	auto* msg_reg = static_cast<const RegistryMessageModel&>(_rmm).get(frag_contact);
+	if (msg_reg == nullptr) {
+		// msg reg not created yet
+		return false;
+	}
+
+	// TODO: should this be done async / on tick() instead of on event?
+	loadFragment(*msg_reg, e.e);
+
+	return false;
+}
 

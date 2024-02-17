@@ -42,7 +42,7 @@ namespace Fragment::Components {
 // on new message: assign fuid
 // on new and update: mark as fragment dirty
 // on delete: mark as fragment dirty?
-class MessageFragmentStore : public RegistryMessageModelEventI {
+class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentStoreEventI {
 	protected:
 		Contact3Registry& _cr;
 		RegistryMessageModel& _rmm;
@@ -53,6 +53,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 		MessageSerializerCallbacks _sc;
 
 		void handleMessage(const Message3Handle& m);
+
+		void loadFragment(Message3Registry& reg, FragmentHandle fh);
 
 		struct QueueEntry final {
 			uint64_t ts_since_dirty{0};
@@ -76,5 +78,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI {
 	protected: // rmm
 		bool onEvent(const Message::Events::MessageConstruct& e) override;
 		bool onEvent(const Message::Events::MessageUpdated& e) override;
+
+	protected: // fs
+		bool onEvent(const Fragment::Events::FragmentConstruct& e) override;
 };
 
