@@ -340,7 +340,9 @@ float MessageFragmentStore::tick(float time_delta) {
 		// TODO: does every message have ts?
 		auto msg_view = reg->view<Message::Components::Timestamp>();
 		// we also assume all messages have fuid (hack: call handle when not?)
-		for (const Message3 m : msg_view) {
+		for (auto it = msg_view.rbegin(), it_end = msg_view.rend(); it != it_end; it++) {
+			const Message3 m = *it;
+
 			if (!reg->all_of<Message::Components::FUID, Message::Components::ContactFrom, Message::Components::ContactTo>(m)) {
 				continue;
 			}
