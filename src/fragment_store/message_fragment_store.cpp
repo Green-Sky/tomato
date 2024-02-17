@@ -4,6 +4,7 @@
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/message3/components.hpp>
+#include <solanaceae/message3/contact_components.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -205,6 +206,8 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	// on new and update: mark as fragment dirty
 }
 
+// assumes new frag
+// need update from frag
 void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh) {
 	std::cout << "MFS: loadFragment\n";
 	const auto j = _fs.loadFromStorageNJ(fh);
@@ -236,11 +239,28 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 
 		new_real_msg.emplace_or_replace<Message::Components::FUID>(fh.get<FragComp::ID>());
 
-		// TODO: dup checking
-		const bool is_dup {false};
-
 		// dup check (hacky, specific to protocols)
-		if (is_dup) {
+		Message3 dup_msg {entt::null};
+		{
+			// get comparator from contact
+			if (reg.ctx().contains<Contact3>()) {
+				const auto c = reg.ctx().get<Contact3>();
+				if (_cr.all_of<Contact::Components::MessageIsSame>(c)) {
+					auto& comp = _cr.get<Contact::Components::MessageIsSame>(c).comp;
+					// walking EVERY existing message OOF
+					// this needs optimizing
+					for (const Message3 other_msg : reg.view<Message::Components::Timestamp, Message::Components::ContactFrom, Message::Components::ContactTo>()) {
+						if (comp({reg, other_msg}, new_real_msg)) {
+							// dup
+							dup_msg = other_msg;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (reg.valid(dup_msg)) {
 			//  -> merge with preexisting
 			//  -> throw update
 			reg.destroy(new_real_msg);
