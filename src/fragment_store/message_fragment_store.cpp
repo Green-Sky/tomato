@@ -1,5 +1,7 @@
 #include "./message_fragment_store.hpp"
 
+#include "../json/message_components.hpp"
+
 #include <solanaceae/util/utils.hpp>
 
 #include <solanaceae/contact/components.hpp>
@@ -28,20 +30,6 @@ namespace Message::Components {
 		// TODO: this needs to move into the message reg
 		std::vector<OpenFrag> fuid_open;
 	};
-
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Timestamp, ts)
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TimestampProcessed, ts)
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TimestampWritten, ts)
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ContactFrom, c)
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ContactTo, c)
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Read, ts)
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessageText, text)
-
-	namespace Transfer {
-		NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FileInfo::FileDirEntry, file_name, file_size)
-		NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FileInfo, file_list, total_size)
-		NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FileInfoLocal, file_list)
-	} // Transfer
 
 } // Message::Components
 
@@ -314,12 +302,12 @@ MessageFragmentStore::MessageFragmentStore(
 
 	// files
 	//_sc.registerSerializerJson<Message::Components::Transfer::FileID>()
-	_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>();
-	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfo>();
-	_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>();
-	_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
-	_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
-	_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
+	//_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>();
+	//_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfo>();
+	//_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>();
+	//_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
+	//_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
+	//_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
 
 	_fs.subscribe(this, FragmentStore_Event::fragment_construct);
 }
@@ -347,8 +335,8 @@ float MessageFragmentStore::tick(float time_delta) {
 				continue;
 			}
 
-			// require msg and file for now
-			if (!reg->any_of<Message::Components::MessageText, Message::Components::Transfer::FileInfo>(m)) {
+			// require msg for now
+			if (!reg->any_of<Message::Components::MessageText/*, Message::Components::Transfer::FileInfo*/>(m)) {
 				continue;
 			}
 

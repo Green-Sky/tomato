@@ -9,6 +9,8 @@ add_library(fragment_store
 	./fragment_store/serializer.hpp
 	./fragment_store/fragment_store.hpp
 	./fragment_store/fragment_store.cpp
+
+	./json/message_components.hpp # TODO: move
 )
 
 target_link_libraries(fragment_store PUBLIC
