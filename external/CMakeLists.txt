@@ -28,3 +28,22 @@ if (NOT TARGET nlohmann_json::nlohmann_json)
 	FetchContent_MakeAvailable(json)
 endif()
 
+if (NOT TARGET zstd::zstd)
+	# TODO: try find_package() first
+	# TODO: try pkg-config next (will work on most distros)
+
+	set(ZSTD_BUILD_STATIC ON)
+	set(ZSTD_BUILD_SHARED OFF)
+	set(ZSTD_BUILD_PROGRAMS OFF)
+	set(ZSTD_BUILD_CONTRIB OFF)
+	set(ZSTD_BUILD_TESTS OFF)
+	FetchContent_Declare(zstd
+		URL "https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz"
+		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+		SOURCE_SUBDIR build/cmake
+		EXCLUDE_FROM_ALL
+	)
+	FetchContent_MakeAvailable(zstd)
+
+	add_library(zstd::zstd ALIAS libzstd_static)
+endif()
