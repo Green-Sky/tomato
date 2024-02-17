@@ -50,6 +50,12 @@ namespace Fragment::Components {
 } // Fragment::Components
 
 void MessageFragmentStore::handleMessage(const Message3Handle& m) {
+	if (_fs_ignore_event) {
+		// message event because of us loading a fragment, ignore
+		// TODO: this barely makes a difference
+		return;
+	}
+
 	if (!static_cast<bool>(m)) {
 		return; // huh?
 	}
@@ -319,8 +325,13 @@ float MessageFragmentStore::tick(float time_delta) {
 				continue;
 			}
 
+			// require msg and file for now
 			if (!reg->any_of<Message::Components::MessageText, Message::Components::Transfer::FileInfo>(m)) {
 				continue;
+			}
+
+			if (_fuid_save_queue.front().id != reg->get<Message::Components::FUID>(m).v) {
+				continue; // not ours
 			}
 
 			auto& j_entry = j.emplace_back(nlohmann::json::object());
