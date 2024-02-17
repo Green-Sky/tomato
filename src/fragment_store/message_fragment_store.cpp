@@ -209,7 +209,7 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 		auto new_real_msg = Message3Handle{reg, reg.create()};
 		// load into staging reg
 		for (const auto& [k, v] : j_entry.items()) {
-			std::cout << "K:" << k << " V:" << v.dump() << "\n";
+			//std::cout << "K:" << k << " V:" << v.dump() << "\n";
 			const auto type_id = entt::hashed_string(k.data(), k.size());
 			const auto deserl_fn_it = _sc._deserl_json.find(type_id);
 			if (deserl_fn_it != _sc._deserl_json.cend()) {
@@ -238,6 +238,10 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 					// walking EVERY existing message OOF
 					// this needs optimizing
 					for (const Message3 other_msg : reg.view<Message::Components::Timestamp, Message::Components::ContactFrom, Message::Components::ContactTo>()) {
+						if (other_msg == new_real_msg) {
+							continue; // skip self
+						}
+
 						if (comp({reg, other_msg}, new_real_msg)) {
 							// dup
 							dup_msg = other_msg;
@@ -281,39 +285,15 @@ MessageFragmentStore::MessageFragmentStore(
 	_fs._sc.registerSerializerJson<FragComp::MessagesContact>();
 	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>();
 
-	_sc.registerSerializerJson<Message::Components::Timestamp>();
-	_sc.registerDeSerializerJson<Message::Components::Timestamp>();
-	_sc.registerSerializerJson<Message::Components::TimestampProcessed>();
-	_sc.registerDeSerializerJson<Message::Components::TimestampProcessed>();
-	_sc.registerSerializerJson<Message::Components::TimestampWritten>();
-	_sc.registerDeSerializerJson<Message::Components::TimestampWritten>();
-	_sc.registerSerializerJson<Message::Components::ContactFrom>();
-	_sc.registerDeSerializerJson<Message::Components::ContactFrom>();
-	_sc.registerSerializerJson<Message::Components::ContactTo>();
-	_sc.registerDeSerializerJson<Message::Components::ContactTo>();
-	_sc.registerSerializerJson<Message::Components::TagUnread>();
-	_sc.registerDeSerializerJson<Message::Components::TagUnread>();
-	_sc.registerSerializerJson<Message::Components::Read>();
-	_sc.registerDeSerializerJson<Message::Components::Read>();
-	_sc.registerSerializerJson<Message::Components::MessageText>();
-	_sc.registerDeSerializerJson<Message::Components::MessageText>();
-	_sc.registerSerializerJson<Message::Components::TagMessageIsAction>();
-	_sc.registerDeSerializerJson<Message::Components::TagMessageIsAction>();
-
-	// files
-	//_sc.registerSerializerJson<Message::Components::Transfer::FileID>()
-	//_sc.registerSerializerJson<Message::Components::Transfer::FileInfo>();
-	//_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfo>();
-	//_sc.registerSerializerJson<Message::Components::Transfer::FileInfoLocal>();
-	//_sc.registerDeSerializerJson<Message::Components::Transfer::FileInfoLocal>();
-	//_sc.registerSerializerJson<Message::Components::Transfer::TagHaveAll>();
-	//_sc.registerDeSerializerJson<Message::Components::Transfer::TagHaveAll>();
-
 	_fs.subscribe(this, FragmentStore_Event::fragment_construct);
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
 	// TODO: sync all dirty fragments
+}
+
+MessageSerializerCallbacks& MessageFragmentStore::getMSC(void) {
+	return _sc;
 }
 
 float MessageFragmentStore::tick(float time_delta) {
@@ -351,13 +331,13 @@ float MessageFragmentStore::tick(float time_delta) {
 					continue;
 				}
 
-				std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
+				//std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
 
 				// use type_id to find serializer
 				auto s_cb_it = _sc._serl_json.find(type_id);
 				if (s_cb_it == _sc._serl_json.end()) {
 					// could not find serializer, not saving
-					std::cout << "missing " << storage.type().name() << "\n";
+					std::cout << "missing " << storage.type().name() << "(" << type_id << ")\n";
 					continue;
 				}
 

@@ -71,6 +71,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 		);
 		virtual ~MessageFragmentStore(void);
 
+		MessageSerializerCallbacks& getMSC(void);
+
 		float tick(float time_delta);
 
 		void triggerScan(void);

@@ -11,12 +11,15 @@ add_library(fragment_store
 	./fragment_store/fragment_store.cpp
 
 	./json/message_components.hpp # TODO: move
+	./json/tox_message_components.hpp # TODO: move
 )
 
 target_link_libraries(fragment_store PUBLIC
 	nlohmann_json::nlohmann_json
 	EnTT::EnTT
 	solanaceae_util
+
+	solanaceae_tox_messages # TODO: move
 )
 
 ########################################
@@ -26,6 +29,11 @@ add_library(message_fragment_store
 	./fragment_store/message_serializer.cpp
 	./fragment_store/message_fragment_store.hpp
 	./fragment_store/message_fragment_store.cpp
+
+	./fragment_store/register_mfs_json_message_components.hpp
+	./fragment_store/register_mfs_json_message_components.cpp
+	./fragment_store/register_mfs_json_tox_message_components.hpp
+	./fragment_store/register_mfs_json_tox_message_components.cpp
 )
 target_compile_features(message_fragment_store PRIVATE cxx_std_20)
 target_link_libraries(message_fragment_store PUBLIC

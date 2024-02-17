@@ -305,7 +305,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 			continue;
 		}
 
-		std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
+		//std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
 
 		// use type_id to find serializer
 		auto s_cb_it = _sc._serl_json.find(type_id);
