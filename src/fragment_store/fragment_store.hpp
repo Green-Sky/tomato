@@ -82,6 +82,12 @@ struct FragmentStore : public FragmentStoreI {
 	bool syncToStorage(FragmentID fid, std::function<write_to_storage_fetch_data_cb>& data_cb);
 	bool syncToStorage(FragmentID fid, const uint8_t* data, const uint64_t data_size);
 
+	// ========== load fragment data from storage ==========
+	using read_from_storage_put_data_cb = void(const uint8_t* buffer, const uint64_t buffer_size);
+	bool loadFromStorage(FragmentID fid, std::function<read_from_storage_put_data_cb>& data_cb);
+	// convenience function
+	nlohmann::json loadFromStorageNJ(FragmentID fid);
+
 	// fragment discovery?
 	// returns number of new fragments
 	size_t scanStoragePath(std::string_view path);
