@@ -25,17 +25,16 @@ Just keeps the Fragments in memory.
 
 # File formats
 
-Files can be compressed and encrypted. Since compression needs the data structure to funcion, it is applied before it is encrypted.
+Files can be compressed and encrypted. Since compression needs the data's structure to work properly, it is applied before it is encrypted.
 
 ### Text Json
 
 Text json only makes sense for metadata if it's neither compressed nor encrypted. (otherwise its binary on disk anyway, so why waste bytes).
 Since the content of data is not looked at, nothing stops you from using text json and ecrypt it, but atleast basic compression is advised.
 
-A Metadata json object has the following keys:
-- `enc` (uint) Encryption type of the data, if any
-- `comp` (uint) Compression type of the data, if any
-- `metadata` (obj) the 
+A Metadata json object can have arbitrary keys, some are predefined:
+- `FragComp::DataEncryptionType` (uint) Encryption type of the data, if any
+- `FragComp::DataCompressionType` (uint) Compression type of the data, if any
 
 ## Binary file headers
 
@@ -70,3 +69,7 @@ file magic bytes `SOLFIL` (6 bytes)
 
 ...data here...
 
+## Compression types
+
+- `0x00` none
+- `0x01` zstd (without dict)
