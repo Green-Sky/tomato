@@ -154,6 +154,8 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 			fragment_uid = fh.get<FragComp::ID>().v;
 
+			fh.emplace_or_replace<FragComp::DataCompressionType>().comp = Compression::ZSTD;
+
 			auto& new_ts_range = fh.emplace<FragComp::MessagesTSRange>();
 			new_ts_range.begin = msg_ts;
 			new_ts_range.end = msg_ts;
