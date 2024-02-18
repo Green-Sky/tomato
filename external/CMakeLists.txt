@@ -45,5 +45,8 @@ if (NOT TARGET zstd::zstd)
 	)
 	FetchContent_MakeAvailable(zstd)
 
-	add_library(zstd::zstd ALIAS libzstd_static)
+	add_library(zstd INTERFACE) # somehow zstd fkd this up
+	target_include_directories(zstd INTERFACE ${zstd_SOURCE_DIR}/lib/)
+	target_link_libraries(zstd INTERFACE libzstd_static)
+	add_library(zstd::zstd ALIAS zstd)
 endif()

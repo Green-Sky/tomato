@@ -7,6 +7,7 @@ enum class Encryption : uint8_t {
 };
 enum class Compression : uint8_t {
 	NONE = 0x00,
+	ZSTD = 0x01,
 };
 enum class MetaFileType : uint8_t {
 	TEXT_JSON,

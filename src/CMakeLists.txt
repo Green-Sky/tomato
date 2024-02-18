@@ -19,6 +19,8 @@ target_link_libraries(fragment_store PUBLIC
 	EnTT::EnTT
 	solanaceae_util
 
+	zstd::zstd
+
 	solanaceae_tox_messages # TODO: move
 )
 
