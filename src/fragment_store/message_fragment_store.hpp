@@ -36,6 +36,9 @@ namespace Fragment::Components {
 	struct MessagesContact {
 		std::vector<uint8_t> id;
 	};
+
+	// TODO: add src contact (self id)
+
 } // Fragment::Components
 
 // handles fragments for messages

@@ -105,8 +105,8 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		if (fragment_uid.empty()) {
 			for (auto& [ts_begin, ts_end, fid] : fuid_open) {
 				const int64_t frag_range = int64_t(ts_end) - int64_t(ts_begin);
-				//constexpr static int64_t max_frag_ts_extent {1000*60*60};
-				constexpr static int64_t max_frag_ts_extent {1000*60*3}; // 3min for testing
+				constexpr static int64_t max_frag_ts_extent {1000*60*60};
+				//constexpr static int64_t max_frag_ts_extent {1000*60*3}; // 3min for testing
 				const int64_t possible_extention = max_frag_ts_extent - frag_range;
 
 				// which direction
