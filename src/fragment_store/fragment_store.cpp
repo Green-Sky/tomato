@@ -186,14 +186,16 @@ FragmentID FragmentStore::newFragmentFile(
 
 	_reg.emplace<FragComp::Ephemeral::MetaFileType>(new_frag, mft);
 
-	throwEventConstruct(new_frag);
-
 	// meta needs to be synced to file
 	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](const uint8_t*, uint64_t) -> uint64_t { return 0; };
 	if (!syncToStorage(new_frag, empty_data_cb)) {
+		std::cerr << "FS error: syncToStorage failed while creating new fragment file\n";
 		_reg.destroy(new_frag);
 		return entt::null;
 	}
+
+	// while new metadata might be created here, making sure the file could be created is more important
+	throwEventConstruct(new_frag);
 
 	return new_frag;
 }
@@ -266,12 +268,15 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		//}
 	}
 
+	std::filesystem::path meta_tmp_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type) + ".tmp";
+	meta_tmp_path.replace_filename("." + meta_tmp_path.filename().generic_u8string());
 	std::ofstream meta_file{
-		_reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type),
+		meta_tmp_path,
 		std::ios::out | std::ios::trunc | std::ios::binary // always binary, also for text
 	};
 
 	if (!meta_file.is_open()) {
+		std::cerr << "FS error: failed to create temporary meta file\n";
 		return false;
 	}
 
@@ -280,12 +285,17 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		data_comp = _reg.get<FragComp::DataCompressionType>(fid).comp;
 	}
 
+	std::filesystem::path data_tmp_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".tmp";
+	data_tmp_path.replace_filename("." + data_tmp_path.filename().generic_u8string());
 	std::ofstream data_file{
-		_reg.get<FragComp::Ephemeral::FilePath>(fid).path,
+		data_tmp_path,
 		std::ios::out | std::ios::trunc | std::ios::binary // always binary, also for text
 	};
 
 	if (!data_file.is_open()) {
+		meta_file.close();
+		std::filesystem::remove(meta_tmp_path);
+		std::cerr << "FS error: failed to create temporary data file\n";
 		return false;
 	}
 
@@ -419,9 +429,21 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	}
 
 	meta_file.flush();
+	meta_file.close();
 	data_file.flush();
+	data_file.close();
 
-	// TODO: use temp files and move to old location
+	std::filesystem::rename(
+		meta_tmp_path,
+		_reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type)
+	);
+
+	std::filesystem::rename(
+		data_tmp_path,
+		_reg.get<FragComp::Ephemeral::FilePath>(fid).path
+	);
+
+	// TODO: check return value of renames
 
 	if (_reg.all_of<FragComp::Ephemeral::DirtyTag>(fid)) {
 		_reg.remove<FragComp::Ephemeral::DirtyTag>(fid);
