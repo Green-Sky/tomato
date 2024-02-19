@@ -224,15 +224,6 @@ FragmentID FragmentStore::getFragmentCustomMatcher(
 	return entt::null;
 }
 
-template<typename F>
-static void writeBinaryMetafileHeader(F& file, const Encryption enc, const Compression comp) {
-	file.write("SOLMET", 6);
-	file.put(static_cast<std::underlying_type_t<Encryption>>(enc));
-
-	// TODO: is compressiontype encrypted?
-	file.put(static_cast<std::underlying_type_t<Compression>>(comp));
-}
-
 bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage_fetch_data_cb>& data_cb) {
 	if (!_reg.valid(fid)) {
 		return false;
@@ -298,13 +289,8 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		return false;
 	}
 
-	// metadata type
-	if (meta_type == MetaFileType::BINARY_MSGPACK) { // binary metadata file
-		writeBinaryMetafileHeader(meta_file, meta_enc, meta_comp);
-	}
-
 	// sharing code between binary msgpack and text json for now
-	nlohmann::json meta_data = nlohmann::json::object(); // metadata needs to be an object, null not allowed
+	nlohmann::json meta_data_j = nlohmann::json::object(); // metadata needs to be an object, null not allowed
 	// metadata file
 
 	for (const auto& [type_id, storage] : _reg.storage()) {
@@ -325,33 +311,52 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		//if (meta_type == MetaFileType::BINARY_MSGPACK) { // msgpack uses the hash id instead
 			//s_cb_it->second(storage.value(fid), meta_data[storage.type().hash()]);
 		//} else if (meta_type == MetaFileType::TEXT_JSON) {
-		s_cb_it->second({_reg, fid}, meta_data[storage.type().name()]);
+		s_cb_it->second({_reg, fid}, meta_data_j[storage.type().name()]);
 		//}
 	}
 
 	if (meta_type == MetaFileType::BINARY_MSGPACK) { // binary metadata file
-		const auto res = nlohmann::json::to_msgpack(meta_data);
+		const std::vector<uint8_t> meta_data = nlohmann::json::to_msgpack(meta_data_j);
+		std::vector<uint8_t> meta_data_compressed; // empty if none
+		//std::vector<uint8_t> meta_data_encrypted; // empty if none
 
-		// TODO: refactor
-		if (meta_comp == Compression::NONE) {
-			meta_file.write(reinterpret_cast<const char*>(res.data()), res.size());
-		} else if (meta_comp == Compression::ZSTD) {
-			std::vector<uint8_t> compressed_buffer;
-			compressed_buffer.resize(ZSTD_compressBound(res.size()));
+		if (meta_comp == Compression::ZSTD) {
+			meta_data_compressed.resize(ZSTD_compressBound(meta_data.size()));
 
-			size_t const cSize = ZSTD_compress(compressed_buffer.data(), compressed_buffer.size(), res.data(), res.size(), 0); // 0 is default is probably 3
+			size_t const cSize = ZSTD_compress(meta_data_compressed.data(), meta_data_compressed.size(), meta_data.data(), meta_data.size(), 0); // 0 is default is probably 3
 			if (ZSTD_isError(cSize)) {
 				std::cerr << "FS error: compressing meta failed\n";
-				return false; // HACK
+				meta_data_compressed.clear();
+				meta_comp = Compression::NONE;
+			} else {
+				meta_data_compressed.resize(cSize);
 			}
-
-			compressed_buffer.resize(cSize); // maybe skip this resize
-
-			meta_file.write(reinterpret_cast<const char*>(compressed_buffer.data()), compressed_buffer.size());
+		} else if (meta_comp == Compression::NONE) {
+			// do nothing
+		} else {
+			assert(false && "implement me");
 		}
+
+		// TODO: encryption
+
+		// the meta file is itself msgpack data
+		nlohmann::json meta_header_j = nlohmann::json::array();
+		meta_header_j.emplace_back() = "SOLMET";
+		meta_header_j.push_back(meta_enc);
+		meta_header_j.push_back(meta_comp);
+
+		if (false) { // TODO: encryption
+		} else if (!meta_data_compressed.empty()) {
+			meta_header_j.push_back(nlohmann::json::binary(meta_data_compressed));
+		} else {
+			meta_header_j.push_back(nlohmann::json::binary(meta_data));
+		}
+
+		const auto meta_header_data = nlohmann::json::to_msgpack(meta_header_j);
+		meta_file.write(reinterpret_cast<const char*>(meta_header_data.data()), meta_header_data.size());
 	} else if (meta_type == MetaFileType::TEXT_JSON) {
 		// cant be compressed or encrypted
-		meta_file << meta_data.dump(2, ' ', true);
+		meta_file << meta_data_j.dump(2, ' ', true);
 	}
 
 	// now data
@@ -409,6 +414,8 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 			}
 			// same as if lastChunk break;
 		} while (buffer_actual_size == buffer.size());
+	} else {
+		assert(false && "implement me");
 	}
 
 	meta_file.flush();
@@ -511,6 +518,8 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 		} while (buffer_actual_size == in_buffer.size() && !data_file.eof());
 
 		ZSTD_freeDCtx(dctx);
+	} else {
+		assert(false && "implement me");
 	}
 
 	return true;
@@ -660,47 +669,127 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 	for (const auto& it : file_frag_list) {
 		nlohmann::json j;
 		if (it.meta_ext == ".meta.msgpack") {
-			// uh
-			// read binary header
-			assert(false);
-		} else if (it.meta_ext == ".meta.json") {
 			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
 			if (!file.is_open()) {
 				std::cout << "FS error: failed opening meta " << it.frag_path << "\n";
 				continue;
 			}
 
-			file >> j;
+			// file is a msgpack within a msgpack
 
-			if (!j.is_object()) {
-				std::cerr << "FS error: json in meta is broken " << it.id_str << "\n";
+			std::vector<uint8_t> full_meta_data;
+			{ // read meta file
+				// figure out size
+				file.seekg(0, file.end);
+				uint64_t file_size = file.tellg();
+				file.seekg(0, file.beg);
+
+				full_meta_data.resize(file_size);
+
+				file.read(reinterpret_cast<char*>(full_meta_data.data()), full_meta_data.size());
+			}
+
+			const auto meta_header_j = nlohmann::json::from_msgpack(full_meta_data);
+
+			if (!meta_header_j.is_array() || meta_header_j.size() < 4) {
+				std::cerr << "FS error: broken binary meta " << it.frag_path << "\n";
 				continue;
 			}
 
-			// TODO: existing fragment file
-			//newFragmentFile();
-			FragmentHandle fh{_reg, _reg.create()};
-			fh.emplace<FragComp::ID>(hex2bin(it.id_str));
-
-			fh.emplace<FragComp::Ephemeral::FilePath>(it.frag_path.generic_u8string());
-
-			for (const auto& [k, v] : j.items()) {
-				// type id from string hash
-				const auto type_id = entt::hashed_string(k.data(), k.size());
-				const auto deserl_fn_it = _sc._deserl_json.find(type_id);
-				if (deserl_fn_it != _sc._deserl_json.cend()) {
-					// TODO: check return value
-					deserl_fn_it->second(fh, v);
-				} else {
-					std::cerr << "FS warning: missing deserializer for meta key '" << k << "'\n";
-				}
+			if (meta_header_j.at(0) != "SOLMET") {
+				std::cerr << "FS error: wrong magic '" << meta_header_j.at(0) << "' in meta " << it.frag_path << "\n";
+				continue;
 			}
-			// throw new frag event here
-			throwEventConstruct(fh);
-			count++;
+
+			Encryption meta_enc = meta_header_j.at(1);
+			if (meta_enc != Encryption::NONE) {
+				std::cerr << "FS error: unknown encryption " << it.frag_path << "\n";
+				continue;
+			}
+
+			Compression meta_comp = meta_header_j.at(2);
+			if (meta_comp != Compression::NONE && meta_comp != Compression::ZSTD) {
+				std::cerr << "FS error: unknown compression " << it.frag_path << "\n";
+				continue;
+			}
+
+			//const auto& meta_data_ref = meta_header_j.at(3).is_binary()?meta_header_j.at(3):meta_header_j.at(3).at("data");
+			if (!meta_header_j.at(3).is_binary()) {
+				std::cerr << "FS error: meta data not binary " << it.frag_path << "\n";
+				continue;
+			}
+			const nlohmann::json::binary_t& meta_data_ref = meta_header_j.at(3);
+
+			std::vector<uint8_t> meta_data_decomp;
+			if (meta_comp == Compression::NONE) {
+				// do nothing
+			} else if (meta_comp == Compression::ZSTD) {
+				meta_data_decomp.resize(ZSTD_DStreamOutSize());
+				ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+
+				ZSTD_inBuffer input {meta_data_ref.data(), meta_data_ref.size(), 0 };
+				ZSTD_outBuffer output = { meta_data_decomp.data(), meta_data_decomp.size(), 0 };
+				do {
+					size_t const ret = ZSTD_decompressStream(dctx, &output , &input);
+					if (ZSTD_isError(ret)) {
+						// error <.<
+						std::cerr << "FS error: decompression error\n";
+						meta_data_decomp.clear();
+						break;
+					}
+				} while (input.pos < input.size);
+				meta_data_decomp.resize(output.pos);
+
+				ZSTD_freeDCtx(dctx);
+			} else {
+				assert(false && "implement me");
+			}
+
+			// TODO: enc
+
+			if (!meta_data_decomp.empty()) {
+				j = nlohmann::json::from_msgpack(meta_data_decomp);
+			} else {
+				j = nlohmann::json::from_msgpack(meta_data_ref);
+			}
+		} else if (it.meta_ext == ".meta.json") {
+			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
+			if (!file.is_open()) {
+				std::cerr << "FS error: failed opening meta " << it.frag_path << "\n";
+				continue;
+			}
+
+			file >> j;
 		} else {
 			assert(false);
 		}
+
+		if (!j.is_object()) {
+			std::cerr << "FS error: json in meta is broken " << it.id_str << "\n";
+			continue;
+		}
+
+		// TODO: existing fragment file
+		//newFragmentFile();
+		FragmentHandle fh{_reg, _reg.create()};
+		fh.emplace<FragComp::ID>(hex2bin(it.id_str));
+
+		fh.emplace<FragComp::Ephemeral::FilePath>(it.frag_path.generic_u8string());
+
+		for (const auto& [k, v] : j.items()) {
+			// type id from string hash
+			const auto type_id = entt::hashed_string(k.data(), k.size());
+			const auto deserl_fn_it = _sc._deserl_json.find(type_id);
+			if (deserl_fn_it != _sc._deserl_json.cend()) {
+				// TODO: check return value
+				deserl_fn_it->second(fh, v);
+			} else {
+				std::cerr << "FS warning: missing deserializer for meta key '" << k << "'\n";
+			}
+		}
+		// throw new frag event here
+		throwEventConstruct(fh);
+		count++;
 	}
 
 	return count;
