@@ -7,6 +7,17 @@
 
 #include <iostream>
 
+static Contact3 findContactByID(Contact3Registry& cr, const std::vector<uint8_t>& id) {
+	// TODO: id lookup table, this is very inefficent
+	for (const auto& [c_it, id_it] : cr.view<Contact::Components::ID>().each()) {
+		if (id == id_it.data) {
+			return c_it;
+		}
+	}
+
+	return entt::null;
+}
+
 template<>
 bool MessageSerializerCallbacks::component_get_json<Message::Components::ContactFrom>(MessageSerializerCallbacks& msc, const Handle h, nlohmann::json& j) {
 	const Contact3 c = h.get<Message::Components::ContactFrom>().c;
@@ -38,16 +49,17 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 
 	const std::vector<uint8_t> id = j.is_binary()?j:j["bytes"];
 
-	// TODO: id lookup table, this is very inefficent
-	for (const auto& [c_it, id_it] : msc.cr.view<Contact::Components::ID>().each()) {
-		if (id == id_it.data) {
-			h.emplace_or_replace<Message::Components::ContactFrom>(c_it);
-			return true;
-		}
+	Contact3 other_c = findContactByID(msc.cr, id);
+	if (!msc.cr.valid(other_c)) {
+		// create sparse contact with id only
+		other_c = msc.cr.create();
+		msc.cr.emplace_or_replace<Contact::Components::ID>(other_c, id);
 	}
 
-	// TODO: should we really return false if the contact is unknown??
-	return false;
+	h.emplace_or_replace<Message::Components::ContactFrom>(other_c);
+
+	// TODO: should we return false if the contact is unknown??
+	return true;
 }
 
 template<>
@@ -81,14 +93,15 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 
 	const std::vector<uint8_t> id = j.is_binary()?j:j["bytes"];
 
-	// TODO: id lookup table, this is very inefficent
-	for (const auto& [c_it, id_it] : msc.cr.view<Contact::Components::ID>().each()) {
-		if (id == id_it.data) {
-			h.emplace_or_replace<Message::Components::ContactTo>(c_it);
-			return true;
-		}
+	Contact3 other_c = findContactByID(msc.cr, id);
+	if (!msc.cr.valid(other_c)) {
+		// create sparse contact with id only
+		other_c = msc.cr.create();
+		msc.cr.emplace_or_replace<Contact::Components::ID>(other_c, id);
 	}
 
-	// TODO: should we really return false if the contact is unknown??
-	return false;
+	h.emplace_or_replace<Message::Components::ContactTo>(other_c);
+
+	// TODO: should we return false if the contact is unknown??
+	return true;
 }
