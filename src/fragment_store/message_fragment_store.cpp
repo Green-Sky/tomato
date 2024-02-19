@@ -145,7 +145,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 		// if its still not found, we need a new fragment
 		if (fragment_uid.empty()) {
-			const auto new_fid = _fs.newFragmentFile("test_message_store/", MetaFileType::TEXT_JSON);
+			const auto new_fid = _fs.newFragmentFile("test_message_store/", MetaFileType::BINARY_MSGPACK);
 			auto fh = _fs.fragmentHandle(new_fid);
 			if (!static_cast<bool>(fh)) {
 				std::cout << "MFS error: failed to create new fragment for message\n";
@@ -154,6 +154,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 			fragment_uid = fh.get<FragComp::ID>().v;
 
+			fh.emplace_or_replace<FragComp::Ephemeral::MetaCompressionType>().comp = Compression::ZSTD;
 			fh.emplace_or_replace<FragComp::DataCompressionType>().comp = Compression::ZSTD;
 
 			auto& new_ts_range = fh.emplace<FragComp::MessagesTSRange>();

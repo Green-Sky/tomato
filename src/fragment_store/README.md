@@ -40,24 +40,25 @@ A Metadata json object can have arbitrary keys, some are predefined:
 
 ### Split Metadata
 
-file magic bytes `SOLMET` (6 bytes)
+msgpack array:
 
-1 byte encryption type (`0x00` is none)
-
-1 byte compression type (`0x00` is none)
-
-...metadata here...
+- `[0]`: file magic string `SOLMET` (6 bytes)
+- `[1]`: uint8 encryption type (`0x00` is none)
+- `[2]`: uint8 compression type (`0x00` is none, `0x01` is zstd)
+- `[3]`: binary metadata (optionally compressed and encrypted)
 
 note that the encryption and compression are for the metadata only.
 The metadata itself contains encryption and compression info about the data.
 
 ### Split Data
 
-(none) all the data is in the metadata file.
+All the metadata is in the metadata file. (like encryption and compression)
 This is mostly to allow direct storage for files in the Fragment store without excessive duplication.
 Keep in mind to not use the actual file name as the data/meta file name.
 
 ### Single fragment
+
+Note: this format is unused for now
 
 file magic bytes `SOLFIL` (6 bytes)
 
