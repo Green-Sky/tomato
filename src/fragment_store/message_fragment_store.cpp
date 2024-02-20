@@ -355,7 +355,7 @@ float MessageFragmentStore::tick(float time_delta) {
 				auto s_cb_it = _sc._serl_json.find(type_id);
 				if (s_cb_it == _sc._serl_json.end()) {
 					// could not find serializer, not saving
-					std::cout << "missing " << storage.type().name() << "(" << type_id << ")\n";
+					//std::cout << "missing " << storage.type().name() << "(" << type_id << ")\n";
 					continue;
 				}
 
@@ -378,6 +378,134 @@ float MessageFragmentStore::tick(float time_delta) {
 
 void MessageFragmentStore::triggerScan(void) {
 	_fs.scanStoragePath("test_message_store/");
+}
+
+static bool isLess(const std::vector<uint8_t>& lhs, const std::vector<uint8_t>& rhs) {
+	size_t i = 0;
+	for (; i < lhs.size() && i < rhs.size(); i++) {
+		if (lhs[i] < rhs[i]) {
+			return true;
+		} else if (lhs[i] > rhs[i]) {
+			return false;
+		}
+		// else continue
+	}
+
+	// here we have equality of common lenths
+
+	// we define smaller arrays to be less
+	return lhs.size() < rhs.size();
+}
+
+FragmentID MessageFragmentStore::fragmentBefore(FragmentID fid) {
+	auto fh = _fs.fragmentHandle(fid);
+	if (!fh.all_of<FragComp::MessagesTSRange>()) {
+		return entt::null;
+	}
+
+	const auto& mtsrange = fh.get<FragComp::MessagesTSRange>();
+	const auto& fuid = fh.get<FragComp::ID>();
+
+	FragmentHandle current;
+
+	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::ID>();
+	for (const auto& [it_f, it_mtsrange, it_fuid] : mts_view.each()) {
+		// before means we compare end, so we dont jump over any
+
+		if (it_mtsrange.end > mtsrange.end) {
+			continue;
+		}
+
+		if (it_mtsrange.end == mtsrange.end) {
+			// equal ts -> fallback to id
+			if (!isLess(it_fuid.v, fuid.v)) {
+				// we dont "care" about equality here, since that *should* never happen
+				continue;
+			}
+		}
+
+		// here we know that "it" is before
+		// now we check for the largest, so the closest
+
+		if (!static_cast<bool>(current)) {
+			current = {*fh.registry(), it_f};
+			continue;
+		}
+
+		const auto& curr_mtsrange = fh.get<FragComp::MessagesTSRange>();
+		if (it_mtsrange.end < curr_mtsrange.end) {
+			continue; // it is older than current selection
+		}
+
+		if (it_mtsrange.end == curr_mtsrange.end) {
+			const auto& curr_fuid = fh.get<FragComp::ID>();
+			// it needs to be larger to be considered (ignoring equality again)
+			if (isLess(it_fuid.v, curr_fuid.v)) {
+				continue;
+			}
+		}
+
+		// new best fit
+		current = {*fh.registry(), it_f};
+	}
+
+	return current;
+}
+
+FragmentID MessageFragmentStore::fragmentAfter(FragmentID fid) {
+	auto fh = _fs.fragmentHandle(fid);
+	if (!fh.all_of<FragComp::MessagesTSRange>()) {
+		return entt::null;
+	}
+
+	const auto& mtsrange = fh.get<FragComp::MessagesTSRange>();
+	const auto& fuid = fh.get<FragComp::ID>();
+
+	FragmentHandle current;
+
+	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::ID>();
+	for (const auto& [it_f, it_mtsrange, it_fuid] : mts_view.each()) {
+		// after means we compare begin
+
+		if (it_mtsrange.begin < mtsrange.begin) {
+			continue;
+		}
+
+		if (it_mtsrange.begin == mtsrange.begin) {
+			// equal ts -> fallback to id
+			// id needs to be larger
+			if (isLess(it_fuid.v, fuid.v)) {
+				// we dont "care" about equality here, since that *should* never happen
+				continue;
+			}
+		}
+
+		// here we know that "it" is after
+		// now we check for the smallest, so the closest
+
+		if (!static_cast<bool>(current)) {
+			current = {*fh.registry(), it_f};
+			continue;
+		}
+
+		const auto& curr_mtsrange = fh.get<FragComp::MessagesTSRange>();
+		if (it_mtsrange.begin > curr_mtsrange.begin) {
+			continue; // it is newer than current selection
+		}
+
+		if (it_mtsrange.begin == curr_mtsrange.begin) {
+			const auto& curr_fuid = fh.get<FragComp::ID>();
+			// it needs to be smaller to be considered (ignoring equality again)
+			if (!isLess(it_fuid.v, curr_fuid.v)) {
+				continue;
+			}
+		}
+
+		// new best fit
+		current = {*fh.registry(), it_f};
+	}
+
+	return current;
 }
 
 bool MessageFragmentStore::onEvent(const Message::Events::MessageConstruct& e) {
