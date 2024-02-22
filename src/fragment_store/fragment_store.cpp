@@ -684,7 +684,7 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 		}
 	}
 
-	size_t count {0};
+	std::vector<FragmentID> scanned_frags;
 	// step 3: parse meta and insert into reg of non preexising
 	// main thread
 	// TODO: check timestamps of preexisting and reload? mark external/remote dirty?
@@ -749,8 +749,8 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 				meta_data_decomp.resize(ZSTD_DStreamOutSize());
 				ZSTD_DCtx* const dctx = ZSTD_createDCtx();
 
-				ZSTD_inBuffer input {meta_data_ref.data(), meta_data_ref.size(), 0 };
-				ZSTD_outBuffer output = { meta_data_decomp.data(), meta_data_decomp.size(), 0 };
+				ZSTD_inBuffer input {meta_data_ref.data(), meta_data_ref.size(), 0};
+				ZSTD_outBuffer output = {meta_data_decomp.data(), meta_data_decomp.size(), 0};
 				do {
 					size_t const ret = ZSTD_decompressStream(dctx, &output , &input);
 					if (ZSTD_isError(ret)) {
@@ -809,12 +809,17 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 				std::cerr << "FS warning: missing deserializer for meta key '" << k << "'\n";
 			}
 		}
-		// throw new frag event here
-		throwEventConstruct(fh);
-		count++;
+		scanned_frags.push_back(fh);
 	}
 
-	return count;
+	// TODO: mutex and move code to async and return this list ?
+
+	// throw new frag event here, after loading them all
+	for (const FragmentID fid : scanned_frags) {
+		throwEventConstruct(fid);
+	}
+
+	return scanned_frags.size();
 }
 
 void FragmentStore::scanStoragePathAsync(std::string path) {
