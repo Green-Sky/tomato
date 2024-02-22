@@ -29,6 +29,18 @@ namespace Message::Components {
 		std::vector<OpenFrag> fuid_open;
 	};
 
+	// all message fragments of this contact
+	struct ContactFragments final {
+		// kept up-to-date by events
+		entt::dense_set<FragmentID> frags;
+	};
+
+	// all LOADED message fragments
+	struct LoadedContactFragments final {
+		// kept up-to-date by events
+		entt::dense_set<FragmentID> frags;
+	};
+
 } // Message::Components
 
 namespace Fragment::Components {
@@ -75,6 +87,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 			// registry is the same as the one the message event is for
 			if (static_cast<const RegistryMessageModel&>(_rmm).get(frag_contact) == m.registry()) {
+				// TODO: make dirty instead (they already are)
 				loadFragment(*m.registry(), FragmentHandle{_fs._reg, fid});
 			}
 		}
@@ -163,6 +176,18 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			new_ts_range.begin = msg_ts;
 			new_ts_range.end = msg_ts;
 
+			// contact frag
+			if (!m.registry()->ctx().contains<Message::Components::ContactFragments>()) {
+				m.registry()->ctx().emplace<Message::Components::ContactFragments>();
+			}
+			m.registry()->ctx().get<Message::Components::ContactFragments>().frags.emplace(fh);
+
+			// loaded contact frag
+			if (!m.registry()->ctx().contains<Message::Components::LoadedContactFragments>()) {
+				m.registry()->ctx().emplace<Message::Components::LoadedContactFragments>();
+			}
+			m.registry()->ctx().get<Message::Components::LoadedContactFragments>().frags.emplace(fh);
+
 			{
 				const auto msg_reg_contact = m.registry()->ctx().get<Contact3>();
 				if (_cr.all_of<Contact::Components::ID>(msg_reg_contact)) {
@@ -199,7 +224,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	// on new and update: mark as fragment dirty
 }
 
-// assumes new frag
+// assumes not loaded frag
 // need update from frag
 void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh) {
 	std::cout << "MFS: loadFragment\n";
@@ -209,6 +234,18 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 		// wrong data
 		return;
 	}
+
+	// TODO: this should probably never be the case, since we already know here that it is a msg frag
+	if (!reg.ctx().contains<Message::Components::ContactFragments>()) {
+		reg.ctx().emplace<Message::Components::ContactFragments>();
+	}
+	reg.ctx().get<Message::Components::ContactFragments>().frags.emplace(fh);
+
+	// mark loaded
+	if (!reg.ctx().contains<Message::Components::LoadedContactFragments>()) {
+		reg.ctx().emplace<Message::Components::LoadedContactFragments>();
+	}
+	reg.ctx().get<Message::Components::LoadedContactFragments>().frags.emplace(fh);
 
 	for (const auto& j_entry : j) {
 		auto new_real_msg = Message3Handle{reg, reg.create()};
@@ -301,9 +338,50 @@ MessageSerializerCallbacks& MessageFragmentStore::getMSC(void) {
 	return _sc;
 }
 
+// checks range against all cursers in msgreg
+static bool rangeVisible(uint64_t range_begin, uint64_t range_end, const Message3Registry& msg_reg) {
+	// 1D collision checks:
+	//  - for range vs range:
+	//    r1 rhs >= r0 lhs AND r1 lhs <= r0 rhs
+	//  - for range vs point:
+	//    p >= r0 lhs AND p <= r0 rhs
+	// NOTE: directions for us are reversed (begin has larger values as end)
+
+	auto c_b_view = msg_reg.view<Message::Components::Timestamp, Message::Components::ViewCurserBegin>();
+	c_b_view.use<Message::Components::ViewCurserBegin>();
+	for (const auto& [m, ts_begin_comp, vcb] : c_b_view.each()) {
+		// p and r1 rhs can be seen as the same
+		// but first we need to know if a curser begin is a point or a range
+
+		// TODO: margin?
+		auto ts_begin = ts_begin_comp.ts;
+		auto ts_end = ts_begin_comp.ts; // simplyfy code by making a single begin curser act as an infinitly small range
+		if (msg_reg.valid(vcb.curser_end) && msg_reg.all_of<Message::Components::ViewCurserEnd>(vcb.curser_end)) {
+			// TODO: respect curser end's begin?
+			// TODO: remember which ends we checked and check remaining
+			ts_end = msg_reg.get<Message::Components::Timestamp>(vcb.curser_end).ts;
+
+			// sanity check curser order
+			if (ts_end > ts_begin) {
+				std::cerr << "MFS warning: begin curser and end curser of view swapped!!\n";
+				std::swap(ts_begin, ts_end);
+			}
+		}
+
+		// perform both checks here
+		if (ts_begin < range_end || ts_end > range_begin) {
+			continue;
+		}
+
+		// range hits a view
+		return true;
+	}
+
+	return false;
+}
+
 float MessageFragmentStore::tick(float time_delta) {
 	// sync dirty fragments here
-
 	if (!_fuid_save_queue.empty()) {
 		const auto fid = _fs.getFragmentByID(_fuid_save_queue.front().id);
 		auto* reg = _fuid_save_queue.front().reg;
@@ -372,6 +450,92 @@ float MessageFragmentStore::tick(float time_delta) {
 			_fuid_save_queue.pop();
 		}
 	}
+
+	// load needed fragments here
+
+	// last check event frags
+	// only checks if it collides with ranges, not adjacency ???
+	// bc ~range~ msgreg will be marked dirty and checked next tick
+	if (!_event_check_queue.empty()) {
+		auto fh = _fs.fragmentHandle(_event_check_queue.front().fid);
+		auto c = _event_check_queue.front().c;
+		_event_check_queue.pop();
+
+		if (!static_cast<bool>(fh)) {
+			return 0.05f;
+		}
+
+		if (!fh.all_of<FragComp::MessagesTSRange>()) {
+			return 0.05f;
+		}
+
+		// get ts range of frag and collide with all curser(s/ranges)
+		const auto& frag_range = fh.get<FragComp::MessagesTSRange>();
+
+		auto* msg_reg = _rmm.get(c);
+		if (msg_reg == nullptr) {
+			return 0.05f;
+		}
+
+		if (rangeVisible(frag_range.begin, frag_range.end, !msg_reg)) {
+			loadFragment(*msg_reg, fh);
+			_potentially_dirty_contacts.emplace(c);
+		}
+
+		return 0.05f; // only one but soon again
+	}
+
+	if (!_potentially_dirty_contacts.empty()) {
+		// here we check if any view of said contact needs frag loading
+		// only once per tick tho
+
+		// TODO: this makes order depend on internal order and is not fair
+		auto it = _potentially_dirty_contacts.cbegin();
+
+		auto* msg_reg = _rmm.get(*it);
+
+		// first do collision check agains every contact associated fragment
+		// that is not already loaded !!
+		if (msg_reg->ctx().contains<Message::Components::ContactFragments>()) {
+			for (const FragmentID fid : msg_reg->ctx().get<Message::Components::ContactFragments>().frags) {
+				// TODO: better ctx caching code?
+				if (msg_reg->ctx().contains<Message::Components::LoadedContactFragments>()) {
+					if (msg_reg->ctx().get<Message::Components::LoadedContactFragments>().frags.contains(fid)) {
+						continue;
+					}
+				}
+
+				auto fh = _fs.fragmentHandle(fid);
+
+				if (!static_cast<bool>(fh)) {
+					return 0.05f;
+				}
+
+				if (!fh.all_of<FragComp::MessagesTSRange>()) {
+					return 0.05f;
+				}
+
+				// get ts range of frag and collide with all curser(s/ranges)
+				const auto& [range_begin, range_end] = fh.get<FragComp::MessagesTSRange>();
+
+				if (rangeVisible(range_begin, range_end, *msg_reg)) {
+					loadFragment(*msg_reg, fh);
+					return 0.05f;
+				}
+			}
+			// no new visible fragment
+
+			// now, finally, check for adjecent fragments that need to be loaded
+			// we do this by finding a fragment in a rage
+		} else {
+			// contact has no fragments, skip
+		}
+
+		_potentially_dirty_contacts.erase(it);
+
+		return 0.05f;
+	}
+
 
 	return 1000.f*60.f*60.f;
 }
@@ -531,8 +695,6 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 
 	// TODO: are we sure it is a *new* fragment?
 
-	//std::cout << "MFS: got frag for us!\n";
-
 	Contact3 frag_contact = entt::null;
 	{ // get contact
 		const auto& frag_contact_id = e.e.get<FragComp::MessagesContact>().id;
@@ -551,15 +713,19 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 		}
 	}
 
-	// only load if msg reg open
-	auto* msg_reg = static_cast<const RegistryMessageModel&>(_rmm).get(frag_contact);
+	// create if not exist
+	auto* msg_reg = _rmm.get(frag_contact);
 	if (msg_reg == nullptr) {
 		// msg reg not created yet
 		return false;
 	}
 
-	// TODO: should this be done async / on tick() instead of on event?
-	loadFragment(*msg_reg, e.e);
+	if (!msg_reg->ctx().contains<Message::Components::ContactFragments>()) {
+		msg_reg->ctx().emplace<Message::Components::ContactFragments>();
+	}
+	msg_reg->ctx().get<Message::Components::ContactFragments>().frags.emplace(e.e);
+
+	_event_check_queue.push(ECQueueEntry{e.e, frag_contact});
 
 	return false;
 }

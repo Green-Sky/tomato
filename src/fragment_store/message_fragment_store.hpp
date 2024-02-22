@@ -8,6 +8,7 @@
 
 #include <entt/entity/registry.hpp>
 #include <entt/container/dense_map.hpp>
+#include <entt/container/dense_set.hpp>
 
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
@@ -20,16 +21,40 @@ namespace Message::Components {
 
 	using FUID = FragComp::ID;
 
+	// unused
 	struct FID {
 		FragmentID fid {entt::null};
 	};
+
+	// points to the front/newer message
+	// together they define a range that is,
+	// eg the first(end) and last(begin) message being rendered
+	// MFS requires there to be atleast one other message after/before,
+	// if not loaded fragment with fitting tsrange(direction) available
+	// uses fragmentAfter/Before()
+	// they can exist standalone
+	// if they are a pair, the inside is filled first
+	// cursers require a timestamp ???
+	struct ViewCurserBegin {
+		Message3 curser_end{entt::null};
+	};
+	struct ViewCurserEnd {
+		Message3 curser_begin{entt::null};
+	};
+
+	// mfs will only load a limited number of fragments per tick (1),
+	// so this tag will be set if we loaded a fragment and
+	// every tick we check all cursers for this tag and continue
+	// and remove once no fragment could be loaded anymore
+	// (internal)
+	struct TagCurserUnsatisfied {};
 
 } // Message::Components
 
 namespace Fragment::Components {
 	struct MessagesTSRange {
 		// timestamp range within the fragment
-		uint64_t begin {0};
+		uint64_t begin {0}; // newer msg -> higher number
 		uint64_t end {0};
 	};
 
@@ -59,12 +84,23 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 
 		void loadFragment(Message3Registry& reg, FragmentHandle fh);
 
-		struct QueueEntry final {
+		struct SaveQueueEntry final {
 			uint64_t ts_since_dirty{0};
 			std::vector<uint8_t> id;
 			Message3Registry* reg{nullptr};
 		};
-		std::queue<QueueEntry> _fuid_save_queue;
+		std::queue<SaveQueueEntry> _fuid_save_queue;
+
+		struct ECQueueEntry final {
+			FragmentID fid;
+			Contact3 c;
+		};
+		std::queue<ECQueueEntry> _event_check_queue;
+
+		// range changed or fragment loaded.
+		// we only load a limited number of fragments at once,
+		// so we need to keep them dirty until nothing was loaded.
+		entt::dense_set<Contact3> _potentially_dirty_contacts;
 
 	public:
 		MessageFragmentStore(
