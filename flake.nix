@@ -12,13 +12,15 @@
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
+      stdenv = (pkgs.stdenvAdapters.keepDebugInfo pkgs.stdenv);
     in {
-      packages.default = pkgs.stdenv.mkDerivation {
+      #packages.default = pkgs.stdenv.mkDerivation {
+      packages.default = stdenv.mkDerivation {
         pname = "tomato";
         version = "0.0.0";
 
         src = ./.;
-        submodules = 1;
+        submodules = 1; # does nothing
 
         nativeBuildInputs = with pkgs; [
           cmake
@@ -70,7 +72,7 @@
           mv bin/tomato $out/bin
         '';
 
-        dontStrip = true;
+        dontStrip = true; # does nothing
 
         # copied from nixpkgs's SDL2 default.nix
         # SDL is weird in that instead of just dynamically linking with
@@ -96,6 +98,8 @@
             patchelf --set-rpath "$(patchelf --print-rpath $out/bin/tomato):${rpath}" "$out/bin/tomato"
           '';
       };
+
+      #packages.debug = pkgs.enableDebugging self.packages.${system}.default;
 
       devShells.${system}.default = pkgs.mkShell {
         #inputsFrom = with pkgs; [ SDL2 ];

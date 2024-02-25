@@ -63,41 +63,51 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		return; // we only handle msg with ts
 	}
 
-	if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
-		// first message in this reg
-		m.registry()->ctx().emplace<Message::Components::OpenFragments>();
-
-		// TODO: move this to async
-		// new reg -> load all fragments for this contact (for now, ranges later)
-		for (const auto& [fid, tsrange, fmc] : _fs._reg.view<FragComp::MessagesTSRange, FragComp::MessagesContact>().each()) {
-			Contact3 frag_contact = entt::null;
-			// TODO: id lookup table, this is very inefficent
-			for (const auto& [c_it, id_it] : _cr.view<Contact::Components::ID>().each()) {
-				if (fmc.id == id_it.data) {
-					//h.emplace_or_replace<Message::Components::ContactTo>(c_it);
-					//return true;
-					frag_contact = c_it;
-					break;
-				}
-			}
-			if (!_cr.valid(frag_contact)) {
-				// unkown contact
-				continue;
-			}
-
-			// registry is the same as the one the message event is for
-			if (static_cast<const RegistryMessageModel&>(_rmm).get(frag_contact) == m.registry()) {
-				// TODO: make dirty instead (they already are)
-				loadFragment(*m.registry(), FragmentHandle{_fs._reg, fid});
-			}
-		}
+	_potentially_dirty_contacts.emplace(m.registry()->ctx().get<Contact3>()); // always mark dirty here
+	if (m.any_of<Message::Components::ViewCurserBegin, Message::Components::ViewCurserEnd>()) {
+		// not an actual message, but we probalby need to check and see if we need to load fragments
+		std::cout << "MFS: new or updated curser\n";
+		return;
 	}
 
-	auto& fuid_open = m.registry()->ctx().get<Message::Components::OpenFragments>().fuid_open;
-
-	const auto msg_ts = m.get<Message::Components::Timestamp>().ts;
-
 	if (!m.all_of<Message::Components::FUID>()) {
+		std::cout << "MFS: new msg missing FUID\n";
+		if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
+			m.registry()->ctx().emplace<Message::Components::OpenFragments>();
+
+			// TODO: move this to async
+			// TODO: move this to tick and just respect the dirty
+			FragmentHandle most_recent_fag;
+			uint64_t most_recent_ts{0};
+			if (m.registry()->ctx().contains<Message::Components::ContactFragments>()) {
+				for (const auto fid : m.registry()->ctx().get<Message::Components::ContactFragments>().frags) {
+					auto fh = _fs.fragmentHandle(fid);
+					if (!static_cast<bool>(fh) || !fh.all_of<FragComp::MessagesTSRange, FragComp::MessagesContact>()) {
+						// TODO: remove at this point?
+						continue;
+					}
+
+					const uint64_t f_ts = fh.get<FragComp::MessagesTSRange>().begin;
+					if (f_ts > most_recent_ts) {
+						if (m.registry()->ctx().contains<Message::Components::LoadedContactFragments>()) {
+							if (m.registry()->ctx().get<Message::Components::LoadedContactFragments>().frags.contains(fh)) {
+								continue; // already loaded
+							}
+						}
+						most_recent_ts = f_ts;
+						most_recent_fag = {_fs._reg, fid};
+					}
+				}
+			}
+
+			if (static_cast<bool>(most_recent_fag)) {
+				loadFragment(*m.registry(), most_recent_fag);
+			}
+		}
+
+		auto& fuid_open = m.registry()->ctx().get<Message::Components::OpenFragments>().fuid_open;
+
+		const auto msg_ts = m.get<Message::Components::Timestamp>().ts;
 		// missing fuid
 		// find closesed non-sealed off fragment
 
@@ -380,6 +390,23 @@ static bool rangeVisible(uint64_t range_begin, uint64_t range_end, const Message
 	return false;
 }
 
+static bool isLess(const std::vector<uint8_t>& lhs, const std::vector<uint8_t>& rhs) {
+	size_t i = 0;
+	for (; i < lhs.size() && i < rhs.size(); i++) {
+		if (lhs[i] < rhs[i]) {
+			return true;
+		} else if (lhs[i] > rhs[i]) {
+			return false;
+		}
+		// else continue
+	}
+
+	// here we have equality of common lenths
+
+	// we define smaller arrays to be less
+	return lhs.size() < rhs.size();
+}
+
 float MessageFragmentStore::tick(float time_delta) {
 	// sync dirty fragments here
 	if (!_fuid_save_queue.empty()) {
@@ -497,21 +524,27 @@ float MessageFragmentStore::tick(float time_delta) {
 		// first do collision check agains every contact associated fragment
 		// that is not already loaded !!
 		if (msg_reg->ctx().contains<Message::Components::ContactFragments>()) {
+			if (!msg_reg->ctx().contains<Message::Components::LoadedContactFragments>()) {
+				msg_reg->ctx().emplace<Message::Components::LoadedContactFragments>();
+			}
+			const auto& loaded_frags = msg_reg->ctx().get<Message::Components::LoadedContactFragments>().frags;
+
 			for (const FragmentID fid : msg_reg->ctx().get<Message::Components::ContactFragments>().frags) {
-				// TODO: better ctx caching code?
-				if (msg_reg->ctx().contains<Message::Components::LoadedContactFragments>()) {
-					if (msg_reg->ctx().get<Message::Components::LoadedContactFragments>().frags.contains(fid)) {
-						continue;
-					}
+				if (loaded_frags.contains(fid)) {
+					continue;
 				}
 
 				auto fh = _fs.fragmentHandle(fid);
 
 				if (!static_cast<bool>(fh)) {
+					// WHAT
+					msg_reg->ctx().get<Message::Components::ContactFragments>().frags.erase(fid);
 					return 0.05f;
 				}
 
 				if (!fh.all_of<FragComp::MessagesTSRange>()) {
+					// ????
+					msg_reg->ctx().get<Message::Components::ContactFragments>().frags.erase(fid);
 					return 0.05f;
 				}
 
@@ -526,7 +559,113 @@ float MessageFragmentStore::tick(float time_delta) {
 			// no new visible fragment
 
 			// now, finally, check for adjecent fragments that need to be loaded
-			// we do this by finding a fragment in a rage
+			// we do this by finding the outermost fragment in a rage, and extend it by one
+
+			// TODO: this is all extreamly unperformant code !!!!!!
+			// rewrite using some bounding range tree to perform collision checks !!!
+
+			// for each view
+			auto c_b_view = msg_reg->view<Message::Components::Timestamp, Message::Components::ViewCurserBegin>();
+			c_b_view.use<Message::Components::ViewCurserBegin>();
+			for (const auto& [m, ts_begin_comp, vcb] : c_b_view.each()) {
+				// track down both in the same run
+				FragmentID frag_newest {entt::null};
+				uint64_t frag_newest_ts {};
+				FragmentID frag_oldest {entt::null};
+				uint64_t frag_oldest_ts {};
+
+				// find newest frag in range
+				for (const FragmentID fid : msg_reg->ctx().get<Message::Components::ContactFragments>().frags) {
+					// we want to find the last and first fragment of the range (if not all hits are loaded, we did something wrong)
+					if (!loaded_frags.contains(fid)) {
+						continue;
+					}
+
+					// not checking frags for validity here, we checked above
+					auto fh = _fs.fragmentHandle(fid);
+
+					const auto [range_begin, range_end] = fh.get<FragComp::MessagesTSRange>();
+
+					// perf, only check begin curser fist
+					if (ts_begin_comp.ts < range_end) {
+					//if (ts_begin_comp.ts < range_end || ts_end > range_begin) {
+						continue;
+					}
+
+					if (ts_begin_comp.ts < range_begin) {
+						// begin curser does not hit the frag, but end might still hit/contain it
+						// if has curser end, check that
+						if (!msg_reg->valid(vcb.curser_end) || !msg_reg->all_of<Message::Components::ViewCurserEnd, Message::Components::Timestamp>(vcb.curser_end)) {
+							// no end, save no hit
+							continue;
+						}
+						const auto ts_end = msg_reg->get<Message::Components::Timestamp>(vcb.curser_end).ts;
+
+						if (ts_end > range_begin) {
+							continue;
+						}
+					}
+
+					// save hit
+					if (!_fs._reg.valid(frag_newest)) {
+						frag_newest = fid;
+						frag_newest_ts = range_begin; // new only compare against begin
+					} else {
+						// now we check if >= prev
+						if (range_begin < frag_newest_ts) {
+							continue;
+						}
+
+						if (range_begin == frag_newest_ts) {
+							// equal ts -> fallback to id
+							if (isLess(fh.get<FragComp::ID>().v, _fs._reg.get<FragComp::ID>(frag_newest).v)) {
+								// we dont "care" about equality here, since that *should* never happen
+								continue;
+							}
+						}
+
+						frag_newest = fid;
+						frag_newest_ts = range_begin; // new only compare against begin
+					}
+
+					if (!_fs._reg.valid(frag_oldest)) {
+						frag_oldest = fid;
+						frag_oldest_ts = range_end; // old only compare against end
+					}
+
+					if (fid != frag_oldest && fid != frag_newest) {
+						// now check against old
+						if (range_end > frag_oldest_ts) {
+							continue;
+						}
+
+						if (range_end == frag_oldest_ts) {
+							// equal ts -> fallback to id
+							if (!isLess(fh.get<FragComp::ID>().v, _fs._reg.get<FragComp::ID>(frag_oldest).v)) {
+								// we dont "care" about equality here, since that *should* never happen
+								continue;
+							}
+						}
+
+						frag_oldest = fid;
+						frag_oldest_ts = range_end; // old only compare against end
+					}
+				}
+
+				auto frag_after = _fs.fragmentHandle(fragmentAfter(frag_newest));
+				if (static_cast<bool>(frag_after) && !loaded_frags.contains(frag_after)) {
+					std::cout << "MFS: loading frag after newest\n";
+					loadFragment(*msg_reg, frag_after);
+					return 0.05f;
+				}
+
+				auto frag_before = _fs.fragmentHandle(fragmentBefore(frag_oldest));
+				if (static_cast<bool>(frag_before) && !loaded_frags.contains(frag_before)) {
+					std::cout << "MFS: loading frag before oldest\n";
+					loadFragment(*msg_reg, frag_before);
+					return 0.05f;
+				}
+			}
 		} else {
 			// contact has no fragments, skip
 		}
@@ -542,23 +681,6 @@ float MessageFragmentStore::tick(float time_delta) {
 
 void MessageFragmentStore::triggerScan(void) {
 	_fs.scanStoragePath("test_message_store/");
-}
-
-static bool isLess(const std::vector<uint8_t>& lhs, const std::vector<uint8_t>& rhs) {
-	size_t i = 0;
-	for (; i < lhs.size() && i < rhs.size(); i++) {
-		if (lhs[i] < rhs[i]) {
-			return true;
-		} else if (lhs[i] > rhs[i]) {
-			return false;
-		}
-		// else continue
-	}
-
-	// here we have equality of common lenths
-
-	// we define smaller arrays to be less
-	return lhs.size() < rhs.size();
 }
 
 FragmentID MessageFragmentStore::fragmentBefore(FragmentID fid) {
