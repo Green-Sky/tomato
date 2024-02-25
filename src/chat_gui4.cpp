@@ -556,25 +556,37 @@ float ChatGui4::render(float time_delta) {
 							if (!static_cast<bool>(message_view_oldest)) {
 								// no message in view? should we setup a view at current time?
 
-								if (static_cast<bool>(_view_end)) {
-									// TODO: throwEventDestroy
-									_view_end.destroy();
-								}
+								//if (static_cast<bool>(_view_end)) {
+									//// TODO: throwEventDestroy
+									//_view_end.destroy();
+								//}
 								//if (static_cast<bool>(_view_begin)) {
 									//// TODO: throwEventDestroy
 									//_view_begin.destroy();
 								//}
 
-								// HACK: create begin curser with current time until someone else manages that
+								// no message loaded, so we create an virtual empty view, so the next frags are loaded
 								if (!static_cast<bool>(_view_begin) || _view_begin.registry() != msg_reg_ptr) {
-									_view_begin = {msg_reg, msg_reg.create()};
+									if (static_cast<bool>(_view_begin)) {
+										_view_begin.destroy();
+									}
+									if (static_cast<bool>(_view_end)) {
+										_view_end.destroy();
+									}
 
-									_view_begin.emplace_or_replace<Message::Components::ViewCurserBegin>(entt::null);
+									_view_begin = {msg_reg, msg_reg.create()};
+									_view_end = {msg_reg, msg_reg.create()};
+
+									_view_begin.emplace_or_replace<Message::Components::ViewCurserBegin>(_view_end);
+									_view_end.emplace_or_replace<Message::Components::ViewCurserBegin>(_view_begin);
 									// TODO: this needs to be saved somewhere?
 									_view_begin.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
+									_view_end.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
 
 									std::cout << "CG: created view FRONT begin ts\n";
 									_rmm.throwEventConstruct(_view_begin);
+									std::cout << "CG: created view FRONT end ts\n";
+									_rmm.throwEventConstruct(_view_end);
 								}
 
 							} else {
