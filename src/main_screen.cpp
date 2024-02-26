@@ -427,8 +427,8 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	tdch.tick(time_delta); // compute
 
-	mts.iterate(); // compute
-	mfs.tick(time_delta); // TODO: use delta
+	const float mfs_interval = mfs.tick(time_delta);
+	mts.iterate(); // compute (after mfs)
 
 	_min_tick_interval = std::min<float>(
 		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)
@@ -439,6 +439,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	_min_tick_interval = std::min<float>(
 		_min_tick_interval,
 		fo_interval
+	);
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		mfs_interval
 	);
 
 	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";
