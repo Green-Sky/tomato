@@ -33,9 +33,12 @@ namespace Message::Components {
 	struct ContactFragments final {
 		// kept up-to-date by events
 		entt::dense_set<FragmentID> frags;
+
+		// add 2 sorted contact lists for both range begin and end
 	};
 
 	// all LOADED message fragments
+	// TODO: merge into ContactFragments (and pull in openfrags)
 	struct LoadedContactFragments final {
 		// kept up-to-date by events
 		entt::dense_set<FragmentID> frags;
@@ -481,9 +484,10 @@ float MessageFragmentStore::tick(float time_delta) {
 	// load needed fragments here
 
 	// last check event frags
-	// only checks if it collides with ranges, not adjacency ???
+	// only checks if it collides with ranges, not adjacent
 	// bc ~range~ msgreg will be marked dirty and checked next tick
 	if (!_event_check_queue.empty()) {
+		std::cout << "MFS: event check\n";
 		auto fh = _fs.fragmentHandle(_event_check_queue.front().fid);
 		auto c = _event_check_queue.front().c;
 		_event_check_queue.pop();
@@ -509,10 +513,12 @@ float MessageFragmentStore::tick(float time_delta) {
 			_potentially_dirty_contacts.emplace(c);
 		}
 
+		std::cout << "MFS: event check none\n";
 		return 0.05f; // only one but soon again
 	}
 
 	if (!_potentially_dirty_contacts.empty()) {
+		std::cout << "MFS: pdc\n";
 		// here we check if any view of said contact needs frag loading
 		// only once per tick tho
 
@@ -537,12 +543,14 @@ float MessageFragmentStore::tick(float time_delta) {
 				auto fh = _fs.fragmentHandle(fid);
 
 				if (!static_cast<bool>(fh)) {
+					std::cerr << "MFS error: frag is invalid\n";
 					// WHAT
 					msg_reg->ctx().get<Message::Components::ContactFragments>().frags.erase(fid);
 					return 0.05f;
 				}
 
 				if (!fh.all_of<FragComp::MessagesTSRange>()) {
+					std::cerr << "MFS error: frag has no range\n";
 					// ????
 					msg_reg->ctx().get<Message::Components::ContactFragments>().frags.erase(fid);
 					return 0.05f;
@@ -552,11 +560,13 @@ float MessageFragmentStore::tick(float time_delta) {
 				const auto& [range_begin, range_end] = fh.get<FragComp::MessagesTSRange>();
 
 				if (rangeVisible(range_begin, range_end, *msg_reg)) {
+					std::cout << "MFS: frag hit by vis range\n";
 					loadFragment(*msg_reg, fh);
 					return 0.05f;
 				}
 			}
 			// no new visible fragment
+			std::cout << "MFS: no new frag directly visible\n";
 
 			// now, finally, check for adjecent fragments that need to be loaded
 			// we do this by finding the outermost fragment in a rage, and extend it by one
@@ -592,7 +602,7 @@ float MessageFragmentStore::tick(float time_delta) {
 						continue;
 					}
 
-					if (ts_begin_comp.ts < range_begin) {
+					if (ts_begin_comp.ts > range_begin) {
 						// begin curser does not hit the frag, but end might still hit/contain it
 						// if has curser end, check that
 						if (!msg_reg->valid(vcb.curser_end) || !msg_reg->all_of<Message::Components::ViewCurserEnd, Message::Components::Timestamp>(vcb.curser_end)) {
@@ -605,6 +615,7 @@ float MessageFragmentStore::tick(float time_delta) {
 							continue;
 						}
 					}
+					//std::cout << "------------ hit\n";
 
 					// save hit
 					if (!_fs._reg.valid(frag_newest)) {
