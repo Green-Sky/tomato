@@ -37,10 +37,6 @@ class ChatGui4 {
 
 	// TODO: refactor this to allow multiple open contacts
 	std::optional<Contact3> _selected_contact;
-	// set to the ts of the newest rendered msg
-	Message3Handle _view_begin{};
-	// set to the ts of the oldest rendered msg
-	Message3Handle _view_end{};
 
 	// TODO: per contact
 	std::string _text_input_buffer;

@@ -47,6 +47,18 @@ namespace Components {
 
 } // Components
 
+namespace Context {
+
+	// TODO: move back to chat log window and keep per window instead of per contact
+	struct CGView {
+		// set to the ts of the newest rendered msg
+		Message3Handle begin{};
+		// set to the ts of the oldest rendered msg
+		Message3Handle end{};
+	};
+
+} // Context
+
 static constexpr float lerp(float a, float b, float t) {
 	return a + t * (b - a);
 }
@@ -552,90 +564,80 @@ float ChatGui4::render(float time_delta) {
 						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
 						{ // update view cursers
+							if (!msg_reg.ctx().contains<Context::CGView>()) {
+								msg_reg.ctx().emplace<Context::CGView>();
+							}
+
+							auto& cg_view = msg_reg.ctx().get<Context::CGView>();
+
 							// any message in view
 							if (!static_cast<bool>(message_view_oldest)) {
-								// no message in view? should we setup a view at current time?
-
-								//if (static_cast<bool>(_view_end)) {
-									//// TODO: throwEventDestroy
-									//_view_end.destroy();
-								//}
-								//if (static_cast<bool>(_view_begin)) {
-									//// TODO: throwEventDestroy
-									//_view_begin.destroy();
-								//}
-
-								// no message loaded, so we create an virtual empty view, so the next frags are loaded
-								if (!static_cast<bool>(_view_begin) || _view_begin.registry() != msg_reg_ptr) {
-									if (static_cast<bool>(_view_begin)) {
-										_view_begin.destroy();
+								// no message in view, we setup a view at current time, so the next frags are loaded
+								if (!static_cast<bool>(cg_view.begin) || !static_cast<bool>(cg_view.end)) {
+									// fix invalid state
+									if (static_cast<bool>(cg_view.begin)) {
+										cg_view.begin.destroy();
+										_rmm.throwEventDestroy(cg_view.begin);
 									}
-									if (static_cast<bool>(_view_end)) {
-										_view_end.destroy();
+									if (static_cast<bool>(cg_view.end)) {
+										cg_view.end.destroy();
+										_rmm.throwEventDestroy(cg_view.end);
 									}
 
-									_view_begin = {msg_reg, msg_reg.create()};
-									_view_end = {msg_reg, msg_reg.create()};
+									// create new
+									cg_view.begin = {msg_reg, msg_reg.create()};
+									cg_view.end = {msg_reg, msg_reg.create()};
 
-									_view_begin.emplace_or_replace<Message::Components::ViewCurserBegin>(_view_end);
-									_view_end.emplace_or_replace<Message::Components::ViewCurserBegin>(_view_begin);
-									// TODO: this needs to be saved somewhere?
-									_view_begin.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
-									_view_end.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
+									cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
+									cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
+
+									cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
+									cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
 
 									std::cout << "CG: created view FRONT begin ts\n";
-									_rmm.throwEventConstruct(_view_begin);
+									_rmm.throwEventConstruct(cg_view.begin);
 									std::cout << "CG: created view FRONT end ts\n";
-									_rmm.throwEventConstruct(_view_end);
-								}
-
+									_rmm.throwEventConstruct(cg_view.end);
+								} // else? we do nothing?
 							} else {
-								// clean up old view
-								// TODO: properly handle this on contact transition (will be removed once multi chat refactor lands)
-								if (static_cast<bool>(_view_end) && _view_end.registry() != msg_reg_ptr) {
-									// TODO: throwEventDestroy
-									_view_end.destroy();
-								}
-								if (static_cast<bool>(_view_begin) && _view_begin.registry() != msg_reg_ptr) {
-									// TODO: throwEventDestroy
-									_view_begin.destroy();
-								}
-
-								bool end_created {false};
-								if (!static_cast<bool>(_view_end)) {
-									_view_end = {msg_reg, msg_reg.create()};
-									end_created = true;
-								}
 								bool begin_created {false};
-								if (!static_cast<bool>(_view_begin)) {
-									_view_begin = {msg_reg, msg_reg.create()};
+								if (!static_cast<bool>(cg_view.begin)) {
+									cg_view.begin = {msg_reg, msg_reg.create()};
 									begin_created = true;
 								}
-								_view_end.emplace_or_replace<Message::Components::ViewCurserEnd>(_view_begin);
-								_view_begin.emplace_or_replace<Message::Components::ViewCurserBegin>(_view_end);
+								bool end_created {false};
+								if (!static_cast<bool>(cg_view.end)) {
+									cg_view.end = {msg_reg, msg_reg.create()};
+									end_created = true;
+								}
+								cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
+								cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
 
-								auto& old_end_ts = _view_end.get_or_emplace<Message::Components::Timestamp>().ts;
-								auto& old_begin_ts = _view_begin.get_or_emplace<Message::Components::Timestamp>().ts;
-
-								if (old_end_ts != message_view_oldest.get<Message::Components::Timestamp>().ts) {
-									old_end_ts = message_view_oldest.get<Message::Components::Timestamp>().ts;
-									if (end_created) {
-										std::cout << "CG: created view end ts with " << old_end_ts << "\n";
-										_rmm.throwEventConstruct(_view_end);
-									} else {
-										std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
-										_rmm.throwEventUpdate(_view_end);
+								{
+									auto& old_begin_ts = cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts;
+									if (old_begin_ts != message_view_newest.get<Message::Components::Timestamp>().ts) {
+										old_begin_ts = message_view_newest.get<Message::Components::Timestamp>().ts;
+										if (begin_created) {
+											std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
+											_rmm.throwEventConstruct(cg_view.begin);
+										} else {
+											std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
+											_rmm.throwEventUpdate(cg_view.begin);
+										}
 									}
 								}
 
-								if (old_begin_ts != message_view_newest.get<Message::Components::Timestamp>().ts) {
-									old_begin_ts = message_view_newest.get<Message::Components::Timestamp>().ts;
-									if (begin_created) {
-										std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
-										_rmm.throwEventConstruct(_view_begin);
-									} else {
-										std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
-										_rmm.throwEventUpdate(_view_begin);
+								{
+									auto& old_end_ts = cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts;
+									if (old_end_ts != message_view_oldest.get<Message::Components::Timestamp>().ts) {
+										old_end_ts = message_view_oldest.get<Message::Components::Timestamp>().ts;
+										if (end_created) {
+											std::cout << "CG: created view end ts with " << old_end_ts << "\n";
+											_rmm.throwEventConstruct(cg_view.end);
+										} else {
+											std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
+											_rmm.throwEventUpdate(cg_view.end);
+										}
 									}
 								}
 							}
