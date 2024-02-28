@@ -174,6 +174,12 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 					// assuming ts range exists
 					fts_comp.begin = msg_ts; // extend into the past
 
+					if (m.registry()->ctx().contains<Message::Components::ContactFragments>()) {
+						// should be the case
+						m.registry()->ctx().get<Message::Components::ContactFragments>().erase(fh);
+						m.registry()->ctx().get<Message::Components::ContactFragments>().insert(fh);
+					}
+
 
 					// TODO: check conditions for open here
 					// TODO: mark msg (and frag?) dirty
@@ -184,6 +190,12 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 					// assuming ts range exists
 					fts_comp.end = msg_ts; // extend into the future
+
+					if (m.registry()->ctx().contains<Message::Components::ContactFragments>()) {
+						// should be the case
+						m.registry()->ctx().get<Message::Components::ContactFragments>().erase(fh);
+						m.registry()->ctx().get<Message::Components::ContactFragments>().insert(fh);
+					}
 
 					// TODO: check conditions for open here
 					// TODO: mark msg (and frag?) dirty
@@ -209,6 +221,15 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			new_ts_range.begin = msg_ts;
 			new_ts_range.end = msg_ts;
 
+			{
+				const auto msg_reg_contact = m.registry()->ctx().get<Contact3>();
+				if (_cr.all_of<Contact::Components::ID>(msg_reg_contact)) {
+					fh.emplace<FragComp::MessagesContact>(_cr.get<Contact::Components::ID>(msg_reg_contact).data);
+				} else {
+					// ? rage quit?
+				}
+			}
+
 			// contact frag
 			if (!m.registry()->ctx().contains<Message::Components::ContactFragments>()) {
 				m.registry()->ctx().emplace<Message::Components::ContactFragments>();
@@ -220,15 +241,6 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 				m.registry()->ctx().emplace<Message::Components::LoadedContactFragments>();
 			}
 			m.registry()->ctx().get<Message::Components::LoadedContactFragments>().frags.emplace(fh);
-
-			{
-				const auto msg_reg_contact = m.registry()->ctx().get<Contact3>();
-				if (_cr.all_of<Contact::Components::ID>(msg_reg_contact)) {
-					fh.emplace<FragComp::MessagesContact>(_cr.get<Contact::Components::ID>(msg_reg_contact).data);
-				} else {
-					// ? rage quit?
-				}
-			}
 
 			fuid_open.emplace_back(Message::Components::OpenFragments::OpenFrag{fragment_uid});
 
@@ -887,6 +899,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 	if (!msg_reg->ctx().contains<Message::Components::ContactFragments>()) {
 		msg_reg->ctx().emplace<Message::Components::ContactFragments>();
 	}
+	msg_reg->ctx().get<Message::Components::ContactFragments>().erase(e.e); // TODO: check/update/fragment update
 	msg_reg->ctx().get<Message::Components::ContactFragments>().insert(e.e);
 
 	_event_check_queue.push(ECQueueEntry{e.e, frag_contact});
