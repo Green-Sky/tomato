@@ -116,10 +116,6 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 
 		void triggerScan(void);
 
-		// uses ts ranges and id to create strict ordering
-		FragmentID fragmentBefore(FragmentID fid);
-		FragmentID fragmentAfter(FragmentID fid);
-
 	protected: // rmm
 		bool onEvent(const Message::Events::MessageConstruct& e) override;
 		bool onEvent(const Message::Events::MessageUpdated& e) override;
