@@ -52,6 +52,11 @@ namespace Message::Components {
 		bool insert(FragmentHandle frag);
 		bool erase(FragmentID frag);
 		// update? (just erase() + insert())
+
+		// uses range begin to go back in time
+		FragmentID prev(FragmentID frag) const;
+		// uses range end to go forward in time
+		FragmentID next(FragmentID frag) const;
 	};
 
 	// all LOADED message fragments
@@ -695,14 +700,15 @@ float MessageFragmentStore::tick(float time_delta) {
 					}
 				}
 
-				auto frag_after = _fs.fragmentHandle(fragmentAfter(frag_newest));
+				const auto& cf = msg_reg->ctx().get<Message::Components::ContactFragments>();
+				auto frag_after = _fs.fragmentHandle(cf.next(frag_newest));
 				if (static_cast<bool>(frag_after) && !loaded_frags.contains(frag_after)) {
 					std::cout << "MFS: loading frag after newest\n";
 					loadFragment(*msg_reg, frag_after);
 					return 0.05f;
 				}
 
-				auto frag_before = _fs.fragmentHandle(fragmentBefore(frag_oldest));
+				auto frag_before = _fs.fragmentHandle(cf.prev(frag_oldest));
 				if (static_cast<bool>(frag_before) && !loaded_frags.contains(frag_before)) {
 					std::cout << "MFS: loading frag before oldest\n";
 					loadFragment(*msg_reg, frag_before);
@@ -724,129 +730,6 @@ float MessageFragmentStore::tick(float time_delta) {
 
 void MessageFragmentStore::triggerScan(void) {
 	_fs.scanStoragePath("test_message_store/");
-}
-
-FragmentID MessageFragmentStore::fragmentBefore(FragmentID fid) {
-	auto fh = _fs.fragmentHandle(fid);
-	if (!fh.all_of<FragComp::MessagesTSRange>()) {
-		return entt::null;
-	}
-
-	const auto& mtsrange = fh.get<FragComp::MessagesTSRange>();
-	const auto& m_c_id = fh.get<FragComp::MessagesContact>().id;
-	const auto& fuid = fh.get<FragComp::ID>();
-
-	FragmentHandle current;
-
-	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::MessagesContact, FragComp::ID>();
-	for (const auto& [it_f, it_mtsrange, it_m_c_id, it_fuid] : mts_view.each()) {
-		// before means we compare end, so we dont jump over any
-
-		if (it_mtsrange.end > mtsrange.end) {
-			continue;
-		}
-
-		if (it_mtsrange.end == mtsrange.end) {
-			// equal ts -> fallback to id
-			if (!isLess(it_fuid.v, fuid.v)) {
-				// we dont "care" about equality here, since that *should* never happen
-				continue;
-			}
-		}
-
-		// now we check contact (might be less cheap than range check)
-		if (it_m_c_id.id != m_c_id) {
-			continue;
-		}
-
-		// here we know that "it" is before
-		// now we check for the largest, so the closest
-
-		if (!static_cast<bool>(current)) {
-			current = {*fh.registry(), it_f};
-			continue;
-		}
-
-		const auto& curr_mtsrange = fh.get<FragComp::MessagesTSRange>();
-		if (it_mtsrange.end < curr_mtsrange.end) {
-			continue; // it is older than current selection
-		}
-
-		if (it_mtsrange.end == curr_mtsrange.end) {
-			const auto& curr_fuid = fh.get<FragComp::ID>();
-			// it needs to be larger to be considered (ignoring equality again)
-			if (isLess(it_fuid.v, curr_fuid.v)) {
-				continue;
-			}
-		}
-
-		// new best fit
-		current = {*fh.registry(), it_f};
-	}
-
-	return current;
-}
-
-FragmentID MessageFragmentStore::fragmentAfter(FragmentID fid) {
-	auto fh = _fs.fragmentHandle(fid);
-	if (!fh.all_of<FragComp::MessagesTSRange>()) {
-		return entt::null;
-	}
-
-	const auto& mtsrange = fh.get<FragComp::MessagesTSRange>();
-	const auto& m_c_id = fh.get<FragComp::MessagesContact>().id;
-	const auto& fuid = fh.get<FragComp::ID>();
-
-	FragmentHandle current;
-
-	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::MessagesContact, FragComp::ID>();
-	for (const auto& [it_f, it_mtsrange, it_m_c_id, it_fuid] : mts_view.each()) {
-		// after means we compare begin
-
-		if (it_mtsrange.begin < mtsrange.begin) {
-			continue;
-		}
-
-		if (it_mtsrange.begin == mtsrange.begin) {
-			// equal ts -> fallback to id
-			// id needs to be larger
-			if (isLess(it_fuid.v, fuid.v)) {
-				// we dont "care" about equality here, since that *should* never happen
-				continue;
-			}
-		}
-
-		// now we check contact (might be less cheap than range check)
-		if (it_m_c_id.id != m_c_id) {
-			continue;
-		}
-
-		// here we know that "it" is after
-		// now we check for the smallest, so the closest
-
-		if (!static_cast<bool>(current)) {
-			current = {*fh.registry(), it_f};
-			continue;
-		}
-
-		const auto& curr_mtsrange = fh.get<FragComp::MessagesTSRange>();
-		if (it_mtsrange.begin > curr_mtsrange.begin) {
-			continue; // it is newer than current selection
-		}
-
-		if (it_mtsrange.begin == curr_mtsrange.begin) {
-			const auto& curr_fuid = fh.get<FragComp::ID>();
-			// it needs to be smaller to be considered (ignoring equality again)
-			if (!isLess(it_fuid.v, curr_fuid.v)) {
-				continue;
-			}
-		}
-
-		// new best fit
-		current = {*fh.registry(), it_f};
-	}
-
-	return current;
 }
 
 bool MessageFragmentStore::onEvent(const Message::Events::MessageConstruct& e) {
@@ -987,5 +870,37 @@ bool Message::Components::ContactFragments::erase(FragmentID frag) {
 	frags.erase(frags_it);
 
 	return true;
+}
+
+FragmentID Message::Components::ContactFragments::prev(FragmentID frag) const {
+	// uses range begin to go back in time
+
+	auto it = frags.find(frag);
+	if (it == frags.end()) {
+		return entt::null;
+	}
+
+	const auto src_i = it->second.i_b;
+	if (src_i > 0) {
+		return sorted_begin[src_i-1];
+	}
+
+	return entt::null;
+}
+
+FragmentID Message::Components::ContactFragments::next(FragmentID frag) const {
+	// uses range end to go forward in time
+
+	auto it = frags.find(frag);
+	if (it == frags.end()) {
+		return entt::null;
+	}
+
+	const auto src_i = it->second.i_e;
+	if (src_i+1 < sorted_end.size()) {
+		return sorted_end[src_i+1];
+	}
+
+	return entt::null;
 }
 
