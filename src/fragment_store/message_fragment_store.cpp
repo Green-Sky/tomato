@@ -701,12 +701,13 @@ FragmentID MessageFragmentStore::fragmentBefore(FragmentID fid) {
 	}
 
 	const auto& mtsrange = fh.get<FragComp::MessagesTSRange>();
+	const auto& m_c_id = fh.get<FragComp::MessagesContact>().id;
 	const auto& fuid = fh.get<FragComp::ID>();
 
 	FragmentHandle current;
 
-	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::ID>();
-	for (const auto& [it_f, it_mtsrange, it_fuid] : mts_view.each()) {
+	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::MessagesContact, FragComp::ID>();
+	for (const auto& [it_f, it_mtsrange, it_m_c_id, it_fuid] : mts_view.each()) {
 		// before means we compare end, so we dont jump over any
 
 		if (it_mtsrange.end > mtsrange.end) {
@@ -719,6 +720,11 @@ FragmentID MessageFragmentStore::fragmentBefore(FragmentID fid) {
 				// we dont "care" about equality here, since that *should* never happen
 				continue;
 			}
+		}
+
+		// now we check contact (might be less cheap than range check)
+		if (it_m_c_id.id != m_c_id) {
+			continue;
 		}
 
 		// here we know that "it" is before
@@ -756,12 +762,13 @@ FragmentID MessageFragmentStore::fragmentAfter(FragmentID fid) {
 	}
 
 	const auto& mtsrange = fh.get<FragComp::MessagesTSRange>();
+	const auto& m_c_id = fh.get<FragComp::MessagesContact>().id;
 	const auto& fuid = fh.get<FragComp::ID>();
 
 	FragmentHandle current;
 
-	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::ID>();
-	for (const auto& [it_f, it_mtsrange, it_fuid] : mts_view.each()) {
+	auto mts_view = fh.registry()->view<FragComp::MessagesTSRange, FragComp::MessagesContact, FragComp::ID>();
+	for (const auto& [it_f, it_mtsrange, it_m_c_id, it_fuid] : mts_view.each()) {
 		// after means we compare begin
 
 		if (it_mtsrange.begin < mtsrange.begin) {
@@ -775,6 +782,11 @@ FragmentID MessageFragmentStore::fragmentAfter(FragmentID fid) {
 				// we dont "care" about equality here, since that *should* never happen
 				continue;
 			}
+		}
+
+		// now we check contact (might be less cheap than range check)
+		if (it_m_c_id.id != m_c_id) {
+			continue;
 		}
 
 		// here we know that "it" is after
@@ -834,8 +846,6 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 		// TODO: id lookup table, this is very inefficent
 		for (const auto& [c_it, id_it] : _cr.view<Contact::Components::ID>().each()) {
 			if (frag_contact_id == id_it.data) {
-				//h.emplace_or_replace<Message::Components::ContactTo>(c_it);
-				//return true;
 				frag_contact = c_it;
 				break;
 			}
@@ -850,6 +860,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 	auto* msg_reg = _rmm.get(frag_contact);
 	if (msg_reg == nullptr) {
 		// msg reg not created yet
+		// TODO: this is an erroious path
 		return false;
 	}
 
