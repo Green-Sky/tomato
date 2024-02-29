@@ -120,7 +120,8 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 		// require
 		if (!mr->all_of<
 				Message::Components::MessageText, // text only for now
-				Message::Components::ContactTo
+				Message::Components::ContactTo,
+				Message::Components::ToxFriendMessageID // yes, needs fake ids
 			>(msg)
 		) {
 			continue; // skip
