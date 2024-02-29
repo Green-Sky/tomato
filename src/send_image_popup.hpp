@@ -32,7 +32,7 @@ struct SendImagePopup {
 	Rect crop_rect;
 	Rect crop_before_drag;
 
-	bool cropping {true};
+	bool cropping {false};
 	bool dragging_last_frame_ul {false};
 	bool dragging_last_frame_lr {false};
 
