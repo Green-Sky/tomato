@@ -389,6 +389,9 @@ float ChatGui4::render(float time_delta) {
 										msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
 										msg_reg.remove<Message::Components::TagUnread>(e);
 										msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
+
+										// we remove the unread tag here
+										_rmm.throwEventUpdate(msg_reg, e);
 									}
 
 									// track view

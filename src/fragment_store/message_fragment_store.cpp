@@ -95,6 +95,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
+	// TODO: use fid, seving full fuid for every message consumes alot of memory (and heap frag)
 	if (!m.all_of<Message::Components::FUID>()) {
 		std::cout << "MFS: new msg missing FUID\n";
 		if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
@@ -268,7 +269,9 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		_fuid_save_queue.push({Message::getTimeMS(), fragment_uid, m.registry()});
 	}
 
-	// TODO: do we use fid?
+	// TODO: save updates, and not only new messages (read state etc)
+	// new fragment?, since we dont write to others fragments?
+
 
 	// on new message: assign fuid
 	// on new and update: mark as fragment dirty

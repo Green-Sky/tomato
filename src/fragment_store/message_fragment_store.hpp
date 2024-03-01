@@ -29,7 +29,7 @@ namespace Message::Components {
 	// points to the front/newer message
 	// together they define a range that is,
 	// eg the first(end) and last(begin) message being rendered
-	// MFS requires there to be atleast one other message after/before,
+	// MFS requires there to be atleast one other fragment after/before,
 	// if not loaded fragment with fitting tsrange(direction) available
 	// uses fragmentAfter/Before()
 	// they can exist standalone
@@ -42,6 +42,9 @@ namespace Message::Components {
 		Message3 curser_begin{entt::null};
 	};
 
+	// TODO: add adjacency range comp or inside curser
+
+	// TODO: unused
 	// mfs will only load a limited number of fragments per tick (1),
 	// so this tag will be set if we loaded a fragment and
 	// every tick we check all cursers for this tag and continue
