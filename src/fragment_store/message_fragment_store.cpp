@@ -100,38 +100,6 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		std::cout << "MFS: new msg missing FUID\n";
 		if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
 			m.registry()->ctx().emplace<Message::Components::OpenFragments>();
-
-#if 0
-			// TODO: move this to async
-			// TODO: move this to tick and just respect the dirty
-			FragmentHandle most_recent_fag;
-			uint64_t most_recent_ts{0};
-			if (m.registry()->ctx().contains<Message::Components::ContactFragments>()) {
-				for (const auto& [fid, si] : m.registry()->ctx().get<Message::Components::ContactFragments>().frags) {
-					auto fh = _fs.fragmentHandle(fid);
-					if (!static_cast<bool>(fh) || !fh.all_of<FragComp::MessagesTSRange, FragComp::MessagesContact>()) {
-						// TODO: remove at this point?
-						continue;
-					}
-
-					const uint64_t f_ts = fh.get<FragComp::MessagesTSRange>().begin;
-					if (f_ts > most_recent_ts) {
-						// this makes no sense, we retry to load the first fragment on every new message and bail here, bc it was already
-						if (m.registry()->ctx().contains<Message::Components::LoadedContactFragments>()) {
-							if (m.registry()->ctx().get<Message::Components::LoadedContactFragments>().frags.contains(fh)) {
-								continue; // already loaded
-							}
-						}
-						most_recent_ts = f_ts;
-						most_recent_fag = {_fs._reg, fid};
-					}
-				}
-			}
-
-			if (static_cast<bool>(most_recent_fag)) {
-				loadFragment(*m.registry(), most_recent_fag);
-			}
-#endif
 		}
 
 		auto& fuid_open = m.registry()->ctx().get<Message::Components::OpenFragments>().fuid_open;
