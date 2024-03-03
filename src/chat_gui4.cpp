@@ -624,7 +624,7 @@ float ChatGui4::render(float time_delta) {
 											std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
 											_rmm.throwEventConstruct(cg_view.begin);
 										} else {
-											std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
+											//std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
 											_rmm.throwEventUpdate(cg_view.begin);
 										}
 									}
@@ -638,7 +638,7 @@ float ChatGui4::render(float time_delta) {
 											std::cout << "CG: created view end ts with " << old_end_ts << "\n";
 											_rmm.throwEventConstruct(cg_view.end);
 										} else {
-											std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
+											//std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
 											_rmm.throwEventUpdate(cg_view.end);
 										}
 									}

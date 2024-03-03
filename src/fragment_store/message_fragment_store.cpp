@@ -91,7 +91,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	_potentially_dirty_contacts.emplace(m.registry()->ctx().get<Contact3>()); // always mark dirty here
 	if (m.any_of<Message::Components::ViewCurserBegin, Message::Components::ViewCurserEnd>()) {
 		// not an actual message, but we probalby need to check and see if we need to load fragments
-		std::cout << "MFS: new or updated curser\n";
+		//std::cout << "MFS: new or updated curser\n";
 		return;
 	}
 
