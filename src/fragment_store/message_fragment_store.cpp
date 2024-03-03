@@ -231,16 +231,33 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			return;
 		}
 
-		m.emplace<Message::Components::FID>(fragment_id);
+		m.emplace_or_replace<Message::Components::FID>(fragment_id);
 
 		// in this case we know the fragment needs an update
 		_fuid_save_queue.push({Message::getTimeMS(), fragment_id, m.registry()});
 		return; // done
 	}
 
-	//m.get<Message::Components::FID>();
+	const auto msg_fh = _fs.fragmentHandle(m.get<Message::Components::FID>().fid);
+	if (!static_cast<bool>(msg_fh)) {
+		std::cerr << "MFS error: fid in message is invalid\n";
+		return; // TODO: properly handle this case
+	}
 
-	// TODO: save updates, and not only new messages (read state etc)
+	if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
+		m.registry()->ctx().emplace<Message::Components::OpenFragments>();
+	}
+
+	auto& fid_open = m.registry()->ctx().get<Message::Components::OpenFragments>().fid_open;
+
+	if (fid_open.contains(msg_fh)) {
+		// TODO: dedup events
+		// TODO: cooldown per fragsave
+		_fuid_save_queue.push({Message::getTimeMS(), msg_fh, m.registry()});
+		return;
+	}
+
+	// TODO: save updates to old fragments, but writing them to a new fragment that would overwrite on merge
 	// new fragment?, since we dont write to others fragments?
 
 
