@@ -19,9 +19,9 @@
 
 namespace Message::Components {
 
-	using FUID = FragComp::ID;
+	// unused, consumes too much memory (highly compressable)
+	//using FUID = FragComp::ID;
 
-	// unused
 	struct FID {
 		FragmentID fid {entt::null};
 	};
@@ -89,7 +89,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 
 		struct SaveQueueEntry final {
 			uint64_t ts_since_dirty{0};
-			std::vector<uint8_t> id;
+			//std::vector<uint8_t> id;
+			FragmentID id;
 			Message3Registry* reg{nullptr};
 		};
 		std::queue<SaveQueueEntry> _fuid_save_queue;
