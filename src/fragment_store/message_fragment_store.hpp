@@ -87,6 +87,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 
 		void loadFragment(Message3Registry& reg, FragmentHandle fh);
 
+		bool syncFragToStorage(FragmentHandle fh, Message3Registry& reg);
+
 		struct SaveQueueEntry final {
 			uint64_t ts_since_dirty{0};
 			//std::vector<uint8_t> id;
