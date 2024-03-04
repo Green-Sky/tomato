@@ -3,6 +3,7 @@
 #include "./image_loader_sdl_bmp.hpp"
 #include "./image_loader_stb.hpp"
 #include "./image_loader_webp.hpp"
+#include "./image_loader_qoi.hpp"
 
 #include <imgui/imgui.h>
 
@@ -13,6 +14,7 @@ uint64_t getTimeMS(void);
 
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 }
@@ -421,7 +423,7 @@ void SendImagePopup::render(float time_delta) {
 
 		if (compress) {
 			ImGui::SameLine();
-			ImGui::Combo("##compression_type", &current_compressor, "webp\0jpeg\0png\n");
+			ImGui::Combo("##compression_type", &current_compressor, "webp\0jpeg\0png\0qoi\0");
 
 			ImGui::Indent();
 			// combo "webp""webp-lossless""png""jpg?"
@@ -485,6 +487,11 @@ void SendImagePopup::render(float time_delta) {
 					new_data = ImageEncoderSTBPNG{}.encodeToMemoryRGBA(tmp_img, {{"png_compression_level", compression_level}});;
 					if (!new_data.empty()) {
 						_on_send(new_data, ".png");
+					}
+				} else if (current_compressor == 3) {
+					new_data = ImageEncoderQOI{}.encodeToMemoryRGBA(tmp_img, {});;
+					if (!new_data.empty()) {
+						_on_send(new_data, ".qoi");
 					}
 				}
 				// error

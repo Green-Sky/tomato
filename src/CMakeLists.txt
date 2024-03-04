@@ -25,6 +25,8 @@ add_executable(tomato
 	./image_loader_stb.cpp
 	./image_loader_webp.hpp
 	./image_loader_webp.cpp
+	./image_loader_qoi.hpp
+	./image_loader_qoi.cpp
 
 	./texture_uploader.hpp
 	./sdlrenderer_texture_uploader.hpp
@@ -90,5 +92,6 @@ target_link_libraries(tomato PUBLIC
 	stb_image_write
 	webpdemux
 	libwebpmux # the f why (needed for anim encode)
+	qoi
 )
 

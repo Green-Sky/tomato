@@ -1,6 +1,7 @@
 #include "./message_image_loader.hpp"
 
 #include "./image_loader_sdl_bmp.hpp"
+#include "./image_loader_qoi.hpp"
 #include "./image_loader_stb.hpp"
 #include "./image_loader_webp.hpp"
 #include "./media_meta_info_loader.hpp"
@@ -19,6 +20,7 @@ uint64_t getTimeMS(void);
 
 MessageImageLoader::MessageImageLoader(void) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 }
