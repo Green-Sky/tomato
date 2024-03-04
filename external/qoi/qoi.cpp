@@ -1,1 +1,3 @@
-// TODO: include and impl
+#define QOI_IMPLEMENTATION
+#include <qoi/qoi.h>
+
