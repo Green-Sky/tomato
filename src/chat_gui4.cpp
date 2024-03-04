@@ -613,6 +613,7 @@ float ChatGui4::render(float time_delta) {
 								"image/gif",
 								"image/jpeg",
 								"image/bmp",
+								"image/qoi",
 							};
 
 							for (const char* mime_type : image_mime_types) {
