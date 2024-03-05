@@ -51,6 +51,12 @@ int main(int argc, char** argv) {
 		std::cerr << "SDL_CreateRenderer failed (" << SDL_GetError() << ")\n";
 		return 1;
 	}
+	{
+		SDL_RendererInfo ri;
+		if (SDL_GetRendererInfo(renderer.get(), &ri) == 0) {
+			std::cout << "SDL Renderer: " << ri.name << "(f:" << ri.flags << ")\n";
+		}
+	}
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
