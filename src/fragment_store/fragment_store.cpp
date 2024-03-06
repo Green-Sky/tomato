@@ -390,9 +390,9 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		std::vector<uint8_t> compressed_buffer(ZSTD_CStreamOutSize());
 		uint64_t buffer_actual_size {0};
 
-		ZSTD_CCtx* const cctx = ZSTD_createCCtx();
-		ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, 0); // default (3)
-		ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 1); // add extra checksums (to frames?)
+		std::unique_ptr<ZSTD_CCtx, decltype(&ZSTD_freeCCtx)> cctx{ZSTD_createCCtx(), &ZSTD_freeCCtx};
+		ZSTD_CCtx_setParameter(cctx.get(), ZSTD_c_compressionLevel, 0); // default (3)
+		ZSTD_CCtx_setParameter(cctx.get(), ZSTD_c_checksumFlag, 1); // add extra checksums (to frames?)
 		do {
 			buffer_actual_size = data_cb(buffer.data(), buffer.size());
 			//if (buffer_actual_size == 0) {
@@ -410,7 +410,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 			while (input.pos < input.size) {
 				ZSTD_outBuffer output = { compressed_buffer.data(), compressed_buffer.size(), 0 };
 
-				size_t const remaining = ZSTD_compressStream2(cctx, &output , &input, mode);
+				size_t const remaining = ZSTD_compressStream2(cctx.get(), &output , &input, mode);
 				if (ZSTD_isError(remaining)) {
 					std::cerr << "FS error: compressing data failed\n";
 					break;
@@ -515,7 +515,7 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 	} else if (data_comp == Compression::ZSTD) {
 		std::vector<uint8_t> in_buffer(ZSTD_DStreamInSize());
 		std::vector<uint8_t> out_buffer(ZSTD_DStreamOutSize());
-		ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+		std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> dctx{ZSTD_createDCtx(), &ZSTD_freeDCtx};
 
 		uint64_t buffer_actual_size {0};
 		do {
@@ -528,7 +528,7 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 			ZSTD_inBuffer input {in_buffer.data(), buffer_actual_size, 0 };
 			do {
 				ZSTD_outBuffer output = { out_buffer.data(), out_buffer.size(), 0 };
-				size_t const ret = ZSTD_decompressStream(dctx, &output , &input);
+				size_t const ret = ZSTD_decompressStream(dctx.get(), &output , &input);
 				if (ZSTD_isError(ret)) {
 					// error <.<
 					std::cerr << "FS error: decompression error\n";
@@ -538,8 +538,6 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 				data_cb(out_buffer.data(), output.pos);
 			} while (input.pos < input.size);
 		} while (buffer_actual_size == in_buffer.size() && !data_file.eof());
-
-		ZSTD_freeDCtx(dctx);
 	} else {
 		assert(false && "implement me");
 	}
@@ -747,22 +745,21 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 				// do nothing
 			} else if (meta_comp == Compression::ZSTD) {
 				meta_data_decomp.resize(ZSTD_DStreamOutSize());
-				ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+				std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> dctx{ZSTD_createDCtx(), &ZSTD_freeDCtx};
 
 				ZSTD_inBuffer input {meta_data_ref.data(), meta_data_ref.size(), 0};
 				ZSTD_outBuffer output = {meta_data_decomp.data(), meta_data_decomp.size(), 0};
 				do {
-					size_t const ret = ZSTD_decompressStream(dctx, &output , &input);
+					size_t const ret = ZSTD_decompressStream(dctx.get(), &output , &input);
 					if (ZSTD_isError(ret)) {
 						// error <.<
 						std::cerr << "FS error: decompression error\n";
-						meta_data_decomp.clear();
+						//meta_data_decomp.clear();
+						output.pos = 0; // resize after loop
 						break;
 					}
 				} while (input.pos < input.size);
 				meta_data_decomp.resize(output.pos);
-
-				ZSTD_freeDCtx(dctx);
 			} else {
 				assert(false && "implement me");
 			}
