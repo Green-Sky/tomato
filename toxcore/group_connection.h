@@ -10,7 +10,14 @@
 #ifndef C_TOXCORE_TOXCORE_GROUP_CONNECTION_H
 #define C_TOXCORE_TOXCORE_GROUP_CONNECTION_H
 
+#include "DHT.h"
+#include "TCP_connection.h"
+#include "attributes.h"
+#include "crypto_core.h"
 #include "group_common.h"
+#include "logger.h"
+#include "mono_time.h"
+#include "network.h"
 
 /* Max number of TCP relays we share with a peer on handshake */
 #define GCC_MAX_TCP_SHARED_RELAYS 3
@@ -166,7 +173,6 @@ non_null()
 bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
                                         uint16_t length, uint8_t packet_type);
 
-
 /** @brief Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key
  * associated with `gconn` and sends lossless packet over the wire.
  *
@@ -178,7 +184,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
  */
 non_null(1, 2) nullable(3)
 int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
-       uint16_t length, uint64_t message_id, uint8_t packet_type);
+        uint16_t length, uint64_t message_id, uint8_t packet_type);
 
 /** @brief Called when a peer leaves the group. */
 non_null()
@@ -188,4 +194,4 @@ void gcc_peer_cleanup(GC_Connection *gconn);
 non_null()
 void gcc_cleanup(const GC_Chat *chat);
 
-#endif  // C_TOXCORE_TOXCORE_GROUP_CONNECTION_H
+#endif /* C_TOXCORE_TOXCORE_GROUP_CONNECTION_H */

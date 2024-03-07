@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -17,13 +18,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Peer_Exit {
     uint32_t group_number;
@@ -74,7 +73,7 @@ Tox_Group_Exit_Type tox_event_group_peer_exit_get_exit_type(const Tox_Event_Grou
     return group_peer_exit->exit_type;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_peer_exit_set_name(Tox_Event_Group_Peer_Exit *group_peer_exit,
         const uint8_t *name, uint32_t name_length)
 {
@@ -84,6 +83,11 @@ static bool tox_event_group_peer_exit_set_name(Tox_Event_Group_Peer_Exit *group_
         free(group_peer_exit->name);
         group_peer_exit->name = nullptr;
         group_peer_exit->name_length = 0;
+    }
+
+    if (name == nullptr) {
+        assert(name_length == 0);
+        return true;
     }
 
     uint8_t *name_copy = (uint8_t *)malloc(name_length);
@@ -108,7 +112,7 @@ const uint8_t *tox_event_group_peer_exit_get_name(const Tox_Event_Group_Peer_Exi
     return group_peer_exit->name;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_peer_exit_set_part_message(Tox_Event_Group_Peer_Exit *group_peer_exit,
         const uint8_t *part_message, uint32_t part_message_length)
 {
@@ -118,6 +122,11 @@ static bool tox_event_group_peer_exit_set_part_message(Tox_Event_Group_Peer_Exit
         free(group_peer_exit->part_message);
         group_peer_exit->part_message = nullptr;
         group_peer_exit->part_message_length = 0;
+    }
+
+    if (part_message == nullptr) {
+        assert(part_message_length == 0);
+        return true;
     }
 
     uint8_t *part_message_copy = (uint8_t *)malloc(part_message_length);
@@ -183,7 +192,6 @@ static bool tox_event_group_peer_exit_unpack_into(
            && bin_unpack_bin(bu, &event->part_message, &event->part_message_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -237,6 +245,7 @@ bool tox_event_group_peer_exit_unpack(
     Tox_Event_Group_Peer_Exit **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_peer_exit_new(mem);
 
     if (*event == nullptr) {
@@ -266,16 +275,15 @@ static Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_alloc(void *user_dat
     return group_peer_exit;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_peer_exit(Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Group_Exit_Type exit_type, const uint8_t *name, size_t name_length, const uint8_t *part_message, size_t part_message_length,
-        void *user_data)
+void tox_events_handle_group_peer_exit(
+    Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Group_Exit_Type exit_type, const uint8_t *name, size_t name_length, const uint8_t *part_message, size_t part_message_length,
+    void *user_data)
 {
     Tox_Event_Group_Peer_Exit *group_peer_exit = tox_event_group_peer_exit_alloc(user_data);
 

@@ -172,6 +172,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
     f << R"(
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -185,13 +186,11 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
     f << R"(
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 )";
 
@@ -216,7 +215,17 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     // gen setters and getters
     for (const auto& t : event_types) {
         // setter
-        f << "non_null()\n";
+        std::visit(
+            overloaded{
+                [&](const EventTypeTrivial& t) {
+                    f << "non_null()\n";
+                },
+                [&](const EventTypeByteRange& t) {
+                    f << "non_null(1) nullable(2)\n";
+                }
+            },
+            t
+        );
         f << "static " << (t.index() == 0 ? "void" : "bool") << " tox_event_" << event_name_l << "_set_";
         std::visit(
             overloaded{
@@ -254,6 +263,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "        " << event_name_l << "->" << t.name_data << " = nullptr;\n";
                     f << "        " << event_name_l << "->" << t.name_length << " = 0;\n";
                     f << "    }\n\n";
+                    f << "    if (" << t.name_data << " == nullptr) {\n";
+                    f << "        assert(" << t.name_length << " == 0);\n";
+                    f << "        return true;\n    }\n\n";
                     f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)malloc(" << t.name_length << ");\n\n";
                     f << "    if (" << t.name_data << "_copy == nullptr) {\n";
                     f << "        return false;\n    }\n\n";
@@ -395,7 +407,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         );
         first = false;
     }
-    f << ";\n}\n\n";
+    f << ";\n}\n";
 
     f << R"(
 /*****************************************************
@@ -439,6 +451,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "bool tox_event_" << event_name_l << "_unpack(\n";
     f << "    Tox_Event_" << event_name << " **event, Bin_Unpack *bu, const Memory *mem)\n{\n";
     f << "    assert(event != nullptr);\n";
+    f << "    assert(*event == nullptr);\n";
     f << "    *event = tox_event_" << event_name_l << "_new(mem);\n\n";
     f << "    if (*event == nullptr) {\n        return false;\n    }\n\n";
     f << "    return tox_event_" << event_name_l << "_unpack_into(*event, bu);\n}\n\n";
@@ -452,7 +465,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_events_add_" << event_name_l << "(state->events, state->mem);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n";
     f << "        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;\n        return nullptr;\n    }\n\n";
-    f << "    return " << event_name_l << ";\n}\n\n";
+    f << "    return " << event_name_l << ";\n}\n";
 
 
     f << R"(
@@ -462,9 +475,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
  *
  *****************************************************/
 
-
 )";
-    f << "void tox_events_handle_" << event_name_l << "(Tox *tox";
+    f << "void tox_events_handle_" << event_name_l << "(\n";
+    f << "    Tox *tox";
 
     for (const auto& t : event_types) {
         std::visit(
@@ -480,7 +493,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         );
     }
 
-    f << ",\n        void *user_data)\n{\n";
+    f << ",\n    void *user_data)\n{\n";
     f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(user_data);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n        return;\n    }\n\n";
 
@@ -744,6 +757,7 @@ int main(int argc, char** argv) {
                 EventTypeTrivial{"uint32_t", "peer_id"},
                 EventTypeTrivial{"Tox_Message_Type", "type"},
                 EventTypeByteRange{"message", "message_length", "length"}, // the latter two are ideally the same
+                EventTypeTrivial{"uint32_t", "message_id"},
             }
         },
         {

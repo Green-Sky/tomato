@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Privacy_State {
     uint32_t group_number;
@@ -88,7 +87,6 @@ static bool tox_event_group_privacy_state_unpack_into(
            && tox_group_privacy_state_unpack(&event->privacy_state, bu);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -142,6 +140,7 @@ bool tox_event_group_privacy_state_unpack(
     Tox_Event_Group_Privacy_State **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_privacy_state_new(mem);
 
     if (*event == nullptr) {
@@ -171,16 +170,15 @@ static Tox_Event_Group_Privacy_State *tox_event_group_privacy_state_alloc(void *
     return group_privacy_state;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_privacy_state(Tox *tox, uint32_t group_number, Tox_Group_Privacy_State privacy_state,
-        void *user_data)
+void tox_events_handle_group_privacy_state(
+    Tox *tox, uint32_t group_number, Tox_Group_Privacy_State privacy_state,
+    void *user_data)
 {
     Tox_Event_Group_Privacy_State *group_privacy_state = tox_event_group_privacy_state_alloc(user_data);
 

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_File_Recv {
     uint32_t friend_number;
@@ -84,7 +83,7 @@ uint64_t tox_event_file_recv_get_file_size(const Tox_Event_File_Recv *file_recv)
     return file_recv->file_size;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_file_recv_set_filename(Tox_Event_File_Recv *file_recv,
         const uint8_t *filename, uint32_t filename_length)
 {
@@ -94,6 +93,11 @@ static bool tox_event_file_recv_set_filename(Tox_Event_File_Recv *file_recv,
         free(file_recv->filename);
         file_recv->filename = nullptr;
         file_recv->filename_length = 0;
+    }
+
+    if (filename == nullptr) {
+        assert(filename_length == 0);
+        return true;
     }
 
     uint8_t *filename_copy = (uint8_t *)malloc(filename_length);
@@ -158,7 +162,6 @@ static bool tox_event_file_recv_unpack_into(
            && bin_unpack_bin(bu, &event->filename, &event->filename_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -212,6 +215,7 @@ bool tox_event_file_recv_unpack(
     Tox_Event_File_Recv **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_file_recv_new(mem);
 
     if (*event == nullptr) {
@@ -241,16 +245,15 @@ static Tox_Event_File_Recv *tox_event_file_recv_alloc(void *user_data)
     return file_recv;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_file_recv(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t kind, uint64_t file_size, const uint8_t *filename, size_t filename_length,
-        void *user_data)
+void tox_events_handle_file_recv(
+    Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t kind, uint64_t file_size, const uint8_t *filename, size_t filename_length,
+    void *user_data)
 {
     Tox_Event_File_Recv *file_recv = tox_event_file_recv_alloc(user_data);
 

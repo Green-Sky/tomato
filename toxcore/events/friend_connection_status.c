@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Friend_Connection_Status {
     uint32_t friend_number;
@@ -88,7 +87,6 @@ static bool tox_event_friend_connection_status_unpack_into(
            && tox_connection_unpack(&event->connection_status, bu);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -142,6 +140,7 @@ bool tox_event_friend_connection_status_unpack(
     Tox_Event_Friend_Connection_Status **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_friend_connection_status_new(mem);
 
     if (*event == nullptr) {
@@ -171,16 +170,15 @@ static Tox_Event_Friend_Connection_Status *tox_event_friend_connection_status_al
     return friend_connection_status;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_friend_connection_status(Tox *tox, uint32_t friend_number, Tox_Connection connection_status,
-        void *user_data)
+void tox_events_handle_friend_connection_status(
+    Tox *tox, uint32_t friend_number, Tox_Connection connection_status,
+    void *user_data)
 {
     Tox_Event_Friend_Connection_Status *friend_connection_status = tox_event_friend_connection_status_alloc(user_data);
 

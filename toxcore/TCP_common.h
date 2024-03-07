@@ -6,7 +6,9 @@
 #ifndef C_TOXCORE_TOXCORE_TCP_COMMON_H
 #define C_TOXCORE_TOXCORE_TCP_COMMON_H
 
+#include "attributes.h"
 #include "crypto_core.h"
+#include "logger.h"
 #include "mem.h"
 #include "network.h"
 
@@ -87,8 +89,8 @@ int send_pending_data(const Logger *logger, TCP_Connection *con);
  */
 non_null()
 int write_packet_tcp_secure_connection(
-        const Logger *logger, TCP_Connection *con, const uint8_t *data, uint16_t length,
-        bool priority);
+    const Logger *logger, TCP_Connection *con, const uint8_t *data, uint16_t length,
+    bool priority);
 
 /** @brief Read length bytes from socket.
  *
@@ -97,7 +99,7 @@ int write_packet_tcp_secure_connection(
  */
 non_null()
 int read_tcp_packet(
-        const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port);
+    const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port);
 
 /**
  * @return length of received packet on success.
@@ -106,9 +108,9 @@ int read_tcp_packet(
  */
 non_null()
 int read_packet_tcp_secure_connection(
-        const Logger *logger, const Memory *mem, const Network *ns,
-        Socket sock, uint16_t *next_packet_length,
-        const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data,
-        uint16_t max_len, const IP_Port *ip_port);
+    const Logger *logger, const Memory *mem, const Network *ns,
+    Socket sock, uint16_t *next_packet_length,
+    const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data,
+    uint16_t max_len, const IP_Port *ip_port);
 
-#endif
+#endif /* C_TOXCORE_TOXCORE_TCP_COMMON_H */

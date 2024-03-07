@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_File_Recv_Control {
     uint32_t friend_number;
@@ -104,7 +103,6 @@ static bool tox_event_file_recv_control_unpack_into(
            && tox_file_control_unpack(&event->control, bu);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -158,6 +156,7 @@ bool tox_event_file_recv_control_unpack(
     Tox_Event_File_Recv_Control **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_file_recv_control_new(mem);
 
     if (*event == nullptr) {
@@ -187,16 +186,15 @@ static Tox_Event_File_Recv_Control *tox_event_file_recv_control_alloc(void *user
     return file_recv_control;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_file_recv_control(Tox *tox, uint32_t friend_number, uint32_t file_number, Tox_File_Control control,
-        void *user_data)
+void tox_events_handle_file_recv_control(
+    Tox *tox, uint32_t friend_number, uint32_t file_number, Tox_File_Control control,
+    void *user_data)
 {
     Tox_Event_File_Recv_Control *file_recv_control = tox_event_file_recv_control_alloc(user_data);
 

@@ -9,7 +9,6 @@
 #include "LAN_discovery.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 // The mingw32/64 Windows library warns about including winsock2.h after
@@ -21,7 +20,7 @@
 #include <ws2tcpip.h>
 
 #include <iphlpapi.h>
-#endif
+#endif /* WIN32 */
 
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
 #include <netinet/in.h>
@@ -29,22 +28,22 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#endif
+#endif /* Linux/BSD */
 
 #ifdef __linux__
 #include <linux/if.h>
-#endif
+#endif /* Linux */
 
 #if defined(__FreeBSD__) || defined(__DragonFly__)
 #include <net/if.h>
-#endif
+#endif /* BSD */
 
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "network.h"
 
 #define MAX_INTERFACES 16
-
 
 struct Broadcast_Info {
     uint32_t count;
@@ -143,14 +142,13 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
     }
 
     /* Configure ifconf for the ioctl call. */
-    struct ifreq i_faces[MAX_INTERFACES];
-    memset(i_faces, 0, sizeof(struct ifreq) * MAX_INTERFACES);
+    struct ifreq i_faces[MAX_INTERFACES] = {{{0}}};
 
     struct ifconf ifc;
     ifc.ifc_buf = (char *)i_faces;
     ifc.ifc_len = sizeof(i_faces);
 
-    if (ioctl(sock.sock, SIOCGIFCONF, &ifc) < 0) {
+    if (ioctl(net_socket_to_native(sock), SIOCGIFCONF, &ifc) < 0) {
         kill_sock(ns, sock);
         free(broadcast);
         return nullptr;
@@ -165,7 +163,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 
     for (int i = 0; i < n; ++i) {
         /* there are interfaces with are incapable of broadcast */
-        if (ioctl(sock.sock, SIOCGIFBRDADDR, &i_faces[i]) < 0) {
+        if (ioctl(net_socket_to_native(sock), SIOCGIFBRDADDR, &i_faces[i]) < 0) {
             continue;
         }
 
@@ -204,7 +202,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
     return (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
 }
 
-#endif
+#endif /* platforms */
 
 /** @brief Send packet to all IPv4 broadcast addresses
  *
@@ -241,8 +239,8 @@ static IP broadcast_ip(Family family_socket, Family family_broadcast)
             /* `FF02::1` is - according to RFC 4291 - multicast all-nodes link-local */
             /* `FE80::*:` MUST be exact, for that we would need to look over all
              * interfaces and check in which status they are */
-            ip.ip.v6.uint8[ 0] = 0xFF;
-            ip.ip.v6.uint8[ 1] = 0x02;
+            ip.ip.v6.uint8[0] = 0xFF;
+            ip.ip.v6.uint8[1] = 0x02;
             ip.ip.v6.uint8[15] = 0x01;
         } else if (net_family_is_ipv4(family_broadcast)) {
             ip.family = net_family_ipv6();
@@ -341,7 +339,6 @@ bool ip_is_lan(const IP *ip)
     return false;
 }
 
-
 bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk,
                         uint16_t port)
 {
@@ -377,7 +374,6 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
 
     return res;
 }
-
 
 Broadcast_Info *lan_discovery_init(const Network *ns)
 {

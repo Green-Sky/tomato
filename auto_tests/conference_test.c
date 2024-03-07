@@ -56,13 +56,13 @@ static void handle_conference_invite(
     ck_assert_msg(type == TOX_CONFERENCE_TYPE_TEXT, "tox #%u: wrong conference type: %d", autotox->index, type);
 
     Tox_Err_Conference_Join err;
-    uint32_t g_num = tox_conference_join(tox, friendnumber, data, length, &err);
+    uint32_t g_num = tox_conference_join(autotox->tox, friendnumber, data, length, &err);
 
     ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "tox #%u: error joining group: %d", autotox->index, err);
     ck_assert_msg(g_num == 0, "tox #%u: group number was not 0", autotox->index);
 
     // Try joining again. We should only be allowed to join once.
-    tox_conference_join(tox, friendnumber, data, length, &err);
+    tox_conference_join(autotox->tox, friendnumber, data, length, &err);
     ck_assert_msg(err != TOX_ERR_CONFERENCE_JOIN_OK,
                   "tox #%u: joining groupchat twice should be impossible.", autotox->index);
 }
@@ -73,12 +73,12 @@ static void handle_conference_connected(
     const AutoTox *autotox = (AutoTox *)user_data;
     State *state = (State *)autotox->state;
 
-    if (state->invited_next || tox_self_get_friend_list_size(tox) <= 1) {
+    if (state->invited_next || tox_self_get_friend_list_size(autotox->tox) <= 1) {
         return;
     }
 
     Tox_Err_Conference_Invite err;
-    tox_conference_invite(tox, 1, 0, &err);
+    tox_conference_invite(autotox->tox, 1, 0, &err);
     ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %d", autotox->index,
                   err);
     printf("tox #%u: invited next friend\n", autotox->index);
@@ -97,7 +97,7 @@ static void handle_conference_message(
 }
 
 static bool toxes_are_disconnected_from_group(uint32_t tox_count, AutoTox *autotoxes,
-        bool *disconnected)
+        const bool *disconnected)
 {
     uint32_t num_disconnected = 0;
 
@@ -174,12 +174,11 @@ static bool names_propagated(uint32_t tox_count, AutoTox *autotoxes)
     return true;
 }
 
-
 /**
  * returns a random index at which a list of booleans is false
  * (some such index is required to exist)
  */
-static uint32_t random_false_index(const Random *rng, bool *list, const uint32_t length)
+static uint32_t random_false_index(const Random *rng, const bool *list, const uint32_t length)
 {
     uint32_t index;
 
@@ -192,7 +191,7 @@ static uint32_t random_false_index(const Random *rng, bool *list, const uint32_t
 
 static void run_conference_tests(AutoTox *autotoxes)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     /* disabling name change propagation check for now, as it occasionally
      * fails due to disconnections too short to trigger freezing */
@@ -357,7 +356,6 @@ static void test_many_group(AutoTox *autotoxes)
                                            nullptr) != 0,
                   "failed to set group title");
 
-
     printf("waiting for invitations to be made\n");
     uint32_t invited_count = 0;
 
@@ -435,6 +433,7 @@ int main(void)
 
     Run_Auto_Options options = default_run_auto_options();
     options.graph = GRAPH_LINEAR;
+    options.events = false;
 
     run_auto_test(nullptr, NUM_GROUP_TOX, test_many_group, sizeof(State), &options);
     return 0;

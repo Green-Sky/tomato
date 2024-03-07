@@ -14,6 +14,7 @@
 
 #include "DHT.h"
 #include "LAN_discovery.h"
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "logger.h"
@@ -192,11 +193,11 @@ int create_data_request(const Random *rng, uint8_t *packet, uint16_t max_packet_
  * return 0 on success.
  */
 int send_announce_request(
-        const Logger *log, const Networking_Core *net, const Random *rng,
-        const Onion_Path *path, const Node_format *dest,
-        const uint8_t *public_key, const uint8_t *secret_key,
-        const uint8_t *ping_id, const uint8_t *client_id,
-        const uint8_t *data_public_key, uint64_t sendback_data)
+    const Logger *log, const Networking_Core *net, const Random *rng,
+    const Onion_Path *path, const Node_format *dest,
+    const uint8_t *public_key, const uint8_t *secret_key,
+    const uint8_t *ping_id, const uint8_t *client_id,
+    const uint8_t *data_public_key, uint64_t sendback_data)
 {
     uint8_t request[ONION_ANNOUNCE_REQUEST_MIN_SIZE];
     int len = create_announce_request(rng, request, sizeof(request), dest->public_key, public_key, secret_key, ping_id,
@@ -237,9 +238,9 @@ int send_announce_request(
  * return 0 on success.
  */
 int send_data_request(
-        const Logger *log, const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest,
-        const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
-        const uint8_t *data, uint16_t length)
+    const Logger *log, const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest,
+    const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
+    const uint8_t *data, uint16_t length)
 {
     uint8_t request[ONION_MAX_DATA_SIZE];
     int len = create_data_request(rng, request, sizeof(request), public_key, encrypt_public_key, nonce, data, length);
@@ -637,11 +638,12 @@ static int handle_data_request(void *object, const IP_Port *source, const uint8_
         return 1;
     }
 
-    VLA(uint8_t, data, length - (CRYPTO_PUBLIC_KEY_SIZE + ONION_RETURN_3));
+    const uint16_t data_size = length - (CRYPTO_PUBLIC_KEY_SIZE + ONION_RETURN_3);
+    VLA(uint8_t, data, data_size);
     data[0] = NET_PACKET_ONION_DATA_RESPONSE;
     memcpy(data + 1, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, length - (1 + CRYPTO_PUBLIC_KEY_SIZE + ONION_RETURN_3));
 
-    if (send_onion_response(onion_a->log, onion_a->net, &onion_a->entries[index].ret_ip_port, data, SIZEOF_VLA(data),
+    if (send_onion_response(onion_a->log, onion_a->net, &onion_a->entries[index].ret_ip_port, data, data_size,
                             onion_a->entries[index].ret) == -1) {
         return 1;
     }

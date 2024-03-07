@@ -33,6 +33,7 @@
 #include <omp.h>
 #define NUM_THREADS() ((unsigned) omp_get_max_threads())
 #else
+#pragma message("Being built without OpenMP support -- the program will utilize a single thread only.")
 #define NUM_THREADS() (1U)
 #endif
 
@@ -112,8 +113,9 @@ static size_t match_hex_prefix(const uint8_t *key, const uint8_t *prefix, size_t
 static void cracker_core(uint64_t range_start, uint64_t range_end, uint64_t range_offs, uint64_t priv_key_shadow[4],
                          uint32_t *longest_match, uint8_t hex_prefix[MAX_CRACK_BYTES], size_t prefix_chars_len)
 {
+#if defined(_OPENMP)
     #pragma omp parallel for firstprivate(priv_key_shadow) shared(longest_match, range_start, range_end, range_offs, hex_prefix, prefix_chars_len) schedule(static) default(none)
-
+#endif
     for (uint64_t batch = range_start; batch < range_end; ++batch) {
         uint8_t *priv_key = (uint8_t *) priv_key_shadow;
         /*
@@ -134,14 +136,19 @@ static void cracker_core(uint64_t range_start, uint64_t range_end, uint64_t rang
 
         // Global compare and update
         uint32_t l_longest_match;
+#if defined(_OPENMP)
         #pragma omp atomic read
+#endif
         l_longest_match = *longest_match;
 
         if (matching > l_longest_match) {
+#if defined(_OPENMP)
             #pragma omp atomic write
+#endif
             *longest_match = matching;
-
+#if defined(_OPENMP)
             #pragma omp critical
+#endif
             {
                 printf("%u chars matching: \n", matching);
                 printf("Public key: ");
@@ -198,7 +205,6 @@ int main(int argc, char *argv[])
     randombytes(priv_key, KEY_LEN);
     uint32_t longest_match = 0;
 
-
     // Finishes a batch every ~10s on my PC
     const uint64_t batch_size = (UINT64_C(1) << 18) * NUM_THREADS();
 
@@ -219,7 +225,6 @@ int main(int argc, char *argv[])
         printf("Found matching prefix, exiting...\n");
         return 0;
     }
-
 
     for (uint64_t tries = 0; tries < rem_start; tries += batch_size) {
         cracker_core(tries, tries + batch_size, 0, priv_key_shadow, &longest_match, hex_prefix, prefix_chars_len);

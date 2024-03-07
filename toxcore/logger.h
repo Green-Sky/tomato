@@ -19,7 +19,7 @@ extern "C" {
 
 #ifndef MIN_LOGGER_LEVEL
 #define MIN_LOGGER_LEVEL LOGGER_LEVEL_INFO
-#endif
+#endif /* MIN_LOGGER_LEVEL */
 
 // NOTE: Don't forget to update build system files after modifying the enum.
 typedef enum Logger_Level {
@@ -70,7 +70,6 @@ void logger_write(
 /* @brief Terminate the program with a signal. */
 void logger_abort(void);
 
-
 #define LOGGER_WRITE(log, level, ...)                                            \
     do {                                                                         \
         if (level >= MIN_LOGGER_LEVEL) {                                         \
@@ -100,7 +99,7 @@ void logger_abort(void);
     } while (0)
 
 #ifdef __cplusplus
-}  // extern "C"
+} /* extern "C" */
 #endif
 
-#endif // C_TOXCORE_TOXCORE_LOGGER_H
+#endif /* C_TOXCORE_TOXCORE_LOGGER_H */

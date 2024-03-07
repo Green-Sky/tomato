@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "attributes.h"
 #include "crypto_core.h"
 #include "mem.h"
 #include "mono_time.h"
@@ -60,7 +61,7 @@ int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t 
                          uint64_t ping_id);
 
 #ifdef __cplusplus
-}  // extern "C"
+} /* extern "C" */
 #endif
 
-#endif // C_TOXCORE_TOXCORE_PING_ARRAY_H
+#endif /* C_TOXCORE_TOXCORE_PING_ARRAY_H */

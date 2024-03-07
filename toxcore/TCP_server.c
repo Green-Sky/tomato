@@ -11,15 +11,15 @@
 #include <string.h>
 #if !defined(_WIN32) && !defined(__WIN32__) && !defined (WIN32)
 #include <sys/ioctl.h>
-#endif
+#endif /* !WIN32 */
 
 #ifdef TCP_SERVER_USE_EPOLL
 #include <sys/epoll.h>
 #include <unistd.h>
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
-#include "DHT.h"
 #include "TCP_common.h"
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -35,7 +35,7 @@
 #define TCP_SOCKET_INCOMING 1
 #define TCP_SOCKET_UNCONFIRMED 2
 #define TCP_SOCKET_CONFIRMED 3
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
 typedef struct TCP_Secure_Conn {
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -60,6 +60,7 @@ typedef struct TCP_Secure_Connection {
     uint64_t ping_id;
 } TCP_Secure_Connection;
 
+static const TCP_Secure_Connection empty_tcp_secure_connection = {{nullptr}};
 
 struct TCP_Server {
     const Logger *logger;
@@ -72,7 +73,7 @@ struct TCP_Server {
 #ifdef TCP_SERVER_USE_EPOLL
     int efd;
     uint64_t last_run_pinged;
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
     Socket *socks_listening;
     unsigned int num_listening_socks;
 
@@ -109,8 +110,8 @@ size_t tcp_server_listen_count(const TCP_Server *tcp_server)
 #ifdef TCP_SERVER_USE_EPOLL
 #ifndef EPOLLRDHUP
 #define EPOLLRDHUP 0x2000
-#endif
-#endif
+#endif /* EPOLLRDHUP */
+#endif /* TCP_SERVER_USE_EPOLL */
 
 /** @brief Increase the size of the connection list
  *
@@ -135,8 +136,9 @@ static int alloc_new_connections(TCP_Server *tcp_server, uint32_t num)
     }
 
     const uint32_t old_size = tcp_server->size_accepted_connections;
-    const uint32_t size_new_entries = num * sizeof(TCP_Secure_Connection);
-    memset(new_connections + old_size, 0, size_new_entries);
+    for (uint32_t i = 0; i < num; ++i) {
+        new_connections[old_size + i] = empty_tcp_secure_connection;
+    }
 
     tcp_server->accepted_connection_array = new_connections;
     tcp_server->size_accepted_connections = new_size;
@@ -184,7 +186,6 @@ static int get_tcp_connection_index(const TCP_Server *tcp_server, const uint8_t 
 {
     return bs_list_find(&tcp_server->accepted_key_list, public_key);
 }
-
 
 non_null()
 static int kill_accepted(TCP_Server *tcp_server, int index);
@@ -354,7 +355,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
         return -1;
     }
 
-    IP_Port ipp = {{{0}}};
+    const IP_Port ipp = {{{0}}};
 
     if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.ns, logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp)) {
         crypto_memzero(shared_key, sizeof(shared_key));
@@ -529,12 +530,13 @@ static int handle_tcp_oob_send(TCP_Server *tcp_server, uint32_t con_id, const ui
     const int other_index = get_tcp_connection_index(tcp_server, public_key);
 
     if (other_index != -1) {
-        VLA(uint8_t, resp_packet, 1 + CRYPTO_PUBLIC_KEY_SIZE + length);
+        const uint16_t resp_packet_size = 1 + CRYPTO_PUBLIC_KEY_SIZE + length;
+        VLA(uint8_t, resp_packet, resp_packet_size);
         resp_packet[0] = TCP_PACKET_OOB_RECV;
         memcpy(resp_packet + 1, con->public_key, CRYPTO_PUBLIC_KEY_SIZE);
         memcpy(resp_packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length);
         write_packet_tcp_secure_connection(tcp_server->logger, &tcp_server->accepted_connection_array[other_index].con,
-                                           resp_packet, SIZEOF_VLA(resp_packet), false);
+                                           resp_packet, resp_packet_size, false);
     }
 
     return 0;
@@ -617,11 +619,12 @@ static int handle_onion_recv_1(void *object, const IP_Port *dest, const uint8_t 
 
     TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[index];
 
-    VLA(uint8_t, packet, 1 + length);
+    const uint16_t packet_size = 1 + length;
+    VLA(uint8_t, packet, packet_size);
     memcpy(packet + 1, data, length);
     packet[0] = TCP_PACKET_ONION_RESPONSE;
 
-    if (write_packet_tcp_secure_connection(tcp_server->logger, &con->con, packet, SIZEOF_VLA(packet), false) != 1) {
+    if (write_packet_tcp_secure_connection(tcp_server->logger, &con->con, packet, packet_size, false) != 1) {
         return 1;
     }
 
@@ -657,11 +660,12 @@ static bool handle_forward_reply_tcp(void *object, const uint8_t *sendback_data,
         return false;
     }
 
-    VLA(uint8_t, packet, 1 + length);
+    const uint16_t packet_size = 1 + length;
+    VLA(uint8_t, packet, packet_size);
     memcpy(packet + 1, data, length);
     packet[0] = TCP_PACKET_FORWARDING;
 
-    return write_packet_tcp_secure_connection(tcp_server->logger, &con->con, packet, SIZEOF_VLA(packet), false) == 1;
+    return write_packet_tcp_secure_connection(tcp_server->logger, &con->con, packet, packet_size, false) == 1;
 }
 
 /**
@@ -759,7 +763,7 @@ static int handle_tcp_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
                     return -1;
                 }
 
-                IP_Port source = con_id_to_ip_port(con_id, con->identifier);
+                const IP_Port source = con_id_to_ip_port(con_id, con->identifier);
                 onion_send_1(tcp_server->onion, data + 1 + CRYPTO_NONCE_SIZE, length - (1 + CRYPTO_NONCE_SIZE), &source,
                              data + 1);
             }
@@ -843,7 +847,6 @@ static int handle_tcp_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
 
     return 0;
 }
-
 
 non_null()
 static int confirm_tcp_connection(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_Secure_Connection *con,
@@ -991,7 +994,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
         return nullptr;
     }
 
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
     const Family family = ipv6_enabled ? net_family_ipv6() : net_family_ipv4();
 
@@ -1006,13 +1009,13 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
         struct epoll_event ev;
 
         ev.events = EPOLLIN | EPOLLET;
-        ev.data.u64 = sock.sock | ((uint64_t)TCP_SOCKET_LISTENING << 32);
+        ev.data.u64 = net_socket_to_native(sock) | ((uint64_t)TCP_SOCKET_LISTENING << 32);
 
-        if (epoll_ctl(temp->efd, EPOLL_CTL_ADD, sock.sock, &ev) == -1) {
+        if (epoll_ctl(temp->efd, EPOLL_CTL_ADD, net_socket_to_native(sock), &ev) == -1) {
             continue;
         }
 
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
         temp->socks_listening[temp->num_listening_socks] = sock;
         ++temp->num_listening_socks;
@@ -1037,7 +1040,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     memcpy(temp->secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
     crypto_derive_public_key(temp->public_key, temp->secret_key);
 
-    bs_list_init(&temp->accepted_key_list, CRYPTO_PUBLIC_KEY_SIZE, 8);
+    bs_list_init(&temp->accepted_key_list, CRYPTO_PUBLIC_KEY_SIZE, 8, memcmp);
 
     return temp;
 }
@@ -1057,7 +1060,7 @@ static void do_tcp_accept_new(TCP_Server *tcp_server)
         }
     }
 }
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
 non_null()
 static int do_incoming(TCP_Server *tcp_server, uint32_t i)
@@ -1109,7 +1112,8 @@ static int do_unconfirmed(TCP_Server *tcp_server, const Mono_Time *mono_time, ui
     LOGGER_TRACE(tcp_server->logger, "handling unconfirmed TCP connection %d", i);
 
     uint8_t packet[MAX_PACKET_SIZE];
-    const int len = read_packet_tcp_secure_connection(tcp_server->logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet, sizeof(packet), &conn->con.ip_port);
+    const int len = read_packet_tcp_secure_connection(tcp_server->logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet,
+                    sizeof(packet), &conn->con.ip_port);
 
     if (len == 0) {
         return -1;
@@ -1129,7 +1133,8 @@ static bool tcp_process_secure_packet(TCP_Server *tcp_server, uint32_t i)
     TCP_Secure_Connection *const conn = &tcp_server->accepted_connection_array[i];
 
     uint8_t packet[MAX_PACKET_SIZE];
-    const int len = read_packet_tcp_secure_connection(tcp_server->logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet, sizeof(packet), &conn->con.ip_port);
+    const int len = read_packet_tcp_secure_connection(tcp_server->logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet,
+                    sizeof(packet), &conn->con.ip_port);
     LOGGER_TRACE(tcp_server->logger, "processing packet for %d: %d", i, len);
 
     if (len == 0) {
@@ -1174,7 +1179,7 @@ static void do_tcp_unconfirmed(TCP_Server *tcp_server, const Mono_Time *mono_tim
         do_unconfirmed(tcp_server, mono_time, i);
     }
 }
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
 non_null()
 static void do_tcp_confirmed(TCP_Server *tcp_server, const Mono_Time *mono_time)
@@ -1186,7 +1191,7 @@ static void do_tcp_confirmed(TCP_Server *tcp_server, const Mono_Time *mono_time)
     }
 
     tcp_server->last_run_pinged = mono_time_get(mono_time);
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
     for (uint32_t i = 0; i < tcp_server->size_accepted_connections; ++i) {
         TCP_Secure_Connection *conn = &tcp_server->accepted_connection_array[i];
@@ -1229,7 +1234,7 @@ static void do_tcp_confirmed(TCP_Server *tcp_server, const Mono_Time *mono_time)
 
         do_confirmed_recv(tcp_server, i);
 
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
     }
 }
 
@@ -1243,7 +1248,7 @@ static bool tcp_epoll_process(TCP_Server *tcp_server, const Mono_Time *mono_time
 #undef MAX_EVENTS
 
     for (int n = 0; n < nfds; ++n) {
-        const Socket sock = {(int)(events[n].data.u64 & 0xFFFFFFFF)};
+        const Socket sock = net_socket_from_native((int)(events[n].data.u64 & 0xFFFFFFFF));
         const int status = (events[n].data.u64 >> 32) & 0xFF;
         const int index = events[n].data.u64 >> 40;
 
@@ -1277,7 +1282,6 @@ static bool tcp_epoll_process(TCP_Server *tcp_server, const Mono_Time *mono_time
             continue;
         }
 
-
         if ((events[n].events & EPOLLIN) == 0) {
             continue;
         }
@@ -1302,9 +1306,9 @@ static bool tcp_epoll_process(TCP_Server *tcp_server, const Mono_Time *mono_time
 
                     ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
 
-                    ev.data.u64 = sock_new.sock | ((uint64_t)TCP_SOCKET_INCOMING << 32) | ((uint64_t)index_new << 40);
+                    ev.data.u64 = net_socket_to_native(sock_new) | ((uint64_t)TCP_SOCKET_INCOMING << 32) | ((uint64_t)index_new << 40);
 
-                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_ADD, sock_new.sock, &ev) == -1) {
+                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_ADD, net_socket_to_native(sock_new), &ev) == -1) {
                         LOGGER_DEBUG(tcp_server->logger, "new connection %d was dropped due to epoll error %d", index, net_error());
                         kill_tcp_secure_connection(&tcp_server->incoming_connection_queue[index_new]);
                         continue;
@@ -1320,9 +1324,9 @@ static bool tcp_epoll_process(TCP_Server *tcp_server, const Mono_Time *mono_time
                 if (index_new != -1) {
                     LOGGER_TRACE(tcp_server->logger, "incoming connection %d was accepted as %d", index, index_new);
                     events[n].events = EPOLLIN | EPOLLET | EPOLLRDHUP;
-                    events[n].data.u64 = sock.sock | ((uint64_t)TCP_SOCKET_UNCONFIRMED << 32) | ((uint64_t)index_new << 40);
+                    events[n].data.u64 = net_socket_to_native(sock) | ((uint64_t)TCP_SOCKET_UNCONFIRMED << 32) | ((uint64_t)index_new << 40);
 
-                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_MOD, sock.sock, &events[n]) == -1) {
+                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_MOD, net_socket_to_native(sock), &events[n]) == -1) {
                         LOGGER_DEBUG(tcp_server->logger, "incoming connection %d was dropped due to epoll error %d", index, net_error());
                         kill_tcp_secure_connection(&tcp_server->unconfirmed_connection_queue[index_new]);
                         break;
@@ -1338,9 +1342,9 @@ static bool tcp_epoll_process(TCP_Server *tcp_server, const Mono_Time *mono_time
                 if (index_new != -1) {
                     LOGGER_TRACE(tcp_server->logger, "unconfirmed connection %d was confirmed as %d", index, index_new);
                     events[n].events = EPOLLIN | EPOLLET | EPOLLRDHUP;
-                    events[n].data.u64 = sock.sock | ((uint64_t)TCP_SOCKET_CONFIRMED << 32) | ((uint64_t)index_new << 40);
+                    events[n].data.u64 = net_socket_to_native(sock) | ((uint64_t)TCP_SOCKET_CONFIRMED << 32) | ((uint64_t)index_new << 40);
 
-                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_MOD, sock.sock, &events[n]) == -1) {
+                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_MOD, net_socket_to_native(sock), &events[n]) == -1) {
                         // remove from confirmed connections
                         LOGGER_DEBUG(tcp_server->logger, "unconfirmed connection %d was dropped due to epoll error %d", index, net_error());
                         kill_accepted(tcp_server, index_new);
@@ -1369,7 +1373,7 @@ static void do_tcp_epoll(TCP_Server *tcp_server, const Mono_Time *mono_time)
         continue;
     }
 }
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
 void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time)
 {
@@ -1380,7 +1384,7 @@ void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time)
     do_tcp_accept_new(tcp_server);
     do_tcp_incoming(tcp_server);
     do_tcp_unconfirmed(tcp_server, mono_time);
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
     do_tcp_confirmed(tcp_server, mono_time);
 }
@@ -1407,7 +1411,7 @@ void kill_tcp_server(TCP_Server *tcp_server)
 
 #ifdef TCP_SERVER_USE_EPOLL
     close(tcp_server->efd);
-#endif
+#endif /* TCP_SERVER_USE_EPOLL */
 
     for (uint32_t i = 0; i < MAX_INCOMING_CONNECTIONS; ++i) {
         wipe_secure_connection(&tcp_server->incoming_connection_queue[i]);

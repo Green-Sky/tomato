@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -17,13 +18,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Conference_Invite {
     uint32_t friend_number;
@@ -58,7 +57,7 @@ Tox_Conference_Type tox_event_conference_invite_get_type(const Tox_Event_Confere
     return conference_invite->type;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_conference_invite_set_cookie(Tox_Event_Conference_Invite *conference_invite,
         const uint8_t *cookie, uint32_t cookie_length)
 {
@@ -68,6 +67,11 @@ static bool tox_event_conference_invite_set_cookie(Tox_Event_Conference_Invite *
         free(conference_invite->cookie);
         conference_invite->cookie = nullptr;
         conference_invite->cookie_length = 0;
+    }
+
+    if (cookie == nullptr) {
+        assert(cookie_length == 0);
+        return true;
     }
 
     uint8_t *cookie_copy = (uint8_t *)malloc(cookie_length);
@@ -128,7 +132,6 @@ static bool tox_event_conference_invite_unpack_into(
            && bin_unpack_bin(bu, &event->cookie, &event->cookie_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -182,6 +185,7 @@ bool tox_event_conference_invite_unpack(
     Tox_Event_Conference_Invite **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_conference_invite_new(mem);
 
     if (*event == nullptr) {
@@ -211,16 +215,15 @@ static Tox_Event_Conference_Invite *tox_event_conference_invite_alloc(void *user
     return conference_invite;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_conference_invite(Tox *tox, uint32_t friend_number, Tox_Conference_Type type, const uint8_t *cookie, size_t length,
-        void *user_data)
+void tox_events_handle_conference_invite(
+    Tox *tox, uint32_t friend_number, Tox_Conference_Type type, const uint8_t *cookie, size_t length,
+    void *user_data)
 {
     Tox_Event_Conference_Invite *conference_invite = tox_event_conference_invite_alloc(user_data);
 

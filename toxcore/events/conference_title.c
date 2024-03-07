@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Conference_Title {
     uint32_t conference_number;
@@ -56,7 +55,7 @@ uint32_t tox_event_conference_title_get_peer_number(const Tox_Event_Conference_T
     return conference_title->peer_number;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_conference_title_set_title(Tox_Event_Conference_Title *conference_title,
         const uint8_t *title, uint32_t title_length)
 {
@@ -66,6 +65,11 @@ static bool tox_event_conference_title_set_title(Tox_Event_Conference_Title *con
         free(conference_title->title);
         conference_title->title = nullptr;
         conference_title->title_length = 0;
+    }
+
+    if (title == nullptr) {
+        assert(title_length == 0);
+        return true;
     }
 
     uint8_t *title_copy = (uint8_t *)malloc(title_length);
@@ -126,7 +130,6 @@ static bool tox_event_conference_title_unpack_into(
            && bin_unpack_bin(bu, &event->title, &event->title_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -180,6 +183,7 @@ bool tox_event_conference_title_unpack(
     Tox_Event_Conference_Title **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_conference_title_new(mem);
 
     if (*event == nullptr) {
@@ -209,16 +213,15 @@ static Tox_Event_Conference_Title *tox_event_conference_title_alloc(void *user_d
     return conference_title;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_conference_title(Tox *tox, uint32_t conference_number, uint32_t peer_number, const uint8_t *title, size_t length,
-        void *user_data)
+void tox_events_handle_conference_title(
+    Tox *tox, uint32_t conference_number, uint32_t peer_number, const uint8_t *title, size_t length,
+    void *user_data)
 {
     Tox_Event_Conference_Title *conference_title = tox_event_conference_title_alloc(user_data);
 

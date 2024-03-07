@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "../third_party/cmp/cmp.h"
+#include "attributes.h"
 #include "ccompat.h"
 
 struct Bin_Unpack {
@@ -20,27 +21,28 @@ struct Bin_Unpack {
 non_null()
 static bool buf_reader(cmp_ctx_t *ctx, void *data, size_t limit)
 {
+    uint8_t *bytes = (uint8_t *)data;
     Bin_Unpack *reader = (Bin_Unpack *)ctx->buf;
     assert(reader != nullptr && reader->bytes != nullptr);
     if (limit > reader->bytes_size) {
         return false;
     }
-    memcpy(data, reader->bytes, limit);
+    memcpy(bytes, reader->bytes, limit);
     reader->bytes += limit;
     reader->bytes_size -= limit;
     return true;
 }
 
 non_null()
-static bool buf_skipper(cmp_ctx_t *ctx, size_t limit)
+static bool buf_skipper(cmp_ctx_t *ctx, size_t count)
 {
     Bin_Unpack *reader = (Bin_Unpack *)ctx->buf;
     assert(reader != nullptr && reader->bytes != nullptr);
-    if (limit > reader->bytes_size) {
+    if (count > reader->bytes_size) {
         return false;
     }
-    reader->bytes += limit;
-    reader->bytes_size -= limit;
+    reader->bytes += count;
+    reader->bytes_size -= count;
     return true;
 }
 
@@ -51,21 +53,19 @@ static size_t null_writer(cmp_ctx_t *ctx, const void *data, size_t count)
     return 0;
 }
 
-Bin_Unpack *bin_unpack_new(const uint8_t *buf, uint32_t buf_size)
+non_null()
+static void bin_unpack_init(Bin_Unpack *bu, const uint8_t *buf, uint32_t buf_size)
 {
-    Bin_Unpack *bu = (Bin_Unpack *)calloc(1, sizeof(Bin_Unpack));
-    if (bu == nullptr) {
-        return nullptr;
-    }
     bu->bytes = buf;
     bu->bytes_size = buf_size;
     cmp_init(&bu->ctx, bu, buf_reader, buf_skipper, null_writer);
-    return bu;
 }
 
-void bin_unpack_free(Bin_Unpack *bu)
+bool bin_unpack_obj(bin_unpack_cb *callback, void *obj, const uint8_t *buf, uint32_t buf_size)
 {
-    free(bu);
+    Bin_Unpack bu;
+    bin_unpack_init(&bu, buf, buf_size);
+    return callback(obj, &bu);
 }
 
 bool bin_unpack_array(Bin_Unpack *bu, uint32_t *size)
@@ -169,7 +169,7 @@ bool bin_unpack_u16_b(Bin_Unpack *bu, uint16_t *val)
     uint8_t hi = 0;
     uint8_t lo = 0;
     if (!(bin_unpack_u08_b(bu, &hi)
-          && bin_unpack_u08_b(bu, &lo))) {
+            && bin_unpack_u08_b(bu, &lo))) {
         return false;
     }
     *val = ((uint16_t)hi << 8) | lo;
@@ -181,7 +181,7 @@ bool bin_unpack_u32_b(Bin_Unpack *bu, uint32_t *val)
     uint16_t hi = 0;
     uint16_t lo = 0;
     if (!(bin_unpack_u16_b(bu, &hi)
-          && bin_unpack_u16_b(bu, &lo))) {
+            && bin_unpack_u16_b(bu, &lo))) {
         return false;
     }
     *val = ((uint32_t)hi << 16) | lo;
@@ -193,7 +193,7 @@ bool bin_unpack_u64_b(Bin_Unpack *bu, uint64_t *val)
     uint32_t hi = 0;
     uint32_t lo = 0;
     if (!(bin_unpack_u32_b(bu, &hi)
-          && bin_unpack_u32_b(bu, &lo))) {
+            && bin_unpack_u32_b(bu, &lo))) {
         return false;
     }
     *val = ((uint64_t)hi << 32) | lo;

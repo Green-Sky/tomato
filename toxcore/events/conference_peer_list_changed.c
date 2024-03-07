@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -13,13 +14,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Conference_Peer_List_Changed {
     uint32_t conference_number;
@@ -64,7 +63,6 @@ static bool tox_event_conference_peer_list_changed_unpack_into(
     assert(event != nullptr);
     return bin_unpack_u32(bu, &event->conference_number);
 }
-
 
 /*****************************************************
  *
@@ -119,6 +117,7 @@ bool tox_event_conference_peer_list_changed_unpack(
     Tox_Event_Conference_Peer_List_Changed **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_conference_peer_list_changed_new(mem);
 
     if (*event == nullptr) {
@@ -148,16 +147,15 @@ static Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_ch
     return conference_peer_list_changed;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_conference_peer_list_changed(Tox *tox, uint32_t conference_number,
-        void *user_data)
+void tox_events_handle_conference_peer_list_changed(
+    Tox *tox, uint32_t conference_number,
+    void *user_data)
 {
     Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = tox_event_conference_peer_list_changed_alloc(user_data);
 

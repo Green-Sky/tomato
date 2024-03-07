@@ -9,8 +9,13 @@
 #ifndef C_TOXCORE_TOXCORE_TCP_SERVER_H
 #define C_TOXCORE_TOXCORE_TCP_SERVER_H
 
+#include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
+#include "logger.h"
+#include "mem.h"
+#include "mono_time.h"
+#include "network.h"
 #include "onion.h"
 
 #define MAX_INCOMING_CONNECTIONS 256
@@ -47,5 +52,4 @@ void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time);
 nullable(1)
 void kill_tcp_server(TCP_Server *tcp_server);
 
-
-#endif
+#endif /* C_TOXCORE_TOXCORE_TCP_SERVER_H */

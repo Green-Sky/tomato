@@ -9,7 +9,7 @@
  */
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600
-#endif
+#endif /* _XOPEN_SOURCE */
 
 #include "util.h"
 
@@ -96,6 +96,15 @@ uint8_t *memdup(const uint8_t *data, size_t data_size)
     return copy;
 }
 
+void memzero(uint8_t *data, size_t data_size)
+{
+    if (data == nullptr || data_size == 0) {
+        return;
+    }
+
+    memset(data, 0, data_size);
+}
+
 int16_t max_s16(int16_t a, int16_t b)
 {
     return a > b ? a : b;
@@ -150,6 +159,11 @@ uint32_t min_u32(uint32_t a, uint32_t b)
 uint64_t min_u64(uint64_t a, uint64_t b)
 {
     return a < b ? a : b;
+}
+
+int cmp_uint(uint64_t a, uint64_t b)
+{
+    return (a > b ? 1 : 0) - (a < b ? 1 : 0);
 }
 
 uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len)

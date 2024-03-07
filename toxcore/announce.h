@@ -5,7 +5,14 @@
 #ifndef C_TOXCORE_TOXCORE_ANNOUNCE_H
 #define C_TOXCORE_TOXCORE_ANNOUNCE_H
 
+#include <stdint.h>
+
+#include "attributes.h"
+#include "crypto_core.h"
 #include "forwarding.h"
+#include "logger.h"
+#include "mem.h"
+#include "mono_time.h"
 
 #define MAX_ANNOUNCEMENT_SIZE 512
 
@@ -33,7 +40,6 @@ void announce_set_synch_offset(Announcements *announce, int32_t synch_offset);
 
 nullable(1)
 void kill_announcements(Announcements *announce);
-
 
 /* The declarations below are not public, they are exposed only for tests. */
 
@@ -65,4 +71,4 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
 #define ANNOUNCE_BUCKET_PREFIX_LENGTH 5
 #define ANNOUNCE_BUCKETS 32 // ANNOUNCE_BUCKETS = 2 ** ANNOUNCE_BUCKET_PREFIX_LENGTH
 
-#endif
+#endif /* C_TOXCORE_TOXCORE_ANNOUNCE_H */

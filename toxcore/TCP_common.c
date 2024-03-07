@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "logger.h"
@@ -151,18 +152,19 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
         }
     }
 
-    VLA(uint8_t, packet, sizeof(uint16_t) + length + CRYPTO_MAC_SIZE);
+    const uint16_t packet_size = sizeof(uint16_t) + length + CRYPTO_MAC_SIZE;
+    VLA(uint8_t, packet, packet_size);
 
     uint16_t c_length = net_htons(length + CRYPTO_MAC_SIZE);
     memcpy(packet, &c_length, sizeof(uint16_t));
     int len = encrypt_data_symmetric(con->shared_key, con->sent_nonce, data, length, packet + sizeof(uint16_t));
 
-    if ((unsigned int)len != (SIZEOF_VLA(packet) - sizeof(uint16_t))) {
+    if ((unsigned int)len != (packet_size - sizeof(uint16_t))) {
         return -1;
     }
 
     if (priority) {
-        len = sendpriority ? net_send(con->ns, logger, con->sock, packet, SIZEOF_VLA(packet), &con->ip_port) : 0;
+        len = sendpriority ? net_send(con->ns, logger, con->sock, packet, packet_size, &con->ip_port) : 0;
 
         if (len <= 0) {
             len = 0;
@@ -170,14 +172,14 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
 
         increment_nonce(con->sent_nonce);
 
-        if ((unsigned int)len == SIZEOF_VLA(packet)) {
+        if ((unsigned int)len == packet_size) {
             return 1;
         }
 
-        return add_priority(con, packet, SIZEOF_VLA(packet), len) ? 1 : 0;
+        return add_priority(con, packet, packet_size, len) ? 1 : 0;
     }
 
-    len = net_send(con->ns, logger, con->sock, packet, SIZEOF_VLA(packet), &con->ip_port);
+    len = net_send(con->ns, logger, con->sock, packet, packet_size, &con->ip_port);
 
     if (len <= 0) {
         return 0;
@@ -185,12 +187,12 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
 
     increment_nonce(con->sent_nonce);
 
-    if ((unsigned int)len == SIZEOF_VLA(packet)) {
+    if ((unsigned int)len == packet_size) {
         return 1;
     }
 
-    memcpy(con->last_packet, packet, SIZEOF_VLA(packet));
-    con->last_packet_length = SIZEOF_VLA(packet);
+    memcpy(con->last_packet, packet, packet_size);
+    con->last_packet_length = packet_size;
     con->last_packet_sent = len;
     return 1;
 }
@@ -201,7 +203,7 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
  * return -1 on failure/no data in buffer.
  */
 int read_tcp_packet(
-        const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port)
+    const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port)
 {
     const uint16_t count = net_socket_data_recv_buffer(ns, sock);
 
@@ -265,10 +267,10 @@ static uint16_t read_tcp_length(const Logger *logger, const Memory *mem, const N
  * @retval -1 on failure (connection must be killed).
  */
 int read_packet_tcp_secure_connection(
-        const Logger *logger, const Memory *mem, const Network *ns,
-        Socket sock, uint16_t *next_packet_length,
-        const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data,
-        uint16_t max_len, const IP_Port *ip_port)
+    const Logger *logger, const Memory *mem, const Network *ns,
+    Socket sock, uint16_t *next_packet_length,
+    const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data,
+    uint16_t max_len, const IP_Port *ip_port)
 {
     if (*next_packet_length == 0) {
         const uint16_t len = read_tcp_length(logger, mem, ns, sock, ip_port);

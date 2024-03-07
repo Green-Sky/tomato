@@ -18,7 +18,7 @@
 // Set to true to produce an msgpack file at /tmp/test.mp.
 static const bool want_dump_events = false;
 
-static void handle_events_friend_message(Tox *tox, const Tox_Event_Friend_Message *event, void *user_data)
+static void handle_events_friend_message(const Tox_Event_Friend_Message *event, void *user_data)
 {
     bool *success = (bool *)user_data;
 
@@ -84,7 +84,7 @@ static bool await_message(Tox **toxes, const Tox_Dispatch *dispatch)
         }
 
         bool success = false;
-        tox_dispatch_invoke(dispatch, events, toxes[1], &success);
+        tox_dispatch_invoke(dispatch, events, &success);
         print_events(sys, events);
 
         if (success) {
@@ -169,22 +169,9 @@ static void test_tox_events(void)
     }
 }
 
-static void fake_test_unpack(void)
-{
-    // TODO(Green-Sky): add proper unpack tests and/or implement ngc events
-    (void)tox_group_privacy_state_unpack;
-    (void)tox_group_privacy_state_unpack;
-    (void)tox_group_voice_state_unpack;
-    (void)tox_group_topic_lock_unpack;
-    (void)tox_group_join_fail_unpack;
-    (void)tox_group_mod_event_unpack;
-    (void)tox_group_exit_type_unpack;
-}
-
 int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
     test_tox_events();
-    fake_test_unpack();
     return 0;
 }

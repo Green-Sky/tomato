@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 
+#include "attributes.h"
 #include "ccompat.h"
 #include "events/events_alloc.h" // IWYU pragma: keep
 #include "tox.h"
@@ -52,6 +53,7 @@ struct Tox_Dispatch {
     tox_events_group_self_join_cb *group_self_join_callback;
     tox_events_group_join_fail_cb *group_join_fail_callback;
     tox_events_group_moderation_cb *group_moderation_callback;
+    tox_events_dht_get_nodes_response_cb *dht_get_nodes_response_callback;
 };
 
 Tox_Dispatch *tox_dispatch_new(Tox_Err_Dispatch_New *error)
@@ -277,14 +279,19 @@ void tox_events_callback_group_moderation(
 {
     dispatch->group_moderation_callback = callback;
 }
+void tox_events_callback_dht_get_nodes_response(
+    Tox_Dispatch *dispatch, tox_events_dht_get_nodes_response_cb *callback)
+{
+    dispatch->dht_get_nodes_response_callback = callback;
+}
 
-non_null(1, 2) nullable(3, 4)
-static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Event *event, Tox *tox, void *user_data)
+non_null(1, 2) nullable(3)
+static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Event *event, void *user_data)
 {
     switch (event->type) {
         case TOX_EVENT_CONFERENCE_CONNECTED: {
             if (dispatch->conference_connected_callback != nullptr) {
-                dispatch->conference_connected_callback(tox, event->data.conference_connected, user_data);
+                dispatch->conference_connected_callback(event->data.conference_connected, user_data);
             }
 
             break;
@@ -292,7 +299,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_CONFERENCE_INVITE: {
             if (dispatch->conference_invite_callback != nullptr) {
-                dispatch->conference_invite_callback(tox, event->data.conference_invite, user_data);
+                dispatch->conference_invite_callback(event->data.conference_invite, user_data);
             }
 
             break;
@@ -300,7 +307,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_CONFERENCE_MESSAGE: {
             if (dispatch->conference_message_callback != nullptr) {
-                dispatch->conference_message_callback(tox, event->data.conference_message, user_data);
+                dispatch->conference_message_callback(event->data.conference_message, user_data);
             }
 
             break;
@@ -308,7 +315,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED: {
             if (dispatch->conference_peer_list_changed_callback != nullptr) {
-                dispatch->conference_peer_list_changed_callback(tox, event->data.conference_peer_list_changed, user_data);
+                dispatch->conference_peer_list_changed_callback(event->data.conference_peer_list_changed, user_data);
             }
 
             break;
@@ -316,7 +323,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_CONFERENCE_PEER_NAME: {
             if (dispatch->conference_peer_name_callback != nullptr) {
-                dispatch->conference_peer_name_callback(tox, event->data.conference_peer_name, user_data);
+                dispatch->conference_peer_name_callback(event->data.conference_peer_name, user_data);
             }
 
             break;
@@ -324,7 +331,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_CONFERENCE_TITLE: {
             if (dispatch->conference_title_callback != nullptr) {
-                dispatch->conference_title_callback(tox, event->data.conference_title, user_data);
+                dispatch->conference_title_callback(event->data.conference_title, user_data);
             }
 
             break;
@@ -332,7 +339,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FILE_CHUNK_REQUEST: {
             if (dispatch->file_chunk_request_callback != nullptr) {
-                dispatch->file_chunk_request_callback(tox, event->data.file_chunk_request, user_data);
+                dispatch->file_chunk_request_callback(event->data.file_chunk_request, user_data);
             }
 
             break;
@@ -340,7 +347,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FILE_RECV_CHUNK: {
             if (dispatch->file_recv_chunk_callback != nullptr) {
-                dispatch->file_recv_chunk_callback(tox, event->data.file_recv_chunk, user_data);
+                dispatch->file_recv_chunk_callback(event->data.file_recv_chunk, user_data);
             }
 
             break;
@@ -348,7 +355,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FILE_RECV_CONTROL: {
             if (dispatch->file_recv_control_callback != nullptr) {
-                dispatch->file_recv_control_callback(tox, event->data.file_recv_control, user_data);
+                dispatch->file_recv_control_callback(event->data.file_recv_control, user_data);
             }
 
             break;
@@ -356,7 +363,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FILE_RECV: {
             if (dispatch->file_recv_callback != nullptr) {
-                dispatch->file_recv_callback(tox, event->data.file_recv, user_data);
+                dispatch->file_recv_callback(event->data.file_recv, user_data);
             }
 
             break;
@@ -364,7 +371,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_CONNECTION_STATUS: {
             if (dispatch->friend_connection_status_callback != nullptr) {
-                dispatch->friend_connection_status_callback(tox, event->data.friend_connection_status, user_data);
+                dispatch->friend_connection_status_callback(event->data.friend_connection_status, user_data);
             }
 
             break;
@@ -372,7 +379,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_LOSSLESS_PACKET: {
             if (dispatch->friend_lossless_packet_callback != nullptr) {
-                dispatch->friend_lossless_packet_callback(tox, event->data.friend_lossless_packet, user_data);
+                dispatch->friend_lossless_packet_callback(event->data.friend_lossless_packet, user_data);
             }
 
             break;
@@ -380,7 +387,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_LOSSY_PACKET: {
             if (dispatch->friend_lossy_packet_callback != nullptr) {
-                dispatch->friend_lossy_packet_callback(tox, event->data.friend_lossy_packet, user_data);
+                dispatch->friend_lossy_packet_callback(event->data.friend_lossy_packet, user_data);
             }
 
             break;
@@ -388,7 +395,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_MESSAGE: {
             if (dispatch->friend_message_callback != nullptr) {
-                dispatch->friend_message_callback(tox, event->data.friend_message, user_data);
+                dispatch->friend_message_callback(event->data.friend_message, user_data);
             }
 
             break;
@@ -396,7 +403,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_NAME: {
             if (dispatch->friend_name_callback != nullptr) {
-                dispatch->friend_name_callback(tox, event->data.friend_name, user_data);
+                dispatch->friend_name_callback(event->data.friend_name, user_data);
             }
 
             break;
@@ -404,7 +411,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_READ_RECEIPT: {
             if (dispatch->friend_read_receipt_callback != nullptr) {
-                dispatch->friend_read_receipt_callback(tox, event->data.friend_read_receipt, user_data);
+                dispatch->friend_read_receipt_callback(event->data.friend_read_receipt, user_data);
             }
 
             break;
@@ -412,7 +419,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_REQUEST: {
             if (dispatch->friend_request_callback != nullptr) {
-                dispatch->friend_request_callback(tox, event->data.friend_request, user_data);
+                dispatch->friend_request_callback(event->data.friend_request, user_data);
             }
 
             break;
@@ -420,7 +427,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_STATUS: {
             if (dispatch->friend_status_callback != nullptr) {
-                dispatch->friend_status_callback(tox, event->data.friend_status, user_data);
+                dispatch->friend_status_callback(event->data.friend_status, user_data);
             }
 
             break;
@@ -428,7 +435,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_STATUS_MESSAGE: {
             if (dispatch->friend_status_message_callback != nullptr) {
-                dispatch->friend_status_message_callback(tox, event->data.friend_status_message, user_data);
+                dispatch->friend_status_message_callback(event->data.friend_status_message, user_data);
             }
 
             break;
@@ -436,7 +443,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_FRIEND_TYPING: {
             if (dispatch->friend_typing_callback != nullptr) {
-                dispatch->friend_typing_callback(tox, event->data.friend_typing, user_data);
+                dispatch->friend_typing_callback(event->data.friend_typing, user_data);
             }
 
             break;
@@ -444,7 +451,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_SELF_CONNECTION_STATUS: {
             if (dispatch->self_connection_status_callback != nullptr) {
-                dispatch->self_connection_status_callback(tox, event->data.self_connection_status, user_data);
+                dispatch->self_connection_status_callback(event->data.self_connection_status, user_data);
             }
 
             break;
@@ -452,7 +459,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PEER_NAME: {
             if (dispatch->group_peer_name_callback != nullptr) {
-                dispatch->group_peer_name_callback(tox, event->data.group_peer_name, user_data);
+                dispatch->group_peer_name_callback(event->data.group_peer_name, user_data);
             }
 
             break;
@@ -460,7 +467,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PEER_STATUS: {
             if (dispatch->group_peer_status_callback != nullptr) {
-                dispatch->group_peer_status_callback(tox, event->data.group_peer_status, user_data);
+                dispatch->group_peer_status_callback(event->data.group_peer_status, user_data);
             }
 
             break;
@@ -468,7 +475,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_TOPIC: {
             if (dispatch->group_topic_callback != nullptr) {
-                dispatch->group_topic_callback(tox, event->data.group_topic, user_data);
+                dispatch->group_topic_callback(event->data.group_topic, user_data);
             }
 
             break;
@@ -476,7 +483,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PRIVACY_STATE: {
             if (dispatch->group_privacy_state_callback != nullptr) {
-                dispatch->group_privacy_state_callback(tox, event->data.group_privacy_state, user_data);
+                dispatch->group_privacy_state_callback(event->data.group_privacy_state, user_data);
             }
 
             break;
@@ -484,7 +491,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_VOICE_STATE: {
             if (dispatch->group_voice_state_callback != nullptr) {
-                dispatch->group_voice_state_callback(tox, event->data.group_voice_state, user_data);
+                dispatch->group_voice_state_callback(event->data.group_voice_state, user_data);
             }
 
             break;
@@ -492,7 +499,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_TOPIC_LOCK: {
             if (dispatch->group_topic_lock_callback != nullptr) {
-                dispatch->group_topic_lock_callback(tox, event->data.group_topic_lock, user_data);
+                dispatch->group_topic_lock_callback(event->data.group_topic_lock, user_data);
             }
 
             break;
@@ -500,7 +507,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PEER_LIMIT: {
             if (dispatch->group_peer_limit_callback != nullptr) {
-                dispatch->group_peer_limit_callback(tox, event->data.group_peer_limit, user_data);
+                dispatch->group_peer_limit_callback(event->data.group_peer_limit, user_data);
             }
 
             break;
@@ -508,7 +515,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PASSWORD: {
             if (dispatch->group_password_callback != nullptr) {
-                dispatch->group_password_callback(tox, event->data.group_password, user_data);
+                dispatch->group_password_callback(event->data.group_password, user_data);
             }
 
             break;
@@ -516,7 +523,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_MESSAGE: {
             if (dispatch->group_message_callback != nullptr) {
-                dispatch->group_message_callback(tox, event->data.group_message, user_data);
+                dispatch->group_message_callback(event->data.group_message, user_data);
             }
 
             break;
@@ -524,7 +531,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PRIVATE_MESSAGE: {
             if (dispatch->group_private_message_callback != nullptr) {
-                dispatch->group_private_message_callback(tox, event->data.group_private_message, user_data);
+                dispatch->group_private_message_callback(event->data.group_private_message, user_data);
             }
 
             break;
@@ -532,7 +539,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_CUSTOM_PACKET: {
             if (dispatch->group_custom_packet_callback != nullptr) {
-                dispatch->group_custom_packet_callback(tox, event->data.group_custom_packet, user_data);
+                dispatch->group_custom_packet_callback(event->data.group_custom_packet, user_data);
             }
 
             break;
@@ -540,7 +547,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET: {
             if (dispatch->group_custom_private_packet_callback != nullptr) {
-                dispatch->group_custom_private_packet_callback(tox, event->data.group_custom_private_packet, user_data);
+                dispatch->group_custom_private_packet_callback(event->data.group_custom_private_packet, user_data);
             }
 
             break;
@@ -548,7 +555,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_INVITE: {
             if (dispatch->group_invite_callback != nullptr) {
-                dispatch->group_invite_callback(tox, event->data.group_invite, user_data);
+                dispatch->group_invite_callback(event->data.group_invite, user_data);
             }
 
             break;
@@ -556,7 +563,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PEER_JOIN: {
             if (dispatch->group_peer_join_callback != nullptr) {
-                dispatch->group_peer_join_callback(tox, event->data.group_peer_join, user_data);
+                dispatch->group_peer_join_callback(event->data.group_peer_join, user_data);
             }
 
             break;
@@ -564,7 +571,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_PEER_EXIT: {
             if (dispatch->group_peer_exit_callback != nullptr) {
-                dispatch->group_peer_exit_callback(tox, event->data.group_peer_exit, user_data);
+                dispatch->group_peer_exit_callback(event->data.group_peer_exit, user_data);
             }
 
             break;
@@ -572,7 +579,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_SELF_JOIN: {
             if (dispatch->group_self_join_callback != nullptr) {
-                dispatch->group_self_join_callback(tox, event->data.group_self_join, user_data);
+                dispatch->group_self_join_callback(event->data.group_self_join, user_data);
             }
 
             break;
@@ -580,7 +587,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_JOIN_FAIL: {
             if (dispatch->group_join_fail_callback != nullptr) {
-                dispatch->group_join_fail_callback(tox, event->data.group_join_fail, user_data);
+                dispatch->group_join_fail_callback(event->data.group_join_fail, user_data);
             }
 
             break;
@@ -588,7 +595,15 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
 
         case TOX_EVENT_GROUP_MODERATION: {
             if (dispatch->group_moderation_callback != nullptr) {
-                dispatch->group_moderation_callback(tox, event->data.group_moderation, user_data);
+                dispatch->group_moderation_callback(event->data.group_moderation, user_data);
+            }
+
+            break;
+        }
+
+        case TOX_EVENT_DHT_GET_NODES_RESPONSE: {
+            if (dispatch->dht_get_nodes_response_callback != nullptr) {
+                dispatch->dht_get_nodes_response_callback(event->data.dht_get_nodes_response, user_data);
             }
 
             break;
@@ -600,11 +615,11 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
     }
 }
 
-void tox_dispatch_invoke(const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+void tox_dispatch_invoke(const Tox_Dispatch *dispatch, const Tox_Events *events, void *user_data)
 {
     const uint32_t size = tox_events_get_size(events);
     for (uint32_t i = 0; i < size; ++i) {
         const Tox_Event *event = &events->events[i];
-        tox_dispatch_invoke_event(dispatch, event, tox, user_data);
+        tox_dispatch_invoke_event(dispatch, event, user_data);
     }
 }

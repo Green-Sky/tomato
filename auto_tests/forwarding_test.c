@@ -47,8 +47,8 @@ static void test_forwarded_request_cb(void *object, const IP_Port *forwarder,
                                       const uint8_t *sendback, uint16_t sendback_length,
                                       const uint8_t *data, uint16_t length, void *userdata)
 {
-    Test_Data *test_data = (Test_Data *)object;
-    uint8_t *index = (uint8_t *)userdata;
+    const Test_Data *test_data = (const Test_Data *)object;
+    const uint8_t *index = (const uint8_t *)userdata;
 
     if (length != 12 || memcmp("hello:  ", data, 8) != 0) {
         printf("[%u] got unexpected data of length %d\n", *index, length);
@@ -66,7 +66,7 @@ static void test_forwarded_response_cb(void *object,
                                        const uint8_t *data, uint16_t length, void *userdata)
 {
     Test_Data *test_data = (Test_Data *)object;
-    uint8_t *index = (uint8_t *)userdata;
+    const uint8_t *index = (const uint8_t *)userdata;
 
     if (length != 12 || memcmp("reply:  ", data, 8) != 0) {
         printf("[%u] got unexpected data of length %d\n", *index, length);
@@ -104,9 +104,9 @@ typedef struct Forwarding_Subtox {
 
 static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, uint32_t *index, uint16_t port)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
 
     Forwarding_Subtox *subtox = (Forwarding_Subtox *)calloc(1, sizeof(Forwarding_Subtox));
@@ -152,11 +152,11 @@ static void kill_forwarding_subtox(const Memory *mem, Forwarding_Subtox *subtox)
 
 static void test_forwarding(void)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
 
     uint32_t index[NUM_FORWARDER];
@@ -317,14 +317,12 @@ static void test_forwarding(void)
         }
     }
 
-
     for (uint32_t i = 0; i < NUM_FORWARDER; ++i) {
         kill_forwarding_subtox(mem, subtoxes[i]);
     }
 
     tox_kill(relay);
 }
-
 
 int main(void)
 {

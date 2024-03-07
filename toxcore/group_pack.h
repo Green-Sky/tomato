@@ -12,6 +12,7 @@
 
 #include <stdbool.h>
 
+#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "group_common.h"
@@ -37,4 +38,4 @@ bool group_privacy_state_from_int(uint8_t value, Group_Privacy_State *out);
 non_null()
 bool group_voice_state_from_int(uint8_t value, Group_Voice_State *out);
 
-#endif // C_TOXCORE_TOXCORE_GROUP_PACK_H
+#endif /* C_TOXCORE_TOXCORE_GROUP_PACK_H */

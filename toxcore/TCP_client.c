@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "DHT.h"
 #include "TCP_common.h"
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -285,7 +285,7 @@ static int proxy_socks5_read_connection_response(const Logger *logger, const TCP
     } else {
         uint8_t data[4 + sizeof(IP6) + sizeof(uint16_t)];
         const TCP_Connection *con = &tcp_conn->con;
-        int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
+        const int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
 
         if (ret == -1) {
             return 0;
@@ -313,7 +313,7 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
     memcpy(tcp_conn->con.last_packet, tcp_conn->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(tcp_conn->con.rng, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE);
     const int len = encrypt_data_symmetric(tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE, plain,
-                                     sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
+                                           sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
 
     if (len != sizeof(plain) + CRYPTO_MAC_SIZE) {
         return -1;
@@ -335,7 +335,7 @@ static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data
 {
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
     const int len = decrypt_data_symmetric(tcp_conn->con.shared_key, data, data + CRYPTO_NONCE_SIZE,
-                                     TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain);
+                                           TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain);
 
     if (len != sizeof(plain)) {
         return -1;
@@ -394,10 +394,11 @@ int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, 
         return 0;
     }
 
-    VLA(uint8_t, packet, 1 + length);
+    const uint16_t packet_size = 1 + length;
+    VLA(uint8_t, packet, packet_size);
     packet[0] = con_id + NUM_RESERVED_PORTS;
     memcpy(packet + 1, data, length);
-    return write_packet_tcp_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
+    return write_packet_tcp_secure_connection(logger, &con->con, packet, packet_size, false);
 }
 
 /**
@@ -412,13 +413,13 @@ int send_oob_packet(const Logger *logger, TCP_Client_Connection *con, const uint
         return -1;
     }
 
-    VLA(uint8_t, packet, 1 + CRYPTO_PUBLIC_KEY_SIZE + length);
+    const uint16_t packet_size = 1 + CRYPTO_PUBLIC_KEY_SIZE + length;
+    VLA(uint8_t, packet, packet_size);
     packet[0] = TCP_PACKET_OOB_SEND;
     memcpy(packet + 1, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length);
-    return write_packet_tcp_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
+    return write_packet_tcp_secure_connection(logger, &con->con, packet, packet_size, false);
 }
-
 
 /** @brief Set the number that will be used as an argument in the callbacks related to con_id.
  *
@@ -536,10 +537,11 @@ int send_disconnect_request(const Logger *logger, TCP_Client_Connection *con, ui
  */
 int send_onion_request(const Logger *logger, TCP_Client_Connection *con, const uint8_t *data, uint16_t length)
 {
-    VLA(uint8_t, packet, 1 + length);
+    const uint16_t packet_size = 1 + length;
+    VLA(uint8_t, packet, packet_size);
     packet[0] = TCP_PACKET_ONION_REQUEST;
     memcpy(packet + 1, data, length);
-    return write_packet_tcp_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
+    return write_packet_tcp_secure_connection(logger, &con->con, packet, packet_size, false);
 }
 
 void onion_response_handler(TCP_Client_Connection *con, tcp_onion_response_cb *onion_callback, void *object)
@@ -578,9 +580,9 @@ void forwarding_handler(TCP_Client_Connection *con, forwarded_response_cb *forwa
 
 /** Create new TCP connection to ip_port/public_key */
 TCP_Client_Connection *new_tcp_connection(
-        const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
-        const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
-        const TCP_Proxy_Info *proxy_info)
+    const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
+    const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
+    const TCP_Proxy_Info *proxy_info)
 {
     assert(logger != nullptr);
     assert(mem != nullptr);
@@ -871,7 +873,8 @@ non_null(1, 2) nullable(3)
 static bool tcp_process_packet(const Logger *logger, TCP_Client_Connection *conn, void *userdata)
 {
     uint8_t packet[MAX_PACKET_SIZE];
-    const int len = read_packet_tcp_secure_connection(logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet, sizeof(packet), &conn->ip_port);
+    const int len = read_packet_tcp_secure_connection(logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet, sizeof(packet),
+                    &conn->ip_port);
 
     if (len == 0) {
         return false;
@@ -949,7 +952,7 @@ void do_tcp_connection(const Logger *logger, const Mono_Time *mono_time,
 
     if (tcp_connection->status == TCP_CLIENT_PROXY_SOCKS5_CONNECTING) {
         if (send_pending_data(logger, &tcp_connection->con) == 0) {
-            int ret = socks5_read_handshake_response(logger, tcp_connection);
+            const int ret = socks5_read_handshake_response(logger, tcp_connection);
 
             if (ret == -1) {
                 tcp_connection->kill_at = 0;
@@ -965,7 +968,7 @@ void do_tcp_connection(const Logger *logger, const Mono_Time *mono_time,
 
     if (tcp_connection->status == TCP_CLIENT_PROXY_SOCKS5_UNCONFIRMED) {
         if (send_pending_data(logger, &tcp_connection->con) == 0) {
-            int ret = proxy_socks5_read_connection_response(logger, tcp_connection);
+            const int ret = proxy_socks5_read_connection_response(logger, tcp_connection);
 
             if (ret == -1) {
                 tcp_connection->kill_at = 0;

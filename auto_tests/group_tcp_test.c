@@ -19,32 +19,43 @@ typedef struct State {
     uint32_t peer_id[NUM_GROUP_TOXES - 1];
 } State;
 
-static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
-                                 const uint8_t *group_name, size_t group_name_length, void *user_data)
+static void group_invite_handler(const Tox_Event_Group_Invite *event, void *user_data)
 {
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    const uint32_t friend_number = tox_event_group_invite_get_friend_number(event);
+    const uint8_t *invite_data = tox_event_group_invite_get_invite_data(event);
+    const size_t length = tox_event_group_invite_get_invite_data_length(event);
+
     printf("Accepting friend invite\n");
 
     Tox_Err_Group_Invite_Accept err_accept;
-    tox_group_invite_accept(tox, friend_number, invite_data, length, (const uint8_t *)"test", 4,
+    tox_group_invite_accept(autotox->tox, friend_number, invite_data, length, (const uint8_t *)"test", 4,
                             nullptr, 0, &err_accept);
     ck_assert(err_accept == TOX_ERR_GROUP_INVITE_ACCEPT_OK);
 }
 
-static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, void *user_data)
+static void group_peer_join_handler(const Tox_Event_Group_Peer_Join *event, void *user_data)
 {
     AutoTox *autotox = (AutoTox *)user_data;
     ck_assert(autotox != nullptr);
 
     State *state = (State *)autotox->state;
+
+    const uint32_t peer_id = tox_event_group_peer_join_get_peer_id(event);
+
     fprintf(stderr, "joined: %zu, %u\n", state->num_peers, peer_id);
     ck_assert_msg(state->num_peers < NUM_GROUP_TOXES - 1, "%zu", state->num_peers);
 
     state->peer_id[state->num_peers++] = peer_id;
 }
 
-static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
-        const uint8_t *message, size_t length, void *user_data)
+static void group_private_message_handler(const Tox_Event_Group_Private_Message *event, void *user_data)
 {
+    const uint8_t *message = tox_event_group_private_message_get_message(event);
+    const size_t length = tox_event_group_private_message_get_message_length(event);
+
     AutoTox *autotox = (AutoTox *)user_data;
     ck_assert(autotox != nullptr);
 
@@ -58,9 +69,11 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
     state->got_code = true;
 }
 
-static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
-                                  const uint8_t *message, size_t length, uint32_t message_id, void *user_data)
+static void group_message_handler(const Tox_Event_Group_Message *event, void *user_data)
 {
+    const uint8_t *message = tox_event_group_message_get_message(event);
+    const size_t length = tox_event_group_message_get_message_length(event);
+
     AutoTox *autotox = (AutoTox *)user_data;
     ck_assert(autotox != nullptr);
 
@@ -133,12 +146,12 @@ static void group_tcp_test(AutoTox *autotoxes)
     State *state1 = (State *)autotoxes[1].state;
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        tox_callback_group_peer_join(autotoxes[i].tox, group_peer_join_handler);
-        tox_callback_group_private_message(autotoxes[i].tox, group_private_message_handler);
+        tox_events_callback_group_peer_join(autotoxes[i].dispatch, group_peer_join_handler);
+        tox_events_callback_group_private_message(autotoxes[i].dispatch, group_private_message_handler);
     }
 
-    tox_callback_group_message(autotoxes[1].tox, group_message_handler);
-    tox_callback_group_invite(autotoxes[1].tox, group_invite_handler);
+    tox_events_callback_group_message(autotoxes[1].dispatch, group_message_handler);
+    tox_events_callback_group_invite(autotoxes[1].dispatch, group_invite_handler);
 
     Tox_Err_Group_New new_err;
     uint32_t groupnumber = tox_group_new(autotoxes[0].tox, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
@@ -147,11 +160,11 @@ static void group_tcp_test(AutoTox *autotoxes)
 
     iterate_group(autotoxes, NUM_GROUP_TOXES, GROUP_ITERATION_INTERVAL);
 
-    Tox_Err_Group_State_Queries id_err;
+    Tox_Err_Group_State_Query id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
     tox_group_get_chat_id(autotoxes[0].tox, groupnumber, chat_id, &id_err);
-    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "%d", id_err);
+    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "%d", id_err);
 
     printf("Tox 0 created new group...\n");
 
@@ -167,7 +180,6 @@ static void group_tcp_test(AutoTox *autotoxes)
 
     printf("%d peers successfully joined. Waiting for code...\n", NUM_GROUP_TOXES);
     printf("Tox 0 sending secret code to all peers\n");
-
 
     for (size_t i = 0; i < NUM_GROUP_TOXES - 1; ++i) {
 

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Invite {
     uint32_t friend_number;
@@ -44,7 +43,7 @@ uint32_t tox_event_group_invite_get_friend_number(const Tox_Event_Group_Invite *
     return group_invite->friend_number;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_invite_set_invite_data(Tox_Event_Group_Invite *group_invite,
         const uint8_t *invite_data, uint32_t invite_data_length)
 {
@@ -54,6 +53,11 @@ static bool tox_event_group_invite_set_invite_data(Tox_Event_Group_Invite *group
         free(group_invite->invite_data);
         group_invite->invite_data = nullptr;
         group_invite->invite_data_length = 0;
+    }
+
+    if (invite_data == nullptr) {
+        assert(invite_data_length == 0);
+        return true;
     }
 
     uint8_t *invite_data_copy = (uint8_t *)malloc(invite_data_length);
@@ -78,7 +82,7 @@ const uint8_t *tox_event_group_invite_get_invite_data(const Tox_Event_Group_Invi
     return group_invite->invite_data;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_invite_set_group_name(Tox_Event_Group_Invite *group_invite,
         const uint8_t *group_name, uint32_t group_name_length)
 {
@@ -88,6 +92,11 @@ static bool tox_event_group_invite_set_group_name(Tox_Event_Group_Invite *group_
         free(group_invite->group_name);
         group_invite->group_name = nullptr;
         group_invite->group_name_length = 0;
+    }
+
+    if (group_name == nullptr) {
+        assert(group_name_length == 0);
+        return true;
     }
 
     uint8_t *group_name_copy = (uint8_t *)malloc(group_name_length);
@@ -149,7 +158,6 @@ static bool tox_event_group_invite_unpack_into(
            && bin_unpack_bin(bu, &event->group_name, &event->group_name_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -203,6 +211,7 @@ bool tox_event_group_invite_unpack(
     Tox_Event_Group_Invite **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_invite_new(mem);
 
     if (*event == nullptr) {
@@ -232,16 +241,15 @@ static Tox_Event_Group_Invite *tox_event_group_invite_alloc(void *user_data)
     return group_invite;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_invite(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length, const uint8_t *group_name, size_t group_name_length,
-        void *user_data)
+void tox_events_handle_group_invite(
+    Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length, const uint8_t *group_name, size_t group_name_length,
+    void *user_data)
 {
     Tox_Event_Group_Invite *group_invite = tox_event_group_invite_alloc(user_data);
 

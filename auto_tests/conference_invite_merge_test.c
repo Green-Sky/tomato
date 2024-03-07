@@ -12,15 +12,18 @@ typedef struct State {
 #include "auto_test_support.h"
 
 static void handle_conference_invite(
-    Tox *tox, uint32_t friend_number, Tox_Conference_Type type,
-    const uint8_t *cookie, size_t length, void *user_data)
+    const Tox_Event_Conference_Invite *event, void *user_data)
 {
     const AutoTox *autotox = (AutoTox *)user_data;
     State *state = (State *)autotox->state;
 
+    const uint32_t friend_number = tox_event_conference_invite_get_friend_number(event);
+    const uint8_t *cookie = tox_event_conference_invite_get_cookie(event);
+    const size_t length = tox_event_conference_invite_get_cookie_length(event);
+
     if (friend_number != -1) {
         Tox_Err_Conference_Join err;
-        state->conference = tox_conference_join(tox, friend_number, cookie, length, &err);
+        state->conference = tox_conference_join(autotox->tox, friend_number, cookie, length, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK,
                       "attempting to join the conference returned with an error: %d", err);
         fprintf(stderr, "#%u accepted invite to conference %u\n", autotox->index, state->conference);
@@ -28,7 +31,7 @@ static void handle_conference_invite(
 }
 
 static void handle_conference_connected(
-    Tox *tox, uint32_t conference_number, void *user_data)
+    const Tox_Event_Conference_Connected *event, void *user_data)
 {
     const AutoTox *autotox = (AutoTox *)user_data;
     State *state = (State *)autotox->state;
@@ -37,7 +40,7 @@ static void handle_conference_connected(
     state->connected = true;
 }
 
-static void wait_connected(AutoTox *autotoxes, AutoTox *autotox, uint32_t friendnumber)
+static void wait_connected(AutoTox *autotoxes, const AutoTox *autotox, uint32_t friendnumber)
 {
     do {
         iterate_all_wait(autotoxes, NUM_INVITE_MERGE_TOX, ITERATION_INTERVAL);
@@ -95,8 +98,8 @@ static void conference_invite_merge_test(AutoTox *autotoxes)
     // components will cause a split group to merge
 
     for (int i = 0; i < NUM_INVITE_MERGE_TOX; i++) {
-        tox_callback_conference_invite(autotoxes[i].tox, &handle_conference_invite);
-        tox_callback_conference_connected(autotoxes[i].tox, &handle_conference_connected);
+        tox_events_callback_conference_invite(autotoxes[i].dispatch, handle_conference_invite);
+        tox_events_callback_conference_connected(autotoxes[i].dispatch, handle_conference_connected);
     }
 
     State *state2 = (State *)autotoxes[2].state;

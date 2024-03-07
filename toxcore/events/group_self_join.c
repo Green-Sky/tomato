@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -13,13 +14,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Self_Join {
     uint32_t group_number;
@@ -64,7 +63,6 @@ static bool tox_event_group_self_join_unpack_into(
     assert(event != nullptr);
     return bin_unpack_u32(bu, &event->group_number);
 }
-
 
 /*****************************************************
  *
@@ -119,6 +117,7 @@ bool tox_event_group_self_join_unpack(
     Tox_Event_Group_Self_Join **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_self_join_new(mem);
 
     if (*event == nullptr) {
@@ -148,16 +147,15 @@ static Tox_Event_Group_Self_Join *tox_event_group_self_join_alloc(void *user_dat
     return group_self_join;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_self_join(Tox *tox, uint32_t group_number,
-        void *user_data)
+void tox_events_handle_group_self_join(
+    Tox *tox, uint32_t group_number,
+    void *user_data)
 {
     Tox_Event_Group_Self_Join *group_self_join = tox_event_group_self_join_alloc(user_data);
 

@@ -72,12 +72,16 @@ static bool all_nodes_crawled(const AutoTox *autotoxes, uint32_t num_toxes, uint
     return true;
 }
 
-static void getnodes_response_cb(Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port, void *user_data)
+static void getnodes_response_cb(const Tox_Event_Dht_Get_Nodes_Response *event, void *user_data)
 {
     ck_assert(user_data != nullptr);
 
-    AutoTox *autotoxes = (AutoTox *)user_data;
-    State *state = (State *)autotoxes->state;
+    AutoTox *autotox = (AutoTox *)user_data;
+    State *state = (State *)autotox->state;
+
+    const uint8_t *public_key = tox_event_dht_get_nodes_response_get_public_key(event);
+    const char *ip = (const char *)tox_event_dht_get_nodes_response_get_ip(event);
+    const uint16_t port = tox_event_dht_get_nodes_response_get_port(event);
 
     if (node_crawled(state->nodes, state->num_nodes, public_key)) {
         return;
@@ -97,7 +101,7 @@ static void getnodes_response_cb(Tox *tox, const uint8_t *public_key, const char
 
     // ask new node to give us their close nodes to every public key
     for (size_t i = 0; i < NUM_TOXES; ++i) {
-        tox_dht_get_nodes(tox, public_key, ip, port, state->public_key_list[i], nullptr);
+        tox_dht_get_nodes(autotox->tox, public_key, ip, port, state->public_key_list[i], nullptr);
     }
 }
 
@@ -121,13 +125,12 @@ static void test_dht_getnodes(AutoTox *autotoxes)
         ck_assert(public_key_list[i] != nullptr);
 
         tox_self_get_dht_id(autotoxes[i].tox, public_key_list[i]);
-        tox_callback_dht_get_nodes_response(autotoxes[i].tox, getnodes_response_cb);
+        tox_events_callback_dht_get_nodes_response(autotoxes[i].dispatch, getnodes_response_cb);
 
         printf("Peer %zu dht closenode count total/announce-capable: %d/%d\n",
-            i,
-            tox_dht_get_num_closelist(autotoxes[i].tox),
-            tox_dht_get_num_closelist_announce_capable(autotoxes[i].tox)
-        );
+               i,
+               tox_dht_get_num_closelist(autotoxes[i].tox),
+               tox_dht_get_num_closelist_announce_capable(autotoxes[i].tox));
     }
 
     while (!all_nodes_crawled(autotoxes, NUM_TOXES, public_key_list)) {

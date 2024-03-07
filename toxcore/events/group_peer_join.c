@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -13,13 +14,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Peer_Join {
     uint32_t group_number;
@@ -86,7 +85,6 @@ static bool tox_event_group_peer_join_unpack_into(
            && bin_unpack_u32(bu, &event->peer_id);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -140,6 +138,7 @@ bool tox_event_group_peer_join_unpack(
     Tox_Event_Group_Peer_Join **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_peer_join_new(mem);
 
     if (*event == nullptr) {
@@ -169,16 +168,15 @@ static Tox_Event_Group_Peer_Join *tox_event_group_peer_join_alloc(void *user_dat
     return group_peer_join;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_peer_join(Tox *tox, uint32_t group_number, uint32_t peer_id,
-        void *user_data)
+void tox_events_handle_group_peer_join(
+    Tox *tox, uint32_t group_number, uint32_t peer_id,
+    void *user_data)
 {
     Tox_Event_Group_Peer_Join *group_peer_join = tox_event_group_peer_join_alloc(user_data);
 

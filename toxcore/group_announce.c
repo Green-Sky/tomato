@@ -9,7 +9,9 @@
 #include <string.h>
 
 #include "DHT.h"
+#include "attributes.h"
 #include "ccompat.h"
+#include "crypto_core.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"
@@ -76,7 +78,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
     for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
         const size_t index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
-        if (memcmp(except_public_key, &announces->peer_announces[index].base_announce.peer_public_key,
+        if (memcmp(except_public_key, announces->peer_announces[index].base_announce.peer_public_key,
                    ENC_PUBLIC_KEY_SIZE) == 0) {
             continue;
         }
@@ -84,7 +86,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
         bool already_added = false;
 
         for (size_t j = 0; j < added_count; ++j) {
-            if (memcmp(&gc_announces[j].peer_public_key, &announces->peer_announces[index].base_announce.peer_public_key,
+            if (memcmp(gc_announces[j].peer_public_key, announces->peer_announces[index].base_announce.peer_public_key,
                        ENC_PUBLIC_KEY_SIZE) == 0) {
                 already_added = true;
                 break;
@@ -341,8 +343,8 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
 
 non_null()
 static GC_Announces *gca_new_announces(
-        GC_Announces_List *gc_announces_list,
-        const GC_Public_Announce *public_announce)
+    GC_Announces_List *gc_announces_list,
+    const GC_Public_Announce *public_announce)
 {
     GC_Announces *announces = (GC_Announces *)calloc(1, sizeof(GC_Announces));
 

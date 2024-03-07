@@ -35,7 +35,7 @@ typedef struct Memory {
     void *obj;
 } Memory;
 
-const Memory *system_memory(void);
+const Memory *os_memory(void);
 
 /**
  * @brief Allocate an array of a given size for built-in types.
@@ -80,7 +80,7 @@ non_null(1) nullable(2) void *mem_vrealloc(const Memory *mem, void *ptr, uint32_
 non_null(1) nullable(2) void mem_delete(const Memory *mem, void *ptr);
 
 #ifdef __cplusplus
-}  // extern "C"
+} /* extern "C" */
 #endif
 
-#endif
+#endif /* C_TOXCORE_TOXCORE_MEM_H */
