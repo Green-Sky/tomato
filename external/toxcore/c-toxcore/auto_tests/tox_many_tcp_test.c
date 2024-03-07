@@ -26,16 +26,27 @@
 #define TOX_LOCALHOST "127.0.0.1"
 #endif
 
+typedef struct State {
+    uint32_t to_comp;
+    Tox *tox;
+} State;
+
 static bool enable_broken_tests = false;
 
-static void accept_friend_request(Tox *m, const uint8_t *public_key, const uint8_t *data, size_t length, void *userdata)
+static void accept_friend_request(const Tox_Event_Friend_Request *event, void *userdata)
 {
-    if (*((uint32_t *)userdata) != 974536) {
+    State *state = (State *)userdata;
+
+    const uint8_t *public_key = tox_event_friend_request_get_public_key(event);
+    const uint8_t *message = tox_event_friend_request_get_message(event);
+    const uint32_t message_length = tox_event_friend_request_get_message_length(event);
+
+    if (state->to_comp != 974536) {
         return;
     }
 
-    if (length == 7 && memcmp("Gentoo", data, 7) == 0) {
-        tox_friend_add_norequest(m, public_key, nullptr);
+    if (message_length == 7 && memcmp("Gentoo", message, 7) == 0) {
+        tox_friend_add_norequest(state->tox, public_key, nullptr);
     }
 }
 
@@ -46,7 +57,7 @@ static uint16_t tcp_relay_port = 33448;
 
 static void test_many_clients_tcp(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     long long unsigned int cur_time = time(nullptr);
     Tox *toxes[NUM_TOXES_TCP];
@@ -73,7 +84,7 @@ static void test_many_clients_tcp(void)
             continue;
         }
         ck_assert_msg(toxes[i] != nullptr, "Failed to create tox instances %u", i);
-        tox_callback_friend_request(toxes[i], accept_friend_request);
+        tox_events_init(toxes[i]);
         uint8_t dpk[TOX_PUBLIC_KEY_SIZE];
         tox_self_get_dht_id(toxes[0], dpk);
         Tox_Err_Bootstrap error;
@@ -84,6 +95,11 @@ static void test_many_clients_tcp(void)
 
         tox_options_free(opts);
     }
+
+    Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
+    ck_assert(dispatch != nullptr);
+
+    tox_events_callback_friend_request(dispatch, accept_friend_request);
 
     struct {
         uint16_t tox1;
@@ -131,12 +147,18 @@ loop_top:
         }
 
         for (uint32_t i = 0; i < NUM_TOXES_TCP; ++i) {
-            tox_iterate(toxes[i], &to_comp);
+            Tox_Err_Events_Iterate err = TOX_ERR_EVENTS_ITERATE_OK;
+            Tox_Events *events = tox_events_iterate(toxes[i], true, &err);
+            ck_assert(err == TOX_ERR_EVENTS_ITERATE_OK);
+            State state = {to_comp, toxes[i]};
+            tox_dispatch_invoke(dispatch, events, &state);
+            tox_events_free(events);
         }
 
         c_sleep(50);
     }
 
+    tox_dispatch_free(dispatch);
     for (uint32_t i = 0; i < NUM_TOXES_TCP; ++i) {
         tox_kill(toxes[i]);
     }
@@ -148,7 +170,7 @@ loop_top:
 
 static void test_many_clients_tcp_b(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     long long unsigned int cur_time = time(nullptr);
     Tox *toxes[NUM_TOXES_TCP];
@@ -167,7 +189,7 @@ static void test_many_clients_tcp_b(void)
         index[i] = i + 1;
         toxes[i] = tox_new_log(opts, nullptr, &index[i]);
         ck_assert_msg(toxes[i] != nullptr, "Failed to create tox instances %u", i);
-        tox_callback_friend_request(toxes[i], accept_friend_request);
+        tox_events_init(toxes[i]);
         uint8_t dpk[TOX_PUBLIC_KEY_SIZE];
         tox_self_get_dht_id(toxes[(i % NUM_TCP_RELAYS)], dpk);
         ck_assert_msg(tox_add_tcp_relay(toxes[i], TOX_LOCALHOST, tcp_relay_port + (i % NUM_TCP_RELAYS), dpk, nullptr),
@@ -178,6 +200,11 @@ static void test_many_clients_tcp_b(void)
 
         tox_options_free(opts);
     }
+
+    Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
+    ck_assert(dispatch != nullptr);
+
+    tox_events_callback_friend_request(dispatch, accept_friend_request);
 
     struct {
         uint16_t tox1;
@@ -232,19 +259,24 @@ loop_top:
         }
 
         for (uint32_t i = 0; i < NUM_TOXES_TCP; ++i) {
-            tox_iterate(toxes[i], &to_comp);
+            Tox_Err_Events_Iterate err = TOX_ERR_EVENTS_ITERATE_OK;
+            Tox_Events *events = tox_events_iterate(toxes[i], true, &err);
+            ck_assert(err == TOX_ERR_EVENTS_ITERATE_OK);
+            State state = {to_comp, toxes[i]};
+            tox_dispatch_invoke(dispatch, events, &state);
+            tox_events_free(events);
         }
 
         c_sleep(30);
     }
 
+    tox_dispatch_free(dispatch);
     for (uint32_t i = 0; i < NUM_TOXES_TCP; ++i) {
         tox_kill(toxes[i]);
     }
 
     printf("test_many_clients_tcp_b succeeded, took %llu seconds\n", time(nullptr) - cur_time);
 }
-
 
 static void tox_suite(void)
 {

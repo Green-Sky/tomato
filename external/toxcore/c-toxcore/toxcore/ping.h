@@ -13,6 +13,10 @@
 #include <stdint.h>
 
 #include "DHT.h"
+#include "attributes.h"
+#include "crypto_core.h"
+#include "mem.h"
+#include "mono_time.h"
 #include "network.h"
 
 typedef struct Ping Ping;
@@ -45,4 +49,4 @@ void ping_iterate(Ping *ping);
 non_null()
 void ping_send_request(Ping *ping, const IP_Port *ipp, const uint8_t *public_key);
 
-#endif // C_TOXCORE_TOXCORE_PING_H
+#endif /* C_TOXCORE_TOXCORE_PING_H */

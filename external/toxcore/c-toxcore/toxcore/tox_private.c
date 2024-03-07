@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "DHT.h"
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "group_chats.h"
@@ -33,9 +34,9 @@ Tox_System tox_default_system(void)
     const Tox_System sys = {
         nullptr,  // mono_time_callback
         nullptr,  // mono_time_user_data
-        system_random(),
-        system_network(),
-        system_memory(),
+        os_random(),
+        os_network(),
+        os_memory(),
     };
     return sys;
 }
@@ -156,7 +157,8 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
     return true;
 }
 
-uint16_t tox_dht_get_num_closelist(const Tox *tox) {
+uint16_t tox_dht_get_num_closelist(const Tox *tox)
+{
     tox_lock(tox);
     const uint16_t num_total = dht_get_num_closelist(tox->m->dht);
     tox_unlock(tox);
@@ -164,7 +166,8 @@ uint16_t tox_dht_get_num_closelist(const Tox *tox) {
     return num_total;
 }
 
-uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *tox){
+uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *tox)
+{
     tox_lock(tox);
     const uint16_t num_cap = dht_get_num_closelist_announce_capable(tox->m->dht);
     tox_unlock(tox);
@@ -173,7 +176,7 @@ uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *tox){
 }
 
 size_t tox_group_peer_get_ip_address_size(const Tox *tox, uint32_t group_number, uint32_t peer_id,
-                                          Tox_Err_Group_Peer_Query *error)
+        Tox_Err_Group_Peer_Query *error)
 {
     assert(tox != nullptr);
 
@@ -186,7 +189,7 @@ size_t tox_group_peer_get_ip_address_size(const Tox *tox, uint32_t group_number,
         return -1;
     }
 
-    const int ret = gc_get_peer_ip_address_size(chat, peer_id);
+    const int ret = gc_get_peer_ip_address_size(chat, gc_peer_id_from_int(peer_id));
     tox_unlock(tox);
 
     if (ret == -1) {
@@ -199,7 +202,7 @@ size_t tox_group_peer_get_ip_address_size(const Tox *tox, uint32_t group_number,
 }
 
 bool tox_group_peer_get_ip_address(const Tox *tox, uint32_t group_number, uint32_t peer_id, uint8_t *ip_addr,
-                               Tox_Err_Group_Peer_Query *error)
+                                   Tox_Err_Group_Peer_Query *error)
 {
     assert(tox != nullptr);
 
@@ -212,7 +215,7 @@ bool tox_group_peer_get_ip_address(const Tox *tox, uint32_t group_number, uint32
         return false;
     }
 
-    const int ret = gc_get_peer_ip_address(chat, peer_id, ip_addr);
+    const int ret = gc_get_peer_ip_address(chat, gc_peer_id_from_int(peer_id), ip_addr);
     tox_unlock(tox);
 
     if (ret == -1) {

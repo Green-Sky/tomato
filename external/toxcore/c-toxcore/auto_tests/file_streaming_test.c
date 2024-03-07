@@ -53,7 +53,7 @@ static void tox_file_receive(Tox *tox, uint32_t friend_number, uint32_t file_num
 
     ck_assert_msg(memcmp(file_id, file_cmp_id, TOX_FILE_ID_LENGTH) == 0, "bad file_id");
 
-    uint8_t empty[TOX_FILE_ID_LENGTH] = {0};
+    const uint8_t empty[TOX_FILE_ID_LENGTH] = {0};
 
     ck_assert_msg(memcmp(empty, file_cmp_id, TOX_FILE_ID_LENGTH) != 0, "empty file_id");
 
@@ -126,14 +126,12 @@ static void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t fi
     Tox_Err_File_Send_Chunk error;
     tox_file_send_chunk(tox, friend_number, file_number, position, f_data, length, &error);
 
-
     ck_assert_msg(error == TOX_ERR_FILE_SEND_CHUNK_OK,
                   "could not send chunk, error num=%d pos=%d len=%d", (int)error, (int)position, (int)length);
 
     ++sending_num;
     sending_pos += length;
 }
-
 
 static uint8_t num;
 static bool file_recv;
@@ -209,7 +207,6 @@ static void file_transfer_test(void)
     file_accepted = file_size = sendf_ok = size_recv = 0;
     file_recv = 0;
     max_sending = UINT64_MAX;
-    uint64_t totalf_size = 100 * 1024 * 1024;
 
     printf("Starting file streaming transfer test.\n");
 
@@ -224,10 +221,10 @@ static void file_transfer_test(void)
     tox_callback_file_chunk_request(tox2, tox_file_chunk_request);
     tox_callback_file_recv_control(tox3, file_print_control);
     tox_callback_file_recv(tox3, tox_file_receive);
-    totalf_size = UINT64_MAX;
+    const uint64_t totalf_size = UINT64_MAX;
     Tox_File_Number fnum = tox_file_send(
-        tox2, 0, TOX_FILE_KIND_DATA, totalf_size, nullptr,
-        (const uint8_t *)"Gentoo.exe", sizeof("Gentoo.exe"), nullptr);
+                               tox2, 0, TOX_FILE_KIND_DATA, totalf_size, nullptr,
+                               (const uint8_t *)"Gentoo.exe", sizeof("Gentoo.exe"), nullptr);
     ck_assert_msg(fnum != UINT32_MAX, "tox_new_file_sender fail");
 
     Tox_Err_File_Get gfierr;

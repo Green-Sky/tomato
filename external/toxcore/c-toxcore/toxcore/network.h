@@ -13,6 +13,8 @@
 #include <stddef.h>     // size_t
 #include <stdint.h>     // uint*_t
 
+#include "attributes.h"
+#include "bin_pack.h"
 #include "logger.h"
 #include "mem.h"
 
@@ -25,19 +27,27 @@ extern "C" {
  */
 typedef struct Network_Addr Network_Addr;
 
-typedef int net_close_cb(void *obj, int sock);
-typedef int net_accept_cb(void *obj, int sock);
-typedef int net_bind_cb(void *obj, int sock, const Network_Addr *addr);
-typedef int net_listen_cb(void *obj, int sock, int backlog);
-typedef int net_recvbuf_cb(void *obj, int sock);
-typedef int net_recv_cb(void *obj, int sock, uint8_t *buf, size_t len);
-typedef int net_recvfrom_cb(void *obj, int sock, uint8_t *buf, size_t len, Network_Addr *addr);
-typedef int net_send_cb(void *obj, int sock, const uint8_t *buf, size_t len);
-typedef int net_sendto_cb(void *obj, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr);
-typedef int net_socket_cb(void *obj, int domain, int type, int proto);
-typedef int net_socket_nonblock_cb(void *obj, int sock, bool nonblock);
-typedef int net_getsockopt_cb(void *obj, int sock, int level, int optname, void *optval, size_t *optlen);
-typedef int net_setsockopt_cb(void *obj, int sock, int level, int optname, const void *optval, size_t optlen);
+typedef bitwise int Socket_Value;
+typedef struct Socket {
+    Socket_Value value;
+} Socket;
+
+int net_socket_to_native(Socket sock);
+Socket net_socket_from_native(int sock);
+
+typedef int net_close_cb(void *obj, Socket sock);
+typedef Socket net_accept_cb(void *obj, Socket sock);
+typedef int net_bind_cb(void *obj, Socket sock, const Network_Addr *addr);
+typedef int net_listen_cb(void *obj, Socket sock, int backlog);
+typedef int net_recvbuf_cb(void *obj, Socket sock);
+typedef int net_recv_cb(void *obj, Socket sock, uint8_t *buf, size_t len);
+typedef int net_recvfrom_cb(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr);
+typedef int net_send_cb(void *obj, Socket sock, const uint8_t *buf, size_t len);
+typedef int net_sendto_cb(void *obj, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr);
+typedef Socket net_socket_cb(void *obj, int domain, int type, int proto);
+typedef int net_socket_nonblock_cb(void *obj, Socket sock, bool nonblock);
+typedef int net_getsockopt_cb(void *obj, Socket sock, int level, int optname, void *optval, size_t *optlen);
+typedef int net_setsockopt_cb(void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen);
 typedef int net_getaddrinfo_cb(void *obj, int family, Network_Addr **addrs);
 typedef int net_freeaddrinfo_cb(void *obj, Network_Addr *addrs);
 
@@ -69,7 +79,7 @@ typedef struct Network {
     void *obj;
 } Network;
 
-const Network *system_network(void);
+const Network *os_network(void);
 
 typedef struct Family {
     uint8_t value;
@@ -146,7 +156,6 @@ typedef enum Net_Packet_Type {
     NET_PACKET_MAX                  = 0xff, /* This type must remain within a single uint8. */
 } Net_Packet_Type;
 
-
 #define TOX_PORTRANGE_FROM 33445
 #define TOX_PORTRANGE_TO   33545
 #define TOX_PORT_DEFAULT   TOX_PORTRANGE_FROM
@@ -209,10 +218,6 @@ typedef struct IP_Port {
     IP ip;
     uint16_t port;
 } IP_Port;
-
-typedef struct Socket {
-    int sock;
-} Socket;
 
 non_null()
 Socket net_socket(const Network *ns, Family domain, int type, int protocol);
@@ -337,7 +342,7 @@ non_null()
 bool addr_parse_ip(const char *address, IP *to);
 
 /**
- * Compares two IPAny structures.
+ * Compares two IP structures.
  *
  * Unset means unequal.
  *
@@ -347,7 +352,7 @@ nullable(1, 2)
 bool ip_equal(const IP *a, const IP *b);
 
 /**
- * Compares two IPAny_Port structures.
+ * Compares two IP_Port structures.
  *
  * Unset means unequal.
  *
@@ -355,6 +360,18 @@ bool ip_equal(const IP *a, const IP *b);
  */
 nullable(1, 2)
 bool ipport_equal(const IP_Port *a, const IP_Port *b);
+
+/**
+ * @brief IP_Port comparison function with `memcmp` signature.
+ *
+ * Casts the void pointers to `IP_Port *` for comparison.
+ *
+ * @retval -1 if `a < b`
+ * @retval 0 if `a == b`
+ * @retval 1 if `a > b`
+ */
+non_null()
+int ipport_cmp_handler(const void *a, const void *b, size_t size);
 
 /** nulls out ip */
 non_null()
@@ -399,7 +416,7 @@ bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP
  * Packet data is put into data.
  * Packet length is put into length.
  */
-typedef int packet_handler_cb(void *object, const IP_Port *ip_port, const uint8_t *data, uint16_t len, void *userdata);
+typedef int packet_handler_cb(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length, void *userdata);
 
 typedef struct Networking_Core Networking_Core;
 
@@ -506,6 +523,29 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
 non_null(1) nullable(2)
 void net_freeipport(const Memory *mem, IP_Port *ip_ports);
 
+non_null()
+bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port);
+
+/** @brief Pack an IP_Port structure into data of max size length.
+ *
+ * Packed_length is the offset of data currently packed.
+ *
+ * @return size of packed IP_Port data on success.
+ * @retval -1 on failure.
+ */
+non_null()
+int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port);
+
+/** @brief Unpack IP_Port structure from data of max size length into ip_port.
+ *
+ * len_processed is the offset of data currently unpacked.
+ *
+ * @return size of unpacked ip_port on success.
+ * @retval -1 on failure.
+ */
+non_null()
+int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool tcp_enabled);
+
 /**
  * @return true on success, false on failure.
  */
@@ -553,8 +593,8 @@ void net_kill_strerror(char *strerror);
  */
 non_null(1, 2, 3, 4) nullable(7)
 Networking_Core *new_networking_ex(
-        const Logger *log, const Memory *mem, const Network *ns, const IP *ip,
-        uint16_t port_from, uint16_t port_to, unsigned int *error);
+    const Logger *log, const Memory *mem, const Network *ns, const IP *ip,
+    uint16_t port_from, uint16_t port_to, unsigned int *error);
 
 non_null()
 Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns);
@@ -564,7 +604,7 @@ nullable(1)
 void kill_networking(Networking_Core *net);
 
 #ifdef __cplusplus
-}  // extern "C"
+} /* extern "C" */
 #endif
 
-#endif
+#endif /* C_TOXCORE_TOXCORE_NETWORK_H */

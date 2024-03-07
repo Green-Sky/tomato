@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_File_Recv_Chunk {
     uint32_t friend_number;
@@ -70,7 +69,7 @@ uint64_t tox_event_file_recv_chunk_get_position(const Tox_Event_File_Recv_Chunk 
     return file_recv_chunk->position;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_recv_chunk,
         const uint8_t *data, uint32_t data_length)
 {
@@ -80,6 +79,11 @@ static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_r
         free(file_recv_chunk->data);
         file_recv_chunk->data = nullptr;
         file_recv_chunk->data_length = 0;
+    }
+
+    if (data == nullptr) {
+        assert(data_length == 0);
+        return true;
     }
 
     uint8_t *data_copy = (uint8_t *)malloc(data_length);
@@ -142,7 +146,6 @@ static bool tox_event_file_recv_chunk_unpack_into(
            && bin_unpack_bin(bu, &event->data, &event->data_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -196,6 +199,7 @@ bool tox_event_file_recv_chunk_unpack(
     Tox_Event_File_Recv_Chunk **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_file_recv_chunk_new(mem);
 
     if (*event == nullptr) {
@@ -225,16 +229,15 @@ static Tox_Event_File_Recv_Chunk *tox_event_file_recv_chunk_alloc(void *user_dat
     return file_recv_chunk;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_file_recv_chunk(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t *data, size_t length,
-        void *user_data)
+void tox_events_handle_file_recv_chunk(
+    Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t *data, size_t length,
+    void *user_data)
 {
     Tox_Event_File_Recv_Chunk *file_recv_chunk = tox_event_file_recv_chunk_alloc(user_data);
 

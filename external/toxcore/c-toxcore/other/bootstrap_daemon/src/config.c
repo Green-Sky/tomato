@@ -44,13 +44,13 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in the configuration file.\n", NAME_TCP_RELAY_PORTS);
         log_write(LOG_LEVEL_WARNING, "Using default '%s':\n", NAME_TCP_RELAY_PORTS);
 
-        uint16_t default_ports[] = {DEFAULT_TCP_RELAY_PORTS};
+        const uint16_t default_ports[] = {DEFAULT_TCP_RELAY_PORTS};
 
         // Check to avoid calling malloc(0) later on
         // NOLINTNEXTLINE, clang-tidy: error: suspicious comparison of 'sizeof(expr)' to a constant [bugprone-sizeof-expression,-warnings-as-errors]
         static_assert(sizeof(default_ports) > 0, "At least one default TCP relay port should be provided");
 
-        const size_t default_ports_count = sizeof(default_ports)/sizeof(*default_ports);
+        const size_t default_ports_count = sizeof(default_ports) / sizeof(*default_ports);
 
         for (size_t i = 0; i < default_ports_count; ++i) {
             log_write(LOG_LEVEL_INFO, "Port #%zu: %u\n", i, default_ports[i]);
@@ -58,6 +58,10 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
 
         // Similar procedure to the one of reading config file below
         *tcp_relay_ports = (uint16_t *)malloc(default_ports_count * sizeof(uint16_t));
+        if (*tcp_relay_ports == nullptr) {
+            log_write(LOG_LEVEL_ERROR, "Allocation failure.\n");
+            return;
+        }
 
         for (size_t i = 0; i < default_ports_count; ++i) {
 
@@ -73,10 +77,8 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
             ++*tcp_relay_port_count;
         }
 
-        // The loop above skips invalid ports, so we adjust the allocated memory size
-        if ((*tcp_relay_port_count) > 0) {
-            *tcp_relay_ports = (uint16_t *)realloc(*tcp_relay_ports, (*tcp_relay_port_count) * sizeof(uint16_t));
-        } else {
+        // No ports, so we free the array.
+        if (*tcp_relay_port_count == 0) {
             free(*tcp_relay_ports);
             *tcp_relay_ports = nullptr;
         }
@@ -90,7 +92,7 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
         return;
     }
 
-    int config_port_count = config_setting_length(ports_array);
+    const int config_port_count = config_setting_length(ports_array);
 
     if (config_port_count == 0) {
         log_write(LOG_LEVEL_ERROR, "'%s' is empty.\n", NAME_TCP_RELAY_PORTS);
@@ -98,6 +100,10 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
     }
 
     *tcp_relay_ports = (uint16_t *)malloc(config_port_count * sizeof(uint16_t));
+    if (*tcp_relay_ports == nullptr) {
+        log_write(LOG_LEVEL_ERROR, "Allocation failure.\n");
+        return;
+    }
 
     for (int i = 0; i < config_port_count; ++i) {
         config_setting_t *elem = config_setting_get_elem(ports_array, i);
@@ -125,18 +131,16 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
         ++*tcp_relay_port_count;
     }
 
-    // The loop above skips invalid ports, so we adjust the allocated memory size
-    if ((*tcp_relay_port_count) > 0) {
-        *tcp_relay_ports = (uint16_t *)realloc(*tcp_relay_ports, (*tcp_relay_port_count) * sizeof(uint16_t));
-    } else {
+    // No ports, so we free the array.
+    if (*tcp_relay_port_count == 0) {
         free(*tcp_relay_ports);
         *tcp_relay_ports = nullptr;
     }
 }
 
-int get_general_config(const char *cfg_file_path, char **pid_file_path, char **keys_file_path, int *port,
-                       int *enable_ipv6, int *enable_ipv4_fallback, int *enable_lan_discovery, int *enable_tcp_relay,
-                       uint16_t **tcp_relay_ports, int *tcp_relay_port_count, int *enable_motd, char **motd)
+bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **keys_file_path, int *port,
+                        int *enable_ipv6, int *enable_ipv4_fallback, int *enable_lan_discovery, int *enable_tcp_relay,
+                        uint16_t **tcp_relay_ports, int *tcp_relay_port_count, int *enable_motd, char **motd)
 {
     config_t cfg;
 
@@ -156,7 +160,7 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
     if (config_read_file(&cfg, cfg_file_path) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_ERROR, "%s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
         config_destroy(&cfg);
-        return 0;
+        return false;
     }
 
     // Get port
@@ -177,6 +181,10 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
 
     const size_t pid_file_path_len = strlen(tmp_pid_file) + 1;
     *pid_file_path = (char *)malloc(pid_file_path_len);
+    if (*pid_file_path == nullptr) {
+        log_write(LOG_LEVEL_ERROR, "Allocation failure.\n");
+        return false;
+    }
     memcpy(*pid_file_path, tmp_pid_file, pid_file_path_len);
 
     // Get keys file location
@@ -190,6 +198,10 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
 
     const size_t keys_file_path_len = strlen(tmp_keys_file) + 1;
     *keys_file_path = (char *)malloc(keys_file_path_len);
+    if (*keys_file_path == nullptr) {
+        log_write(LOG_LEVEL_ERROR, "Allocation failure.\n");
+        return false;
+    }
     memcpy(*keys_file_path, tmp_keys_file, keys_file_path_len);
 
     // Get IPv6 option
@@ -223,7 +235,7 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
         *enable_tcp_relay = DEFAULT_ENABLE_TCP_RELAY;
     }
 
-    if (*enable_tcp_relay) {
+    if (*enable_tcp_relay != 0) {
         parse_tcp_relay_ports_config(&cfg, tcp_relay_ports, tcp_relay_port_count);
     } else {
         *tcp_relay_port_count = 0;
@@ -237,7 +249,7 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
         *enable_motd = DEFAULT_ENABLE_MOTD;
     }
 
-    if (*enable_motd) {
+    if (*enable_motd != 0) {
         // Get MOTD
         const char *tmp_motd;
 
@@ -247,8 +259,8 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
             tmp_motd = DEFAULT_MOTD;
         }
 
-        size_t tmp_motd_length = strlen(tmp_motd) + 1;
-        size_t motd_length = tmp_motd_length > MAX_MOTD_LENGTH ? MAX_MOTD_LENGTH : tmp_motd_length;
+        const size_t tmp_motd_length = strlen(tmp_motd) + 1;
+        const size_t motd_length = tmp_motd_length > MAX_MOTD_LENGTH ? MAX_MOTD_LENGTH : tmp_motd_length;
         *motd = (char *)malloc(motd_length);
         snprintf(*motd, motd_length, "%s", tmp_motd);
     }
@@ -259,14 +271,14 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
     log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_PID_FILE_PATH,        *pid_file_path);
     log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_KEYS_FILE_PATH,       *keys_file_path);
     log_write(LOG_LEVEL_INFO, "'%s': %d\n", NAME_PORT,                 *port);
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV6,          *enable_ipv6          ? "true" : "false");
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV4_FALLBACK, *enable_ipv4_fallback ? "true" : "false");
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_LAN_DISCOVERY, *enable_lan_discovery ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV6,          *enable_ipv6          != 0 ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV4_FALLBACK, *enable_ipv4_fallback != 0 ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_LAN_DISCOVERY, *enable_lan_discovery != 0 ? "true" : "false");
 
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_TCP_RELAY,     *enable_tcp_relay     ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_TCP_RELAY,     *enable_tcp_relay     != 0 ? "true" : "false");
 
     // Show info about tcp ports only if tcp relay is enabled
-    if (*enable_tcp_relay) {
+    if (*enable_tcp_relay != 0) {
         if (*tcp_relay_port_count == 0) {
             log_write(LOG_LEVEL_ERROR, "No TCP ports could be read.\n");
         } else {
@@ -278,13 +290,13 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
         }
     }
 
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_MOTD,          *enable_motd          ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_MOTD,          *enable_motd          != 0 ? "true" : "false");
 
-    if (*enable_motd) {
+    if (*enable_motd != 0) {
         log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_MOTD, *motd);
     }
 
-    return 1;
+    return true;
 }
 
 /**
@@ -302,8 +314,12 @@ static uint8_t *bootstrap_hex_string_to_bin(const char *hex_string)
         return nullptr;
     }
 
-    size_t len = strlen(hex_string) / 2;
+    const size_t len = strlen(hex_string) / 2;
     uint8_t *ret = (uint8_t *)malloc(len);
+    if (ret == nullptr) {
+        log_write(LOG_LEVEL_ERROR, "Allocation failure.\n");
+        return nullptr;
+    }
 
     const char *pos = hex_string;
 
@@ -316,7 +332,7 @@ static uint8_t *bootstrap_hex_string_to_bin(const char *hex_string)
     return ret;
 }
 
-int bootstrap_from_config(const char *cfg_file_path, DHT *dht, int enable_ipv6)
+bool bootstrap_from_config(const char *cfg_file_path, DHT *dht, bool enable_ipv6)
 {
     const char *const NAME_BOOTSTRAP_NODES = "bootstrap_nodes";
 
@@ -331,7 +347,7 @@ int bootstrap_from_config(const char *cfg_file_path, DHT *dht, int enable_ipv6)
     if (config_read_file(&cfg, cfg_file_path) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_ERROR, "%s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
         config_destroy(&cfg);
-        return 0;
+        return false;
     }
 
     config_setting_t *node_list = config_lookup(&cfg, NAME_BOOTSTRAP_NODES);
@@ -340,13 +356,13 @@ int bootstrap_from_config(const char *cfg_file_path, DHT *dht, int enable_ipv6)
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in the configuration file. Skipping bootstrapping.\n",
                   NAME_BOOTSTRAP_NODES);
         config_destroy(&cfg);
-        return 1;
+        return true;
     }
 
     if (config_setting_length(node_list) == 0) {
         log_write(LOG_LEVEL_WARNING, "No bootstrap nodes found. Skipping bootstrapping.\n");
         config_destroy(&cfg);
-        return 1;
+        return true;
     }
 
     int bs_port;
@@ -357,15 +373,15 @@ int bootstrap_from_config(const char *cfg_file_path, DHT *dht, int enable_ipv6)
 
     int i = 0;
 
-    while (config_setting_length(node_list)) {
-        int address_resolved;
+    while (config_setting_length(node_list) != 0) {
+        bool address_resolved;
         uint8_t *bs_public_key_bin;
 
         node = config_setting_get_elem(node_list, 0);
 
         if (node == nullptr) {
             config_destroy(&cfg);
-            return 0;
+            return false;
         }
 
         // Check that all settings are present
@@ -421,5 +437,5 @@ next:
 
     config_destroy(&cfg);
 
-    return 1;
+    return true;
 }

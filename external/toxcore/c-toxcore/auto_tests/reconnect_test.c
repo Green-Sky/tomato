@@ -51,7 +51,7 @@ static bool all_disconnected_from(uint32_t tox_count, AutoTox *autotoxes, uint32
 
 static void test_reconnect(AutoTox *autotoxes)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     const time_t test_start_time = time(nullptr);
 
@@ -67,7 +67,12 @@ static void test_reconnect(AutoTox *autotoxes)
     do {
         for (uint16_t i = 0; i < TOX_COUNT; ++i) {
             if (i != disconnect) {
-                tox_iterate(autotoxes[i].tox, &autotoxes[i]);
+                Tox_Err_Events_Iterate err = TOX_ERR_EVENTS_ITERATE_OK;
+                Tox_Events *events = tox_events_iterate(autotoxes[i].tox, true, &err);
+                ck_assert(err == TOX_ERR_EVENTS_ITERATE_OK);
+                tox_dispatch_invoke(autotoxes[i].dispatch, events, &autotoxes[i]);
+                tox_events_free(events);
+
                 autotoxes[i].clock += 1000;
             }
         }

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Topic {
     uint32_t group_number;
@@ -56,7 +55,7 @@ uint32_t tox_event_group_topic_get_peer_id(const Tox_Event_Group_Topic *group_to
     return group_topic->peer_id;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_topic_set_topic(Tox_Event_Group_Topic *group_topic,
         const uint8_t *topic, uint32_t topic_length)
 {
@@ -66,6 +65,11 @@ static bool tox_event_group_topic_set_topic(Tox_Event_Group_Topic *group_topic,
         free(group_topic->topic);
         group_topic->topic = nullptr;
         group_topic->topic_length = 0;
+    }
+
+    if (topic == nullptr) {
+        assert(topic_length == 0);
+        return true;
     }
 
     uint8_t *topic_copy = (uint8_t *)malloc(topic_length);
@@ -126,7 +130,6 @@ static bool tox_event_group_topic_unpack_into(
            && bin_unpack_bin(bu, &event->topic, &event->topic_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -180,6 +183,7 @@ bool tox_event_group_topic_unpack(
     Tox_Event_Group_Topic **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_topic_new(mem);
 
     if (*event == nullptr) {
@@ -209,16 +213,15 @@ static Tox_Event_Group_Topic *tox_event_group_topic_alloc(void *user_data)
     return group_topic;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_topic(Tox *tox, uint32_t group_number, uint32_t peer_id, const uint8_t *topic, size_t length,
-        void *user_data)
+void tox_events_handle_group_topic(
+    Tox *tox, uint32_t group_number, uint32_t peer_id, const uint8_t *topic, size_t length,
+    void *user_data)
 {
     Tox_Event_Group_Topic *group_topic = tox_event_group_topic_alloc(user_data);
 

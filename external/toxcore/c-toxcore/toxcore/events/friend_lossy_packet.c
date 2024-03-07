@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Friend_Lossy_Packet {
     uint32_t friend_number;
@@ -42,7 +41,7 @@ uint32_t tox_event_friend_lossy_packet_get_friend_number(const Tox_Event_Friend_
     return friend_lossy_packet->friend_number;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_friend_lossy_packet_set_data(Tox_Event_Friend_Lossy_Packet *friend_lossy_packet,
         const uint8_t *data, uint32_t data_length)
 {
@@ -52,6 +51,11 @@ static bool tox_event_friend_lossy_packet_set_data(Tox_Event_Friend_Lossy_Packet
         free(friend_lossy_packet->data);
         friend_lossy_packet->data = nullptr;
         friend_lossy_packet->data_length = 0;
+    }
+
+    if (data == nullptr) {
+        assert(data_length == 0);
+        return true;
     }
 
     uint8_t *data_copy = (uint8_t *)malloc(data_length);
@@ -110,7 +114,6 @@ static bool tox_event_friend_lossy_packet_unpack_into(
            && bin_unpack_bin(bu, &event->data, &event->data_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -164,6 +167,7 @@ bool tox_event_friend_lossy_packet_unpack(
     Tox_Event_Friend_Lossy_Packet **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_friend_lossy_packet_new(mem);
 
     if (*event == nullptr) {
@@ -193,16 +197,15 @@ static Tox_Event_Friend_Lossy_Packet *tox_event_friend_lossy_packet_alloc(void *
     return friend_lossy_packet;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_friend_lossy_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
-        void *user_data)
+void tox_events_handle_friend_lossy_packet(
+    Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
+    void *user_data)
 {
     Tox_Event_Friend_Lossy_Packet *friend_lossy_packet = tox_event_friend_lossy_packet_alloc(user_data);
 

@@ -13,6 +13,7 @@
 
 #include "DHT.h"
 #include "TCP_client.h"
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -57,16 +58,13 @@ struct TCP_Connections {
     uint16_t onion_num_conns;
 };
 
-
 static const TCP_Connection_to empty_tcp_connection_to = {0};
 static const TCP_con empty_tcp_con = {0};
-
 
 const uint8_t *tcp_connections_public_key(const TCP_Connections *tcp_c)
 {
     return tcp_c->self_public_key;
 }
-
 
 uint32_t tcp_connections_count(const TCP_Connections *tcp_c)
 {
@@ -118,7 +116,6 @@ static int realloc_tcp_con(const Memory *mem, TCP_con **array, size_t num)
 
     return 0;
 }
-
 
 /**
  * Return true if the connections_number is valid.
@@ -752,7 +749,7 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
                 }
 
                 if (tcp_con->status == TCP_CONN_SLEEPING) {
-                    tcp_con->unsleep = 1;
+                    tcp_con->unsleep = true;
                 }
             }
         }
@@ -768,7 +765,7 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
 
     for (uint32_t i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
         if (con_to->connections[i].tcp_connection > 0) {
-            unsigned int tcp_connections_number = con_to->connections[i].tcp_connection - 1;
+            const unsigned int tcp_connections_number = con_to->connections[i].tcp_connection - 1;
             TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
 
             if (tcp_con == nullptr) {
@@ -927,7 +924,7 @@ static int reconnect_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connec
         return -1;
     }
 
-    IP_Port ip_port = tcp_con_ip_port(tcp_con->connection);
+    const IP_Port ip_port = tcp_con_ip_port(tcp_con->connection);
     uint8_t relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
     memcpy(relay_pk, tcp_con_public_key(tcp_con->connection), CRYPTO_PUBLIC_KEY_SIZE);
     kill_tcp_connection(tcp_con->connection);
@@ -948,14 +945,14 @@ static int reconnect_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connec
 
     if (tcp_con->onion) {
         --tcp_c->onion_num_conns;
-        tcp_con->onion = 0;
+        tcp_con->onion = false;
     }
 
     tcp_con->lock_count = 0;
     tcp_con->sleep_count = 0;
     tcp_con->connected_time = 0;
     tcp_con->status = TCP_CONN_VALID;
-    tcp_con->unsleep = 0;
+    tcp_con->unsleep = false;
 
     return 0;
 }
@@ -993,14 +990,14 @@ static int sleep_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connection
 
     if (tcp_con->onion) {
         --tcp_c->onion_num_conns;
-        tcp_con->onion = 0;
+        tcp_con->onion = false;
     }
 
     tcp_con->lock_count = 0;
     tcp_con->sleep_count = 0;
     tcp_con->connected_time = 0;
     tcp_con->status = TCP_CONN_SLEEPING;
-    tcp_con->unsleep = 0;
+    tcp_con->unsleep = false;
 
     return 0;
 }
@@ -1019,8 +1016,8 @@ static int unsleep_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connecti
     }
 
     tcp_con->connection = new_tcp_connection(
-            tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &tcp_con->ip_port,
-            tcp_con->relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
+                              tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &tcp_con->ip_port,
+                              tcp_con->relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
 
     if (tcp_con->connection == nullptr) {
         kill_tcp_relay_connection(tcp_c, tcp_connections_number);
@@ -1031,7 +1028,7 @@ static int unsleep_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connecti
     tcp_con->sleep_count = 0;
     tcp_con->connected_time = 0;
     tcp_con->status = TCP_CONN_VALID;
-    tcp_con->unsleep = 0;
+    tcp_con->unsleep = false;
 
     return 0;
 }
@@ -1286,7 +1283,7 @@ static int tcp_relay_on_online(TCP_Connections *tcp_c, int tcp_connections_numbe
     }
 
     if (tcp_c->onion_status && tcp_c->onion_num_conns < NUM_ONION_TCP_CONNECTIONS) {
-        tcp_con->onion = 1;
+        tcp_con->onion = true;
         ++tcp_c->onion_num_conns;
     }
 
@@ -1317,8 +1314,8 @@ static int add_tcp_relay_instance(TCP_Connections *tcp_c, const IP_Port *ip_port
     TCP_con *tcp_con = &tcp_c->tcp_connections[tcp_connections_number];
 
     tcp_con->connection = new_tcp_connection(
-            tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ipp_copy,
-            relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
+                              tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ipp_copy,
+                              relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
 
     if (tcp_con->connection == nullptr) {
         return -1;
@@ -1372,7 +1369,7 @@ int add_tcp_number_relay_connection(const TCP_Connections *tcp_c, int connection
     }
 
     if (con_to->status != TCP_CONN_SLEEPING && tcp_con->status == TCP_CONN_SLEEPING) {
-        tcp_con->unsleep = 1;
+        tcp_con->unsleep = true;
     }
 
     if (add_tcp_connection_to_conn(con_to, tcp_connections_number) == -1) {
@@ -1540,7 +1537,7 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
             if (tcp_con != nullptr) {
                 if (tcp_con->status == TCP_CONN_CONNECTED && !tcp_con->onion) {
                     ++tcp_c->onion_num_conns;
-                    tcp_con->onion = 1;
+                    tcp_con->onion = true;
                 }
             }
 
@@ -1557,7 +1554,7 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
 
                 if (tcp_con != nullptr) {
                     if (tcp_con->status == TCP_CONN_SLEEPING) {
-                        tcp_con->unsleep = 1;
+                        tcp_con->unsleep = true;
                     }
                 }
 
@@ -1567,7 +1564,7 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
             }
         }
 
-        tcp_c->onion_status = 1;
+        tcp_c->onion_status = true;
     } else {
         for (uint32_t i = 0; i < tcp_c->tcp_connections_length; ++i) {
             TCP_con *tcp_con = get_tcp_connection(tcp_c, i);
@@ -1575,12 +1572,12 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
             if (tcp_con != nullptr) {
                 if (tcp_con->onion) {
                     --tcp_c->onion_num_conns;
-                    tcp_con->onion = 0;
+                    tcp_con->onion = false;
                 }
             }
         }
 
-        tcp_c->onion_status = 0;
+        tcp_c->onion_status = false;
     }
 
     return 0;

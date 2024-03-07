@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Friend_Name {
     uint32_t friend_number;
@@ -42,7 +41,7 @@ uint32_t tox_event_friend_name_get_friend_number(const Tox_Event_Friend_Name *fr
     return friend_name->friend_number;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *friend_name,
         const uint8_t *name, uint32_t name_length)
 {
@@ -52,6 +51,11 @@ static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *friend_name,
         free(friend_name->name);
         friend_name->name = nullptr;
         friend_name->name_length = 0;
+    }
+
+    if (name == nullptr) {
+        assert(name_length == 0);
+        return true;
     }
 
     uint8_t *name_copy = (uint8_t *)malloc(name_length);
@@ -110,7 +114,6 @@ static bool tox_event_friend_name_unpack_into(
            && bin_unpack_bin(bu, &event->name, &event->name_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -164,6 +167,7 @@ bool tox_event_friend_name_unpack(
     Tox_Event_Friend_Name **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_friend_name_new(mem);
 
     if (*event == nullptr) {
@@ -193,16 +197,15 @@ static Tox_Event_Friend_Name *tox_event_friend_name_alloc(void *user_data)
     return friend_name;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_friend_name(Tox *tox, uint32_t friend_number, const uint8_t *name, size_t length,
-        void *user_data)
+void tox_events_handle_friend_name(
+    Tox *tox, uint32_t friend_number, const uint8_t *name, size_t length,
+    void *user_data)
 {
     Tox_Event_Friend_Name *friend_name = tox_event_friend_name_alloc(user_data);
 

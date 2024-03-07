@@ -10,10 +10,18 @@
 #define C_TOXCORE_TOXCORE_TCP_CONNECTION_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "DHT.h"  // for Node_format
 #include "TCP_client.h"
 #include "TCP_common.h"
+#include "attributes.h"
+#include "crypto_core.h"
+#include "forwarding.h"
+#include "logger.h"
+#include "mem.h"
+#include "mono_time.h"
+#include "network.h"
 
 #define TCP_CONN_NONE 0
 #define TCP_CONN_VALID 1
@@ -156,7 +164,7 @@ non_null()
 int tcp_send_oob_packet(const TCP_Connections *tcp_c, unsigned int tcp_connections_number, const uint8_t *public_key,
                         const uint8_t *packet, uint16_t length);
 
-typedef int tcp_data_cb(void *object, int id, const uint8_t *data, uint16_t length, void *userdata);
+typedef int tcp_data_cb(void *object, int crypt_connection_id, const uint8_t *packet, uint16_t length, void *userdata);
 
 non_null()
 int tcp_send_oob_packet_using_relay(const TCP_Connections *tcp_c, const uint8_t *relay_pk, const uint8_t *public_key,
@@ -178,9 +186,8 @@ void set_forwarding_packet_tcp_connection_callback(TCP_Connections *tcp_c,
         forwarded_response_cb *tcp_forwarded_response_callback,
         void *object);
 
-
 typedef int tcp_oob_cb(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
-                       const uint8_t *data, uint16_t length, void *userdata);
+                       const uint8_t *packet, uint16_t length, void *userdata);
 
 /** @brief Set the callback for TCP oob data packets. */
 non_null()
@@ -310,4 +317,4 @@ void do_tcp_connections(const Logger *logger, TCP_Connections *tcp_c, void *user
 nullable(1)
 void kill_tcp_connections(TCP_Connections *tcp_c);
 
-#endif
+#endif /* C_TOXCORE_TOXCORE_TCP_CONNECTION_H */

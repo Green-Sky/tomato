@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2022-2024 The TokTok team.
  */
 
 #include "tox_events.h"
@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "ccompat.h"
@@ -18,13 +19,11 @@
 #include "tox_private.h"
 #include "tox_struct.h"
 
-
 /*****************************************************
  *
  * :: Set up event handlers.
  *
  *****************************************************/
-
 
 void tox_events_init(Tox *tox)
 {
@@ -67,11 +66,18 @@ void tox_events_init(Tox *tox)
     tox_callback_group_self_join(tox, tox_events_handle_group_self_join);
     tox_callback_group_join_fail(tox, tox_events_handle_group_join_fail);
     tox_callback_group_moderation(tox, tox_events_handle_group_moderation);
+    tox_callback_dht_get_nodes_response(tox, tox_events_handle_dht_get_nodes_response);
 }
 
 uint32_t tox_events_get_size(const Tox_Events *events)
 {
     return events == nullptr ? 0 : events->events_size;
+}
+
+nullable(1)
+static const Tox_Event *tox_events_get_events(const Tox_Events *events)
+{
+    return events == nullptr ? nullptr : events->events;
 }
 
 const Tox_Event *tox_events_get(const Tox_Events *events, uint32_t index)
@@ -101,24 +107,36 @@ Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate 
     return state.events;
 }
 
-bool tox_events_pack(const Tox_Events *events, Bin_Pack *bp)
+non_null()
+static bool tox_event_pack_handler(const void *arr, uint32_t index, const Logger *logger, Bin_Pack *bp)
 {
-    const uint32_t size = tox_events_get_size(events);
-    if (!bin_pack_array(bp, size)) {
-        return false;
-    }
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (!tox_event_pack(&events->events[i], bp)) {
-            return false;
-        }
-    }
-
-    return true;
+    const Tox_Event *events = (const Tox_Event *)arr;
+    assert(events != nullptr);
+    return tox_event_pack(&events[index], bp);
 }
 
-bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem)
+non_null(3) nullable(1, 2)
+static bool tox_events_pack_handler(const void *obj, const Logger *logger, Bin_Pack *bp)
 {
+    const Tox_Events *events = (const Tox_Events *)obj;
+    return bin_pack_obj_array(bp, tox_event_pack_handler, tox_events_get_events(events), tox_events_get_size(events), logger);
+}
+
+uint32_t tox_events_bytes_size(const Tox_Events *events)
+{
+    return bin_pack_obj_size(tox_events_pack_handler, events, nullptr);
+}
+
+bool tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
+{
+    return bin_pack_obj(tox_events_pack_handler, events, nullptr, bytes, UINT32_MAX);
+}
+
+non_null()
+static bool tox_events_unpack_handler(void *obj, Bin_Unpack *bu)
+{
+    Tox_Events *events = (Tox_Events *)obj;
+
     uint32_t size;
     if (!bin_unpack_array(bu, &size)) {
         return false;
@@ -126,13 +144,13 @@ bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem)
 
     for (uint32_t i = 0; i < size; ++i) {
         Tox_Event event = {TOX_EVENT_INVALID};
-        if (!tox_event_unpack_into(&event, bu, mem)) {
-            tox_event_destruct(&event, mem);
+        if (!tox_event_unpack_into(&event, bu, events->mem)) {
+            tox_event_destruct(&event, events->mem);
             return false;
         }
 
         if (!tox_events_add(events, &event)) {
-            tox_event_destruct(&event, mem);
+            tox_event_destruct(&event, events->mem);
             return false;
         }
     }
@@ -142,35 +160,11 @@ bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem)
     return true;
 }
 
-non_null(1) nullable(2, 3)
-static bool tox_events_bin_pack_handler(Bin_Pack *bp, const Logger *logger, const void *obj)
-{
-    const Tox_Events *events = (const Tox_Events *)obj;
-    return tox_events_pack(events, bp);
-}
-
-uint32_t tox_events_bytes_size(const Tox_Events *events)
-{
-    return bin_pack_obj_size(tox_events_bin_pack_handler, nullptr, events);
-}
-
-bool tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
-{
-    return bin_pack_obj(tox_events_bin_pack_handler, nullptr, events, bytes, UINT32_MAX);
-}
-
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
 {
-    Bin_Unpack *bu = bin_unpack_new(bytes, bytes_size);
-
-    if (bu == nullptr) {
-        return nullptr;
-    }
-
     Tox_Events *events = (Tox_Events *)mem_alloc(sys->mem, sizeof(Tox_Events));
 
     if (events == nullptr) {
-        bin_unpack_free(bu);
         return nullptr;
     }
 
@@ -179,13 +173,11 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     };
     events->mem = sys->mem;
 
-    if (!tox_events_unpack(events, bu, sys->mem)) {
+    if (!bin_unpack_obj(tox_events_unpack_handler, events, bytes, bytes_size)) {
         tox_events_free(events);
-        bin_unpack_free(bu);
         return nullptr;
     }
 
-    bin_unpack_free(bu);
     return events;
 }
 

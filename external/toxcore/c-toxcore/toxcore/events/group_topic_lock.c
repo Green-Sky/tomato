@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Topic_Lock {
     uint32_t group_number;
@@ -88,7 +87,6 @@ static bool tox_event_group_topic_lock_unpack_into(
            && tox_group_topic_lock_unpack(&event->topic_lock, bu);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -142,6 +140,7 @@ bool tox_event_group_topic_lock_unpack(
     Tox_Event_Group_Topic_Lock **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_topic_lock_new(mem);
 
     if (*event == nullptr) {
@@ -171,16 +170,15 @@ static Tox_Event_Group_Topic_Lock *tox_event_group_topic_lock_alloc(void *user_d
     return group_topic_lock;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_topic_lock(Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
-        void *user_data)
+void tox_events_handle_group_topic_lock(
+    Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
+    void *user_data)
 {
     Tox_Event_Group_Topic_Lock *group_topic_lock = tox_event_group_topic_lock_alloc(user_data);
 

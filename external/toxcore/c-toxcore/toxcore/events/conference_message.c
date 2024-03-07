@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -17,13 +18,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Conference_Message {
     uint32_t conference_number;
@@ -72,7 +71,7 @@ Tox_Message_Type tox_event_conference_message_get_type(const Tox_Event_Conferenc
     return conference_message->type;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_conference_message_set_message(Tox_Event_Conference_Message *conference_message,
         const uint8_t *message, uint32_t message_length)
 {
@@ -82,6 +81,11 @@ static bool tox_event_conference_message_set_message(Tox_Event_Conference_Messag
         free(conference_message->message);
         conference_message->message = nullptr;
         conference_message->message_length = 0;
+    }
+
+    if (message == nullptr) {
+        assert(message_length == 0);
+        return true;
     }
 
     uint8_t *message_copy = (uint8_t *)malloc(message_length);
@@ -144,7 +148,6 @@ static bool tox_event_conference_message_unpack_into(
            && bin_unpack_bin(bu, &event->message, &event->message_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -198,6 +201,7 @@ bool tox_event_conference_message_unpack(
     Tox_Event_Conference_Message **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_conference_message_new(mem);
 
     if (*event == nullptr) {
@@ -227,16 +231,15 @@ static Tox_Event_Conference_Message *tox_event_conference_message_alloc(void *us
     return conference_message;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_conference_message(Tox *tox, uint32_t conference_number, uint32_t peer_number, Tox_Message_Type type, const uint8_t *message, size_t length,
-        void *user_data)
+void tox_events_handle_conference_message(
+    Tox *tox, uint32_t conference_number, uint32_t peer_number, Tox_Message_Type type, const uint8_t *message, size_t length,
+    void *user_data)
 {
     Tox_Event_Conference_Message *conference_message = tox_event_conference_message_alloc(user_data);
 

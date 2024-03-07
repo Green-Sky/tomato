@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -13,13 +14,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Friend_Typing {
     uint32_t friend_number;
@@ -86,7 +85,6 @@ static bool tox_event_friend_typing_unpack_into(
            && bin_unpack_bool(bu, &event->typing);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -140,6 +138,7 @@ bool tox_event_friend_typing_unpack(
     Tox_Event_Friend_Typing **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_friend_typing_new(mem);
 
     if (*event == nullptr) {
@@ -169,16 +168,15 @@ static Tox_Event_Friend_Typing *tox_event_friend_typing_alloc(void *user_data)
     return friend_typing;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_friend_typing(Tox *tox, uint32_t friend_number, bool typing,
-        void *user_data)
+void tox_events_handle_friend_typing(
+    Tox *tox, uint32_t friend_number, bool typing,
+    void *user_data)
 {
     Tox_Event_Friend_Typing *friend_typing = tox_event_friend_typing_alloc(user_data);
 

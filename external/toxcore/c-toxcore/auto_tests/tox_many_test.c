@@ -13,20 +13,25 @@
 #include "auto_test_support.h"
 #include "check_compat.h"
 
-static void accept_friend_request(Tox *m, const uint8_t *public_key, const uint8_t *data, size_t length, void *userdata)
+static void accept_friend_request(const Tox_Event_Friend_Request *event, void *userdata)
 {
-    if (length == 7 && memcmp("Gentoo", data, 7) == 0) {
-        tox_friend_add_norequest(m, public_key, nullptr);
+    Tox *tox = (Tox *)userdata;
+
+    const uint8_t *public_key = tox_event_friend_request_get_public_key(event);
+    const uint8_t *message = tox_event_friend_request_get_message(event);
+    const uint32_t message_length = tox_event_friend_request_get_message_length(event);
+
+    if (message_length == 7 && memcmp("Gentoo", message, 7) == 0) {
+        tox_friend_add_norequest(tox, public_key, nullptr);
     }
 }
-
 
 #define TCP_TEST_NUM_TOXES 90
 #define TCP_TEST_NUM_FRIENDS 50
 
 static void test_many_clients(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     time_t cur_time = time(nullptr);
     Tox *toxes[TCP_TEST_NUM_TOXES];
@@ -36,8 +41,13 @@ static void test_many_clients(void)
         index[i] = i + 1;
         toxes[i] = tox_new_log(nullptr, nullptr, &index[i]);
         ck_assert_msg(toxes[i] != nullptr, "failed to create tox instances %u", i);
-        tox_callback_friend_request(toxes[i], accept_friend_request);
+        tox_events_init(toxes[i]);
     }
+
+    Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
+    ck_assert(dispatch != nullptr);
+
+    tox_events_callback_friend_request(dispatch, accept_friend_request);
 
     struct {
         uint16_t tox1;
@@ -112,12 +122,17 @@ loop_top:
         }
 
         for (uint32_t i = 0; i < TCP_TEST_NUM_TOXES; ++i) {
-            tox_iterate(toxes[i], nullptr);
+            Tox_Err_Events_Iterate err = TOX_ERR_EVENTS_ITERATE_OK;
+            Tox_Events *events = tox_events_iterate(toxes[i], true, &err);
+            ck_assert(err == TOX_ERR_EVENTS_ITERATE_OK);
+            tox_dispatch_invoke(dispatch, events, toxes[i]);
+            tox_events_free(events);
         }
 
         c_sleep(50);
     }
 
+    tox_dispatch_free(dispatch);
     for (uint32_t i = 0; i < TCP_TEST_NUM_TOXES; ++i) {
         tox_kill(toxes[i]);
     }

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Password {
     uint32_t group_number;
@@ -42,7 +41,7 @@ uint32_t tox_event_group_password_get_group_number(const Tox_Event_Group_Passwor
     return group_password->group_number;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_password_set_password(Tox_Event_Group_Password *group_password,
         const uint8_t *password, uint32_t password_length)
 {
@@ -52,6 +51,11 @@ static bool tox_event_group_password_set_password(Tox_Event_Group_Password *grou
         free(group_password->password);
         group_password->password = nullptr;
         group_password->password_length = 0;
+    }
+
+    if (password == nullptr) {
+        assert(password_length == 0);
+        return true;
     }
 
     uint8_t *password_copy = (uint8_t *)malloc(password_length);
@@ -110,7 +114,6 @@ static bool tox_event_group_password_unpack_into(
            && bin_unpack_bin(bu, &event->password, &event->password_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -164,6 +167,7 @@ bool tox_event_group_password_unpack(
     Tox_Event_Group_Password **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_password_new(mem);
 
     if (*event == nullptr) {
@@ -193,16 +197,15 @@ static Tox_Event_Group_Password *tox_event_group_password_alloc(void *user_data)
     return group_password;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
-        void *user_data)
+void tox_events_handle_group_password(
+    Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
+    void *user_data)
 {
     Tox_Event_Group_Password *group_password = tox_event_group_password_alloc(user_data);
 

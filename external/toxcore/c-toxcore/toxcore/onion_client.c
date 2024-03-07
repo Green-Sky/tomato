@@ -16,8 +16,10 @@
 #include "DHT.h"
 #include "LAN_discovery.h"
 #include "TCP_connection.h"
+#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
+#include "group_announce.h"
 #include "group_onion_announce.h"
 #include "logger.h"
 #include "mem.h"
@@ -27,6 +29,7 @@
 #include "onion.h"
 #include "onion_announce.h"
 #include "ping_array.h"
+#include "timed_auth.h"
 #include "util.h"
 
 /** @brief defines for the array size and timeout for onion announce packets. */
@@ -478,17 +481,6 @@ static int random_path(const Onion_Client *onion_c, Onion_Client_Paths *onion_pa
     ++onion_paths->last_path_used_times[pathnum];
     *path = onion_paths->paths[pathnum];
     return 0;
-}
-
-/** Does path with path_num exist. */
-non_null()
-static bool path_exists(const Mono_Time *mono_time, const Onion_Client_Paths *onion_paths, uint32_t path_num)
-{
-    if (path_timed_out(mono_time, onion_paths, path_num)) {
-        return false;
-    }
-
-    return onion_paths->paths[path_num % NUMBER_ONION_PATHS].path_num == path_num;
 }
 
 /** Set path timeouts, return the path number. */
@@ -1066,7 +1058,8 @@ static int handle_announce_response_old(void *object, const IP_Port *source, con
         return 1;
     }
 
-    VLA(uint8_t, plain, 1 + ONION_PING_ID_SIZE + len_nodes);
+    const uint16_t plain_size = 1 + ONION_PING_ID_SIZE + len_nodes;
+    VLA(uint8_t, plain, plain_size);
     int len;
     const uint16_t nonce_start = 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
     const uint16_t ciphertext_start = nonce_start + CRYPTO_NONCE_SIZE;
@@ -1090,8 +1083,8 @@ static int handle_announce_response_old(void *object, const IP_Port *source, con
         return 1;
     }
 
-    if ((uint32_t)len != SIZEOF_VLA(plain)) {
-        LOGGER_WARNING(onion_c->logger, "decrypted size (%lu) is not the expected plain text size (%lu)", (unsigned long)len, (unsigned long)SIZEOF_VLA(plain));
+    if ((uint32_t)len != plain_size) {
+        LOGGER_WARNING(onion_c->logger, "decrypted size (%lu) is not the expected plain text size (%u)", (unsigned long)len, plain_size);
         return 1;
     }
 
@@ -1141,21 +1134,23 @@ static int handle_data_response(void *object, const IP_Port *source, const uint8
         return 1;
     }
 
-    VLA(uint8_t, temp_plain, length - ONION_DATA_RESPONSE_MIN_SIZE);
+    const uint16_t temp_plain_size = length - ONION_DATA_RESPONSE_MIN_SIZE;
+    VLA(uint8_t, temp_plain, temp_plain_size);
     int len = decrypt_data(packet + 1 + CRYPTO_NONCE_SIZE, onion_c->temp_secret_key, packet + 1,
                            packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
                            length - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE), temp_plain);
 
-    if ((uint32_t)len != SIZEOF_VLA(temp_plain)) {
+    if ((uint32_t)len != temp_plain_size) {
         return 1;
     }
 
-    VLA(uint8_t, plain, SIZEOF_VLA(temp_plain) - DATA_IN_RESPONSE_MIN_SIZE);
+    const uint16_t plain_size = temp_plain_size - DATA_IN_RESPONSE_MIN_SIZE;
+    VLA(uint8_t, plain, plain_size);
     len = decrypt_data(temp_plain, nc_get_self_secret_key(onion_c->c),
                        packet + 1, temp_plain + CRYPTO_PUBLIC_KEY_SIZE,
-                       SIZEOF_VLA(temp_plain) - CRYPTO_PUBLIC_KEY_SIZE, plain);
+                       temp_plain_size - CRYPTO_PUBLIC_KEY_SIZE, plain);
 
-    if ((uint32_t)len != SIZEOF_VLA(plain)) {
+    if ((uint32_t)len != plain_size) {
         return 1;
     }
 
@@ -1164,7 +1159,7 @@ static int handle_data_response(void *object, const IP_Port *source, const uint8
     }
 
     return onion_c->onion_data_handlers[plain[0]].function(onion_c->onion_data_handlers[plain[0]].object, temp_plain, plain,
-            SIZEOF_VLA(plain), userdata);
+            plain_size, userdata);
 }
 
 #define DHTPK_DATA_MIN_LENGTH (1 + sizeof(uint64_t) + CRYPTO_PUBLIC_KEY_SIZE)
@@ -1307,13 +1302,14 @@ int send_onion_data(Onion_Client *onion_c, int friend_num, const uint8_t *data, 
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(onion_c->rng, nonce);
 
-    VLA(uint8_t, packet, DATA_IN_RESPONSE_MIN_SIZE + length);
+    const uint16_t packet_size = DATA_IN_RESPONSE_MIN_SIZE + length;
+    VLA(uint8_t, packet, packet_size);
     memcpy(packet, nc_get_self_public_key(onion_c->c), CRYPTO_PUBLIC_KEY_SIZE);
     int len = encrypt_data(onion_c->friends_list[friend_num].real_public_key,
                            nc_get_self_secret_key(onion_c->c), nonce, data,
                            length, packet + CRYPTO_PUBLIC_KEY_SIZE);
 
-    if ((uint32_t)len + CRYPTO_PUBLIC_KEY_SIZE != SIZEOF_VLA(packet)) {
+    if ((uint32_t)len + CRYPTO_PUBLIC_KEY_SIZE != packet_size) {
         return -1;
     }
 
@@ -1329,7 +1325,7 @@ int send_onion_data(Onion_Client *onion_c, int friend_num, const uint8_t *data, 
         uint8_t o_packet[ONION_MAX_PACKET_SIZE];
         len = create_data_request(
                   onion_c->rng, o_packet, sizeof(o_packet), onion_c->friends_list[friend_num].real_public_key,
-                  node_list[good_nodes[i]].data_public_key, nonce, packet, SIZEOF_VLA(packet));
+                  node_list[good_nodes[i]].data_public_key, nonce, packet, packet_size);
 
         if (len == -1) {
             continue;
@@ -1364,21 +1360,22 @@ static int send_dht_dhtpk(const Onion_Client *onion_c, int friend_num, const uin
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(onion_c->rng, nonce);
 
-    VLA(uint8_t, temp, DATA_IN_RESPONSE_MIN_SIZE + CRYPTO_NONCE_SIZE + length);
+    const uint16_t temp_size = DATA_IN_RESPONSE_MIN_SIZE + CRYPTO_NONCE_SIZE + length;
+    VLA(uint8_t, temp, temp_size);
     memcpy(temp, nc_get_self_public_key(onion_c->c), CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(temp + CRYPTO_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
     int len = encrypt_data(onion_c->friends_list[friend_num].real_public_key,
                            nc_get_self_secret_key(onion_c->c), nonce, data,
                            length, temp + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
 
-    if ((uint32_t)len + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE != SIZEOF_VLA(temp)) {
+    if ((uint32_t)len + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE != temp_size) {
         return -1;
     }
 
     uint8_t packet_data[MAX_CRYPTO_REQUEST_SIZE];
     len = create_request(
               onion_c->rng, dht_get_self_public_key(onion_c->dht), dht_get_self_secret_key(onion_c->dht), packet_data,
-              onion_c->friends_list[friend_num].dht_public_key, temp, SIZEOF_VLA(temp), CRYPTO_PACKET_DHTPK);
+              onion_c->friends_list[friend_num].dht_public_key, temp, temp_size, CRYPTO_PACKET_DHTPK);
     assert(len <= UINT16_MAX);
     const Packet packet = {packet_data, (uint16_t)len};
 
@@ -1578,7 +1575,7 @@ int onion_delfriend(Onion_Client *onion_c, int friend_num)
         dht_delfriend(onion_c->dht, onion_c->friends_list[friend_num].dht_public_key, 0);
     }
 
-#endif
+#endif /* 0 */
 
     crypto_memzero(&onion_c->friends_list[friend_num], sizeof(Onion_Friend));
     unsigned int i;
@@ -1705,7 +1702,6 @@ int onion_getfriendip(const Onion_Client *onion_c, int friend_num, IP_Port *ip_p
 
     return dht_getfriendip(onion_c->dht, dht_public_key, ip_port);
 }
-
 
 /** @brief Set if friend is online or not.
  *
@@ -1879,7 +1875,6 @@ static void do_friend(Onion_Client *onion_c, uint16_t friendnum)
     }
 }
 
-
 /** Function to call when onion data packet with contents beginning with byte is received. */
 void oniondata_registerhandler(Onion_Client *onion_c, uint8_t byte, oniondata_handler_cb *cb, void *object)
 {
@@ -1911,6 +1906,33 @@ static bool key_list_contains(const uint8_t *const *keys, uint16_t keys_size, co
     return false;
 }
 
+/** Does path with path_num exist. */
+non_null()
+static bool path_exists(const Mono_Time *mono_time, const Onion_Client_Paths *onion_paths, uint32_t path_num)
+{
+    if (path_timed_out(mono_time, onion_paths, path_num)) {
+        return false;
+    }
+
+    return onion_paths->paths[path_num % NUMBER_ONION_PATHS].path_num == path_num;
+}
+
+/**
+ * A node/path is considered "stable" if it has survived for at least TIME_TO_STABLE
+ * and the latest packets sent to it are not timing out.
+ */
+non_null()
+static bool path_is_stable(const Mono_Time *mono_time, const Onion_Client_Paths *paths,
+                           uint32_t pathnum, const Onion_Node *node)
+{
+    return mono_time_is_timeout(mono_time, node->added_time, TIME_TO_STABLE)
+           && !(node->pings_since_last_response > 0
+                && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT))
+           && mono_time_is_timeout(mono_time, paths->path_creation_time[pathnum], TIME_TO_STABLE)
+           && !(paths->last_path_used_times[pathnum] > 0
+                && mono_time_is_timeout(mono_time, paths->last_path_used[pathnum], ONION_PATH_TIMEOUT));
+}
+
 non_null()
 static void do_announce(Onion_Client *onion_c)
 {
@@ -1934,7 +1956,6 @@ static void do_announce(Onion_Client *onion_c)
             continue;
         }
 
-
         unsigned int interval = ANNOUNCE_INTERVAL_NOT_ANNOUNCED;
 
         if (node_list[i].is_stored != 0
@@ -1943,16 +1964,8 @@ static void do_announce(Onion_Client *onion_c)
 
             const uint32_t pathnum = node_list[i].path_used % NUMBER_ONION_PATHS;
 
-            /* A node/path is considered "stable", and can be pinged less
-             * aggressively, if it has survived for at least TIME_TO_STABLE
-             * and the latest packets sent to it are not timing out.
-             */
-            if (mono_time_is_timeout(onion_c->mono_time, node_list[i].added_time, TIME_TO_STABLE)
-                    && !(node_list[i].pings_since_last_response > 0
-                         && mono_time_is_timeout(onion_c->mono_time, node_list[i].last_pinged, ONION_NODE_TIMEOUT))
-                    && mono_time_is_timeout(onion_c->mono_time, onion_c->onion_paths_self.path_creation_time[pathnum], TIME_TO_STABLE)
-                    && !(onion_c->onion_paths_self.last_path_used_times[pathnum] > 0
-                         && mono_time_is_timeout(onion_c->mono_time, onion_c->onion_paths_self.last_path_used[pathnum], ONION_PATH_TIMEOUT))) {
+            /* If a node/path is considered "stable", it can be pinged less aggressively. */
+            if (path_is_stable(onion_c->mono_time, &onion_c->onion_paths_self, pathnum, &node_list[i])) {
                 interval = ANNOUNCE_INTERVAL_STABLE;
             }
         }
@@ -2021,7 +2034,7 @@ static void do_announce(Onion_Client *onion_c)
             } else {
                 Ip_Ntoa ip_str;
                 LOGGER_TRACE(onion_c->logger, "not sending repeated announce request to %s:%d",
-                        net_ip_ntoa(&target->ip_port.ip, &ip_str), net_ntohs(target->ip_port.port));
+                             net_ip_ntoa(&target->ip_port.ip, &ip_str), net_ntohs(target->ip_port.port));
             }
         }
     }

@@ -45,11 +45,11 @@ static uint16_t ports[NUM_PORTS] = {13215, 33445, 25643};
 
 static void test_basic(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
@@ -266,13 +266,14 @@ static void kill_tcp_con(struct sec_TCP_con *con)
 static int write_packet_tcp_test_connection(const Logger *logger, struct sec_TCP_con *con, const uint8_t *data,
         uint16_t length)
 {
-    VLA(uint8_t, packet, sizeof(uint16_t) + length + CRYPTO_MAC_SIZE);
+    const uint16_t packet_size = sizeof(uint16_t) + length + CRYPTO_MAC_SIZE;
+    VLA(uint8_t, packet, packet_size);
 
     uint16_t c_length = net_htons(length + CRYPTO_MAC_SIZE);
     memcpy(packet, &c_length, sizeof(uint16_t));
     int len = encrypt_data_symmetric(con->shared_key, con->sent_nonce, data, length, packet + sizeof(uint16_t));
 
-    if ((unsigned int)len != (SIZEOF_VLA(packet) - sizeof(uint16_t))) {
+    if ((unsigned int)len != (packet_size - sizeof(uint16_t))) {
         return -1;
     }
 
@@ -282,7 +283,7 @@ static int write_packet_tcp_test_connection(const Logger *logger, struct sec_TCP
     localhost.ip = get_loopback();
     localhost.port = 0;
 
-    ck_assert_msg(net_send(con->ns, logger, con->sock, packet, SIZEOF_VLA(packet), &localhost) == SIZEOF_VLA(packet),
+    ck_assert_msg(net_send(con->ns, logger, con->sock, packet, packet_size, &localhost) == packet_size,
                   "Failed to send a packet.");
     return 0;
 }
@@ -303,11 +304,11 @@ static int read_packet_sec_tcp(const Logger *logger, struct sec_TCP_con *con, ui
 
 static void test_some(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
@@ -498,11 +499,11 @@ static int oob_data_callback(void *object, const uint8_t *public_key, const uint
 
 static void test_client(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Logger *logger = logger_new();
@@ -524,8 +525,9 @@ static void test_client(void)
     ip_port_tcp_s.ip = get_loopback();
 
     TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr);
-    do_tcp_connection(logger, mono_time, conn, nullptr);
+    // TCP sockets might need a moment before they can be written to.
     c_sleep(50);
+    do_tcp_connection(logger, mono_time, conn, nullptr);
 
     // The connection status should be unconfirmed here because we have finished
     // sending our data and are awaiting a response.
@@ -559,6 +561,7 @@ static void test_client(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     TCP_Client_Connection *conn2 = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f2_public_key,
                                    f2_secret_key, nullptr);
+    c_sleep(50);
 
     // The client should call this function (defined earlier) during the routing process.
     routing_response_handler(conn, response_callback, (char *)conn + 2);
@@ -581,7 +584,7 @@ static void test_client(void)
     do_tcp_connection(logger, mono_time, conn2, nullptr);
     c_sleep(50);
 
-    uint8_t data[5] = {1, 2, 3, 4, 5};
+    const uint8_t data[5] = {1, 2, 3, 4, 5};
     memcpy(oob_pubkey, f2_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     send_oob_packet(logger, conn2, f_public_key, data, 5);
     send_routing_request(logger, conn, f2_public_key);
@@ -632,11 +635,11 @@ static void test_client(void)
 // Test how the client handles servers that don't respond.
 static void test_client_invalid(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
@@ -654,7 +657,7 @@ static void test_client_invalid(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
     TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s,
-                                                     self_public_key, f_public_key, f_secret_key, nullptr);
+                                  self_public_key, f_public_key, f_secret_key, nullptr);
 
     // Run the client's main loop but not the server.
     mono_time_update(mono_time);
@@ -708,14 +711,13 @@ static int tcp_data_callback(void *object, int id, const uint8_t *data, uint16_t
     return 0;
 }
 
-
 static void test_tcp_connection(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
@@ -824,11 +826,11 @@ static int tcp_oobdata_callback(void *object, const uint8_t *public_key, unsigne
 
 static void test_tcp_connection2(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);

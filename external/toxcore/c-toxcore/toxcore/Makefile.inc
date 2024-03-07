@@ -1,8 +1,7 @@
 lib_LTLIBRARIES += libtoxcore.la
 
 libtoxcore_la_include_HEADERS = \
-                        ../toxcore/tox.h \
-                        ../toxcore/tox_private.h
+                        ../toxcore/tox.h
 
 libtoxcore_la_includedir = $(includedir)/tox
 
@@ -21,6 +20,7 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/conference_peer_list_changed.c \
                         ../toxcore/events/conference_peer_name.c \
                         ../toxcore/events/conference_title.c \
+                        ../toxcore/events/dht_get_nodes_response.c \
                         ../toxcore/events/events_alloc.c \
                         ../toxcore/events/events_alloc.h \
                         ../toxcore/events/file_chunk_request.c \
@@ -66,6 +66,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/network.c \
                         ../toxcore/crypto_core.h \
                         ../toxcore/crypto_core.c \
+                        ../toxcore/crypto_core_pack.h \
+                        ../toxcore/crypto_core_pack.c \
                         ../toxcore/timed_auth.h \
                         ../toxcore/timed_auth.c \
                         ../toxcore/ping_array.h \

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -17,13 +18,11 @@
 #include "../tox_pack.h"
 #include "../tox_unpack.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Message {
     uint32_t group_number;
@@ -73,7 +72,7 @@ Tox_Message_Type tox_event_group_message_get_type(const Tox_Event_Group_Message 
     return group_message->type;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_message_set_message(Tox_Event_Group_Message *group_message,
         const uint8_t *message, uint32_t message_length)
 {
@@ -83,6 +82,11 @@ static bool tox_event_group_message_set_message(Tox_Event_Group_Message *group_m
         free(group_message->message);
         group_message->message = nullptr;
         group_message->message_length = 0;
+    }
+
+    if (message == nullptr) {
+        assert(message_length == 0);
+        return true;
     }
 
     uint8_t *message_copy = (uint8_t *)malloc(message_length);
@@ -160,7 +164,6 @@ static bool tox_event_group_message_unpack_into(
            && bin_unpack_u32(bu, &event->message_id);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -214,6 +217,7 @@ bool tox_event_group_message_unpack(
     Tox_Event_Group_Message **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_message_new(mem);
 
     if (*event == nullptr) {
@@ -243,16 +247,15 @@ static Tox_Event_Group_Message *tox_event_group_message_alloc(void *user_data)
     return group_message;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_message(Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Message_Type type, const uint8_t *message, size_t length, uint32_t message_id,
-        void *user_data)
+void tox_events_handle_group_message(
+    Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Message_Type type, const uint8_t *message, size_t length, uint32_t message_id,
+    void *user_data)
 {
     Tox_Event_Group_Message *group_message = tox_event_group_message_alloc(user_data);
 

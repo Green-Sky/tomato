@@ -136,18 +136,20 @@ if(MIN_LOGGER_LEVEL)
   endif()
 endif()
 
+option(EXPERIMENTAL_API "Install experimental header file with unstable API" OFF)
+
 option(USE_IPV6 "Use IPv6 in tests" ON)
 if(NOT USE_IPV6)
   add_definitions(-DUSE_IPV6=0)
 endif()
 
-option(BUILD_MISC_TESTS "Build additional tests and utilities" OFF)
+option(BUILD_MISC_TESTS "Build additional tests" OFF)
 option(BUILD_FUN_UTILS "Build additional just for fun utilities" OFF)
 
 option(AUTOTEST "Enable autotests (mainly for CI)" OFF)
 if(AUTOTEST)
   option(NON_HERMETIC_TESTS "Whether to build and run tests that depend on an internet connection" OFF)
-  option(PROXY_TEST "Enable proxy test (needs HTTP/SOCKS5 proxy on port 8080/8081)" OFF)
+  option(PROXY_TEST "Enable proxy test (requires other/proxy/proxy_server.go to be running)" OFF)
 endif()
 
 option(BUILD_TOXAV "Whether to build the tox AV library" ON)
@@ -223,6 +225,8 @@ set(toxcore_SOURCES
   toxcore/ccompat.h
   toxcore/crypto_core.c
   toxcore/crypto_core.h
+  toxcore/crypto_core_pack.c
+  toxcore/crypto_core_pack.h
   toxcore/DHT.c
   toxcore/DHT.h
   toxcore/events/conference_connected.c
@@ -231,6 +235,7 @@ set(toxcore_SOURCES
   toxcore/events/conference_peer_list_changed.c
   toxcore/events/conference_peer_name.c
   toxcore/events/conference_title.c
+  toxcore/events/dht_get_nodes_response.c
   toxcore/events/events_alloc.c
   toxcore/events/events_alloc.h
   toxcore/events/file_chunk_request.c
@@ -356,8 +361,11 @@ set(toxcore_PKGCONFIG_REQUIRES ${toxcore_PKGCONFIG_REQUIRES} libsodium)
 set(toxcore_API_HEADERS
   ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox
-  ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox
-  ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox)
+  ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox)
+if(EXPERIMENTAL_API)
+  set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
+    ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox)
+endif()
 
 ################################################################################
 #
@@ -446,7 +454,7 @@ elseif(TARGET Threads::Threads)
   set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} Threads::Threads)
 endif()
 if(WIN32)
-  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} iphlpapi wsock32 ws2_32)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} iphlpapi ws2_32)
 endif()
 
 ################################################################################
@@ -526,7 +534,7 @@ endfunction()
 
 # The actual unit tests follow.
 #
-if(GTEST_FOUND)
+if(TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxav ring_buffer)
   unit_test(toxav rtp)
   unit_test(toxcore DHT)

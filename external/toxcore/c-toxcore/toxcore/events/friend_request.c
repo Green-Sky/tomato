@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox_events.h"
 #include "../tox_private.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Friend_Request {
     uint8_t public_key[TOX_PUBLIC_KEY_SIZE];
@@ -81,7 +80,9 @@ non_null()
 static void tox_event_friend_request_construct(Tox_Event_Friend_Request *friend_request)
 {
     *friend_request = (Tox_Event_Friend_Request) {
-        0
+        {
+            0
+        }
     };
 }
 non_null()
@@ -159,6 +160,7 @@ bool tox_event_friend_request_unpack(
     Tox_Event_Friend_Request **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_friend_request_new(mem);
 
     if (*event == nullptr) {
@@ -188,13 +190,11 @@ static Tox_Event_Friend_Request *tox_event_friend_request_alloc(void *user_data)
     return friend_request;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
-
 
 void tox_events_handle_friend_request(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length,
                                       void *user_data)

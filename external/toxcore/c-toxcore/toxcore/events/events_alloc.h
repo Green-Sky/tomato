@@ -8,7 +8,11 @@
 #include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
+#include "../mem.h"
+#include "../tox.h"
 #include "../tox_event.h"
+#include "../tox_events.h"
+#include "../tox_private.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +38,7 @@ tox_conference_message_cb tox_events_handle_conference_message;
 tox_conference_peer_list_changed_cb tox_events_handle_conference_peer_list_changed;
 tox_conference_peer_name_cb tox_events_handle_conference_peer_name;
 tox_conference_title_cb tox_events_handle_conference_title;
+tox_dht_get_nodes_response_cb tox_events_handle_dht_get_nodes_response;
 tox_file_chunk_request_cb tox_events_handle_file_chunk_request;
 tox_file_recv_cb tox_events_handle_file_recv;
 tox_file_recv_chunk_cb tox_events_handle_file_recv_chunk;
@@ -68,12 +73,6 @@ tox_group_self_join_cb tox_events_handle_group_self_join;
 tox_group_join_fail_cb tox_events_handle_group_join_fail;
 tox_group_moderation_cb tox_events_handle_group_moderation;
 
-non_null(2) nullable(1)
-bool tox_events_pack(const Tox_Events *events, Bin_Pack *bp);
-
-non_null()
-bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem);
-
 non_null()
 Tox_Events_State *tox_events_alloc(void *user_data);
 
@@ -81,7 +80,7 @@ non_null()
 bool tox_events_add(Tox_Events *events, const Tox_Event *event);
 
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif
 
-#endif // C_TOXCORE_TOXCORE_EVENTS_EVENTS_ALLOC_H
+#endif /* C_TOXCORE_TOXCORE_EVENTS_EVENTS_ALLOC_H */

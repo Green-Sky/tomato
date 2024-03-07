@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -15,13 +16,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Group_Custom_Packet {
     uint32_t group_number;
@@ -56,7 +55,7 @@ uint32_t tox_event_group_custom_packet_get_peer_id(const Tox_Event_Group_Custom_
     return group_custom_packet->peer_id;
 }
 
-non_null()
+non_null(1) nullable(2)
 static bool tox_event_group_custom_packet_set_data(Tox_Event_Group_Custom_Packet *group_custom_packet,
         const uint8_t *data, uint32_t data_length)
 {
@@ -66,6 +65,11 @@ static bool tox_event_group_custom_packet_set_data(Tox_Event_Group_Custom_Packet
         free(group_custom_packet->data);
         group_custom_packet->data = nullptr;
         group_custom_packet->data_length = 0;
+    }
+
+    if (data == nullptr) {
+        assert(data_length == 0);
+        return true;
     }
 
     uint8_t *data_copy = (uint8_t *)malloc(data_length);
@@ -126,7 +130,6 @@ static bool tox_event_group_custom_packet_unpack_into(
            && bin_unpack_bin(bu, &event->data, &event->data_length);
 }
 
-
 /*****************************************************
  *
  * :: new/free/add/get/size/unpack
@@ -180,6 +183,7 @@ bool tox_event_group_custom_packet_unpack(
     Tox_Event_Group_Custom_Packet **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_group_custom_packet_new(mem);
 
     if (*event == nullptr) {
@@ -209,16 +213,15 @@ static Tox_Event_Group_Custom_Packet *tox_event_group_custom_packet_alloc(void *
     return group_custom_packet;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_group_custom_packet(Tox *tox, uint32_t group_number, uint32_t peer_id, const uint8_t *data, size_t length,
-        void *user_data)
+void tox_events_handle_group_custom_packet(
+    Tox *tox, uint32_t group_number, uint32_t peer_id, const uint8_t *data, size_t length,
+    void *user_data)
 {
     Tox_Event_Group_Custom_Packet *group_custom_packet = tox_event_group_custom_packet_alloc(user_data);
 

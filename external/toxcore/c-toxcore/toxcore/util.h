@@ -48,6 +48,16 @@ non_null() bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t 
  */
 nullable(1) uint8_t *memdup(const uint8_t *data, size_t data_size);
 
+/**
+ * @brief Set all bytes in `data` to 0.
+ *
+ * NOTE: This does not securely zero out data. DO NOT USE for sensitive data. Use
+ * `crypto_memzero` from `crypto_core.h`, instead. This function is ok to use for
+ * message buffers, public keys, encrypted data, etc. It is not ok for buffers
+ * containing key material (secret keys, shared keys).
+ */
+nullable(1) void memzero(uint8_t *data, size_t data_size);
+
 // Safe min/max functions with specific types. This forces the conversion to the
 // desired type before the comparison expression, giving the choice of
 // conversion to the caller. Use these instead of inline comparisons or MIN/MAX
@@ -69,6 +79,9 @@ uint16_t min_u16(uint16_t a, uint16_t b);
 uint32_t min_u32(uint32_t a, uint32_t b);
 uint64_t min_u64(uint64_t a, uint64_t b);
 
+// Comparison function: return -1 if a<b, 0 if a==b, 1 if a>b.
+int cmp_uint(uint64_t a, uint64_t b);
+
 /** @brief Returns a 32-bit hash of key of size len */
 non_null()
 uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len);
@@ -84,7 +97,7 @@ non_null()
 uint16_t data_checksum(const uint8_t *data, uint32_t length);
 
 #ifdef __cplusplus
-}  // extern "C"
+} /* extern "C" */
 #endif
 
-#endif // C_TOXCORE_TOXCORE_UTIL_H
+#endif /* C_TOXCORE_TOXCORE_UTIL_H */

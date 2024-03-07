@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
@@ -13,13 +14,11 @@
 #include "../tox.h"
 #include "../tox_events.h"
 
-
 /*****************************************************
  *
  * :: struct and accessors
  *
  *****************************************************/
-
 
 struct Tox_Event_Conference_Connected {
     uint32_t conference_number;
@@ -64,7 +63,6 @@ static bool tox_event_conference_connected_unpack_into(
     assert(event != nullptr);
     return bin_unpack_u32(bu, &event->conference_number);
 }
-
 
 /*****************************************************
  *
@@ -119,6 +117,7 @@ bool tox_event_conference_connected_unpack(
     Tox_Event_Conference_Connected **event, Bin_Unpack *bu, const Memory *mem)
 {
     assert(event != nullptr);
+    assert(*event == nullptr);
     *event = tox_event_conference_connected_new(mem);
 
     if (*event == nullptr) {
@@ -148,16 +147,15 @@ static Tox_Event_Conference_Connected *tox_event_conference_connected_alloc(void
     return conference_connected;
 }
 
-
 /*****************************************************
  *
  * :: event handler
  *
  *****************************************************/
 
-
-void tox_events_handle_conference_connected(Tox *tox, uint32_t conference_number,
-        void *user_data)
+void tox_events_handle_conference_connected(
+    Tox *tox, uint32_t conference_number,
+    void *user_data)
 {
     Tox_Event_Conference_Connected *conference_connected = tox_event_conference_connected_alloc(user_data);
 
