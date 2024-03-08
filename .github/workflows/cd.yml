@@ -30,9 +30,6 @@ jobs:
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
 
-    - name: temp test
-      run: ${{github.workspace}}/build/bin/mono_time_test
-
     - name: Determine tag name
       id: tag
       shell: bash
@@ -84,9 +81,6 @@ jobs:
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    - name: temp test
-      run: ${{github.workspace}}/build/bin/mono_time_test.exe
-
     - name: Determine tag name
       id: tag
       shell: bash
@@ -137,9 +131,6 @@ jobs:
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
-
-    - name: temp test
-      run: ${{github.workspace}}/build/bin/mono_time_test.exe
 
     - name: Determine tag name
       id: tag
