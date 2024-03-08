@@ -19,6 +19,8 @@ add_library(toxcore STATIC
 	${TOX_DIR}toxcore/ccompat.h
 	${TOX_DIR}toxcore/crypto_core.c
 	${TOX_DIR}toxcore/crypto_core.h
+	${TOX_DIR}toxcore/crypto_core_pack.c
+	${TOX_DIR}toxcore/crypto_core_pack.h
 	${TOX_DIR}toxcore/DHT.c
 	${TOX_DIR}toxcore/DHT.h
 	${TOX_DIR}toxcore/events/conference_connected.c
@@ -27,6 +29,7 @@ add_library(toxcore STATIC
 	${TOX_DIR}toxcore/events/conference_peer_list_changed.c
 	${TOX_DIR}toxcore/events/conference_peer_name.c
 	${TOX_DIR}toxcore/events/conference_title.c
+	${TOX_DIR}toxcore/events/dht_get_nodes_response.c
 	${TOX_DIR}toxcore/events/events_alloc.c
 	${TOX_DIR}toxcore/events/events_alloc.h
 	${TOX_DIR}toxcore/events/file_chunk_request.c
@@ -209,8 +212,3 @@ add_executable(DHT_Bootstrap EXCLUDE_FROM_ALL
 )
 target_link_libraries(DHT_Bootstrap toxcore)
 
-add_executable(mono_time_test
-	./mono_time_test.cc
-)
-target_link_libraries(mono_time_test toxcore)
-target_compile_features(mono_time_test PUBLIC cxx_std_11)

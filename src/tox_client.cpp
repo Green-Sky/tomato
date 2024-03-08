@@ -1,4 +1,5 @@
 #include "./tox_client.hpp"
+#include "toxcore/tox.h"
 
 // meh, change this
 #include <exception>
@@ -66,6 +67,8 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 			ifile.close(); // do i need this?
 		}
 	}
+
+	tox_options_set_experimental_groups_persistence(options, true);
 
 	TOX_ERR_NEW err_new;
 	_tox = tox_new(options, &err_new);
