@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <iostream>
+
 SDLRendererTextureUploader::SDLRendererTextureUploader(SDL_Renderer* renderer_) :
 	renderer(renderer_)
 {
@@ -19,16 +21,15 @@ uint64_t SDLRendererTextureUploader::uploadRGBA(const uint8_t* data, uint32_t wi
 	);
 	assert(surf); // TODO: add error reporting
 
-	// hacky hint usage
-	if (access == Access::STREAMING) {
-		SDL_SetHint("SDL_TextureAccess", "SDL_TEXTUREACCESS_STREAMING");
-	} else {
-		SDL_SetHint("SDL_TextureAccess", "SDL_TEXTUREACCESS_STATIC");
-	}
-	// TODO: cleanup hints after
-
-	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+	SDL_Texture* tex = SDL_CreateTexture(
+		renderer,
+		surf->format->format,
+		access == Access::STREAMING ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC,
+		surf->w, surf->h
+	);
 	assert(tex); // TODO: add error reporting
+	// TODO: error reporting
+	SDL_UpdateTexture(tex, nullptr, surf->pixels, surf->pitch);
 
 	if (filter == NEAREST) {
 		SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
@@ -51,7 +52,7 @@ bool SDLRendererTextureUploader::updateRGBA(uint64_t tex_id, const uint8_t* data
 	int pitch = 0;
 
 	if (SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch) != 0) {
-		// TODO: error
+		std::cerr << "SDLRTU error: failed locking texture '" << SDL_GetError() << "'\n";
 		return false;
 	}
 
