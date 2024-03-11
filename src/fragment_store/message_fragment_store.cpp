@@ -592,7 +592,7 @@ float MessageFragmentStore::tick(float time_delta) {
 	}
 
 	if (!_potentially_dirty_contacts.empty()) {
-		std::cout << "MFS: pdc\n";
+		//std::cout << "MFS: pdc\n";
 		// here we check if any view of said contact needs frag loading
 		// only once per tick tho
 
@@ -646,7 +646,7 @@ float MessageFragmentStore::tick(float time_delta) {
 					}
 				}
 				// no new visible fragment
-				std::cout << "MFS: no new frag directly visible\n";
+				//std::cout << "MFS: no new frag directly visible\n";
 
 				// now, finally, check for adjecent fragments that need to be loaded
 				// we do this by finding the outermost fragment in a rage, and extend it by one
