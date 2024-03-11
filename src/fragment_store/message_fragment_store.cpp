@@ -71,7 +71,13 @@ namespace Message::Components {
 namespace Fragment::Components {
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesTSRange, begin, end)
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesContact, id)
-} // Fragment::Components
+
+	namespace Ephemeral {
+		// does not contain any messges
+		// (recheck on frag update)
+		struct MessagesEmptyTag {};
+	}
+} // Fragment::Component
 
 void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (_fs_ignore_event) {
@@ -92,6 +98,12 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (m.any_of<Message::Components::ViewCurserBegin, Message::Components::ViewCurserEnd>()) {
 		// not an actual message, but we probalby need to check and see if we need to load fragments
 		//std::cout << "MFS: new or updated curser\n";
+		return;
+	}
+
+	// TODO: this is bad, we need a non persistence tag instead
+	if (!m.any_of<Message::Components::MessageText>()) {
+		// skip everything else for now
 		return;
 	}
 
@@ -273,6 +285,13 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 
 	if (!j.is_array()) {
 		// wrong data
+		fh.emplace_or_replace<FragComp::Ephemeral::MessagesEmptyTag>();
+		return;
+	}
+
+	if (j.size() == 0) {
+		// empty array
+		fh.emplace_or_replace<FragComp::Ephemeral::MessagesEmptyTag>();
 		return;
 	}
 
@@ -288,6 +307,7 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 	}
 	reg.ctx().get<Message::Components::LoadedContactFragments>().frags.emplace(fh);
 
+	size_t messages_new_or_updated {0};
 	for (const auto& j_entry : j) {
 		auto new_real_msg = Message3Handle{reg, reg.create()};
 		// load into staging reg
@@ -339,6 +359,7 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 			//  -> merge with preexisting (needs to be order independent)
 			//  -> throw update
 			reg.destroy(new_real_msg);
+			//messages_new_or_updated++; // TODO: how do i know on merging, if data was useful
 			//_rmm.throwEventUpdate(reg, new_real_msg);
 		} else {
 			if (!new_real_msg.all_of<Message::Components::Timestamp, Message::Components::ContactFrom, Message::Components::ContactTo>()) {
@@ -348,9 +369,16 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 				continue;
 			}
 
+			messages_new_or_updated++;
 			//  -> throw create
 			_rmm.throwEventConstruct(reg, new_real_msg);
 		}
+	}
+
+	if (messages_new_or_updated == 0) {
+		// useless frag
+		// TODO: unload?
+		fh.emplace_or_replace<FragComp::Ephemeral::MessagesEmptyTag>();
 	}
 }
 
@@ -604,6 +632,10 @@ float MessageFragmentStore::tick(float time_delta) {
 						return 0.05f;
 					}
 
+					if (fh.all_of<FragComp::Ephemeral::MessagesEmptyTag>()) {
+						continue; // skip known empty
+					}
+
 					// get ts range of frag and collide with all curser(s/ranges)
 					const auto& [range_begin, range_end] = fh.get<FragComp::MessagesTSRange>();
 
@@ -654,14 +686,19 @@ float MessageFragmentStore::tick(float time_delta) {
 
 						// a single adjacent frag is often not enough
 						// only ok bc next is cheap
-						for (size_t i = 0; i < 5 && _fs._reg.valid(next_frag); i++) {
+						for (size_t i = 0; i < 5 && _fs._reg.valid(next_frag); next_frag = cf.next(next_frag)) {
+							auto fh = _fs.fragmentHandle(next_frag);
+							if (fh.any_of<FragComp::Ephemeral::MessagesEmptyTag>()) {
+								continue; // skip known empty
+							}
+
 							if (!loaded_frags.contains(next_frag)) {
 								std::cout << "MFS: next frag of range\n";
-								loadFragment(*msg_reg, {_fs._reg, next_frag});
+								loadFragment(*msg_reg, fh);
 								return 0.05f;
 							}
 
-							next_frag = cf.next(next_frag);
+							i++;
 						}
 					}
 
@@ -697,14 +734,19 @@ float MessageFragmentStore::tick(float time_delta) {
 
 						// a single adjacent frag is often not enough
 						// only ok bc next is cheap
-						for (size_t i = 0; i < 5 && _fs._reg.valid(prev_frag); i++) {
+						for (size_t i = 0; i < 5 && _fs._reg.valid(prev_frag); prev_frag = cf.prev(prev_frag)) {
+							auto fh = _fs.fragmentHandle(prev_frag);
+							if (fh.any_of<FragComp::Ephemeral::MessagesEmptyTag>()) {
+								continue; // skip known empty
+							}
+
 							if (!loaded_frags.contains(prev_frag)) {
 								std::cout << "MFS: prev frag of range\n";
-								loadFragment(*msg_reg, {_fs._reg, prev_frag});
+								loadFragment(*msg_reg, fh);
 								return 0.05f;
 							}
 
-							prev_frag = cf.prev(prev_frag);
+							i++;
 						}
 					}
 				}
@@ -845,6 +887,14 @@ bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
 	}
 
 	frags.emplace(frag, InternalEntry{begin_index, end_index});
+
+	// now adjust all indicies of fragments coming after the insert position
+	for (size_t i = begin_index + 1; i < sorted_begin.size(); i++) {
+		frags.at(sorted_begin[i]).i_b = i;
+	}
+	for (size_t i = end_index + 1; i < sorted_end.size(); i++) {
+		frags.at(sorted_end[i]).i_e = i;
+	}
 
 	return true;
 }
