@@ -1,5 +1,6 @@
 #include "./image_loader_webp.hpp"
 
+#include <memory>
 #include <webp/demux.h>
 #include <webp/mux.h>
 #include <webp/encode.h>
@@ -21,13 +22,16 @@ ImageLoaderWebP::ImageInfo ImageLoaderWebP::loadInfoFromMemory(const uint8_t* da
 	// Tune 'dec_options' as needed.
 	dec_options.color_mode = MODE_RGBA;
 
-	WebPAnimDecoder* dec = WebPAnimDecoderNew(&webp_data, &dec_options);
-	if (dec == nullptr) {
+	std::unique_ptr<WebPAnimDecoder, decltype(&WebPAnimDecoderDelete)> dec{
+		WebPAnimDecoderNew(&webp_data, &dec_options),
+		&WebPAnimDecoderDelete
+	};
+	if (!static_cast<bool>(dec)) {
 		return res;
 	}
 
 	WebPAnimInfo anim_info;
-	WebPAnimDecoderGetInfo(dec, &anim_info);
+	WebPAnimDecoderGetInfo(dec.get(), &anim_info);
 	res.width = anim_info.canvas_width;
 	res.height = anim_info.canvas_height;
 	res.file_ext = "webp";
@@ -48,22 +52,25 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 	// Tune 'dec_options' as needed.
 	dec_options.color_mode = MODE_RGBA;
 
-	WebPAnimDecoder* dec = WebPAnimDecoderNew(&webp_data, &dec_options);
-	if (dec == nullptr) {
+	std::unique_ptr<WebPAnimDecoder, decltype(&WebPAnimDecoderDelete)> dec{
+		WebPAnimDecoderNew(&webp_data, &dec_options),
+		&WebPAnimDecoderDelete
+	};
+	if (!static_cast<bool>(dec)) {
 		return res;
 	}
 
 	WebPAnimInfo anim_info;
-	WebPAnimDecoderGetInfo(dec, &anim_info);
+	WebPAnimDecoderGetInfo(dec.get(), &anim_info);
 	res.width = anim_info.canvas_width;
 	res.height = anim_info.canvas_height;
 	res.file_ext = "webp";
 
 	int prev_timestamp = 0;
-	while (WebPAnimDecoderHasMoreFrames(dec)) {
+	while (WebPAnimDecoderHasMoreFrames(dec.get())) {
 		uint8_t* buf;
 		int timestamp;
-		WebPAnimDecoderGetNext(dec, &buf, &timestamp);
+		WebPAnimDecoderGetNext(dec.get(), &buf, &timestamp);
 		// ... (Render 'buf' based on 'timestamp').
 		// ... (Do NOT free 'buf', as it is owned by 'dec').
 
@@ -73,8 +80,6 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 		prev_timestamp = timestamp;
 		new_frame.data.insert(new_frame.data.end(), buf, buf+(res.width*res.height*4));
 	}
-
-	WebPAnimDecoderDelete(dec);
 
 	assert(anim_info.frame_count == res.frames.size());
 

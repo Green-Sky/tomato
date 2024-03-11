@@ -83,6 +83,7 @@ bool SendImagePopup::load(void) {
 			}
 		}
 
+		assert(preview_image.textures.empty());
 		preview_image.timestamp_last_rendered = Message::getTimeMS();
 		preview_image.current_texture = 0;
 		for (const auto& [ms, data] : original_image.frames) {
@@ -173,7 +174,7 @@ void SendImagePopup::render(float time_delta) {
 
 	// TODO: add cancel shortcut (esc)
 	if (ImGui::BeginPopupModal("send image##SendImagePopup", nullptr/*, ImGuiWindowFlags_NoDecoration*/)) {
-		const auto TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+		//const auto TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
 		const auto TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
 		preview_image.doAnimation(Message::getTimeMS());
