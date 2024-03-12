@@ -376,7 +376,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 }
 
 Screen* MainScreen::tick(float time_delta, bool& quit) {
-	quit = !tc.iterate(); // compute
+	quit = !tc.iterate(time_delta); // compute
 
 	tcm.iterate(time_delta); // compute
 
