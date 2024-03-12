@@ -10,7 +10,6 @@
 #include "./start_screen.hpp"
 
 #include <memory>
-#include <future>
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -29,8 +28,6 @@ int main(int argc, char** argv) {
 		std::cerr << "SDL_Init failed (" << SDL_GetError() << ")\n";
 		return 1;
 	}
-	// me just messing with RAII cleanup
-	auto sdl_scope = std::async(std::launch::deferred, &SDL_Quit);
 
 	// more RAII
 	std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window {
@@ -86,9 +83,7 @@ int main(int argc, char** argv) {
 	}
 
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());
-	auto imgui_sdl_scope = std::async(std::launch::deferred, &ImGui_ImplSDL3_Shutdown);
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
-	auto imgui_sdlrenderer_scope = std::async(std::launch::deferred, &ImGui_ImplSDLRenderer3_Shutdown);
 
 	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(renderer.get());
 
@@ -212,6 +207,12 @@ int main(int argc, char** argv) {
 		SDL_Delay(1); // yield for 1ms
 #endif
 	}
+
+	ImGui_ImplSDLRenderer3_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
+	ImGui::DestroyContext();
+
+	SDL_Quit();
 
 	return 0;
 }
