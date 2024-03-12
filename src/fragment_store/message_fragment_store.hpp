@@ -13,7 +13,7 @@
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 
-#include <queue>
+#include <deque>
 #include <vector>
 #include <cstdint>
 
@@ -95,13 +95,13 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 			FragmentID id;
 			Message3Registry* reg{nullptr};
 		};
-		std::queue<SaveQueueEntry> _fuid_save_queue;
+		std::deque<SaveQueueEntry> _fuid_save_queue;
 
 		struct ECQueueEntry final {
 			FragmentID fid;
 			Contact3 c;
 		};
-		std::queue<ECQueueEntry> _event_check_queue;
+		std::deque<ECQueueEntry> _event_check_queue;
 
 		// range changed or fragment loaded.
 		// we only load a limited number of fragments at once,
@@ -128,5 +128,6 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 
 	protected: // fs
 		bool onEvent(const Fragment::Events::FragmentConstruct& e) override;
+		bool onEvent(const Fragment::Events::FragmentUpdated& e) override;
 };
 

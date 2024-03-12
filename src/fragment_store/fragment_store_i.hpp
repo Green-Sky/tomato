@@ -42,10 +42,6 @@ struct FragmentStoreEventI {
 	virtual bool onEvent(const Fragment::Events::FragmentConstruct&) { return false; }
 	virtual bool onEvent(const Fragment::Events::FragmentUpdated&) { return false; }
 	//virtual bool onEvent(const Fragment::Events::MessageDestory&) { return false; }
-
-	// mm3
-	// send text
-	// send file path
 };
 using FragmentStoreEventProviderI = EventProviderI<FragmentStoreEventI>;
 
