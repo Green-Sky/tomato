@@ -35,6 +35,16 @@ namespace Components {
 		float fade {1.f};
 	};
 
+	struct ConvertedTimeCache {
+		// calling localtime is expensive af
+		int tm_year {0};
+		int tm_yday {0};
+		int tm_mon {0};
+		int tm_mday {0};
+		int tm_hour {0};
+		int tm_min {0};
+	};
+
 } // Components
 
 static constexpr float lerp(float a, float b, float t) {
@@ -324,7 +334,8 @@ float ChatGui4::render(float time_delta) {
 						//tmp_view.use<Message::Components::Timestamp>();
 						//tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
 						//) {
-						uint64_t prev_ts {0};
+						//uint64_t prev_ts {0};
+						Components::ConvertedTimeCache prev_time {};
 						auto tmp_view = msg_reg.view<Message::Components::Timestamp>();
 						for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
 							const Message3 e = *view_it;
@@ -342,15 +353,12 @@ float ChatGui4::render(float time_delta) {
 							// TODO: why?
 							ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
-							{ // check if date changed
-								// TODO: find defined ways of casting to time_t
-								std::time_t prev = prev_ts / 1000;
-								std::time_t next = ts.ts / 1000;
-								std::tm prev_tm = *std::localtime(&prev);
-								std::tm next_tm = *std::localtime(&next);
+							if (msg_reg.all_of<Components::ConvertedTimeCache>(e)) { // check if date changed
+								// TODO: move conversion up?
+								const auto& next_time = msg_reg.get<Components::ConvertedTimeCache>(e);
 								if (
-									prev_tm.tm_yday != next_tm.tm_yday ||
-									prev_tm.tm_year != next_tm.tm_year // making sure
+									prev_time.tm_yday != next_time.tm_yday ||
+									prev_time.tm_year != next_time.tm_year // making sure
 								) {
 									// name
 									if (ImGui::TableNextColumn()) {
@@ -359,14 +367,14 @@ float ChatGui4::render(float time_delta) {
 									// msg
 									if (ImGui::TableNextColumn()) {
 										ImGui::TextDisabled("DATE CHANGED from %d.%d.%d to %d.%d.%d",
-											1900+prev_tm.tm_year, 1+prev_tm.tm_mon, prev_tm.tm_mday,
-											1900+next_tm.tm_year, 1+next_tm.tm_mon, next_tm.tm_mday
+											1900+prev_time.tm_year, 1+prev_time.tm_mon, prev_time.tm_mday,
+											1900+next_time.tm_year, 1+next_time.tm_mon, next_time.tm_mday
 										);
 									}
 									ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 								}
 
-								prev_ts = ts.ts;
+								prev_time = next_time;
 							}
 
 
@@ -519,12 +527,24 @@ float ChatGui4::render(float time_delta) {
 
 							// ts
 							if (ImGui::TableNextColumn()) {
-								auto time = std::chrono::system_clock::to_time_t(
-									std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::milliseconds{ts.ts}}
-								);
-								auto localtime = std::localtime(&time);
+								if (!msg_reg.all_of<Components::ConvertedTimeCache>(e)) {
+									auto time = std::chrono::system_clock::to_time_t(
+										std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::milliseconds{ts.ts}}
+									);
+									auto localtime = std::localtime(&time);
+									msg_reg.emplace<Components::ConvertedTimeCache>(
+										e,
+										localtime->tm_year,
+										localtime->tm_yday,
+										localtime->tm_mon,
+										localtime->tm_mday,
+										localtime->tm_hour,
+										localtime->tm_min
+									);
+								}
+								const auto& ctc = msg_reg.get<Components::ConvertedTimeCache>(e);
 
-								ImGui::Text("%.2d:%.2d", localtime->tm_hour, localtime->tm_min);
+								ImGui::Text("%.2d:%.2d", ctc.tm_hour, ctc.tm_min);
 							}
 
 							// extra
