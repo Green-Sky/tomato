@@ -208,9 +208,16 @@ int main(int argc, char** argv) {
 #endif
 	}
 
+	// TODO: use scope for the unique ptrs
+
+	screen.reset();
+
 	ImGui_ImplSDLRenderer3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
+
+	renderer.reset();
+	window.reset();
 
 	SDL_Quit();
 
