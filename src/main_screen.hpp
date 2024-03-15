@@ -76,6 +76,9 @@ struct MainScreen final : public Screen {
 	ToxDHTCapHisto tdch;
 
 	bool _show_tool_style_editor {false};
+	bool _show_tool_metrics {false};
+	bool _show_tool_debug_log {false};
+	bool _show_tool_id_stack {false};
 
 	bool _window_hidden {false};
 	uint64_t _window_hidden_ts {0};

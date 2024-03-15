@@ -215,9 +215,24 @@ Screen* MainScreen::render(float time_delta, bool&) {
 					ImGui::EndMenu();
 				}
 				if (ImGui::BeginMenu("Settings")) {
-					if (ImGui::MenuItem("ImGui Style Editor")) {
+					ImGui::SeparatorText("ImGui");
+
+					if (ImGui::MenuItem("Style Editor")) {
 						_show_tool_style_editor = true;
 					}
+
+					if (ImGui::MenuItem("Metrics")) {
+						_show_tool_metrics = true;
+					}
+
+					if (ImGui::MenuItem("Debug Log")) {
+						_show_tool_debug_log = true;
+					}
+
+					if (ImGui::MenuItem("ID Stack Tool")) {
+						_show_tool_id_stack = true;
+					}
+
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenuBar();
@@ -232,6 +247,18 @@ Screen* MainScreen::render(float time_delta, bool&) {
 			ImGui::ShowStyleEditor();
 		}
 		ImGui::End();
+	}
+
+	if (_show_tool_metrics) {
+		ImGui::ShowMetricsWindow(&_show_tool_metrics);
+	}
+
+	if (_show_tool_debug_log) {
+		ImGui::ShowDebugLogWindow(&_show_tool_debug_log);
+	}
+
+	if (_show_tool_id_stack) {
+		ImGui::ShowIDStackToolWindow(&_show_tool_id_stack);
 	}
 
 	if constexpr (false) {
