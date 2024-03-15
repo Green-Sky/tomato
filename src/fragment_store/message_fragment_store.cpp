@@ -453,6 +453,11 @@ bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry
 	//nlohmann::json::to_msgpack(j);
 	auto j_dump = j.dump(2, ' ', true);
 	if (_fs.syncToStorage(fh, reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size())) {
+		// TODO: make this better, should this be called on fail? should this be called before sync? (prob not)
+		_fs_ignore_event = true;
+		_fs.throwEventUpdate(fh);
+		_fs_ignore_event = false;
+
 		//std::cout << "MFS: dumped " << j_dump << "\n";
 		// succ
 		return true;
