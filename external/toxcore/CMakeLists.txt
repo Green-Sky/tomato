@@ -171,9 +171,10 @@ configure_file(
 target_include_directories(toxcore PRIVATE "${TOX_DIR}toxcore")
 target_include_directories(toxcore PUBLIC "${TOX_DIR}")
 
-target_compile_definitions(toxcore PUBLIC USE_IPV6=1)
+#target_compile_definitions(toxcore PUBLIC USE_IPV6=1)
 #target_compile_definitions(toxcore PUBLIC MIN_LOGGER_LEVEL=LOGGER_LEVEL_DEBUG)
-target_compile_definitions(toxcore PUBLIC MIN_LOGGER_LEVEL=LOGGER_LEVEL_INFO)
+#target_compile_definitions(toxcore PUBLIC MIN_LOGGER_LEVEL=LOGGER_LEVEL_INFO)
+target_compile_definitions(toxcore PUBLIC MIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE)
 
 find_package(unofficial-sodium CONFIG QUIET)
 find_package(sodium QUIET)

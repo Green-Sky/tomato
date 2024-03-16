@@ -12,6 +12,14 @@
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
+
+      # get deps (move to lockfile or something)
+      # TODO: use system provided instead
+      tracy-src = pkgs.fetchFromGitHub {
+        owner = "wolfpld"; repo = "tracy";
+        rev = "v0.10";
+        hash = "sha256-DN1ExvQ5wcIUyhMAfiakFbZkDsx+5l8VMtYGvSdboPA=";
+      };
     in {
       packages.default = pkgs.stdenv.mkDerivation {
         pname = "tomato";
@@ -56,8 +64,11 @@
         ] ++ self.packages.${system}.default.dlopenBuildInputs;
 
         cmakeFlags = [
-          "TOMATO_ASAN=1"
-          "CMAKE_BUILD_TYPE=RelWithDebInfo"
+          "-DTOMATO_ASAN=OFF"
+          "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+
+          "-DTRACY_ENABLE=ON"
+          "-DFETCHCONTENT_SOURCE_DIR_TRACY=${tracy-src}"
         ];
 
         # TODO: replace with install command

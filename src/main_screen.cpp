@@ -1,5 +1,7 @@
 #include "./main_screen.hpp"
 
+#include <tracy/Tracy.hpp>
+
 #include <solanaceae/contact/components.hpp>
 
 #include <imgui/imgui.h>
@@ -155,6 +157,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 }
 
 Screen* MainScreen::render(float time_delta, bool&) {
+	ZoneScoped;
 	// HACK: render the tomato main window first, with proper flags set.
 	// flags need to be set the first time begin() is called.
 	// and plugins are run before the main cg is run.
@@ -403,6 +406,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 }
 
 Screen* MainScreen::tick(float time_delta, bool& quit) {
+	ZoneScoped;
 	quit = !tc.iterate(time_delta); // compute
 
 	tcm.iterate(time_delta); // compute

@@ -2,6 +2,8 @@
 
 #include "./file_selector.hpp"
 
+#include <tracy/Tracy.hpp>
+
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
@@ -149,6 +151,7 @@ ChatGui4::~ChatGui4(void) {
 }
 
 float ChatGui4::render(float time_delta) {
+	ZoneScoped;
 	_fss.render();
 	_sip.render(time_delta);
 
@@ -338,6 +341,7 @@ float ChatGui4::render(float time_delta) {
 						Components::ConvertedTimeCache prev_time {};
 						auto tmp_view = msg_reg.view<Message::Components::Timestamp>();
 						for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
+							ZoneScoped;
 							const Message3 e = *view_it;
 
 							// manually filter ("reverse" iteration <.<)
@@ -677,6 +681,7 @@ void ChatGui4::sendFilePath(const char* file_path) {
 
 // has MessageText
 void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
+	ZoneScoped;
 	const auto& msgtext = reg.get<Message::Components::MessageText>(e).text;
 
 	// TODO: set word wrap
@@ -719,6 +724,7 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 }
 
 void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
+	ZoneScoped;
 	if (
 		!_show_chat_avatar_tf
 		&& (
@@ -978,6 +984,7 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 }
 
 void ChatGui4::renderContactList(void) {
+	ZoneScoped;
 	if (ImGui::BeginChild("contacts", {TEXT_BASE_WIDTH*35, 0})) {
 		//for (const auto& c : _cm.getBigContacts()) {
 		for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
@@ -1138,6 +1145,7 @@ bool ChatGui4::renderSubContactListContact(const Contact3 c, const bool selected
 }
 
 void ChatGui4::pasteFile(const char* mime_type) {
+	ZoneScoped;
 	size_t data_size = 0;
 	void* data = SDL_GetClipboardData(mime_type, &data_size);
 

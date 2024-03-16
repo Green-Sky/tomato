@@ -1,6 +1,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include <tracy/Tracy.hpp>
+
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_sdl3.h>
 #include <imgui/backends/imgui_impl_sdlrenderer3.h>
@@ -90,6 +92,7 @@ int main(int argc, char** argv) {
 
 	bool quit = false;
 	while (!quit) {
+		ZoneScopedN("tomato::mainloop");
 		auto new_time = std::chrono::steady_clock::now();
 
 		const float time_delta_tick = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_tick).count();
@@ -99,7 +102,10 @@ int main(int argc, char** argv) {
 		bool render = time_delta_render >= screen->nextRender();
 
 		if (tick) {
+			ZoneScopedN("tomato::tick");
+			FrameMarkStart("tomato::tick");
 			Screen* ret_screen = screen->tick(time_delta_tick, quit);
+			FrameMarkEnd("tomato::tick");
 			if (ret_screen != nullptr) {
 				screen.reset(ret_screen);
 			}
@@ -126,6 +132,8 @@ int main(int argc, char** argv) {
 
 		// can do both in the same loop
 		if (render) {
+			ZoneScopedN("tomato::render");
+			FrameMarkStart("tomato::render");
 			ImGui_ImplSDLRenderer3_NewFrame();
 			ImGui_ImplSDL3_NewFrame();
 			ImGui::NewFrame();
@@ -141,9 +149,11 @@ int main(int argc, char** argv) {
 			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
 
 			SDL_RenderPresent(renderer.get());
+			FrameMark;
 			// clearing after present is (should) more performant, but first frame is a mess
 			SDL_SetRenderDrawColor(renderer.get(), 0x10, 0x10, 0x10, SDL_ALPHA_OPAQUE);
 			SDL_RenderClear(renderer.get());
+			FrameMarkEnd("tomato::render");
 
 			last_time_render = new_time;
 		}

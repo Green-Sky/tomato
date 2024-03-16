@@ -1,4 +1,12 @@
 #include "./tox_client.hpp"
+#include "toxcore/tox.h"
+
+// experimental
+#include <cstdint>
+#include <toxcore/tox_private.h>
+#include <toxcore/mem.h>
+
+#include <tracy/Tracy.hpp>
 
 // meh, change this
 #include <exception>
@@ -67,6 +75,52 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 		}
 	}
 
+#if 1
+	// experimental tracy alloc tracking
+	static Tox_System g_mysystem = tox_default_system();
+	static const Memory* g_systemmemory = os_memory();
+	static Memory_Funcs g_mymemoryfuncs {
+		+[](void* obj, uint32_t size) {
+			auto ret = g_systemmemory->funcs->malloc(g_systemmemory->obj, size);
+			TracyAllocNS(ret, size, 32, "tox");
+			return ret;
+		},
+		+[](void* obj, uint32_t nmemb, uint32_t size) {
+			auto ret = g_systemmemory->funcs->calloc(g_systemmemory->obj, nmemb, size);
+			TracyAllocNS(ret, nmemb*size, 32, "tox");
+			return ret;
+		},
+		+[](void* obj, void* ptr, uint32_t size) {
+			TracyFreeNS(ptr, 32, "tox");
+			auto ret = g_systemmemory->funcs->realloc(g_systemmemory->obj, ptr, size);
+			TracyAllocNS(ret, size, 32, "tox");
+			return ret;
+		},
+		+[](void* obj, void* ptr) {
+			TracyFreeNS(ptr, 32, "tox");
+			g_systemmemory->funcs->free(g_systemmemory->obj, ptr);
+		}
+	};
+	static Memory g_mymemory {
+		&g_mymemoryfuncs,
+		nullptr
+	};
+
+	g_mysystem.mem = &g_mymemory;
+
+	tox_options_set_operating_system(options, &g_mysystem);
+
+
+	tox_options_set_log_callback(options, +[](Tox*, Tox_Log_Level level, const char*, uint32_t, const char*, const char* message, void*) {
+		std::string tmp_str;
+		tmp_str += "[";
+		tmp_str += tox_log_level_to_string(level);
+		tmp_str += "] ";
+		tmp_str += message;
+		TracyMessageS(tmp_str.c_str(), tmp_str.size(), 32);
+	});
+#endif
+
 	tox_options_set_experimental_groups_persistence(options, true);
 
 	TOX_ERR_NEW err_new;
@@ -127,6 +181,7 @@ ToxClient::~ToxClient(void) {
 }
 
 bool ToxClient::iterate(float time_delta) {
+	ZoneScoped;
 	Tox_Err_Events_Iterate err_e_it = TOX_ERR_EVENTS_ITERATE_OK;
 	auto* events = tox_events_iterate(_tox, false, &err_e_it);
 	if (err_e_it == TOX_ERR_EVENTS_ITERATE_OK && events != nullptr) {

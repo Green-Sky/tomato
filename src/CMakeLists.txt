@@ -82,6 +82,8 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_tox_contacts
 	solanaceae_tox_messages
 
+	TracyClient
+
 	SDL3::SDL3
 
 	imgui
