@@ -56,8 +56,8 @@
         ] ++ self.packages.${system}.default.dlopenBuildInputs;
 
         cmakeFlags = [
-          "TOMATO_ASAN=1"
-          "CMAKE_BUILD_TYPE=RelWithDebInfo"
+          "-DTOMATO_ASAN=OFF"
+          "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
         ];
 
         # TODO: replace with install command
