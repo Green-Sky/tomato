@@ -1,5 +1,8 @@
 #include "./main_screen.hpp"
 
+#include "./fragment_store/register_mfs_json_message_components.hpp"
+#include "./fragment_store/register_mfs_json_tox_message_components.hpp"
+
 #include <solanaceae/contact/components.hpp>
 
 #include <imgui/imgui.h>
@@ -13,6 +16,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	renderer(renderer_),
 	rmm(cr),
 	mts(rmm),
+	mfs(cr, rmm, fs),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
@@ -33,6 +37,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tdch(tpi)
 {
 	tel.subscribeAll(tc);
+	registerMFSJsonMessageComponents(mfs.getMSC());
+	registerMFSJsonToxMessageComponents(mfs.getMSC());
 
 	conf.set("tox", "save_file_path", save_path);
 
@@ -49,6 +55,10 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	std::cout << "own address: " << tc.toxSelfGetAddressStr() << "\n";
 
 	{ // setup plugin instances
+		// TODO: make interface useful
+		g_provideInstance<FragmentStoreI>("FragmentStoreI", "host", &fs);
+		g_provideInstance<FragmentStore>("FragmentStore", "host", &fs);
+
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
@@ -74,6 +84,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	}
 
 	conf.dump();
+
+	mfs.triggerScan(); // HACK: after plugins and tox contacts got loaded
 }
 
 MainScreen::~MainScreen(void) {
@@ -415,7 +427,8 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	tdch.tick(time_delta); // compute
 
-	mts.iterate(); // compute
+	const float mfs_interval = mfs.tick(time_delta);
+	mts.iterate(); // compute (after mfs)
 
 	_min_tick_interval = std::min<float>(
 		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)
@@ -426,6 +439,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	_min_tick_interval = std::min<float>(
 		_min_tick_interval,
 		fo_interval
+	);
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		mfs_interval
 	);
 
 	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";

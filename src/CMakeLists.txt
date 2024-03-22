@@ -1,5 +1,60 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
+add_library(fragment_store
+	./fragment_store/fragment_store_i.hpp
+	./fragment_store/fragment_store_i.cpp
+	./fragment_store/types.hpp
+	./fragment_store/meta_components.hpp
+	./fragment_store/meta_components_id.inl
+	./fragment_store/serializer.hpp
+	./fragment_store/fragment_store.hpp
+	./fragment_store/fragment_store.cpp
+
+	./json/message_components.hpp # TODO: move
+	./json/tox_message_components.hpp # TODO: move
+)
+
+target_link_libraries(fragment_store PUBLIC
+	nlohmann_json::nlohmann_json
+	EnTT::EnTT
+	solanaceae_util
+
+	zstd::zstd
+
+	solanaceae_tox_messages # TODO: move
+)
+
+########################################
+
+add_library(message_fragment_store
+	./fragment_store/message_serializer.hpp
+	./fragment_store/message_serializer.cpp
+	./fragment_store/message_fragment_store.hpp
+	./fragment_store/message_fragment_store.cpp
+
+	./fragment_store/register_mfs_json_message_components.hpp
+	./fragment_store/register_mfs_json_message_components.cpp
+	./fragment_store/register_mfs_json_tox_message_components.hpp
+	./fragment_store/register_mfs_json_tox_message_components.cpp
+)
+target_compile_features(message_fragment_store PRIVATE cxx_std_20)
+target_link_libraries(message_fragment_store PUBLIC
+	fragment_store
+	solanaceae_message3
+)
+
+########################################
+
+add_executable(fragment_store_test
+	fragment_store/test_fragstore.cpp
+)
+
+target_link_libraries(fragment_store_test PUBLIC
+	fragment_store
+)
+
+########################################
+
 add_executable(tomato
 	./main.cpp
 	./icon.rc
@@ -81,6 +136,9 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_toxcore
 	solanaceae_tox_contacts
 	solanaceae_tox_messages
+
+	fragment_store
+	message_fragment_store
 
 	SDL3::SDL3
 

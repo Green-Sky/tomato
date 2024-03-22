@@ -10,6 +10,9 @@
 #include "./file_selector.hpp"
 #include "./send_image_popup.hpp"
 
+// HACK: move to public msg api?
+#include "./fragment_store/message_fragment_store.hpp"
+
 #include <entt/container/dense_map.hpp>
 
 #include <cstdint>
@@ -32,6 +35,7 @@ class ChatGui4 {
 	FileSelector _fss;
 	SendImagePopup _sip;
 
+	// TODO: refactor this to allow multiple open contacts
 	std::optional<Contact3> _selected_contact;
 
 	// TODO: per contact
