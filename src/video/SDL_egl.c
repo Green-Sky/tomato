@@ -89,7 +89,7 @@
 #define DEFAULT_OGL_ES_PVR "libGLES_CM.dylib"   //???
 #define DEFAULT_OGL_ES     "libGLESv1_CM.dylib" //???
 
-#elif defined(__OpenBSD__)
+#elif defined(SDL_PLATFORM_OPENBSD)
 /* OpenBSD */
 #define DEFAULT_OGL        "libGL.so"
 #define DEFAULT_EGL        "libEGL.so"
@@ -260,7 +260,7 @@ SDL_FunctionPointer SDL_EGL_GetProcAddressInternal(SDL_VideoDevice *_this, const
             retval = _this->egl_data->eglGetProcAddress(proc);
         }
 
-#if !defined(__EMSCRIPTEN__) && !defined(SDL_VIDEO_DRIVER_VITA) /* LoadFunction isn't needed on Emscripten and will call dlsym(), causing other problems. */
+#if !defined(SDL_PLATFORM_EMSCRIPTEN) && !defined(SDL_VIDEO_DRIVER_VITA) /* LoadFunction isn't needed on Emscripten and will call dlsym(), causing other problems. */
         /* Try SDL_LoadFunction() first for EGL <= 1.4, or as a fallback for >= 1.5. */
         if (!retval) {
             retval = SDL_LoadFunction(_this->egl_data->opengl_dll_handle, proc);
@@ -512,7 +512,7 @@ int SDL_EGL_LoadLibrary(SDL_VideoDevice *_this, const char *egl_path, NativeDisp
 
     _this->egl_data->egl_display = EGL_NO_DISPLAY;
 
-#ifndef __WINRT__
+#ifndef SDL_PLATFORM_WINRT
 #ifndef SDL_VIDEO_DRIVER_VITA
     if (platform) {
         /* EGL 1.5 allows querying for client version with EGL_NO_DISPLAY
@@ -1216,7 +1216,7 @@ int SDL_EGL_DeleteContext(SDL_VideoDevice *_this, SDL_GLContext context)
     return 0;
 }
 
-EGLSurface *SDL_EGL_CreateSurface(SDL_VideoDevice *_this, SDL_Window *window, NativeWindowType nw)
+EGLSurface SDL_EGL_CreateSurface(SDL_VideoDevice *_this, SDL_Window *window, NativeWindowType nw)
 {
 #ifdef SDL_VIDEO_DRIVER_ANDROID
     EGLint format_wanted;
@@ -1226,7 +1226,7 @@ EGLSurface *SDL_EGL_CreateSurface(SDL_VideoDevice *_this, SDL_Window *window, Na
     EGLint attribs[33];
     int attr = 0;
 
-    EGLSurface *surface;
+    EGLSurface surface;
 
     if (SDL_EGL_ChooseConfig(_this) != 0) {
         return EGL_NO_SURFACE;

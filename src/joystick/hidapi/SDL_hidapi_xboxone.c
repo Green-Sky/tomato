@@ -35,7 +35,7 @@
 /* Define this if you want to log all packets from the controller */
 /*#define DEBUG_XBOX_PROTOCOL*/
 
-#if defined(__WIN32__) || defined(__WINGDK__)
+#if defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_WINGDK)
 #define XBOX_ONE_DRIVER_ACTIVE  1
 #else
 #define XBOX_ONE_DRIVER_ACTIVE  0
@@ -350,7 +350,7 @@ static SDL_bool HIDAPI_DriverXboxOne_IsEnabled(void)
 
 static SDL_bool HIDAPI_DriverXboxOne_IsSupportedDevice(SDL_HIDAPI_Device *device, const char *name, SDL_GamepadType type, Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number, int interface_class, int interface_subclass, int interface_protocol)
 {
-#ifdef __MACOS__
+#ifdef SDL_PLATFORM_MACOS
     /* Wired Xbox One controllers are handled by the 360Controller driver */
     if (!SDL_IsJoystickBluetoothXboxOne(vendor_id, product_id)) {
         return SDL_FALSE;
@@ -540,13 +540,13 @@ static Uint32 HIDAPI_DriverXboxOne_GetJoystickCapabilities(SDL_HIDAPI_Device *de
     SDL_DriverXboxOne_Context *ctx = (SDL_DriverXboxOne_Context *)device->context;
     Uint32 result = 0;
 
-    result |= SDL_JOYCAP_RUMBLE;
+    result |= SDL_JOYSTICK_CAP_RUMBLE;
     if (ctx->has_trigger_rumble) {
-        result |= SDL_JOYCAP_RUMBLE_TRIGGERS;
+        result |= SDL_JOYSTICK_CAP_TRIGGER_RUMBLE;
     }
 
     if (ctx->has_color_led) {
-        result |= SDL_JOYCAP_LED;
+        result |= SDL_JOYSTICK_CAP_RGB_LED;
     }
 
     return result;
@@ -673,16 +673,16 @@ static void HIDAPI_DriverXboxOne_HandleStatePacket(SDL_Joystick *joystick, SDL_D
     if (ctx->last_state[1] != data[1]) {
         Uint8 hat = 0;
 
-        if (data[2] & 0x01) {
+        if (data[1] & 0x01) {
             hat |= SDL_HAT_UP;
         }
-        if (data[2] & 0x02) {
+        if (data[1] & 0x02) {
             hat |= SDL_HAT_DOWN;
         }
-        if (data[2] & 0x04) {
+        if (data[1] & 0x04) {
             hat |= SDL_HAT_LEFT;
         }
-        if (data[2] & 0x08) {
+        if (data[1] & 0x08) {
             hat |= SDL_HAT_RIGHT;
         }
         SDL_SendJoystickHat(timestamp, joystick, 0, hat);
@@ -1225,17 +1225,19 @@ static int EncodeVariableInt(Uint8 *buf, Uint32 val)
     return i + 1;
 }
 
-static int DecodeVariableInt(const Uint8 *data, int len, Uint32 *val)
+static int DecodeVariableInt(const Uint8 *data, int len, void *out)
 {
     int i;
+    Uint32 val = 0;
 
-    for (i = 0; i < sizeof(*val) && i < len; i++) {
-        *val |= (data[i] & 0x7F) << (i * 7);
+    for (i = 0; i < sizeof(val) && i < len; i++) {
+        val |= (data[i] & 0x7F) << (i * 7);
 
         if (!(data[i] & 0x80)) {
             break;
         }
     }
+    SDL_memcpy(out, &val, sizeof(val));
     return i + 1;
 }
 

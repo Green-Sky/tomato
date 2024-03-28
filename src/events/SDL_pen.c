@@ -97,8 +97,8 @@ static int SDLCALL pen_compare(const void *lhs, const void *rhs)
 
 static int SDLCALL pen_header_compare(const void *lhs, const void *rhs)
 {
-    const struct SDL_Pen_header *l = lhs;
-    const struct SDL_Pen_header *r = rhs;
+    const SDL_PenHeader *l = (const SDL_PenHeader *)lhs;
+    const SDL_PenHeader *r = (const SDL_PenHeader *)rhs;
     int l_detached = l->flags & SDL_PEN_FLAG_DETACHED;
     int r_detached = r->flags & SDL_PEN_FLAG_DETACHED;
 
@@ -121,15 +121,13 @@ SDL_Pen *SDL_GetPenPtr(Uint32 instance_id)
     }
 
     if (pen_handler.sorted) {
-        struct SDL_Pen_header key;
+        SDL_PenHeader key;
         SDL_Pen *pen;
 
         SDL_zero(key);
         key.id = instance_id;
 
-        pen = SDL_bsearch(&key, pen_handler.pens,
-                          pen_handler.pens_known, sizeof(SDL_Pen),
-                          pen_header_compare);
+        pen = (SDL_Pen *)SDL_bsearch(&key, pen_handler.pens, pen_handler.pens_known, sizeof(SDL_Pen), pen_header_compare);
         if (pen) {
             return pen;
         }
@@ -149,7 +147,7 @@ SDL_PenID *SDL_GetPens(int *count)
 {
     int i;
     int pens_nr = (int)pen_handler.pens_attached;
-    SDL_PenID *pens = SDL_calloc(pens_nr + 1, sizeof(SDL_PenID));
+    SDL_PenID *pens = (SDL_PenID *)SDL_calloc(pens_nr + 1, sizeof(SDL_PenID));
     if (!pens) { /* OOM */
         return pens;
     }
@@ -222,7 +220,7 @@ const char *SDL_GetPenName(SDL_PenID instance_id)
 SDL_PenSubtype SDL_GetPenType(SDL_PenID instance_id)
 {
     SDL_PenSubtype result;
-    SDL_LOAD_LOCK_PEN(pen, instance_id, 0u);
+    SDL_LOAD_LOCK_PEN(pen, instance_id, SDL_PEN_TYPE_UNKNOWN);
     result = pen->type;
     SDL_UNLOCK_PENS();
     return result;
@@ -293,11 +291,11 @@ SDL_Pen *SDL_PenModifyBegin(Uint32 instance_id)
             size_t pens_to_allocate = pen_handler.pens_allocated + alloc_growth_constant;
             SDL_Pen *pens;
             if (pen_handler.pens) {
-                pens = SDL_realloc(pen_handler.pens, sizeof(SDL_Pen) * pens_to_allocate);
+                pens = (SDL_Pen *)SDL_realloc(pen_handler.pens, sizeof(SDL_Pen) * pens_to_allocate);
                 SDL_memset(pens + pen_handler.pens_known, 0,
                            sizeof(SDL_Pen) * (pens_to_allocate - pen_handler.pens_allocated));
             } else {
-                pens = SDL_calloc(sizeof(SDL_Pen), pens_to_allocate);
+                pens = (SDL_Pen *)SDL_calloc(sizeof(SDL_Pen), pens_to_allocate);
             }
             pen_handler.pens = pens;
             pen_handler.pens_allocated = pens_to_allocate;
@@ -305,13 +303,13 @@ SDL_Pen *SDL_PenModifyBegin(Uint32 instance_id)
         pen = &pen_handler.pens[pen_handler.pens_known];
         pen_handler.pens_known += 1;
 
-        /* Default pen initialisation */
+        /* Default pen initialization */
         pen->header.id = id;
         pen->header.flags = SDL_PEN_FLAG_NEW;
         pen->info.num_buttons = SDL_PEN_INFO_UNKNOWN;
         pen->info.max_tilt = SDL_PEN_INFO_UNKNOWN;
         pen->type = SDL_PEN_TYPE_PEN;
-        pen->name = SDL_calloc(1, SDL_PEN_MAX_NAME); /* Never deallocated */
+        pen->name = (char *)SDL_calloc(1, SDL_PEN_MAX_NAME); /* Never deallocated */
     }
     return pen;
 }
@@ -359,6 +357,7 @@ void SDL_PenModifyEnd(SDL_Pen *pen, SDL_bool attach)
             attach = SDL_FALSE;
         } else {
             pen_handler.pens_known -= 1;
+            SDL_free(pen->name);
             SDL_memset(pen, 0, sizeof(SDL_Pen));
             SDL_UNLOCK_PENS();
             return;
@@ -498,7 +497,6 @@ int SDL_SendPenMotion(Uint64 timestamp,
                       SDL_bool window_relative,
                       const SDL_PenStatusInfo *status)
 {
-    const SDL_Mouse *mouse = SDL_GetMouse();
     int i;
     SDL_Pen *pen = SDL_GetPenPtr(instance_id);
     SDL_Event event;
@@ -541,7 +539,7 @@ int SDL_SendPenMotion(Uint64 timestamp,
 
     send_mouse_update = (x != last_x) || (y != last_y);
 
-    if (!(SDL_MousePositionInWindow(window, mouse->mouseID, x, y))) {
+    if (!(SDL_MousePositionInWindow(window, x, y))) {
         return SDL_FALSE;
     }
 
@@ -559,7 +557,7 @@ int SDL_SendPenMotion(Uint64 timestamp,
     if (send_mouse_update) {
         switch (pen_mouse_emulation_mode) {
         case PEN_MOUSE_EMULATE:
-            return (SDL_SendMouseMotion(0, window, SDL_PEN_MOUSEID, 0, x, y)) || posted;
+            return (SDL_SendMouseMotion(0, window, SDL_PEN_MOUSEID, SDL_FALSE, x, y)) || posted;
 
         case PEN_MOUSE_STATELESS:
             /* Report mouse event but don't update mouse state */
@@ -575,6 +573,7 @@ int SDL_SendPenMotion(Uint64 timestamp,
                 event.motion.yrel = last_y - y;
                 return (SDL_PushEvent(&event) > 0) || posted;
             }
+            break;
 
         default:
             break;
@@ -585,7 +584,6 @@ int SDL_SendPenMotion(Uint64 timestamp,
 
 int SDL_SendPenTipEvent(Uint64 timestamp, SDL_PenID instance_id, Uint8 state)
 {
-    SDL_Mouse *mouse = SDL_GetMouse();
     SDL_Pen *pen = SDL_GetPenPtr(instance_id);
     SDL_Event event;
     SDL_bool posted = SDL_FALSE;
@@ -598,7 +596,7 @@ int SDL_SendPenTipEvent(Uint64 timestamp, SDL_PenID instance_id, Uint8 state)
     }
     window = pen->header.window;
 
-    if ((state == SDL_PRESSED) && !(window && SDL_MousePositionInWindow(window, mouse->mouseID, last->x, last->y))) {
+    if ((state == SDL_PRESSED) && !(window && SDL_MousePositionInWindow(window, last->x, last->y))) {
         return SDL_FALSE;
     }
 
@@ -664,7 +662,6 @@ int SDL_SendPenButton(Uint64 timestamp,
                       SDL_PenID instance_id,
                       Uint8 state, Uint8 button)
 {
-    SDL_Mouse *mouse = SDL_GetMouse();
     SDL_Pen *pen = SDL_GetPenPtr(instance_id);
     SDL_Event event;
     SDL_bool posted = SDL_FALSE;
@@ -677,7 +674,7 @@ int SDL_SendPenButton(Uint64 timestamp,
     }
     window = pen->header.window;
 
-    if ((state == SDL_PRESSED) && !(window && SDL_MousePositionInWindow(window, mouse->mouseID, last->x, last->y))) {
+    if ((state == SDL_PRESSED) && !(window && SDL_MousePositionInWindow(window, last->x, last->y))) {
         return SDL_FALSE;
     }
 
@@ -798,7 +795,7 @@ int SDL_SendPenWindowEvent(Uint64 timestamp, SDL_PenID instance_id, SDL_Window *
 
 static void SDLCALL SDL_PenUpdateHint(void *userdata, const char *name, const char *oldvalue, const char *newvalue)
 {
-    int *var = userdata;
+    int *var = (int *)userdata;
     if (newvalue == NULL) {
         return;
     }
@@ -832,6 +829,8 @@ void SDL_PenInit(void)
 
 void SDL_PenQuit(void)
 {
+    unsigned int i;
+
     SDL_DelHintCallback(SDL_HINT_PEN_NOT_MOUSE,
                         SDL_PenUpdateHint, &pen_mouse_emulation_mode);
 
@@ -841,6 +840,15 @@ void SDL_PenQuit(void)
     SDL_DestroyMutex(SDL_pen_access_lock);
     SDL_pen_access_lock = NULL;
 #endif
+
+    if (pen_handler.pens) {
+        for (i = 0; i < pen_handler.pens_known; ++i) {
+            SDL_free(pen_handler.pens[i].name);
+        }
+        SDL_free(pen_handler.pens);
+        /* Reset static pen information */
+        SDL_memset(&pen_handler, 0, sizeof(pen_handler));
+    }
 }
 
 SDL_bool SDL_PenPerformHitTest(void)
@@ -1053,7 +1061,7 @@ int SDL_PenModifyForWacomID(SDL_Pen *pen, Uint32 wacom_devicetype_id, Uint32 *ax
     wacom_devicetype_id = PEN_WACOM_ID_INVALID; /* force detection to fail */
 #endif
 
-#if defined(__LINUX__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(SDL_PLATFORM_LINUX) || defined(SDL_PLATFORM_FREEBSD) || defined(SDL_PLATFORM_NETBSD) || defined(SDL_PLATFORM_OPENBSD)
     /* According to Ping Cheng, the curent Wacom for Linux maintainer, device IDs on Linux
        squeeze a "0" nibble after the 3rd (least significant) nibble.
        This may also affect the *BSDs, so they are heuristically included here.

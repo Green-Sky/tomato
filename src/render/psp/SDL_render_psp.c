@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#ifdef SDL_VIDEO_RENDER_PSP
+#if SDL_VIDEO_RENDER_PSP
 
 #include "../SDL_sysrender.h"
 
@@ -80,6 +80,11 @@ typedef struct
     int shadeModel;
     SDL_Texture *texture;
 } PSP_BlendState;
+
+typedef struct
+{
+    unsigned int color;
+} PSP_DrawStateCache;
 
 typedef struct
 {
@@ -619,7 +624,7 @@ static int PSP_SetRenderTarget(SDL_Renderer *renderer, SDL_Texture *texture)
     return 0;
 }
 
-static int PSP_QueueSetViewport(SDL_Renderer *renderer, SDL_RenderCommand *cmd)
+static int PSP_QueueNoOp(SDL_Renderer *renderer, SDL_RenderCommand *cmd)
 {
     return 0; /* nothing to do in this backend. */
 }
@@ -645,12 +650,13 @@ static int PSP_QueueDrawPoints(SDL_Renderer *renderer, SDL_RenderCommand *cmd, c
 }
 
 static int PSP_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Texture *texture,
-                             const float *xy, int xy_stride, const SDL_Color *color, int color_stride, const float *uv, int uv_stride,
+                             const float *xy, int xy_stride, const SDL_FColor *color, int color_stride, const float *uv, int uv_stride,
                              int num_vertices, const void *indices, int num_indices, int size_indices,
                              float scale_x, float scale_y)
 {
     int i;
     int count = indices ? num_indices : num_vertices;
+    const float color_scale = cmd->data.draw.color_scale;
 
     cmd->data.draw.count = count;
     size_indices = indices ? size_indices : 0;
@@ -665,7 +671,7 @@ static int PSP_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL
         for (i = 0; i < count; i++) {
             int j;
             float *xy_;
-            SDL_Color col_;
+            SDL_FColor *col_;
             if (size_indices == 4) {
                 j = ((const Uint32 *)indices)[i];
             } else if (size_indices == 2) {
@@ -677,13 +683,16 @@ static int PSP_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL
             }
 
             xy_ = (float *)((char *)xy + j * xy_stride);
-            col_ = *(SDL_Color *)((char *)color + j * color_stride);
+            col_ = (SDL_FColor *)((char *)color + j * color_stride);
 
             verts->x = xy_[0] * scale_x;
             verts->y = xy_[1] * scale_y;
             verts->z = 0;
 
-            verts->col = col_;
+            verts->col.r = (Uint8)SDL_roundf(SDL_clamp(col_->r * color_scale, 0.0f, 1.0f) * 255.0f);
+            verts->col.g = (Uint8)SDL_roundf(SDL_clamp(col_->g * color_scale, 0.0f, 1.0f) * 255.0f);
+            verts->col.b = (Uint8)SDL_roundf(SDL_clamp(col_->b * color_scale, 0.0f, 1.0f) * 255.0f);
+            verts->col.a = (Uint8)SDL_roundf(SDL_clamp(col_->a, 0.0f, 1.0f) * 255.0f);
 
             verts++;
         }
@@ -698,7 +707,7 @@ static int PSP_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL
         for (i = 0; i < count; i++) {
             int j;
             float *xy_;
-            SDL_Color col_;
+            SDL_FColor *col_;
             float *uv_;
 
             if (size_indices == 4) {
@@ -712,14 +721,17 @@ static int PSP_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL
             }
 
             xy_ = (float *)((char *)xy + j * xy_stride);
-            col_ = *(SDL_Color *)((char *)color + j * color_stride);
+            col_ = (SDL_FColor *)((char *)color + j * color_stride);
             uv_ = (float *)((char *)uv + j * uv_stride);
 
             verts->x = xy_[0] * scale_x;
             verts->y = xy_[1] * scale_y;
             verts->z = 0;
 
-            verts->col = col_;
+            verts->col.r = (Uint8)SDL_roundf(SDL_clamp(col_->r * color_scale, 0.0f, 1.0f) * 255.0f);
+            verts->col.g = (Uint8)SDL_roundf(SDL_clamp(col_->g * color_scale, 0.0f, 1.0f) * 255.0f);
+            verts->col.b = (Uint8)SDL_roundf(SDL_clamp(col_->b * color_scale, 0.0f, 1.0f) * 255.0f);
+            verts->col.a = (Uint8)SDL_roundf(SDL_clamp(col_->a, 0.0f, 1.0f) * 255.0f);
 
             verts->u = uv_[0] * psp_texture->textureWidth;
             verts->v = uv_[1] * psp_texture->textureHeight;
@@ -842,7 +854,7 @@ static int PSP_QueueCopy(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Tex
 
 static int PSP_QueueCopyEx(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Texture *texture,
                            const SDL_FRect *srcrect, const SDL_FRect *dstrect,
-                           const double angle, const SDL_FPoint *center, const SDL_RendererFlip flip, float scale_x, float scale_y)
+                           const double angle, const SDL_FPoint *center, const SDL_FlipMode flip, float scale_x, float scale_y)
 {
     VertTV *verts = (VertTV *)SDL_AllocateRenderVertices(renderer, 4 * sizeof(VertTV), 4, &cmd->data.draw.first);
     const float centerx = center->x;
@@ -1030,6 +1042,10 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
 {
     PSP_RenderData *data = (PSP_RenderData *)renderer->driverdata;
     Uint8 *gpumem = NULL;
+    PSP_DrawStateCache drawstate;
+
+    drawstate.color = 0;
+
     StartDrawing(renderer);
 
     /* note that before the renderer interface change, this would do extremely small
@@ -1048,7 +1064,12 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
         switch (cmd->command) {
         case SDL_RENDERCMD_SETDRAWCOLOR:
         {
-            break; /* !!! FIXME: we could cache drawstate like color */
+            const Uint8 r = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.r * cmd->data.color.color_scale, 0.0f, 1.0f) * 255.0f);
+            const Uint8 g = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.g * cmd->data.color.color_scale, 0.0f, 1.0f) * 255.0f);
+            const Uint8 b = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.b * cmd->data.color.color_scale, 0.0f, 1.0f) * 255.0f);
+            const Uint8 a = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.a, 0.0f, 1.0f) * 255.0f);
+            drawstate.color = GU_RGBA(r, g, b, a);
+            break;
         }
 
         case SDL_RENDERCMD_SETVIEWPORT:
@@ -1057,6 +1078,7 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
             sceGuOffset(2048 - (viewport->w >> 1), 2048 - (viewport->h >> 1));
             sceGuViewport(2048, 2048, viewport->w, viewport->h);
             sceGuScissor(viewport->x, viewport->y, viewport->w, viewport->h);
+            /* FIXME: We need to update the clip rect too, see https://github.com/libsdl-org/SDL/issues/9094 */
             break;
         }
 
@@ -1074,10 +1096,10 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
 
         case SDL_RENDERCMD_CLEAR:
         {
-            const Uint8 r = cmd->data.color.r;
-            const Uint8 g = cmd->data.color.g;
-            const Uint8 b = cmd->data.color.b;
-            const Uint8 a = cmd->data.color.a;
+            const Uint8 r = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.r * cmd->data.color.color_scale, 0.0f, 1.0f) * 255.0f);
+            const Uint8 g = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.g * cmd->data.color.color_scale, 0.0f, 1.0f) * 255.0f);
+            const Uint8 b = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.b * cmd->data.color.color_scale, 0.0f, 1.0f) * 255.0f);
+            const Uint8 a = (Uint8)SDL_roundf(SDL_clamp(cmd->data.color.color.a, 0.0f, 1.0f) * 255.0f);
             sceGuClearColor(GU_RGBA(r, g, b, a));
             sceGuClearStencil(a);
             sceGuClear(GU_COLOR_BUFFER_BIT | GU_STENCIL_BUFFER_BIT);
@@ -1088,12 +1110,8 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
         {
             const size_t count = cmd->data.draw.count;
             const VertV *verts = (VertV *)(gpumem + cmd->data.draw.first);
-            const Uint8 r = cmd->data.draw.r;
-            const Uint8 g = cmd->data.draw.g;
-            const Uint8 b = cmd->data.draw.b;
-            const Uint8 a = cmd->data.draw.a;
             PSP_BlendState state = {
-                .color = GU_RGBA(r, g, b, a),
+                .color = drawstate.color,
                 .texture = NULL,
                 .mode = cmd->data.draw.blend,
                 .shadeModel = GU_FLAT
@@ -1107,12 +1125,8 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
         {
             const size_t count = cmd->data.draw.count;
             const VertV *verts = (VertV *)(gpumem + cmd->data.draw.first);
-            const Uint8 r = cmd->data.draw.r;
-            const Uint8 g = cmd->data.draw.g;
-            const Uint8 b = cmd->data.draw.b;
-            const Uint8 a = cmd->data.draw.a;
             PSP_BlendState state = {
-                .color = GU_RGBA(r, g, b, a),
+                .color = drawstate.color,
                 .texture = NULL,
                 .mode = cmd->data.draw.blend,
                 .shadeModel = GU_FLAT
@@ -1126,12 +1140,8 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
         {
             const size_t count = cmd->data.draw.count;
             const VertV *verts = (VertV *)(gpumem + cmd->data.draw.first);
-            const Uint8 r = cmd->data.draw.r;
-            const Uint8 g = cmd->data.draw.g;
-            const Uint8 b = cmd->data.draw.b;
-            const Uint8 a = cmd->data.draw.a;
             PSP_BlendState state = {
-                .color = GU_RGBA(r, g, b, a),
+                .color = drawstate.color,
                 .texture = NULL,
                 .mode = cmd->data.draw.blend,
                 .shadeModel = GU_FLAT
@@ -1145,12 +1155,8 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
         {
             const size_t count = cmd->data.draw.count;
             const VertTV *verts = (VertTV *)(gpumem + cmd->data.draw.first);
-            const Uint8 a = cmd->data.draw.a;
-            const Uint8 r = cmd->data.draw.r;
-            const Uint8 g = cmd->data.draw.g;
-            const Uint8 b = cmd->data.draw.b;
             PSP_BlendState state = {
-                .color = GU_RGBA(r, g, b, a),
+                .color = drawstate.color,
                 .texture = cmd->data.draw.texture,
                 .mode = cmd->data.draw.blend,
                 .shadeModel = GU_SMOOTH
@@ -1163,12 +1169,8 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
         case SDL_RENDERCMD_COPY_EX:
         {
             const VertTV *verts = (VertTV *)(gpumem + cmd->data.draw.first);
-            const Uint8 a = cmd->data.draw.a;
-            const Uint8 r = cmd->data.draw.r;
-            const Uint8 g = cmd->data.draw.g;
-            const Uint8 b = cmd->data.draw.b;
             PSP_BlendState state = {
-                .color = GU_RGBA(r, g, b, a),
+                .color = drawstate.color,
                 .texture = cmd->data.draw.texture,
                 .mode = cmd->data.draw.blend,
                 .shadeModel = GU_SMOOTH
@@ -1189,12 +1191,8 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
                 sceGuEnable(GU_TEXTURE_2D);
             } else {
                 const VertTCV *verts = (VertTCV *)(gpumem + cmd->data.draw.first);
-                const Uint8 a = cmd->data.draw.a;
-                const Uint8 r = cmd->data.draw.r;
-                const Uint8 g = cmd->data.draw.g;
-                const Uint8 b = cmd->data.draw.b;
                 PSP_BlendState state = {
-                    .color = GU_RGBA(r, g, b, a),
+                    .color = drawstate.color,
                     .texture = NULL,
                     .mode = cmd->data.draw.blend,
                     .shadeModel = GU_FLAT
@@ -1214,12 +1212,6 @@ static int PSP_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, v
     }
 
     return 0;
-}
-
-static int PSP_RenderReadPixels(SDL_Renderer *renderer, const SDL_Rect *rect,
-                                Uint32 pixel_format, void *pixels, int pitch)
-{
-    return SDL_Unsupported();
 }
 
 static int PSP_RenderPresent(SDL_Renderer *renderer)
@@ -1306,6 +1298,15 @@ SDL_Renderer *PSP_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_pro
     if (!renderer) {
         return NULL;
     }
+    renderer->magic = &SDL_renderer_magic;
+
+    SDL_SetupRendererColorspace(renderer, create_props);
+
+    if (renderer->output_colorspace != SDL_COLORSPACE_SRGB) {
+        SDL_SetError("Unsupported output colorspace");
+        SDL_free(renderer);
+        return NULL;
+    }
 
     data = (PSP_RenderData *)SDL_calloc(1, sizeof(*data));
     if (!data) {
@@ -1320,8 +1321,8 @@ SDL_Renderer *PSP_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_pro
     renderer->UnlockTexture = PSP_UnlockTexture;
     renderer->SetTextureScaleMode = PSP_SetTextureScaleMode;
     renderer->SetRenderTarget = PSP_SetRenderTarget;
-    renderer->QueueSetViewport = PSP_QueueSetViewport;
-    renderer->QueueSetDrawColor = PSP_QueueSetViewport; /* SetViewport and SetDrawColor are (currently) no-ops. */
+    renderer->QueueSetViewport = PSP_QueueNoOp;
+    renderer->QueueSetDrawColor = PSP_QueueNoOp;
     renderer->QueueDrawPoints = PSP_QueueDrawPoints;
     renderer->QueueDrawLines = PSP_QueueDrawPoints; /* lines and points queue vertices the same way. */
     renderer->QueueGeometry = PSP_QueueGeometry;
@@ -1330,7 +1331,6 @@ SDL_Renderer *PSP_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_pro
     renderer->QueueCopyEx = PSP_QueueCopyEx;
     renderer->InvalidateCachedState = PSP_InvalidateCachedState;
     renderer->RunCommandQueue = PSP_RunCommandQueue;
-    renderer->RenderReadPixels = PSP_RenderReadPixels;
     renderer->RenderPresent = PSP_RenderPresent;
     renderer->DestroyTexture = PSP_DestroyTexture;
     renderer->DestroyRenderer = PSP_DestroyRenderer;
@@ -1345,7 +1345,7 @@ SDL_Renderer *PSP_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_pro
     data->most_recent_target = NULL;
     data->least_recent_target = NULL;
 
-    if (SDL_GetBooleanProperty(create_props, SDL_PROPERTY_RENDERER_CREATE_PRESENT_VSYNC_BOOLEAN, SDL_FALSE)) {
+    if (SDL_GetBooleanProperty(create_props, SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_BOOLEAN, SDL_FALSE)) {
         data->vsync = SDL_TRUE;
     } else {
         data->vsync = SDL_FALSE;

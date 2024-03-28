@@ -9,14 +9,15 @@
   including commercial applications, and to alter it and redistribute it
   freely.
 */
-#include <stdlib.h>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#endif
 
 #include <SDL3/SDL_test_common.h>
 #include <SDL3/SDL_main.h>
+
+#ifdef SDL_PLATFORM_EMSCRIPTEN
+#include <emscripten/emscripten.h>
+#endif
+
+#include <stdlib.h>
 
 /* Stolen from the mailing list */
 /* Creates a new mouse cursor from an XPM */
@@ -73,7 +74,6 @@ static const char *cross[] = {
     ". c #ffffff",
     "  c None",
     /* pixels */
-    /* pixels */
     "                                ",
     "                                ",
     "                                ",
@@ -116,14 +116,14 @@ init_color_cursor(const char *file)
     SDL_Surface *surface = SDL_LoadBMP(file);
     if (surface) {
         if (surface->format->palette) {
-            const Uint8 bpp = surface->format->BitsPerPixel;
+            const Uint8 bpp = surface->format->bits_per_pixel;
             const Uint8 mask = (1 << bpp) - 1;
             if (SDL_PIXELORDER(surface->format->format) == SDL_BITMAPORDER_4321)
                 SDL_SetSurfaceColorKey(surface, 1, (*(Uint8 *)surface->pixels) & mask);
             else
                 SDL_SetSurfaceColorKey(surface, 1, ((*(Uint8 *)surface->pixels) >> (8 - bpp)) & mask);
         } else {
-            switch (surface->format->BitsPerPixel) {
+            switch (surface->format->bits_per_pixel) {
             case 15:
                 SDL_SetSurfaceColorKey(surface, 1, (*(Uint16 *)surface->pixels) & 0x00007FFF);
                 break;
@@ -329,7 +329,7 @@ static void loop(void)
         }
         SDL_RenderPresent(renderer);
     }
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     if (done) {
         emscripten_cancel_main_loop();
     }
@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 
     /* Main render loop */
     done = 0;
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop(loop, 0, 1);
 #else
     while (!done) {

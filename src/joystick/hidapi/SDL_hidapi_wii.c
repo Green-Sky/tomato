@@ -130,6 +130,14 @@ typedef struct
 
 typedef struct
 {
+    Uint16 min;
+    Uint16 max;
+    Uint16 center;
+    Uint16 deadzone;
+} StickCalibrationData;
+
+typedef struct
+{
     SDL_HIDAPI_Device *device;
     SDL_Joystick *joystick;
     Uint64 timestamp;
@@ -147,13 +155,7 @@ typedef struct
     Uint64 m_ulNextMotionPlusCheck;
     SDL_bool m_bDisconnected;
 
-    struct StickCalibrationData
-    {
-        Uint16 min;
-        Uint16 max;
-        Uint16 center;
-        Uint16 deadzone;
-    } m_StickCalibrationData[6];
+    StickCalibrationData m_StickCalibrationData[6];
 } SDL_DriverWii_Context;
 
 static void HIDAPI_DriverWii_RegisterHints(SDL_HintCallback callback, void *userdata)
@@ -454,7 +456,7 @@ static void CheckMotionPlusConnection(SDL_DriverWii_Context *ctx)
 
 static void ActivateMotionPlusWithMode(SDL_DriverWii_Context *ctx, Uint8 mode)
 {
-#ifdef __LINUX__
+#ifdef SDL_PLATFORM_LINUX
     /* Linux drivers maintain a lot of state around the Motion Plus
      * extension, so don't mess with it here.
      */
@@ -824,7 +826,7 @@ static int HIDAPI_DriverWii_RumbleJoystickTriggers(SDL_HIDAPI_Device *device, SD
 
 static Uint32 HIDAPI_DriverWii_GetJoystickCapabilities(SDL_HIDAPI_Device *device, SDL_Joystick *joystick)
 {
-    return SDL_JOYCAP_RUMBLE;
+    return SDL_JOYSTICK_CAP_RUMBLE;
 }
 
 static int HIDAPI_DriverWii_SetJoystickLED(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
@@ -857,7 +859,7 @@ static int HIDAPI_DriverWii_SetJoystickSensorsEnabled(SDL_HIDAPI_Device *device,
     return 0;
 }
 
-static void PostStickCalibrated(Uint64 timestamp, SDL_Joystick *joystick, struct StickCalibrationData *calibration, Uint8 axis, Uint16 data)
+static void PostStickCalibrated(Uint64 timestamp, SDL_Joystick *joystick, StickCalibrationData *calibration, Uint8 axis, Uint16 data)
 {
     Sint16 value = 0;
     if (!calibration->center) {
@@ -1366,7 +1368,7 @@ static void HandleStatus(SDL_DriverWii_Context *ctx, SDL_Joystick *joystick)
 
 static void HandleResponse(SDL_DriverWii_Context *ctx, SDL_Joystick *joystick)
 {
-    EWiiInputReportIDs type = ctx->m_rgucReadBuffer[0];
+    EWiiInputReportIDs type = (EWiiInputReportIDs)ctx->m_rgucReadBuffer[0];
     WiiButtonData data;
     SDL_assert(type == k_eWiiInputReportIDs_Acknowledge || type == k_eWiiInputReportIDs_ReadMemory);
     SDL_zero(data);
@@ -1473,7 +1475,7 @@ static void HandleButtonPacket(SDL_DriverWii_Context *ctx, SDL_Joystick *joystic
 
 static void HandleInput(SDL_DriverWii_Context *ctx, SDL_Joystick *joystick)
 {
-    EWiiInputReportIDs type = ctx->m_rgucReadBuffer[0];
+    EWiiInputReportIDs type = (EWiiInputReportIDs)ctx->m_rgucReadBuffer[0];
 
     /* Set up for handling input */
     ctx->timestamp = SDL_GetTicksNS();

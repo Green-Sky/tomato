@@ -37,7 +37,7 @@ void *SDL_LoadObject(const char *sofile)
         return NULL;
     }
     tstr = WIN_UTF8ToString(sofile);
-#ifdef __WINRT__
+#ifdef SDL_PLATFORM_WINRT
     /* WinRT only publicly supports LoadPackagedLibrary() for loading .dll
        files.  LoadLibrary() is a private API, and not available for apps
        (that can be published to MS' Windows Store.)
@@ -60,7 +60,7 @@ void *SDL_LoadObject(const char *sofile)
 
 SDL_FunctionPointer SDL_LoadFunction(void *handle, const char *name)
 {
-    void *symbol = (void *)GetProcAddress((HMODULE)handle, name);
+    SDL_FunctionPointer symbol = (SDL_FunctionPointer)GetProcAddress((HMODULE)handle, name);
     if (!symbol) {
         char errbuf[512];
         SDL_strlcpy(errbuf, "Failed loading ", SDL_arraysize(errbuf));

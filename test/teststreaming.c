@@ -15,16 +15,16 @@
  *                                                                              *
  ********************************************************************************/
 
-#include <stdlib.h>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#endif
-
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_test.h>
 #include "testutils.h"
+
+#ifdef SDL_PLATFORM_EMSCRIPTEN
+#include <emscripten/emscripten.h>
+#endif
+
+#include <stdlib.h>
 
 #define MOOSEPIC_W 64
 #define MOOSEPIC_H 88
@@ -114,6 +114,8 @@ static void loop(void)
         case SDL_EVENT_QUIT:
             done = SDL_TRUE;
             break;
+        default:
+            break;
         }
     }
 
@@ -124,7 +126,7 @@ static void loop(void)
     SDL_RenderTexture(renderer, MooseTexture, NULL, NULL);
     SDL_RenderPresent(renderer);
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     if (done) {
         emscripten_cancel_main_loop();
     }
@@ -134,7 +136,7 @@ static void loop(void)
 int main(int argc, char **argv)
 {
     SDL_Window *window;
-    SDL_RWops *handle;
+    SDL_IOStream *handle;
     char *filename = NULL;
 
     /* Initialize test framework */
@@ -162,14 +164,14 @@ int main(int argc, char **argv)
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Out of memory\n");
         return -1;
     }
-    handle = SDL_RWFromFile(filename, "rb");
+    handle = SDL_IOFromFile(filename, "rb");
     SDL_free(filename);
     if (!handle) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Can't find the file moose.dat !\n");
         quit(2);
     }
-    SDL_RWread(handle, MooseFrames, MOOSEFRAME_SIZE * MOOSEFRAMES_COUNT);
-    SDL_RWclose(handle);
+    SDL_ReadIO(handle, MooseFrames, MOOSEFRAME_SIZE * MOOSEFRAMES_COUNT);
+    SDL_CloseIO(handle);
 
     /* Create the window and renderer */
     window = SDL_CreateWindow("Happy Moose", MOOSEPIC_W * 4, MOOSEPIC_H * 4, SDL_WINDOW_RESIZABLE);
@@ -193,7 +195,7 @@ int main(int argc, char **argv)
     /* Loop, waiting for QUIT or the escape key */
     frame = 0;
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop(loop, 0, 1);
 #else
     while (!done) {

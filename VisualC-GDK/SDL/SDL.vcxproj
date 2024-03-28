@@ -171,7 +171,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>$(SolutionDir)\shaders\buildshaders.bat $(SolutionDir)</Command>
+      <Command>$(SolutionDir)..\src\render\direct3d12\compile_shaders_xbox.bat $(SolutionDir)</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Building shader blobs (Xbox Series)</Message>
@@ -205,7 +205,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>$(SolutionDir)\shaders\buildshaders.bat $(SolutionDir) one</Command>
+      <Command>$(SolutionDir)..\src\render\direct3d12\compile_shaders_xbox.bat $(SolutionDir) one</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Building shader blobs (Xbox One)</Message>
@@ -271,7 +271,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>$(SolutionDir)\shaders\buildshaders.bat $(SolutionDir)</Command>
+      <Command>$(SolutionDir)..\src\render\direct3d12\compile_shaders_xbox.bat $(SolutionDir)</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Building shader blobs (Xbox Series)</Message>
@@ -306,7 +306,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>$(SolutionDir)\shaders\buildshaders.bat $(SolutionDir) one</Command>
+      <Command>$(SolutionDir)..\src\render\direct3d12\compile_shaders_xbox.bat $(SolutionDir) one</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Building shader blobs (Xbox One)</Message>
@@ -314,6 +314,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\SDL3\SDL_begin_code.h" />
+    <ClInclude Include="..\..\include\SDL3\SDL_camera.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_close_code.h" />
     <ClInclude Include="..\..\include\SDL3\SDL.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_assert.h" />
@@ -363,10 +364,11 @@
     <ClInclude Include="..\..\include\SDL3\SDL_rect.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_render.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_revision.h" />
-    <ClInclude Include="..\..\include\SDL3\SDL_rwops.h" />
+    <ClInclude Include="..\..\include\SDL3\SDL_iostream.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_scancode.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_sensor.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_stdinc.h" />
+    <ClInclude Include="..\..\include\SDL3\SDL_storage.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_surface.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_system.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_test.h" />
@@ -382,6 +384,7 @@
     <ClInclude Include="..\..\include\SDL3\SDL_test_memory.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_test_random.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_thread.h" />
+    <ClInclude Include="..\..\include\SDL3\SDL_time.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_timer.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_touch.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_types.h" />
@@ -398,12 +401,15 @@
     <ClInclude Include="..\..\src\audio\SDL_audioresample.h" />
     <ClInclude Include="..\..\src\audio\SDL_wave.h" />
     <ClInclude Include="..\..\src\audio\wasapi\SDL_wasapi.h" />
+    <ClInclude Include="..\..\src\camera\SDL_camera_c.h" />
+    <ClInclude Include="..\..\src\camera\SDL_syscamera.h" />
     <ClInclude Include="..\..\src\core\gdk\SDL_gdk.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_directx.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_hid.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_immdevice.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_windows.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_xinput.h" />
+    <ClInclude Include="..\..\src\cpuinfo\SDL_cpuinfo_c.h" />
     <ClInclude Include="..\..\src\dynapi\SDL_dynapi.h" />
     <ClInclude Include="..\..\src\dynapi\SDL_dynapi_overrides.h" />
     <ClInclude Include="..\..\src\dynapi\SDL_dynapi_procs.h" />
@@ -418,11 +424,11 @@
     <ClInclude Include="..\..\src\events\SDL_mouse_c.h" />
     <ClInclude Include="..\..\src\events\SDL_touch_c.h" />
     <ClInclude Include="..\..\src\events\SDL_windowevents_c.h" />
+    <ClInclude Include="..\..\src\filesystem\SDL_sysfilesystem.h" />
     <ClInclude Include="..\..\src\haptic\SDL_haptic_c.h" />
     <ClInclude Include="..\..\src\haptic\SDL_syshaptic.h" />
     <ClInclude Include="..\..\src\haptic\windows\SDL_dinputhaptic_c.h" />
     <ClInclude Include="..\..\src\haptic\windows\SDL_windowshaptic_c.h" />
-    <ClInclude Include="..\..\src\haptic\windows\SDL_xinputhaptic_c.h" />
     <ClInclude Include="..\..\src\hidapi\hidapi\hidapi.h" />
     <ClInclude Include="..\..\src\hidapi\SDL_hidapi_c.h" />
     <ClInclude Include="..\..\src\joystick\controller_type.h" />
@@ -499,6 +505,10 @@
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Desktop.x64'">$(IntDir)$(TargetName)_cpp.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Desktop.x64'">$(IntDir)$(TargetName)_cpp.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="..\..\src\camera\dummy\SDL_camera_dummy.c" />
+    <ClCompile Include="..\..\src\camera\SDL_camera.c" />
+    <ClCompile Include="..\..\src\filesystem\SDL_filesystem.c" />
+    <ClCompile Include="..\..\src\filesystem\windows\SDL_sysfsops.c" />
     <ClCompile Include="..\..\src\main\generic\SDL_sysmain_callbacks.c" />
     <ClCompile Include="..\..\src\main\SDL_main_callbacks.c" />
     <ClCompile Include="..\..\src\SDL_guid.c" />
@@ -528,7 +538,6 @@
     <ClInclude Include="..\..\src\video\khronos\vulkan\vk_platform.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vk_sdk_platform.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan.h" />
-    <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan.hpp" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan_android.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan_beta.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan_core.h" />
@@ -566,11 +575,19 @@
     <ClInclude Include="..\..\src\video\windows\SDL_windowsmouse.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsopengl.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsopengles.h" />
+    <ClInclude Include="..\..\src\video\windows\SDL_windowsrawinput.h" />
+    <ClInclude Include="..\..\src\video\windows\SDL_windowsshape.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsvideo.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsvulkan.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowswindow.h" />
     <ClInclude Include="..\..\src\video\windows\wmmsg.h" />
     <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb.h" />
+    <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_common.h" />
+    <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_internal.h" />
+    <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_lsx.h" />
+    <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_lsx_func.h" />
+    <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_sse.h" />
+    <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_std.h" />
     <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_sse_func.h" />
     <ClInclude Include="..\..\src\video\yuv2rgb\yuv_rgb_std_func.h" />
     <ClCompile Include="..\..\src\atomic\SDL_atomic.c" />
@@ -604,6 +621,16 @@
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.XboxOne.x64'">stdcpp17</LanguageStandard>
     </ClCompile>
     <ClCompile Include="..\..\src\cpuinfo\SDL_cpuinfo.c" />
+    <ClCompile Include="..\..\src\dialog\dummy\SDL_dummydialog.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Desktop.x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Desktop.x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dialog\windows\SDL_windowsdialog.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Xbox.Scarlett.x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.Scarlett.x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Xbox.XboxOne.x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.XboxOne.x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\src\dynapi\SDL_dynapi.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Desktop.x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Desktop.x64'">NotUsing</PrecompiledHeader>
@@ -618,7 +645,7 @@
     <ClCompile Include="..\..\src\events\SDL_quit.c" />
     <ClCompile Include="..\..\src\events\SDL_touch.c" />
     <ClCompile Include="..\..\src\events\SDL_windowevents.c" />
-    <ClCompile Include="..\..\src\file\SDL_rwops.c" />
+    <ClCompile Include="..\..\src\file\SDL_iostream.c" />
     <ClCompile Include="..\..\src\filesystem\gdk\SDL_sysfilesystem.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Desktop.x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Desktop.x64'">true</ExcludedFromBuild>
@@ -636,19 +663,10 @@
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.Scarlett.x64'">stdcpp17</LanguageStandard>
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.XboxOne.x64'">stdcpp17</LanguageStandard>
     </ClCompile>
-    <ClCompile Include="..\..\src\haptic\windows\SDL_xinputhaptic.c">
-      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Xbox.Scarlett.x64'">stdcpp17</LanguageStandard>
-      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Xbox.XboxOne.x64'">stdcpp17</LanguageStandard>
-      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.Scarlett.x64'">stdcpp17</LanguageStandard>
-      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.XboxOne.x64'">stdcpp17</LanguageStandard>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Xbox.Scarlett.x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Xbox.XboxOne.x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.Scarlett.x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Xbox.XboxOne.x64'">CompileAsCpp</CompileAs>
-    </ClCompile>
     <ClCompile Include="..\..\src\hidapi\SDL_hidapi.c" />
     <ClCompile Include="..\..\src\joystick\controller_type.c" />
     <ClCompile Include="..\..\src\joystick\dummy\SDL_sysjoystick.c" />
+    <ClCompile Include="..\..\src\joystick\gdk\SDL_gameinputjoystick.c" />
     <ClCompile Include="..\..\src\joystick\hidapi\SDL_hidapijoystick.c" />
     <ClCompile Include="..\..\src\joystick\hidapi\SDL_hidapi_combined.c" />
     <ClCompile Include="..\..\src\joystick\hidapi\SDL_hidapi_gamecube.c" />
@@ -765,6 +783,9 @@
     <ClCompile Include="..\..\src\stdlib\SDL_getenv.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_iconv.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_malloc.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_memcpy.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_memmove.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_memset.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_mslibc.c" />
     <MASM Condition="'$(Platform)'=='x64'" Include="..\..\src\stdlib\SDL_mslibc_x64.masm">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -773,6 +794,8 @@
     <ClCompile Include="..\..\src\stdlib\SDL_stdlib.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_string.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_strtokr.c" />
+    <ClCompile Include="..\..\src\storage\generic\SDL_genericstorage.c" />
+    <ClCompile Include="..\..\src\storage\SDL_storage.c" />
     <ClCompile Include="..\..\src\thread\generic\SDL_syscond.c" />
     <ClCompile Include="..\..\src\thread\generic\SDL_sysrwlock.c" />
     <ClCompile Include="..\..\src\thread\SDL_thread.c" />
@@ -784,6 +807,8 @@
     <ClCompile Include="..\..\src\thread\windows\SDL_systls.c" />
     <ClCompile Include="..\..\src\timer\SDL_timer.c" />
     <ClCompile Include="..\..\src\timer\windows\SDL_systimer.c" />
+    <ClCompile Include="..\..\src\time\SDL_time.c" />
+    <ClCompile Include="..\..\src\time\windows\SDL_systime.c" />
     <ClCompile Include="..\..\src\video\dummy\SDL_nullevents.c" />
     <ClCompile Include="..\..\src\video\dummy\SDL_nullframebuffer.c" />
     <ClCompile Include="..\..\src\video\dummy\SDL_nullvideo.c" />
@@ -809,7 +834,6 @@
     <ClCompile Include="..\..\src\video\SDL_stretch.c" />
     <ClCompile Include="..\..\src\video\SDL_surface.c" />
     <ClCompile Include="..\..\src\video\SDL_video.c" />
-    <ClCompile Include="..\..\src\video\SDL_video_capture.c" />
     <ClCompile Include="..\..\src\video\SDL_video_unsupported.c" />
     <ClCompile Include="..\..\src\video\SDL_vulkan_utils.c" />
     <ClCompile Include="..\..\src\video\SDL_yuv.c" />
@@ -822,10 +846,14 @@
     <ClCompile Include="..\..\src\video\windows\SDL_windowsmouse.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsopengl.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsopengles.c" />
+    <ClCompile Include="..\..\src\video\windows\SDL_windowsrawinput.c" />
+    <ClCompile Include="..\..\src\video\windows\SDL_windowsshape.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsvideo.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsvulkan.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowswindow.c" />
-    <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb.c" />
+    <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb_lsx.c" />
+    <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb_sse.c" />
+    <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb_std.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\core\windows\version.rc" />

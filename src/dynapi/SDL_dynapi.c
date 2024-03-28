@@ -26,6 +26,9 @@
 #if SDL_DYNAMIC_API
 
 #define SDL_DYNAMIC_API_ENVVAR "SDL3_DYNAMIC_API"
+#define SDL_SLOW_MEMCPY
+#define SDL_SLOW_MEMMOVE
+#define SDL_SLOW_MEMSET
 
 #ifdef HAVE_STDIO_H
 #include <stdio.h>
@@ -143,13 +146,13 @@ static void SDL_InitDynamicAPI(void);
         va_end(ap);                                                                                                                       \
         return retval;                                                                                                                    \
     }                                                                                                                                     \
-    _static size_t SDLCALL SDL_RWprintf##name(SDL_RWops *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)                          \
+    _static size_t SDLCALL SDL_IOprintf##name(SDL_IOStream *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)                          \
     {                                                                                                                                     \
         size_t retval;                                                                                                                    \
         va_list ap;                                                                                                                       \
         initcall;                                                                                                                         \
         va_start(ap, fmt);                                                                                                                \
-        retval = jump_table.SDL_RWvprintf(context, fmt, ap);                                                                              \
+        retval = jump_table.SDL_IOvprintf(context, fmt, ap);                                                                              \
         va_end(ap);                                                                                                                       \
         return retval;                                                                                                                    \
     }                                                                                                                                     \
@@ -294,13 +297,13 @@ static int SDLCALL SDL_swprintf_LOGSDLCALLS(SDL_OUT_Z_CAP(maxlen) wchar_t *buf, 
     va_end(ap);
     return retval;
 }
-_static size_t SDLCALL SDL_RWprintf_LOGSDLCALLS(SDL_RWops *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)
+_static size_t SDLCALL SDL_IOprintf_LOGSDLCALLS(SDL_IOStream *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)
 {
     size_t retval;
     va_list ap;
-    SDL_Log_REAL("SDL3CALL SDL_RWprintf");
+    SDL_Log_REAL("SDL3CALL SDL_IOprintf");
     va_start(ap, fmt);
-    retval = SDL_RWvprintf_REAL(context, fmt, ap);
+    retval = SDL_IOvprintf_REAL(context, fmt, ap);
     va_end(ap);
     return retval;
 }
@@ -407,7 +410,7 @@ Sint32 SDL_DYNAPI_entry(Uint32 apiver, void *table, Uint32 tablesize)
 
 /* Obviously we can't use SDL_LoadObject() to load SDL.  :)  */
 /* Also obviously, we never close the loaded library. */
-#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+#if defined(WIN32) || defined(_WIN32) || defined(SDL_PLATFORM_CYGWIN)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
 #endif
@@ -425,7 +428,7 @@ static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
     return retval;
 }
 
-#elif defined(unix) || defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
+#elif defined(SDL_PLATFORM_UNIX) || defined(SDL_PLATFORM_APPLE) || defined(SDL_PLATFORM_HAIKU)
 #include <dlfcn.h>
 static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
 {
@@ -449,7 +452,7 @@ static void dynapi_warn(const char *msg)
     const char *caption = "SDL Dynamic API Failure!";
     (void)caption;
 /* SDL_ShowSimpleMessageBox() is a too heavy for here. */
-#if (defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)) && !defined(__XBOXONE__) && !defined(__XBOXSERIES__)
+#if (defined(WIN32) || defined(_WIN32) || defined(SDL_PLATFORM_CYGWIN)) && !defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)
     MessageBoxA(NULL, msg, caption, MB_OK | MB_ICONERROR);
 #elif defined(HAVE_STDIO_H)
     fprintf(stderr, "\n\n%s\n%s\n\n", caption, msg);
@@ -535,22 +538,15 @@ static void SDL_InitDynamicAPI(void)
      */
     static SDL_bool already_initialized = SDL_FALSE;
 
-    /* SDL_AtomicLock calls SDL mutex functions to emulate if
-       SDL_ATOMIC_DISABLED, which we can't do here, so in such a
-       configuration, you're on your own. */
-    #ifndef SDL_ATOMIC_DISABLED
     static SDL_SpinLock lock = 0;
-    SDL_AtomicLock_REAL(&lock);
-    #endif
+    SDL_LockSpinlock_REAL(&lock);
 
     if (!already_initialized) {
         SDL_InitDynamicAPILocked();
         already_initialized = SDL_TRUE;
     }
 
-    #ifndef SDL_ATOMIC_DISABLED
-    SDL_AtomicUnlock_REAL(&lock);
-    #endif
+    SDL_UnlockSpinlock_REAL(&lock);
 }
 
 #else /* SDL_DYNAMIC_API */

@@ -45,9 +45,9 @@
 #ifndef SDL_pen_h_
 #define SDL_pen_h_
 
-#include "SDL_error.h"
-#include "SDL_guid.h"
-#include "SDL_stdinc.h"
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_guid.h>
+#include <SDL3/SDL_stdinc.h>
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -56,9 +56,9 @@ extern "C" {
 
 typedef Uint32 SDL_PenID; /**< SDL_PenIDs identify pens uniquely within a session */
 
-#define SDL_PEN_INVALID ((Uint32)0) /**< Reserved invalid ::SDL_PenID is valid */
+#define SDL_PEN_INVALID ((SDL_PenID)0) /**< Reserved invalid ::SDL_PenID is valid */
 
-#define SDL_PEN_MOUSEID ((Uint32)-2) /**< Device ID for mouse events triggered by pen events */
+#define SDL_PEN_MOUSEID ((SDL_MouseID)-2) /**< Device ID for mouse events triggered by pen events */
 
 #define SDL_PEN_INFO_UNKNOWN (-1) /**< Marks unknown information when querying the pen */
 
@@ -78,9 +78,9 @@ typedef enum
 {
     SDL_PEN_AXIS_PRESSURE = 0,               /**< Pen pressure.  Unidirectional: 0..1.0 */
     SDL_PEN_AXIS_XTILT,                      /**< Pen horizontal tilt angle.  Bidirectional: -90.0..90.0 (left-to-right).
-						The physical max/min tilt may be smaller than -90.0 / 90.0, cf. SDL_PenCapabilityInfo */
+                                                  The physical max/min tilt may be smaller than -90.0 / 90.0, cf. SDL_PenCapabilityInfo */
     SDL_PEN_AXIS_YTILT,                      /**< Pen vertical tilt angle.  Bidirectional: -90.0..90.0 (top-to-down).
-						The physical max/min tilt may be smaller than -90.0 / 90.0, cf. SDL_PenCapabilityInfo */
+                                                  The physical max/min tilt may be smaller than -90.0 / 90.0, cf. SDL_PenCapabilityInfo */
     SDL_PEN_AXIS_DISTANCE,                   /**< Pen distance to drawing surface.  Unidirectional: 0.0..1.0 */
     SDL_PEN_AXIS_ROTATION,                   /**< Pen barrel rotation.  Bidirectional: -180..179.9 (clockwise, 0 is facing up, -180.0 is facing down). */
     SDL_PEN_AXIS_SLIDER,                     /**< Pen finger wheel or slider (e.g., Airbrush Pen).  Unidirectional: 0..1.0 */
@@ -133,6 +133,7 @@ typedef enum
  */
 typedef enum
 {
+    SDL_PEN_TYPE_UNKNOWN = 0,
     SDL_PEN_TYPE_ERASER = 1,                  /**< Eraser */
     SDL_PEN_TYPE_PEN,                         /**< Generic pen; this is the default. */
     SDL_PEN_TYPE_PENCIL,                      /**< Pencil */
@@ -190,8 +191,6 @@ extern DECLSPEC Uint32 SDLCALL SDL_GetPenStatus(SDL_PenID instance_id, float *x,
  *          SDL_PenID.
  *
  * \since This function is available since SDL 3.0.0
- *
- * \sa SDL_GUID
  */
 extern DECLSPEC SDL_PenID SDLCALL SDL_GetPenFromGUID(SDL_GUID guid);
 
@@ -203,8 +202,6 @@ extern DECLSPEC SDL_PenID SDLCALL SDL_GetPenFromGUID(SDL_GUID guid);
  *          If "instance_id" is ::SDL_PEN_INVALID, returns an all-zeroes GUID.
  *
  * \since This function is available since SDL 3.0.0
- *
- * \sa SDL_PenForID
  */
 extern DECLSPEC SDL_GUID SDLCALL SDL_GetPenGUID(SDL_PenID instance_id);
 

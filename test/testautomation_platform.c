@@ -209,7 +209,7 @@ static int platform_testHasFunctions(void *arg)
  */
 static int platform_testGetVersion(void *arg)
 {
-    SDL_version linked;
+    SDL_Version linked;
     int major = SDL_MAJOR_VERSION;
     int minor = SDL_MINOR_VERSION;
 
@@ -231,7 +231,7 @@ static int platform_testGetVersion(void *arg)
  */
 static int platform_testSDLVersion(void *arg)
 {
-    SDL_version compiled;
+    SDL_Version compiled;
     int major = SDL_MAJOR_VERSION;
     int minor = SDL_MINOR_VERSION;
 
@@ -256,12 +256,12 @@ static int platform_testDefaultInit(void *arg)
     int ret;
     int subsystem;
 
-    subsystem = SDL_WasInit(SDL_INIT_EVERYTHING);
+    subsystem = SDL_WasInit(0);
     SDLTest_AssertCheck(subsystem != 0,
                         "SDL_WasInit(0): returned %i, expected != 0",
                         subsystem);
 
-    ret = SDL_Init(SDL_WasInit(SDL_INIT_EVERYTHING));
+    ret = SDL_Init(0);
     SDLTest_AssertCheck(ret == 0,
                         "SDL_Init(0): returned %i, expected 0, error: %s",
                         ret,

@@ -191,7 +191,6 @@
         NSData *data;
         NSArray *array;
         NSPoint point;
-        SDL_Mouse *mouse;
         float x, y;
 
         if (desiredType == nil) {
@@ -208,11 +207,10 @@
 
         /* Code addon to update the mouse location */
         point = [sender draggingLocation];
-        mouse = SDL_GetMouse();
         x = point.x;
         y = (sdlwindow->h - point.y);
         if (x >= 0.0f && x < (float)sdlwindow->w && y >= 0.0f && y < (float)sdlwindow->h) {
-            SDL_SendMouseMotion(0, sdlwindow, mouse->mouseID, 0, x, y);
+            SDL_SendMouseMotion(0, sdlwindow, SDL_GLOBAL_MOUSE_ID, SDL_FALSE, x, y);
         }
         /* Code addon to update the mouse location */
 
@@ -546,15 +544,22 @@ static void Cocoa_UpdateClipCursor(SDL_Window *window)
     }
 }
 
-static void Cocoa_SetKeyboardFocus(SDL_Window *window)
+static SDL_Window *GetTopmostWindow(SDL_Window *window)
 {
     SDL_Window *topmost = window;
-    SDL_CocoaWindowData *topmost_data;
 
     /* Find the topmost parent */
     while (topmost->parent != NULL) {
         topmost = topmost->parent;
     }
+
+    return topmost;
+}
+
+static void Cocoa_SetKeyboardFocus(SDL_Window *window)
+{
+    SDL_Window *topmost = GetTopmostWindow(window);
+    SDL_CocoaWindowData *topmost_data;
 
     topmost_data = (__bridge SDL_CocoaWindowData *)topmost->driverdata;
     topmost_data.keyboard_focus = window;
@@ -827,6 +832,28 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
     }
 }
 
+- (void)updateIgnoreMouseState:(NSEvent *)theEvent
+{
+    SDL_Window *window = _data.window;
+    SDL_Surface *shape = (SDL_Surface *)SDL_GetProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_SHAPE_POINTER, NULL);
+    BOOL ignoresMouseEvents = NO;
+
+    if (shape) {
+        NSPoint point = [theEvent locationInWindow];
+        NSRect windowRect = [[_data.nswindow contentView] frame];
+        if (NSMouseInRect(point, windowRect, NO)) {
+            int x = (int)SDL_roundf((point.x / (window->w - 1)) * (shape->w - 1));
+            int y = (int)SDL_roundf(((window->h - point.y) / (window->h - 1)) * (shape->h - 1));
+            Uint8 a;
+
+            if (SDL_ReadSurfacePixel(shape, x, y, NULL, NULL, NULL, &a) < 0 || a == SDL_ALPHA_TRANSPARENT) {
+                ignoresMouseEvents = YES;
+            }
+        }
+    }
+    _data.nswindow.ignoresMouseEvents = ignoresMouseEvents;
+}
+
 - (void)setPendingMoveX:(float)x Y:(float)y
 {
     pendingWindowWarpX = x;
@@ -1062,7 +1089,7 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
         y = (window->h - point.y);
 
         if (x >= 0.0f && x < (float)window->w && y >= 0.0f && y < (float)window->h) {
-            SDL_SendMouseMotion(0, window, mouse->mouseID, 0, x, y);
+            SDL_SendMouseMotion(0, window, SDL_GLOBAL_MOUSE_ID, SDL_FALSE, x, y);
         }
     }
 
@@ -1110,9 +1137,7 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
     }
 
     if ([oldscale doubleValue] != [_data.nswindow backingScaleFactor]) {
-        /* Force a resize event when the backing scale factor changes. */
-        _data.window->w = 0;
-        _data.window->h = 0;
+        /* Send a resize event when the backing scale factor changes. */
         [self windowDidResize:aNotification];
     }
 }
@@ -1231,7 +1256,7 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
     if (window->is_destroying) {
         return;
     }
-    
+
     SetWindowStyle(window, flags);
 
     isFullscreenSpace = YES;
@@ -1354,8 +1379,8 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
     const SDL_bool osenabled = ([theEvent modifierFlags] & NSEventModifierFlagCapsLock) ? SDL_TRUE : SDL_FALSE;
     const SDL_bool sdlenabled = (SDL_GetModState() & SDL_KMOD_CAPS) ? SDL_TRUE : SDL_FALSE;
     if (osenabled ^ sdlenabled) {
-        SDL_SendKeyboardKey(0, SDL_PRESSED, SDL_SCANCODE_CAPSLOCK);
-        SDL_SendKeyboardKey(0, SDL_RELEASED, SDL_SCANCODE_CAPSLOCK);
+        SDL_SendKeyboardKey(0, SDL_DEFAULT_KEYBOARD_ID, SDL_PRESSED, SDL_SCANCODE_CAPSLOCK);
+        SDL_SendKeyboardKey(0, SDL_DEFAULT_KEYBOARD_ID, SDL_RELEASED, SDL_SCANCODE_CAPSLOCK);
     }
 }
 - (void)keyDown:(NSEvent *)theEvent
@@ -1375,14 +1400,41 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
     /*NSLog(@"doCommandBySelector: %@\n", NSStringFromSelector(aSelector));*/
 }
 
+- (void)updateHitTest
+{
+    SDL_Window *window = _data.window;
+    BOOL draggable = NO;
+
+    if (window->hit_test) {
+        float x, y;
+        SDL_Point point;
+
+        SDL_GetGlobalMouseState(&x, &y);
+        point.x = (int)SDL_roundf(x - window->x);
+        point.y = (int)SDL_roundf(y - window->y);
+        if (point.x >= 0 && point.x < window->w && point.y >= 0 && point.y < window->h) {
+            if (window->hit_test(window, &point, window->hit_test_data) == SDL_HITTEST_DRAGGABLE) {
+                draggable = YES;
+            }
+        }
+    }
+
+    if (isDragAreaRunning != draggable) {
+        isDragAreaRunning = draggable;
+        [_data.nswindow setMovableByWindowBackground:draggable];
+    }
+}
+
 - (BOOL)processHitTest:(NSEvent *)theEvent
 {
+    SDL_Window *window = _data.window;
+
     SDL_assert(isDragAreaRunning == [_data.nswindow isMovableByWindowBackground]);
 
-    if (_data.window->hit_test) { /* if no hit-test, skip this. */
+    if (window->hit_test) { /* if no hit-test, skip this. */
         const NSPoint location = [theEvent locationInWindow];
-        const SDL_Point point = { (int)location.x, _data.window->h - (((int)location.y) - 1) };
-        const SDL_HitTestResult rc = _data.window->hit_test(_data.window, &point, _data.window->hit_test_data);
+        const SDL_Point point = { (int)location.x, window->h - (((int)location.y) - 1) };
+        const SDL_HitTestResult rc = window->hit_test(window, &point, window->hit_test_data);
         if (rc == SDL_HITTEST_DRAGGABLE) {
             if (!isDragAreaRunning) {
                 isDragAreaRunning = YES;
@@ -1403,7 +1455,7 @@ static SDL_bool Cocoa_IsZoomed(SDL_Window *window)
 
 static int Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL_Window *window, const Uint8 state, const Uint8 button)
 {
-    const SDL_MouseID mouseID = mouse->mouseID;
+    SDL_MouseID mouseID = SDL_DEFAULT_MOUSE_ID;
     const int clicks = (int)[theEvent clickCount];
     SDL_Window *focus = SDL_GetKeyboardFocus();
     int rc;
@@ -1535,8 +1587,8 @@ static int Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL_
 
 - (void)mouseMoved:(NSEvent *)theEvent
 {
+    SDL_MouseID mouseID = SDL_DEFAULT_MOUSE_ID;
     SDL_Mouse *mouse = SDL_GetMouse();
-    SDL_MouseID mouseID;
     NSPoint point;
     float x, y;
     SDL_Window *window;
@@ -1545,8 +1597,11 @@ static int Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL_
         return;
     }
 
-    mouseID = mouse->mouseID;
     window = _data.window;
+
+    if (window->flags & SDL_WINDOW_TRANSPARENT) {
+        [self updateIgnoreMouseState:theEvent];
+    }
 
     if ([self processHitTest:theEvent]) {
         SDL_SendWindowEvent(window, SDL_EVENT_WINDOW_HIT_TEST, 0, 0);
@@ -1573,7 +1628,7 @@ static int Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL_
         }
     }
 
-    SDL_SendMouseMotion(Cocoa_GetEventTimestamp([theEvent timestamp]), window, mouseID, 0, x, y);
+    SDL_SendMouseMotion(Cocoa_GetEventTimestamp([theEvent timestamp]), window, mouseID, SDL_FALSE, x, y);
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent
@@ -1680,7 +1735,7 @@ static int Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL_
     float x, y;
 
     for (NSTouch *touch in touches) {
-        const SDL_TouchID touchId = istrackpad ? SDL_MOUSE_TOUCHID : (SDL_TouchID)(intptr_t)[touch device];
+        const SDL_TouchID touchId = istrackpad ? SDL_MOUSE_TOUCHID : (SDL_TouchID)(uintptr_t)[touch device];
         SDL_TouchDeviceType devtype = SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE;
 
         /* trackpad touches have no window. If we really wanted one we could
@@ -1709,7 +1764,7 @@ static int Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL_
             return;
         }
 
-        fingerId = (SDL_FingerID)(intptr_t)[touch identity];
+        fingerId = (SDL_FingerID)(uintptr_t)[touch identity];
         x = [touch normalizedPosition].x;
         y = [touch normalizedPosition].y;
         /* Make the origin the upper left instead of the lower left */
@@ -1964,8 +2019,8 @@ static int SetupWindowData(SDL_VideoDevice *_this, SDL_Window *window, NSWindow 
         }
 
         SDL_PropertiesID props = SDL_GetWindowProperties(window);
-        SDL_SetProperty(props, SDL_PROPERTY_WINDOW_COCOA_WINDOW_POINTER, (__bridge void *)data.nswindow);
-        SDL_SetNumberProperty(props, SDL_PROPERTY_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER, SDL_METALVIEW_TAG);
+        SDL_SetProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, (__bridge void *)data.nswindow);
+        SDL_SetNumberProperty(props, SDL_PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER, SDL_METALVIEW_TAG);
 
         /* All done! */
         window->driverdata = (SDL_WindowData *)CFBridgingRetain(data);
@@ -1990,8 +2045,8 @@ int Cocoa_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propertie
                 SDL_assert(false);
             }
         } else {
-            nswindow = (__bridge NSWindow *)SDL_GetProperty(create_props, SDL_PROPERTY_WINDOW_CREATE_COCOA_WINDOW_POINTER, NULL);
-            nsview = (__bridge NSView *)SDL_GetProperty(create_props, SDL_PROPERTY_WINDOW_CREATE_COCOA_VIEW_POINTER, NULL);
+            nswindow = (__bridge NSWindow *)SDL_GetProperty(create_props, SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER, NULL);
+            nsview = (__bridge NSView *)SDL_GetProperty(create_props, SDL_PROP_WINDOW_CREATE_COCOA_VIEW_POINTER, NULL);
         }
         if (nswindow && !nsview) {
             nsview = [nswindow contentView];
@@ -2360,6 +2415,9 @@ void Cocoa_RaiseWindow(SDL_VideoDevice *_this, SDL_Window *window)
             if (SDL_WINDOW_IS_POPUP(window)) {
                 NSWindow *nsparent = ((__bridge SDL_CocoaWindowData *)window->parent->driverdata).nswindow;
                 [nsparent addChildWindow:nswindow ordered:NSWindowAbove];
+                if (bActivate) {
+                    [nswindow makeKeyWindow];
+                }
             } else {
                 if (bActivate) {
                     [NSApp activateIgnoringOtherApps:YES];
@@ -2692,12 +2750,13 @@ SDL_DisplayID Cocoa_GetDisplayForWindow(SDL_VideoDevice *_this, SDL_Window *wind
     }
 }
 
-void Cocoa_SetWindowMouseRect(SDL_VideoDevice *_this, SDL_Window *window)
+int Cocoa_SetWindowMouseRect(SDL_VideoDevice *_this, SDL_Window *window)
 {
     Cocoa_UpdateClipCursor(window);
+    return 0;
 }
 
-void Cocoa_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed)
+int Cocoa_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed)
 {
     @autoreleasepool {
         SDL_CocoaWindowData *data = (__bridge SDL_CocoaWindowData *)window->driverdata;
@@ -2716,6 +2775,8 @@ void Cocoa_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bo
             }
         }
     }
+
+    return 0;
 }
 
 void Cocoa_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window)
@@ -2729,6 +2790,22 @@ void Cocoa_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window)
             NSArray *contexts;
 
 #endif /* SDL_VIDEO_OPENGL */
+            SDL_Window *topmost = GetTopmostWindow(window);
+            SDL_CocoaWindowData *topmost_data = (__bridge SDL_CocoaWindowData *)topmost->driverdata;
+
+            /* Reset the input focus of the root window if this window is still set as keyboard focus.
+             * SDL_DestroyWindow will have already taken care of reassigning focus if this is the SDL
+             * keyboard focus, this ensures that an inactive window with this window set as input focus
+             * does not try to reference it the next time it gains focus.
+             */
+            if (topmost_data.keyboard_focus == window) {
+                SDL_Window *new_focus = window;
+                while(new_focus->parent && (new_focus->is_hiding || new_focus->is_destroying)) {
+                    new_focus = new_focus->parent;
+                }
+
+                topmost_data.keyboard_focus = new_focus;
+            }
 
             if ([data.listener isInFullscreenSpace]) {
                 [NSMenu setMenuBarVisible:YES];
@@ -2814,7 +2891,10 @@ SDL_bool Cocoa_SetWindowFullscreenSpace(SDL_Window *window, SDL_bool state, SDL_
 
 int Cocoa_SetWindowHitTest(SDL_Window *window, SDL_bool enabled)
 {
-    return 0; /* just succeed, the real work is done elsewhere. */
+    SDL_CocoaWindowData *data = (__bridge SDL_CocoaWindowData *)window->driverdata;
+
+    [data.listener updateHitTest];
+    return 0;
 }
 
 void Cocoa_AcceptDragAndDrop(SDL_Window *window, SDL_bool accept)

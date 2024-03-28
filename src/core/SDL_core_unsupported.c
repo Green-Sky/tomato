@@ -28,7 +28,7 @@ DECLSPEC void SDLCALL SDL_SetX11EventHook(SDL_X11EventHook callback, void *userd
 
 #endif
 
-#ifndef __LINUX__
+#ifndef SDL_PLATFORM_LINUX
 
 DECLSPEC int SDLCALL SDL_LinuxSetThreadPriority(Sint64 threadID, int priority);
 int SDL_LinuxSetThreadPriority(Sint64 threadID, int priority)
@@ -49,7 +49,7 @@ int SDL_LinuxSetThreadPriorityAndPolicy(Sint64 threadID, int sdlPriority, int sc
 
 #endif
 
-#ifndef __GDK__
+#ifndef SDL_PLATFORM_GDK
 
 DECLSPEC void SDLCALL SDL_GDKSuspendComplete(void);
 void SDL_GDKSuspendComplete(void)
@@ -65,7 +65,7 @@ int SDL_GDKGetDefaultUser(void *outUserHandle)
 
 #endif
 
-#if !(defined(__WIN32__) || defined(__WINRT__) || defined(__GDK__))
+#if !(defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_WINRT) || defined(SDL_PLATFORM_GDK))
 
 DECLSPEC int SDLCALL SDL_RegisterApp(const char *name, Uint32 style, void *hInst);
 int SDL_RegisterApp(const char *name, Uint32 style, void *hInst)
@@ -92,7 +92,7 @@ void SDL_UnregisterApp(void)
 
 #endif
 
-#ifndef __WINRT__
+#ifndef SDL_PLATFORM_WINRT
 
 /* Returns SDL_WinRT_DeviceFamily enum */
 DECLSPEC int SDLCALL SDL_WinRTGetDeviceFamily(void);
@@ -119,7 +119,7 @@ const char *SDL_WinRTGetFSPathUTF8(int pathType)
 }
 #endif
 
-#ifndef __ANDROID__
+#ifndef SDL_PLATFORM_ANDROID
 
 DECLSPEC void SDLCALL SDL_AndroidBackButton(void);
 void SDL_AndroidBackButton()
@@ -161,12 +161,14 @@ void *SDL_AndroidGetJNIEnv()
     return NULL;
 }
 
-DECLSPEC SDL_bool SDLCALL SDL_AndroidRequestPermission(const char *permission);
-SDL_bool SDL_AndroidRequestPermission(const char *permission)
+typedef void (SDLCALL *SDL_AndroidRequestPermissionCallback)(void *userdata, const char *permission, SDL_bool granted);
+DECLSPEC int SDLCALL SDL_AndroidRequestPermission(const char *permission, SDL_AndroidRequestPermissionCallback cb, void *userdata);
+int SDL_AndroidRequestPermission(const char *permission, SDL_AndroidRequestPermissionCallback cb, void *userdata)
 {
     (void)permission;
-    SDL_Unsupported();
-    return SDL_FALSE;
+    (void)cb;
+    (void)userdata;
+    return SDL_Unsupported();
 }
 
 DECLSPEC int SDLCALL SDL_AndroidSendMessage(Uint32 command, int param);
@@ -225,7 +227,7 @@ Sint32 JNI_OnLoad(void *vm, void *reserved)
 }
 #endif
 
-#if defined(__XBOXONE__) || defined(__XBOXSERIES__)
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 char *SDL_GetUserFolder(SDL_Folder folder)
 {
     (void)folder;

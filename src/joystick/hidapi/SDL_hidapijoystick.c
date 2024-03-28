@@ -27,7 +27,7 @@
 #include "SDL_hidapi_rumble.h"
 #include "../../SDL_hints_c.h"
 
-#if defined(__WIN32__) || defined(__WINGDK__)
+#if defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_WINGDK)
 #include "../windows/SDL_rawinputjoystick_c.h"
 #endif
 
@@ -53,6 +53,7 @@ static SDL_HIDAPI_DeviceDriver *SDL_HIDAPI_drivers[] = {
 #ifdef SDL_JOYSTICK_HIDAPI_PS3
     &SDL_HIDAPI_DriverPS3,
     &SDL_HIDAPI_DriverPS3ThirdParty,
+    &SDL_HIDAPI_DriverPS3SonySixaxis,
 #endif
 #ifdef SDL_JOYSTICK_HIDAPI_PS4
     &SDL_HIDAPI_DriverPS4,
@@ -163,6 +164,12 @@ SDL_bool HIDAPI_SupportsPlaystationDetection(Uint16 vendor, Uint16 product)
         }
         return SDL_TRUE;
     case USB_VENDOR_MADCATZ:
+        if (product == USB_PRODUCT_MADCATZ_SAITEK_SIDE_PANEL_CONTROL_DECK) {
+            /* This is not a Playstation compatible device */
+            return SDL_FALSE;
+        }
+        return SDL_TRUE;
+    case USB_VENDOR_MAYFLASH:
         return SDL_TRUE;
     case USB_VENDOR_NACON:
     case USB_VENDOR_NACON_ALT:
@@ -451,7 +458,7 @@ static void HIDAPI_SetupDeviceDriver(SDL_HIDAPI_Device *device, SDL_bool *remove
             /* Wait a little bit for the device to initialize */
             SDL_Delay(10);
 
-#ifdef __ANDROID__
+#ifdef SDL_PLATFORM_ANDROID
             /* On Android we need to leave joysticks unlocked because it calls
              * out to the main thread for permissions and the main thread can
              * be in the process of handling controller input.
@@ -857,6 +864,54 @@ void HIDAPI_JoystickDisconnected(SDL_HIDAPI_Device *device, SDL_JoystickID joyst
     SDL_UnlockJoysticks();
 }
 
+static void HIDAPI_UpdateJoystickProperties(SDL_HIDAPI_Device *device, SDL_Joystick *joystick)
+{
+    SDL_PropertiesID props = SDL_GetJoystickProperties(joystick);
+    Uint32 caps = device->driver->GetJoystickCapabilities(device, joystick);
+
+    if (caps & SDL_JOYSTICK_CAP_MONO_LED) {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_MONO_LED_BOOLEAN, SDL_TRUE);
+    } else {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_MONO_LED_BOOLEAN, SDL_FALSE);
+    }
+    if (caps & SDL_JOYSTICK_CAP_RGB_LED) {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN, SDL_TRUE);
+    } else {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN, SDL_FALSE);
+    }
+    if (caps & SDL_JOYSTICK_CAP_PLAYER_LED) {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_PLAYER_LED_BOOLEAN, SDL_TRUE);
+    } else {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_PLAYER_LED_BOOLEAN, SDL_FALSE);
+    }
+    if (caps & SDL_JOYSTICK_CAP_RUMBLE) {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN, SDL_TRUE);
+    } else {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN, SDL_FALSE);
+    }
+    if (caps & SDL_JOYSTICK_CAP_TRIGGER_RUMBLE) {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN, SDL_TRUE);
+    } else {
+        SDL_SetBooleanProperty(props, SDL_PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN, SDL_FALSE);
+    }
+}
+
+void HIDAPI_UpdateDeviceProperties(SDL_HIDAPI_Device *device)
+{
+    int i;
+
+    SDL_LockJoysticks();
+
+    for (i = 0; i < device->num_joysticks; ++i) {
+        SDL_Joystick *joystick = SDL_GetJoystickFromInstanceID(device->joysticks[i]);
+        if (joystick) {
+            HIDAPI_UpdateJoystickProperties(device, joystick);
+        }
+    }
+
+    SDL_UnlockJoysticks();
+}
+
 static int HIDAPI_JoystickGetCount(void)
 {
     return SDL_HIDAPI_numjoysticks;
@@ -1206,9 +1261,9 @@ SDL_bool HIDAPI_IsDeviceTypePresent(SDL_GamepadType type)
         return SDL_FALSE;
     }
 
-    if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+    if (SDL_TryLockSpinlock(&SDL_HIDAPI_spinlock)) {
         HIDAPI_UpdateDeviceList();
-        SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
+        SDL_UnlockSpinlock(&SDL_HIDAPI_spinlock);
     }
 
     SDL_LockJoysticks();
@@ -1251,9 +1306,9 @@ SDL_bool HIDAPI_IsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 vers
     }
 #endif /* SDL_JOYSTICK_HIDAPI_XBOX360 || SDL_JOYSTICK_HIDAPI_XBOXONE */
     if (supported) {
-        if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+        if (SDL_TryLockSpinlock(&SDL_HIDAPI_spinlock)) {
             HIDAPI_UpdateDeviceList();
-            SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
+            SDL_UnlockSpinlock(&SDL_HIDAPI_spinlock);
         }
     }
 
@@ -1313,13 +1368,13 @@ SDL_GamepadType HIDAPI_GetGamepadTypeFromGUID(SDL_JoystickGUID guid)
 
 static void HIDAPI_JoystickDetect(void)
 {
-    if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+    if (SDL_TryLockSpinlock(&SDL_HIDAPI_spinlock)) {
         Uint32 count = SDL_hid_device_change_count();
         if (SDL_HIDAPI_change_count != count) {
             SDL_HIDAPI_change_count = count;
             HIDAPI_UpdateDeviceList();
         }
-        SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
+        SDL_UnlockSpinlock(&SDL_HIDAPI_spinlock);
     }
 }
 
@@ -1332,7 +1387,7 @@ void HIDAPI_UpdateDevices(void)
     /* Update the devices, which may change connected joysticks and send events */
 
     /* Prepare the existing device list */
-    if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+    if (SDL_TryLockSpinlock(&SDL_HIDAPI_spinlock)) {
         for (device = SDL_HIDAPI_devices; device; device = device->next) {
             if (device->parent) {
                 continue;
@@ -1346,7 +1401,7 @@ void HIDAPI_UpdateDevices(void)
                 }
             }
         }
-        SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
+        SDL_UnlockSpinlock(&SDL_HIDAPI_spinlock);
     }
 }
 
@@ -1469,6 +1524,8 @@ static int HIDAPI_JoystickOpen(SDL_Joystick *joystick, int device_index)
         return -1;
     }
 
+    HIDAPI_UpdateJoystickProperties(device, joystick);
+
     if (device->serial) {
         joystick->serial = SDL_strdup(device->serial);
     }
@@ -1513,18 +1570,6 @@ static int HIDAPI_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rum
         result = device->driver->RumbleJoystickTriggers(device, joystick, left_rumble, right_rumble);
     } else {
         result = SDL_SetError("Rumble failed, device disconnected");
-    }
-
-    return result;
-}
-
-static Uint32 HIDAPI_JoystickGetCapabilities(SDL_Joystick *joystick)
-{
-    Uint32 result = 0;
-    SDL_HIDAPI_Device *device = NULL;
-
-    if (HIDAPI_GetJoystickDevice(joystick, &device)) {
-        result = device->driver->GetJoystickCapabilities(device, joystick);
     }
 
     return result;
@@ -1659,6 +1704,7 @@ SDL_JoystickDriver SDL_HIDAPI_JoystickDriver = {
     HIDAPI_JoystickInit,
     HIDAPI_JoystickGetCount,
     HIDAPI_JoystickDetect,
+    HIDAPI_IsDevicePresent,
     HIDAPI_JoystickGetDeviceName,
     HIDAPI_JoystickGetDevicePath,
     HIDAPI_JoystickGetDeviceSteamVirtualGamepadSlot,
@@ -1669,7 +1715,6 @@ SDL_JoystickDriver SDL_HIDAPI_JoystickDriver = {
     HIDAPI_JoystickOpen,
     HIDAPI_JoystickRumble,
     HIDAPI_JoystickRumbleTriggers,
-    HIDAPI_JoystickGetCapabilities,
     HIDAPI_JoystickSetLED,
     HIDAPI_JoystickSendEffect,
     HIDAPI_JoystickSetSensorsEnabled,

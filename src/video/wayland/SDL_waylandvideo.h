@@ -41,6 +41,12 @@ typedef struct
     int size;
 } SDL_WaylandCursorTheme;
 
+typedef struct
+{
+    struct wl_list link;
+    char wl_output_name[];
+} SDL_WaylandConnectorName;
+
 struct SDL_VideoData
 {
     SDL_bool initializing;
@@ -61,6 +67,7 @@ struct SDL_VideoData
     } shell;
     struct zwp_relative_pointer_manager_v1 *relative_pointer_manager;
     struct zwp_pointer_constraints_v1 *pointer_constraints;
+    struct wp_cursor_shape_manager_v1 *cursor_shape_manager;
     struct wl_data_device_manager *data_device_manager;
     struct zwp_primary_selection_device_manager_v1 *primary_selection_device_manager;
     struct zxdg_decoration_manager_v1 *decoration_manager;
@@ -72,11 +79,16 @@ struct SDL_VideoData
     struct wp_viewporter *viewporter;
     struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
     struct zwp_input_timestamps_manager_v1 *input_timestamps_manager;
+    struct zxdg_exporter_v2 *zxdg_exporter_v2;
+    struct kde_output_order_v1 *kde_output_order;
 
     struct xkb_context *xkb_context;
     struct SDL_WaylandInput *input;
     struct SDL_WaylandTabletManager *tablet_manager;
     struct wl_list output_list;
+    struct wl_list output_order;
+
+    SDL_bool output_order_finalized;
 
     int relative_mouse_mode;
     SDL_bool display_externally_owned;
@@ -87,6 +99,7 @@ struct SDL_DisplayData
     SDL_VideoData *videodata;
     struct wl_output *output;
     struct zxdg_output_v1 *xdg_output;
+    char *wl_output_name;
     uint32_t registry_id;
     float scale_factor;
     int pixel_width, pixel_height;

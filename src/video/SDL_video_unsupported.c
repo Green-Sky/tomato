@@ -22,6 +22,26 @@
 
 #ifndef SDL_VIDEO_DRIVER_WINDOWS
 
+#if defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_GDK)
+
+int SDL_RegisterApp(const char *name, Uint32 style, void *hInst)
+{
+    (void)name;
+    (void)style;
+    (void)hInst;
+    return 0;
+}
+
+void SDL_UnregisterApp(void)
+{
+}
+
+void SDL_SetWindowsMessageHook(SDL_WindowsMessageHook callback, void *userdata)
+{
+}
+
+#endif /* SDL_PLATFORM_WIN32 || SDL_PLATFORM_GDK */
+
 DECLSPEC SDL_bool SDLCALL SDL_DXGIGetOutputInfo(SDL_DisplayID displayID, int *adapterIndex, int *outputIndex);
 SDL_bool SDL_DXGIGetOutputInfo(SDL_DisplayID displayID, int *adapterIndex, int *outputIndex)
 {
@@ -39,9 +59,18 @@ int SDL_Direct3D9GetAdapterIndex(SDL_DisplayID displayID)
     return SDL_Unsupported();
 }
 
-#endif
+#elif defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 
-#ifndef __GDK__
+DECLSPEC int SDLCALL SDL_Direct3D9GetAdapterIndex(SDL_DisplayID displayID);
+int SDL_Direct3D9GetAdapterIndex(SDL_DisplayID displayID)
+{
+    (void)displayID;
+    return SDL_Unsupported();
+}
+
+#endif /* !SDL_VIDEO_DRIVER_WINDOWS */
+
+#ifndef SDL_PLATFORM_GDK
 
 DECLSPEC int SDLCALL SDL_GDKGetTaskQueue(void *outTaskQueue);
 int SDL_GDKGetTaskQueue(void *outTaskQueue)
@@ -82,10 +111,3 @@ void SDL_iPhoneSetEventPump(SDL_bool enabled)
 }
 #endif
 
-#if defined(__XBOXONE__) || defined(__XBOXSERIES__)
-int SDL_Direct3D9GetAdapterIndex(SDL_DisplayID displayID)
-{
-    (void)displayID;
-    return SDL_Unsupported();
-}
-#endif

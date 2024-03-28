@@ -41,6 +41,22 @@
 #define _NET_WM_STATE_REMOVE 0l
 #define _NET_WM_STATE_ADD    1l
 
+#define CHECK_WINDOW_DATA(window)                                       \
+    if (!window) {                                                      \
+        return SDL_SetError("Invalid window");                          \
+    }                                                                   \
+    if (!window->driverdata) {                                          \
+        return SDL_SetError("Invalid window driver data");              \
+    }
+
+#define CHECK_DISPLAY_DATA(display)                                     \
+    if (!_display) {                                                    \
+        return SDL_SetError("Invalid display");                         \
+    }                                                                   \
+    if (!_display->driverdata) {                                        \
+        return SDL_SetError("Invalid display driver data");             \
+    }
+
 static Bool isMapNotify(Display *dpy, XEvent *ev, XPointer win) /* NOLINT(readability-non-const-parameter): cannot make XPointer a const pointer due to typedef */
 {
     return ev->type == MapNotify && ev->xmap.window == *((Window *)win);
@@ -108,7 +124,7 @@ static SDL_bool X11_IsActionAllowed(SDL_Window *window, Atom action)
 }
 #endif /* 0 */
 
-void X11_SetNetWMState(SDL_VideoDevice *_this, Window xwindow, Uint32 flags)
+void X11_SetNetWMState(SDL_VideoDevice *_this, Window xwindow, SDL_WindowFlags flags)
 {
     SDL_VideoData *videodata = _this->driverdata;
     Display *display = videodata->display;
@@ -229,7 +245,7 @@ Uint32 X11_GetNetWMState(SDL_VideoDevice *_this, SDL_Window *window, Window xwin
     unsigned long i, numItems, bytesAfter;
     unsigned char *propertyValue = NULL;
     long maxLength = 1024;
-    Uint32 flags = 0;
+    SDL_WindowFlags flags = 0;
 
     if (X11_XGetWindowProperty(display, xwindow, _NET_WM_STATE,
                                0l, maxLength, False, XA_ATOM, &actualType,
@@ -392,9 +408,9 @@ static int SetupWindowData(SDL_VideoDevice *_this, SDL_Window *window, Window w)
 
     SDL_PropertiesID props = SDL_GetWindowProperties(window);
     int screen = (displaydata ? displaydata->screen : 0);
-    SDL_SetProperty(props, SDL_PROPERTY_WINDOW_X11_DISPLAY_POINTER, data->videodata->display);
-    SDL_SetNumberProperty(props, SDL_PROPERTY_WINDOW_X11_SCREEN_NUMBER, screen);
-    SDL_SetNumberProperty(props, SDL_PROPERTY_WINDOW_X11_WINDOW_NUMBER, data->xwindow);
+    SDL_SetProperty(props, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, data->videodata->display);
+    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_X11_SCREEN_NUMBER, screen);
+    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, data->xwindow);
 
     /* All done! */
     window->driverdata = data;
@@ -433,7 +449,7 @@ static void SetWindowBordered(Display *display, int screen, Window window, SDL_b
 
 int X11_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props)
 {
-    Window w = (Window)SDL_GetNumberProperty(create_props, SDL_PROPERTY_WINDOW_CREATE_X11_WINDOW_NUMBER,
+    Window w = (Window)SDL_GetNumberProperty(create_props, SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER,
                 (Window)SDL_GetProperty(create_props, "sdl2-compat.external_window", NULL));
     if (w) {
         window->flags |= SDL_WINDOW_EXTERNAL;
@@ -446,6 +462,10 @@ int X11_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesI
 
     SDL_VideoData *data = _this->driverdata;
     SDL_DisplayData *displaydata = SDL_GetDisplayDriverDataForWindow(window);
+    if (!displaydata) {
+        return SDL_SetError("Could not find display info");
+    }
+
     const SDL_bool force_override_redirect = SDL_GetHintBoolean(SDL_HINT_X11_FORCE_OVERRIDE_REDIRECT, SDL_FALSE);
     SDL_WindowData *windowdata;
     Display *display = data->display;
@@ -774,16 +794,17 @@ int X11_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesI
     X11_Xinput2SelectTouch(_this, window);
 
     {
+        unsigned int x11_keyboard_events = KeyPressMask | KeyReleaseMask;
         unsigned int x11_pointer_events = ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
-        if (X11_Xinput2SelectMouse(_this, window)) {
-            /* If XInput2 can handle pointer events, we don't track them here */
+        if (X11_Xinput2SelectMouseAndKeyboard(_this, window)) {
+            /* If XInput2 can handle pointer and keyboard events, we don't track them here */
+            x11_keyboard_events = 0;
             x11_pointer_events = 0;
         }
 
         X11_XSelectInput(display, w,
                          (FocusChangeMask | EnterWindowMask | LeaveWindowMask | ExposureMask |
-                          x11_pointer_events |
-                          KeyPressMask | KeyReleaseMask |
+                          x11_keyboard_events | x11_pointer_events |
                           PropertyChangeMask | StructureNotifyMask |
                           KeymapStateMask | fevent));
     }
@@ -1512,6 +1533,9 @@ void X11_RestoreWindow(SDL_VideoDevice *_this, SDL_Window *window)
 /* This asks the Window Manager to handle fullscreen for us. This is the modern way. */
 static int X11_SetWindowFullscreenViaWM(SDL_VideoDevice *_this, SDL_Window *window, SDL_VideoDisplay *_display, SDL_bool fullscreen)
 {
+    CHECK_WINDOW_DATA(window);
+    CHECK_DISPLAY_DATA(_display);
+
     SDL_WindowData *data = window->driverdata;
     SDL_DisplayData *displaydata = _display->driverdata;
     Display *display = data->videodata->display;
@@ -1597,7 +1621,7 @@ static int X11_SetWindowFullscreenViaWM(SDL_VideoDevice *_this, SDL_Window *wind
                            SubstructureNotifyMask | SubstructureRedirectMask, &e);
         }
     } else {
-        Uint32 flags;
+        SDL_WindowFlags flags;
 
         flags = window->flags;
         if (fullscreen) {
@@ -1705,13 +1729,13 @@ void *X11_GetWindowICCProfile(SDL_VideoDevice *_this, SDL_Window *window, size_t
     return ret_icc_profile_data;
 }
 
-void X11_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed)
+int X11_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed)
 {
     SDL_WindowData *data = window->driverdata;
     Display *display;
 
     if (!data) {
-        return;
+        return SDL_SetError("Invalid window data");
     }
     data->mouse_grabbed = SDL_FALSE;
 
@@ -1722,7 +1746,7 @@ void X11_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool
            so when we get a MapNotify later, we'll try to update the grab as
            appropriate. */
         if (window->flags & SDL_WINDOW_HIDDEN) {
-            return;
+            return 0;
         }
 
         /* Try to grab the mouse */
@@ -1743,7 +1767,6 @@ void X11_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool
             }
 
             if (result != GrabSuccess) {
-                SDL_LogWarn(SDL_LOG_CATEGORY_VIDEO, "The X server refused to let us grab the mouse. You might experience input bugs.");
                 data->videodata->broken_pointer_grab = SDL_TRUE; /* don't try again. */
             }
         }
@@ -1758,15 +1781,21 @@ void X11_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool
         X11_Xinput2UngrabTouch(_this, window);
     }
     X11_XSync(display, False);
+
+    if (!data->videodata->broken_pointer_grab) {
+        return 0;
+    } else {
+        return SDL_SetError("The X server refused to let us grab the mouse. You might experience input bugs.");
+    }
 }
 
-void X11_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed)
+int X11_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed)
 {
     SDL_WindowData *data = window->driverdata;
     Display *display;
 
     if (!data) {
-        return;
+        return SDL_SetError("Invalid window data");
     }
 
     display = data->videodata->display;
@@ -1776,7 +1805,7 @@ void X11_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_b
            so when we get a MapNotify later, we'll try to update the grab as
            appropriate. */
         if (window->flags & SDL_WINDOW_HIDDEN) {
-            return;
+            return 0;
         }
 
         X11_XGrabKeyboard(display, data->xwindow, True, GrabModeAsync,
@@ -1785,6 +1814,8 @@ void X11_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_b
         X11_XUngrabKeyboard(display, CurrentTime);
     }
     X11_XSync(display, False);
+
+    return 0;
 }
 
 void X11_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window)

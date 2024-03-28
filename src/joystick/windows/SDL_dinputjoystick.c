@@ -398,7 +398,7 @@ int SDL_DINPUT_JoystickInit(void)
     HRESULT result;
     HINSTANCE instance;
 
-    if (!SDL_GetHintBoolean(SDL_HINT_DIRECTINPUT_ENABLED, SDL_TRUE)) {
+    if (!SDL_GetHintBoolean(SDL_HINT_JOYSTICK_DIRECTINPUT, SDL_TRUE)) {
         /* In some environments, IDirectInput8_Initialize / _EnumDevices can take a minute even with no controllers. */
         dinput = NULL;
         return 0;
@@ -516,13 +516,7 @@ static BOOL CALLBACK EnumJoystickDetectCallback(LPCDIDEVICEINSTANCE pDeviceInsta
 
     CHECK(!SDL_ShouldIgnoreJoystick(pNewJoystick->joystickname, pNewJoystick->guid));
 
-#ifdef SDL_JOYSTICK_HIDAPI
-    CHECK(!HIDAPI_IsDevicePresent(vendor, product, version, pNewJoystick->joystickname));
-#endif
-
-#ifdef SDL_JOYSTICK_RAWINPUT
-    CHECK(!RAWINPUT_IsDevicePresent(vendor, product, version, pNewJoystick->joystickname));
-#endif
+    CHECK(!SDL_JoystickHandledByAnotherDriver(&SDL_WINDOWS_JoystickDriver, vendor, product, version, pNewJoystick->joystickname));
 
     WINDOWS_AddJoystickDevice(pNewJoystick);
     pNewJoystick = NULL;
@@ -826,6 +820,8 @@ int SDL_DINPUT_JoystickOpen(SDL_Joystick *joystick, JoyStick_DeviceData *joystic
         return SetDIerror("IDirectInputDevice8::SetProperty", result);
         }
         */
+
+        SDL_SetBooleanProperty(SDL_GetJoystickProperties(joystick), SDL_PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN, SDL_TRUE);
     }
 
     /* What buttons and axes does it have? */
@@ -853,6 +849,7 @@ int SDL_DINPUT_JoystickOpen(SDL_Joystick *joystick, JoyStick_DeviceData *joystic
     } else if (FAILED(result)) {
         return SetDIerror("IDirectInputDevice8::SetProperty", result);
     }
+    joystick->hwdata->first_update = SDL_TRUE;
 
     /* Poll and wait for initial device state to be populated */
     result = IDirectInputDevice8_Poll(joystick->hwdata->InputDevice);
@@ -943,17 +940,6 @@ int SDL_DINPUT_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumbl
         return SetDIerror("IDirectInputDevice8::Start", result);
     }
     return 0;
-}
-
-Uint32 SDL_DINPUT_JoystickGetCapabilities(SDL_Joystick *joystick)
-{
-    Uint32 result = 0;
-
-    if (joystick->hwdata->Capabilities.dwFlags & DIDC_FORCEFEEDBACK) {
-        result |= SDL_JOYCAP_RUMBLE;
-    }
-
-    return result;
 }
 
 static Uint8 TranslatePOV(DWORD value)
@@ -1130,7 +1116,14 @@ void SDL_DINPUT_JoystickUpdate(SDL_Joystick *joystick)
         IDirectInputDevice8_Poll(joystick->hwdata->InputDevice);
     }
 
-    if (joystick->hwdata->buffered) {
+    if (joystick->hwdata->first_update) {
+        /* Poll to get the initial state of the joystick */
+        UpdateDINPUTJoystickState_Polled(joystick);
+        joystick->hwdata->first_update = SDL_FALSE;
+        return;
+    }
+
+    if (joystick->hwdata->buffered ) {
         UpdateDINPUTJoystickState_Buffered(joystick);
     } else {
         UpdateDINPUTJoystickState_Polled(joystick);
@@ -1191,11 +1184,6 @@ int SDL_DINPUT_JoystickOpen(SDL_Joystick *joystick, JoyStick_DeviceData *joystic
 int SDL_DINPUT_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
     return SDL_Unsupported();
-}
-
-Uint32 SDL_DINPUT_JoystickGetCapabilities(SDL_Joystick *joystick)
-{
-    return 0;
 }
 
 void SDL_DINPUT_JoystickUpdate(SDL_Joystick *joystick)

@@ -4,6 +4,12 @@
     <ClCompile Include="..\..\src\core\gdk\SDL_gdk.cpp" />
     <ClCompile Include="..\..\src\core\windows\pch.c" />
     <ClCompile Include="..\..\src\core\windows\pch_cpp.cpp" />
+    <ClCompile Include="..\..\src\filesystem\SDL_filesystem.c">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filesystem\windows\SDL_sysfsops.c">
+      <Filter>filesystem\windows</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\render\direct3d12\SDL_render_d3d12_xbox.cpp" />
     <ClCompile Include="..\..\src\render\direct3d12\SDL_shaders_d3d12_xboxone.cpp" />
     <ClCompile Include="..\..\src\render\direct3d12\SDL_shaders_d3d12_xboxseries.cpp" />
@@ -43,16 +49,16 @@
     <ClCompile Include="..\..\src\events\SDL_quit.c" />
     <ClCompile Include="..\..\src\events\SDL_touch.c" />
     <ClCompile Include="..\..\src\events\SDL_windowevents.c" />
-    <ClCompile Include="..\..\src\file\SDL_rwops.c" />
+    <ClCompile Include="..\..\src\file\SDL_iostream.c" />
     <ClCompile Include="..\..\src\filesystem\gdk\SDL_sysfilesystem.cpp" />
     <ClCompile Include="..\..\src\haptic\dummy\SDL_syshaptic.c" />
     <ClCompile Include="..\..\src\haptic\SDL_haptic.c" />
     <ClCompile Include="..\..\src\haptic\windows\SDL_dinputhaptic.c" />
     <ClCompile Include="..\..\src\haptic\windows\SDL_windowshaptic.c" />
-    <ClCompile Include="..\..\src\haptic\windows\SDL_xinputhaptic.c" />
     <ClCompile Include="..\..\src\hidapi\SDL_hidapi.c" />
     <ClCompile Include="..\..\src\joystick\controller_type.c" />
     <ClCompile Include="..\..\src\joystick\dummy\SDL_sysjoystick.c" />
+    <ClCompile Include="..\..\src\joystick\gdk\SDL_gameinputjoystick.c" />
     <ClCompile Include="..\..\src\joystick\hidapi\SDL_hidapijoystick.c" />
     <ClCompile Include="..\..\src\joystick\hidapi\SDL_hidapi_combined.c" />
     <ClCompile Include="..\..\src\joystick\hidapi\SDL_hidapi_gamecube.c" />
@@ -146,6 +152,9 @@
     <ClCompile Include="..\..\src\stdlib\SDL_getenv.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_iconv.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_malloc.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_memcpy.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_memmove.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_memset.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_mslibc.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_qsort.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_stdlib.c" />
@@ -162,6 +171,12 @@
     <ClCompile Include="..\..\src\thread\windows\SDL_systls.c" />
     <ClCompile Include="..\..\src\timer\SDL_timer.c" />
     <ClCompile Include="..\..\src\timer\windows\SDL_systimer.c" />
+    <ClCompile Include="..\..\src\time\SDL_time.c">
+      <Filter>time</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\time\windows\SDL_systime.c">
+      <Filter>time\windows</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\video\dummy\SDL_nullevents.c" />
     <ClCompile Include="..\..\src\video\dummy\SDL_nullframebuffer.c" />
     <ClCompile Include="..\..\src\video\dummy\SDL_nullvideo.c" />
@@ -196,6 +211,8 @@
     <ClCompile Include="..\..\src\video\windows\SDL_windowsmouse.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsopengl.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsopengles.c" />
+    <ClCompile Include="..\..\src\video\windows\SDL_windowsrawinput.c" />
+    <ClCompile Include="..\..\src\video\windows\SDL_windowsshape.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsvideo.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowsvulkan.c" />
     <ClCompile Include="..\..\src\video\windows\SDL_windowswindow.c" />
@@ -254,7 +271,7 @@
     <ClInclude Include="..\..\include\SDL3\SDL_rect.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_render.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_revision.h" />
-    <ClInclude Include="..\..\include\SDL3\SDL_rwops.h" />
+    <ClInclude Include="..\..\include\SDL3\SDL_iostream.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_scancode.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_sensor.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_stdinc.h" />
@@ -295,6 +312,7 @@
     <ClInclude Include="..\..\src\core\windows\SDL_immdevice.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_windows.h" />
     <ClInclude Include="..\..\src\core\windows\SDL_xinput.h" />
+    <ClInclude Include="..\..\src\cpuinfo\SDL_cpuinfo_c.h" />
     <ClInclude Include="..\..\src\dynapi\SDL_dynapi.h" />
     <ClInclude Include="..\..\src\dynapi\SDL_dynapi_overrides.h" />
     <ClInclude Include="..\..\src\dynapi\SDL_dynapi_procs.h" />
@@ -309,11 +327,13 @@
     <ClInclude Include="..\..\src\events\SDL_mouse_c.h" />
     <ClInclude Include="..\..\src\events\SDL_touch_c.h" />
     <ClInclude Include="..\..\src\events\SDL_windowevents_c.h" />
+    <ClInclude Include="..\..\src\filesystem\SDL_sysfilesystem.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\haptic\SDL_haptic_c.h" />
     <ClInclude Include="..\..\src\haptic\SDL_syshaptic.h" />
     <ClInclude Include="..\..\src\haptic\windows\SDL_dinputhaptic_c.h" />
     <ClInclude Include="..\..\src\haptic\windows\SDL_windowshaptic_c.h" />
-    <ClInclude Include="..\..\src\haptic\windows\SDL_xinputhaptic_c.h" />
     <ClInclude Include="..\..\src\hidapi\hidapi\hidapi.h" />
     <ClInclude Include="..\..\src\hidapi\SDL_hidapi_c.h" />
     <ClInclude Include="..\..\src\joystick\controller_type.h" />
@@ -384,7 +404,6 @@
     <ClInclude Include="..\..\src\video\khronos\vulkan\vk_platform.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vk_sdk_platform.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan.h" />
-    <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan.hpp" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan_android.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan_beta.h" />
     <ClInclude Include="..\..\src\video\khronos\vulkan\vulkan_core.h" />
@@ -422,6 +441,8 @@
     <ClInclude Include="..\..\src\video\windows\SDL_windowsmouse.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsopengl.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsopengles.h" />
+    <ClInclude Include="..\..\src\video\windows\SDL_windowsrawinput.h" />
+    <ClInclude Include="..\..\src\video\windows\SDL_windowsshape.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsvideo.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowsvulkan.h" />
     <ClInclude Include="..\..\src\video\windows\SDL_windowswindow.h" />

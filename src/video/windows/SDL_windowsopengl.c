@@ -95,7 +95,7 @@ typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC hDC,
                                                            const int
                                                                *attribList);
 
-#if defined(__XBOXONE__) || defined(__XBOXSERIES__)
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 #define GetDC(hwnd)          (HDC) hwnd
 #define ReleaseDC(hwnd, hdc) 1
 #define SwapBuffers          _this->gl_data->wglSwapBuffers
@@ -143,7 +143,7 @@ int WIN_GL_LoadLibrary(SDL_VideoDevice *_this, const char *path)
         SDL_LoadFunction(handle, "wglShareLists");
     /* *INDENT-ON* */ /* clang-format on */
 
-#if defined(__XBOXONE__) || defined(__XBOXSERIES__)
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     _this->gl_data->wglSwapBuffers = (BOOL(WINAPI *)(HDC))
         SDL_LoadFunction(handle, "wglSwapBuffers");
     _this->gl_data->wglDescribePixelFormat = (int(WINAPI *)(HDC, int, UINT, LPPIXELFORMATDESCRIPTOR))
@@ -160,7 +160,7 @@ int WIN_GL_LoadLibrary(SDL_VideoDevice *_this, const char *path)
         !_this->gl_data->wglCreateContext ||
         !_this->gl_data->wglDeleteContext ||
         !_this->gl_data->wglMakeCurrent
-#if defined(__XBOXONE__) || defined(__XBOXSERIES__)
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
         || !_this->gl_data->wglSwapBuffers ||
         !_this->gl_data->wglDescribePixelFormat ||
         !_this->gl_data->wglChoosePixelFormat ||
@@ -214,13 +214,13 @@ int WIN_GL_LoadLibrary(SDL_VideoDevice *_this, const char *path)
 
 SDL_FunctionPointer WIN_GL_GetProcAddress(SDL_VideoDevice *_this, const char *proc)
 {
-    void *func;
+    SDL_FunctionPointer func;
 
     /* This is to pick up extensions */
-    func = _this->gl_data->wglGetProcAddress(proc);
+    func = (SDL_FunctionPointer)_this->gl_data->wglGetProcAddress(proc);
     if (!func) {
         /* This is probably a normal GL function */
-        func = GetProcAddress(_this->gl_config.dll_handle, proc);
+        func = (SDL_FunctionPointer)GetProcAddress((HMODULE)_this->gl_config.dll_handle, proc);
     }
     return func;
 }
@@ -548,11 +548,11 @@ static int WIN_GL_ChoosePixelFormatARB(SDL_VideoDevice *_this, int *iAttribs, fl
             _this->gl_data->wglChoosePixelFormatARB(hdc, iAttribs, fAttribs,
                                                     1, &pixel_format,
                                                     &matching);
-        }
 
-        /* Check whether we actually got an SRGB capable buffer */
-        _this->gl_data->wglGetPixelFormatAttribivARB(hdc, pixel_format, 0, 1, &qAttrib, &srgb);
-        _this->gl_config.framebuffer_srgb_capable = srgb;
+            /* Check whether we actually got an SRGB capable buffer */
+            _this->gl_data->wglGetPixelFormatAttribivARB(hdc, pixel_format, 0, 1, &qAttrib, &srgb);
+            _this->gl_config.framebuffer_srgb_capable = srgb;
+        }
 
         _this->gl_data->wglMakeCurrent(hdc, NULL);
         _this->gl_data->wglDeleteContext(hglrc);

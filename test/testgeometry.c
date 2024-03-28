@@ -12,16 +12,17 @@
 
 /* Simple program:  draw a RGB triangle, with texture  */
 
-#include <stdlib.h>
-#include <time.h>
+#include "testutils.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_test_common.h>
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
 #include <emscripten/emscripten.h>
 #endif
 
-#include <SDL3/SDL_test_common.h>
-#include <SDL3/SDL_main.h>
-#include "testutils.h"
+#include <stdlib.h>
+#include <time.h>
 
 static SDLTest_CommonState *state;
 static SDL_bool use_texture = SDL_FALSE;
@@ -136,29 +137,29 @@ static void loop(void)
             cx += translate_cx;
             cy += translate_cy;
 
-            a = (angle * 3.1415f) / 180.0f;
+            a = (angle * SDL_PI_F) / 180.0f;
             verts[0].position.x = cx + d * SDL_cosf(a);
             verts[0].position.y = cy + d * SDL_sinf(a);
-            verts[0].color.r = 0xFF;
+            verts[0].color.r = 1.0f;
             verts[0].color.g = 0;
             verts[0].color.b = 0;
-            verts[0].color.a = 0xFF;
+            verts[0].color.a = 1.0f;
 
-            a = ((angle + 120) * 3.1415f) / 180.0f;
+            a = ((angle + 120) * SDL_PI_F) / 180.0f;
             verts[1].position.x = cx + d * SDL_cosf(a);
             verts[1].position.y = cy + d * SDL_sinf(a);
             verts[1].color.r = 0;
-            verts[1].color.g = 0xFF;
+            verts[1].color.g = 1.0f;
             verts[1].color.b = 0;
-            verts[1].color.a = 0xFF;
+            verts[1].color.a = 1.0f;
 
-            a = ((angle + 240) * 3.1415f) / 180.0f;
+            a = ((angle + 240) * SDL_PI_F) / 180.0f;
             verts[2].position.x = cx + d * SDL_cosf(a);
             verts[2].position.y = cy + d * SDL_sinf(a);
             verts[2].color.r = 0;
             verts[2].color.g = 0;
-            verts[2].color.b = 0xFF;
-            verts[2].color.a = 0xFF;
+            verts[2].color.b = 1.0f;
+            verts[2].color.a = 1.0f;
 
             if (use_texture) {
                 verts[0].tex_coord.x = 0.5f;
@@ -174,7 +175,7 @@ static void loop(void)
 
         SDL_RenderPresent(renderer);
     }
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     if (done) {
         emscripten_cancel_main_loop();
     }
@@ -266,7 +267,7 @@ int main(int argc, char *argv[])
     then = SDL_GetTicks();
     done = 0;
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop(loop, 0, 1);
 #else
     while (!done) {

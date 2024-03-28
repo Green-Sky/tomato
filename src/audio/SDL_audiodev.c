@@ -32,7 +32,7 @@
 #include "SDL_audiodev_c.h"
 
 #ifndef SDL_PATH_DEV_DSP
-#if defined(__NETBSD__) || defined(__OPENBSD__)
+#if defined(SDL_PLATFORM_NETBSD) || defined(SDL_PLATFORM_OPENBSD)
 #define SDL_PATH_DEV_DSP "/dev/audio"
 #else
 #define SDL_PATH_DEV_DSP "/dev/dsp"
@@ -48,9 +48,9 @@
 static void test_device(const SDL_bool iscapture, const char *fname, int flags, SDL_bool (*test)(int fd))
 {
     struct stat sb;
-    if ((stat(fname, &sb) == 0) && (S_ISCHR(sb.st_mode))) {
-        const int audio_fd = open(fname, flags | O_CLOEXEC, 0);
-        if (audio_fd >= 0) {
+    const int audio_fd = open(fname, flags | O_CLOEXEC, 0);
+    if (audio_fd >= 0) {
+        if ((fstat(audio_fd, &sb) == 0) && (S_ISCHR(sb.st_mode))) {
             const SDL_bool okay = test(audio_fd);
             close(audio_fd);
             if (okay) {
@@ -65,6 +65,8 @@ static void test_device(const SDL_bool iscapture, const char *fname, int flags, 
                  */
                 SDL_AddAudioDevice(iscapture, fname, NULL, (void *)(uintptr_t)dummyhandle);
             }
+        } else {
+            close(audio_fd);
         }
     }
 }

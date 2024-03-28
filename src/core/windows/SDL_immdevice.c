@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#if (defined(__WIN32__) || defined(__GDK__)) && defined(HAVE_MMDEVICEAPI_H)
+#if (defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_GDK)) && defined(HAVE_MMDEVICEAPI_H)
 
 #include "SDL_windows.h"
 #include "SDL_immdevice.h"
@@ -147,7 +147,7 @@ static SDL_AudioDevice *SDL_IMMDevice_Add(const SDL_bool iscapture, const char *
 
     if (!device) {
         // handle is freed by SDL_IMMDevice_FreeDeviceHandle!
-        SDL_IMMDevice_HandleData *handle = SDL_malloc(sizeof(SDL_IMMDevice_HandleData));
+        SDL_IMMDevice_HandleData *handle = (SDL_IMMDevice_HandleData *)SDL_malloc(sizeof(SDL_IMMDevice_HandleData));
         if (!handle) {
             return NULL;
         }
@@ -429,4 +429,4 @@ void SDL_IMMDevice_EnumerateEndpoints(SDL_AudioDevice **default_output, SDL_Audi
     IMMDeviceEnumerator_RegisterEndpointNotificationCallback(enumerator, (IMMNotificationClient *)&notification_client);
 }
 
-#endif /* (defined(__WIN32__) || defined(__GDK__)) && defined(HAVE_MMDEVICEAPI_H) */
+#endif /* (defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_GDK)) && defined(HAVE_MMDEVICEAPI_H) */

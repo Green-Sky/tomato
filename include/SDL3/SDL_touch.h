@@ -38,8 +38,8 @@
 extern "C" {
 #endif
 
-typedef Sint64 SDL_TouchID;
-typedef Sint64 SDL_FingerID;
+typedef Uint64 SDL_TouchID;
+typedef Uint64 SDL_FingerID;
 
 typedef enum
 {
@@ -58,10 +58,10 @@ typedef struct SDL_Finger
 } SDL_Finger;
 
 /* Used as the device ID for mouse events simulated with touch input */
-#define SDL_TOUCH_MOUSEID ((Uint32)-1)
+#define SDL_TOUCH_MOUSEID ((SDL_MouseID)-1)
 
 /* Used as the SDL_TouchID for touch events simulated with mouse input */
-#define SDL_MOUSE_TOUCHID ((Sint64)-1)
+#define SDL_MOUSE_TOUCHID ((SDL_TouchID)-1)
 
 
 /**
@@ -131,6 +131,8 @@ extern DECLSPEC int SDLCALL SDL_GetNumTouchFingers(SDL_TouchID touchID);
  *          given ID and index could be found.
  *
  * \since This function is available since SDL 3.0.0.
+ *
+ * \sa SDL_GetNumTouchFingers
  */
 extern DECLSPEC SDL_Finger * SDLCALL SDL_GetTouchFinger(SDL_TouchID touchID, int index);
 

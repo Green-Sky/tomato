@@ -44,6 +44,7 @@
 #define HAVE_WCHAR_H 1
 
 /* C library functions */
+#define HAVE_LIBC   1
 #define HAVE_DLOPEN 1
 #define HAVE_MALLOC 1
 #define HAVE_CALLOC 1
@@ -54,8 +55,6 @@
 #define HAVE_PUTENV 1
 #define HAVE_SETENV 1
 #define HAVE_UNSETENV   1
-#define HAVE_QSORT  1
-#define HAVE_BSEARCH 1
 #define HAVE_ABS    1
 #define HAVE_BCOPY  1
 #define HAVE_MEMSET 1
@@ -130,6 +129,9 @@
 #define HAVE_SIGACTION  1
 #define HAVE_SETJMP 1
 #define HAVE_NANOSLEEP  1
+#define HAVE_GMTIME_R 1
+#define HAVE_LOCALTIME_R 1
+#define HAVE_NL_LANGINFO 1
 #define HAVE_SYSCONF    1
 #define HAVE_SYSCTLBYNAME 1
 #define HAVE_O_CLOEXEC 1
@@ -148,7 +150,7 @@
 #define SDL_JOYSTICK_MFI 1
 #define SDL_JOYSTICK_VIRTUAL    1
 
-#ifdef __TVOS__
+#ifdef SDL_PLATFORM_TVOS
 #define SDL_SENSOR_DUMMY    1
 #else
 /* Enable the CoreMotion sensor driver */
@@ -162,6 +164,9 @@
 #define SDL_THREAD_PTHREAD  1
 #define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
 
+/* Enable various RTC system */
+#define SDL_TIME_UNIX  1
+
 /* Enable various timer systems */
 #define SDL_TIMER_UNIX  1
 
@@ -170,7 +175,7 @@
 #define SDL_VIDEO_DRIVER_DUMMY  1
 
 /* Enable OpenGL ES */
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && !TARGET_OS_VISION
 #define SDL_VIDEO_OPENGL_ES2 1
 #define SDL_VIDEO_OPENGL_ES 1
 #define SDL_VIDEO_RENDER_OGL_ES2    1
@@ -197,8 +202,6 @@
 #define SDL_VIDEO_METAL 1
 #endif
 
-#define HAVE_COREMEDIA  1
-
 /* Enable system power support */
 #define SDL_POWER_UIKIT 1
 
@@ -210,5 +213,13 @@
 
 /* enable filesystem support */
 #define SDL_FILESYSTEM_COCOA   1
+#define SDL_FSOPS_POSIX 1
+
+/* enable camera support */
+#ifndef SDL_PLATFORM_TVOS
+#define SDL_CAMERA_DRIVER_COREMEDIA 1
+#endif
+
+#define SDL_CAMERA_DRIVER_DUMMY 1
 
 #endif /* SDL_build_config_ios_h_ */
