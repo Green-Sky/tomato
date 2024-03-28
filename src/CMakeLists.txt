@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 add_library(fragment_store
+	./fragment_store/file2_zstd.hpp
+	./fragment_store/file2_zstd.cpp
+
 	./fragment_store/fragment_store_i.hpp
 	./fragment_store/fragment_store_i.cpp
 	./fragment_store/types.hpp
@@ -19,9 +22,20 @@ target_link_libraries(fragment_store PUBLIC
 	EnTT::EnTT
 	solanaceae_util
 
+	solanaceae_file2
 	zstd::zstd
 
 	solanaceae_tox_messages # TODO: move
+)
+
+########################################
+
+add_executable(test_file_zstd
+	fragment_store/test_file_zstd.cpp
+)
+
+target_link_libraries(test_file_zstd PUBLIC
+	fragment_store
 )
 
 ########################################
