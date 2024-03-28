@@ -2,6 +2,13 @@
  * Copyright © 2022-2024 The TokTok team.
  */
 
+/**
+ * WARNING: This is an experimental API and is subject to change.
+ *
+ * At this point, it probably won't change very much anymore, but we may have
+ * small breaking changes before a stable release.
+ */
+
 #ifndef C_TOXCORE_TOXCORE_TOX_EVENTS_H
 #define C_TOXCORE_TOXCORE_TOX_EVENTS_H
 
@@ -569,6 +576,8 @@ void tox_events_free(Tox_Events *events);
 
 uint32_t tox_events_bytes_size(const Tox_Events *events);
 bool tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes);
+
+typedef struct Tox_System Tox_System;
 
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size);
 
