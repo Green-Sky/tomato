@@ -7,9 +7,9 @@
 ImageLoaderSDLBMP::ImageInfo ImageLoaderSDLBMP::loadInfoFromMemory(const uint8_t* data, uint64_t data_size) {
 	ImageInfo res;
 
-	auto* rw_ctx = SDL_RWFromConstMem(data, data_size);
+	auto* ios = SDL_IOFromConstMem(data, data_size);
 
-	SDL_Surface* surf = SDL_LoadBMP_RW(rw_ctx, SDL_TRUE);
+	SDL_Surface* surf = SDL_LoadBMP_IO(ios, SDL_TRUE);
 	if (surf == nullptr) {
 		return res;
 	}
@@ -26,9 +26,9 @@ ImageLoaderSDLBMP::ImageInfo ImageLoaderSDLBMP::loadInfoFromMemory(const uint8_t
 ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8_t* data, uint64_t data_size) {
 	ImageResult res;
 
-	auto* rw_ctx = SDL_RWFromConstMem(data, data_size);
+	auto* ios = SDL_IOFromConstMem(data, data_size);
 
-	SDL_Surface* surf = SDL_LoadBMP_RW(rw_ctx, SDL_TRUE);
+	SDL_Surface* surf = SDL_LoadBMP_IO(ios, SDL_TRUE);
 	if (surf == nullptr) {
 		return res;
 	}
