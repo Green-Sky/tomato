@@ -44,7 +44,7 @@ set_source_files_properties(
 # versions in a synchronised way.
 set(PROJECT_VERSION_MAJOR "0")
 set(PROJECT_VERSION_MINOR "2")
-set(PROJECT_VERSION_PATCH "18")
+set(PROJECT_VERSION_PATCH "19")
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 # set .so library version / following libtool scheme
@@ -145,6 +145,8 @@ endif()
 
 option(BUILD_MISC_TESTS "Build additional tests" OFF)
 option(BUILD_FUN_UTILS "Build additional just for fun utilities" OFF)
+
+option(UNITTEST "Enable unit tests (disable if you don't have a working gmock or gtest)" ON)
 
 option(AUTOTEST "Enable autotests (mainly for CI)" OFF)
 if(AUTOTEST)
@@ -534,7 +536,7 @@ endfunction()
 
 # The actual unit tests follow.
 #
-if(TARGET GTest::gtest AND TARGET GTest::gmock)
+if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxav ring_buffer)
   unit_test(toxav rtp)
   unit_test(toxcore DHT)

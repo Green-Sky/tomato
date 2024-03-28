@@ -265,14 +265,6 @@ void tox_options_set_experimental_thread_safety(
 {
     options->experimental_thread_safety = experimental_thread_safety;
 }
-const Tox_System *tox_options_get_operating_system(const Tox_Options *options)
-{
-    return options->operating_system;
-}
-void tox_options_set_operating_system(Tox_Options *options, const Tox_System *operating_system)
-{
-    options->operating_system = operating_system;
-}
 bool tox_options_get_experimental_groups_persistence(const Tox_Options *options)
 {
     return options->experimental_groups_persistence;
@@ -1451,8 +1443,8 @@ const char *tox_err_group_invite_accept_to_string(Tox_Err_Group_Invite_Accept va
         case TOX_ERR_GROUP_INVITE_ACCEPT_PASSWORD:
             return "TOX_ERR_GROUP_INVITE_ACCEPT_PASSWORD";
 
-        case TOX_ERR_GROUP_INVITE_ACCEPT_CORE:
-            return "TOX_ERR_GROUP_INVITE_ACCEPT_CORE";
+        case TOX_ERR_GROUP_INVITE_ACCEPT_FRIEND_NOT_FOUND:
+            return "TOX_ERR_GROUP_INVITE_ACCEPT_FRIEND_NOT_FOUND";
 
         case TOX_ERR_GROUP_INVITE_ACCEPT_FAIL_SEND:
             return "TOX_ERR_GROUP_INVITE_ACCEPT_FAIL_SEND";
