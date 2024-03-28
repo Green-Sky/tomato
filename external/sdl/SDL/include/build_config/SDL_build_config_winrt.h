@@ -71,12 +71,11 @@
 #define HAVE_WCHAR_H 1
 
 /* C library functions */
+#define HAVE_LIBC   1
 #define HAVE_MALLOC 1
 #define HAVE_CALLOC 1
 #define HAVE_REALLOC 1
 #define HAVE_FREE 1
-#define HAVE_QSORT 1
-#define HAVE_BSEARCH 1
 #define HAVE_ABS 1
 #define HAVE_MEMSET 1
 #define HAVE_MEMCPY 1
@@ -168,7 +167,6 @@
 #define SDL_HAPTIC_DISABLED 1
 #else
 #define SDL_JOYSTICK_XINPUT 1
-#define SDL_HAPTIC_XINPUT   1
 #endif /* WIN10 */
 #endif
 
@@ -190,6 +188,9 @@
 /* WinRT on Windows 8.0 and Windows Phone 8.0 don't support CreateThread() */
 #define SDL_THREAD_STDCPP   1
 #endif
+
+/* Enable RTC system */
+#define SDL_TIME_WINDOWS   1
 
 /* Enable various timer systems */
 #define SDL_TIMER_WINDOWS   1
@@ -214,5 +215,12 @@
 
 /* Enable system power support */
 #define SDL_POWER_WINRT 1
+
+/* Enable filesystem support */
+#define SDL_FILESYSTEM_WINDOWS  1
+#define SDL_FSOPS_WINDOWS 1
+
+/* Enable the camera driver (src/camera/dummy/\*.c) */  /* !!! FIXME */
+#define SDL_CAMERA_DRIVER_DUMMY  1
 
 #endif /* SDL_build_config_winrt_h_ */

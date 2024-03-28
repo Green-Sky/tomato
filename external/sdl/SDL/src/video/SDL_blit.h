@@ -31,6 +31,7 @@
 
 /* Table to do pixel byte expansion */
 extern Uint8 *SDL_expand_byte[9];
+extern Uint16 SDL_expand_byte10[];
 
 /* SDL blit copy flags */
 #define SDL_COPY_MODULATE_COLOR 0x00000001
@@ -56,10 +57,12 @@ extern Uint8 *SDL_expand_byte[9];
 
 typedef struct
 {
+    SDL_Surface *src_surface;
     Uint8 *src;
     int src_w, src_h;
     int src_pitch;
     int src_skip;
+    SDL_Surface *dst_surface;
     Uint8 *dst;
     int dst_w, dst_h;
     int dst_pitch;
@@ -260,6 +263,17 @@ extern SDL_BlitFunc SDL_CalculateBlitA(SDL_Surface *surface);
         a = (a * 3) / 255;                             \
         Pixel = (a << 30) | (r << 20) | (g << 10) | b; \
     }
+#define ARGB2101010_FROM_RGBAFLOAT(Pixel, r, g, b, a) \
+    {                                                 \
+        r = SDL_clamp(r, 0.0f, 1.0f) * 1023.0f;       \
+        g = SDL_clamp(g, 0.0f, 1.0f) * 1023.0f;       \
+        b = SDL_clamp(b, 0.0f, 1.0f) * 1023.0f;       \
+        a = SDL_clamp(a, 0.0f, 1.0f) * 3.0f;          \
+        Pixel = (((Uint32)SDL_roundf(a)) << 30) |     \
+                (((Uint32)SDL_roundf(r)) << 20) |     \
+                (((Uint32)SDL_roundf(g)) << 10) |     \
+                (Uint32)SDL_roundf(b);                \
+    }
 #define ABGR2101010_FROM_RGBA(Pixel, r, g, b, a)       \
     {                                                  \
         r = r ? ((r << 2) | 0x3) : 0;                  \
@@ -267,6 +281,17 @@ extern SDL_BlitFunc SDL_CalculateBlitA(SDL_Surface *surface);
         b = b ? ((b << 2) | 0x3) : 0;                  \
         a = (a * 3) / 255;                             \
         Pixel = (a << 30) | (b << 20) | (g << 10) | r; \
+    }
+#define ABGR2101010_FROM_RGBAFLOAT(Pixel, r, g, b, a) \
+    {                                                 \
+        r = SDL_clamp(r, 0.0f, 1.0f) * 1023.0f;       \
+        g = SDL_clamp(g, 0.0f, 1.0f) * 1023.0f;       \
+        b = SDL_clamp(b, 0.0f, 1.0f) * 1023.0f;       \
+        a = SDL_clamp(a, 0.0f, 1.0f) * 3.0f;          \
+        Pixel = (((Uint32)SDL_roundf(a)) << 30) |     \
+                (((Uint32)SDL_roundf(b)) << 20) |     \
+                (((Uint32)SDL_roundf(g)) << 10) |     \
+                (Uint32)SDL_roundf(r);                \
     }
 #define ASSEMBLE_RGB(buf, bpp, fmt, r, g, b)        \
     {                                               \
@@ -360,12 +385,26 @@ extern SDL_BlitFunc SDL_CalculateBlitA(SDL_Surface *surface);
         b = ((Pixel >> 2) & 0xFF);               \
         a = SDL_expand_byte[6][(Pixel >> 30)];   \
     }
+#define RGBAFLOAT_FROM_ARGB2101010(Pixel, r, g, b, a)          \
+    {                                                          \
+        r = (float)((Pixel >> 20) & 0x3FF) / 1023.0f;          \
+        g = (float)((Pixel >> 10) & 0x3FF) / 1023.0f;          \
+        b = (float)((Pixel >> 0) & 0x3FF) / 1023.0f;           \
+        a = (float)SDL_expand_byte[6][(Pixel >> 30)] / 255.0f; \
+    }
 #define RGBA_FROM_ABGR2101010(Pixel, r, g, b, a) \
     {                                            \
         r = ((Pixel >> 2) & 0xFF);               \
         g = ((Pixel >> 12) & 0xFF);              \
         b = ((Pixel >> 22) & 0xFF);              \
         a = SDL_expand_byte[6][(Pixel >> 30)];   \
+    }
+#define RGBAFLOAT_FROM_ABGR2101010(Pixel, r, g, b, a)          \
+    {                                                          \
+        r = (float)((Pixel >> 0) & 0x3FF) / 1023.0f;           \
+        g = (float)((Pixel >> 10) & 0x3FF) / 1023.0f;          \
+        b = (float)((Pixel >> 20) & 0x3FF) / 1023.0f;          \
+        a = (float)SDL_expand_byte[6][(Pixel >> 30)] / 255.0f; \
     }
 #define DISEMBLE_RGBA(buf, bpp, fmt, Pixel, r, g, b, a) \
     do {                                                \

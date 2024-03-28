@@ -54,7 +54,7 @@ static void SDLCALL audio_testCallback(void *userdata, Uint8 *stream, int len)
 }
 #endif
 
-static SDL_AudioDeviceID g_audio_id = -1;
+static SDL_AudioDeviceID g_audio_id = 0;
 
 /* Test case functions */
 
@@ -188,6 +188,7 @@ static int audio_initOpenCloseQuitAudio(void *arg)
                 desired.freq = 22050;
                 desired.format = SDL_AUDIO_S16;
                 desired.channels = 2;
+                break;
 
             case 1:
                 /* Set custom desired spec */

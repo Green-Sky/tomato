@@ -644,7 +644,7 @@ static Thing *LoadWavThing(const char *fname, float x, float y)
         static const ThingType can_be_dropped_onto[] = { THING_TRASHCAN, THING_NULL };
         char *titlebar = NULL;
         const char *nodirs = SDL_strrchr(fname, '/');
-        #ifdef __WINDOWS__
+        #ifdef SDL_PLATFORM_WINDOWS
         const char *nodirs2 = SDL_strrchr(nodirs ? nodirs : fname, '\\');
         if (nodirs2) {
             nodirs = nodirs2;
@@ -1036,7 +1036,7 @@ static void WindowResized(const int newwinw, const int newwinh)
     state->window_h = newwinh;
 }
 
-int SDL_AppInit(int argc, char *argv[])
+int SDL_AppInit(void **appstate, int argc, char *argv[])
 {
     int i;
 
@@ -1094,7 +1094,7 @@ int SDL_AppInit(int argc, char *argv[])
 
 static SDL_bool saw_event = SDL_FALSE;
 
-int SDL_AppEvent(const SDL_Event *event)
+int SDL_AppEvent(void *appstate, const SDL_Event *event)
 {
     Thing *thing = NULL;
 
@@ -1168,7 +1168,7 @@ int SDL_AppEvent(const SDL_Event *event)
             break;
 
         case SDL_EVENT_MOUSE_WHEEL:
-            UpdateMouseOver(event->wheel.mouseX, event->wheel.mouseY);
+            UpdateMouseOver(event->wheel.mouse_x, event->wheel.mouse_y);
             break;
 
         case SDL_EVENT_KEY_DOWN:
@@ -1214,7 +1214,7 @@ int SDL_AppEvent(const SDL_Event *event)
     return SDLTest_CommonEventMainCallbacks(state, event);
 }
 
-int SDL_AppIterate(void)
+int SDL_AppIterate(void *appstate)
 {
     if (app_ready_ticks == 0) {
         app_ready_ticks = SDL_GetTicks();
@@ -1232,7 +1232,7 @@ int SDL_AppIterate(void)
     return 0;  /* keep going. */
 }
 
-void SDL_AppQuit(void)
+void SDL_AppQuit(void *appstate)
 {
     while (things) {
         DestroyThing(things);  /* make sure all the audio devices are closed, etc. */

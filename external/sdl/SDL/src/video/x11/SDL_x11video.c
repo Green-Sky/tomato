@@ -25,6 +25,8 @@
 #include <unistd.h> /* For getpid() and readlink() */
 
 #include "../../core/linux/SDL_system_theme.h"
+#include "../../events/SDL_keyboard_c.h"
+#include "../../events/SDL_mouse_c.h"
 #include "../SDL_pixels_c.h"
 #include "../SDL_sysvideo.h"
 
@@ -34,6 +36,8 @@
 #include "SDL_x11video.h"
 #include "SDL_x11xfixes.h"
 #include "SDL_x11xinput2.h"
+#include "SDL_x11messagebox.h"
+#include "SDL_x11shape.h"
 
 #ifdef SDL_VIDEO_OPENGL_EGL
 #include "SDL_x11opengles.h"
@@ -206,6 +210,7 @@ static SDL_VideoDevice *X11_CreateDevice(void)
     device->DestroyWindowFramebuffer = X11_DestroyWindowFramebuffer;
     device->SetWindowHitTest = X11_SetWindowHitTest;
     device->AcceptDragAndDrop = X11_AcceptDragAndDrop;
+    device->UpdateWindowShape = X11_UpdateWindowShape;
     device->FlashWindow = X11_FlashWindow;
     device->ShowWindowSystemMenu = X11_ShowWindowSystemMenu;
     device->SetWindowFocusable = X11_SetWindowFocusable;
@@ -283,7 +288,8 @@ static SDL_VideoDevice *X11_CreateDevice(void)
 
 VideoBootStrap X11_bootstrap = {
     "x11", "SDL X11 video driver",
-    X11_CreateDevice
+    X11_CreateDevice,
+    X11_ShowMessageBox
 };
 
 static int (*handler)(Display *, XErrorEvent *) = NULL;
@@ -411,7 +417,11 @@ int X11_VideoInit(SDL_VideoDevice *_this)
         return -1;
     }
 
-    X11_InitXinput2(_this);
+    if (!X11_InitXinput2(_this)) {
+        /* Assume a mouse and keyboard are attached */
+        SDL_AddKeyboard(SDL_DEFAULT_KEYBOARD_ID, NULL, SDL_FALSE);
+        SDL_AddMouse(SDL_DEFAULT_MOUSE_ID, NULL, SDL_FALSE);
+    }
 
 #ifdef SDL_VIDEO_DRIVER_X11_XFIXES
     X11_InitXfixes(_this);

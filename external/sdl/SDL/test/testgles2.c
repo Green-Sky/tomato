@@ -9,16 +9,17 @@
   including commercial applications, and to alter it and redistribute it
   freely.
 */
-#include <stdlib.h>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#endif
 
 #include <SDL3/SDL_test_common.h>
 #include <SDL3/SDL_main.h>
 
-#if defined(__IOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__WINDOWS__) || defined(__LINUX__)
+#ifdef SDL_PLATFORM_EMSCRIPTEN
+#include <emscripten/emscripten.h>
+#endif
+
+#include <stdlib.h>
+
+#if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_ANDROID) || defined(SDL_PLATFORM_EMSCRIPTEN) || defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_LINUX)
 #define HAVE_OPENGLES2
 #endif
 
@@ -535,7 +536,7 @@ Render(unsigned int width, unsigned int height, shader_data *data)
 static int done;
 static Uint32 frames;
 static shader_data *datas;
-#ifndef __EMSCRIPTEN__
+#ifndef SDL_PLATFORM_EMSCRIPTEN
 static thread_data *threads;
 #endif
 
@@ -560,14 +561,14 @@ render_window(int index)
     ++frames;
 }
 
-#ifndef __EMSCRIPTEN__
+#ifndef SDL_PLATFORM_EMSCRIPTEN
 static int SDLCALL
 render_thread_fn(void *render_ctx)
 {
     thread_data *thread = render_ctx;
 
     while (!done && !thread->done && state->windows[thread->index]) {
-        if (SDL_AtomicCAS(&thread->suspended, WAIT_STATE_ENTER_SEM, WAIT_STATE_WAITING_ON_SEM)) {
+        if (SDL_AtomicCompareAndSwap(&thread->suspended, WAIT_STATE_ENTER_SEM, WAIT_STATE_WAITING_ON_SEM)) {
             SDL_WaitSemaphore(thread->suspend_sem);
         }
         render_window(thread->index);
@@ -602,7 +603,7 @@ loop_threaded(void)
         if (suspend_when_occluded && event.type == SDL_EVENT_WINDOW_OCCLUDED) {
             tdata = GetThreadDataForWindow(event.window.windowID);
             if (tdata) {
-                SDL_AtomicCAS(&tdata->suspended, WAIT_STATE_GO, WAIT_STATE_ENTER_SEM);
+                SDL_AtomicCompareAndSwap(&tdata->suspended, WAIT_STATE_GO, WAIT_STATE_ENTER_SEM);
             }
         } else if (suspend_when_occluded && event.type == SDL_EVENT_WINDOW_EXPOSED) {
             tdata = GetThreadDataForWindow(event.window.windowID);
@@ -652,7 +653,7 @@ loop(void)
             render_window(i);
         }
     }
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     else {
         emscripten_cancel_main_loop();
     }
@@ -912,7 +913,7 @@ int main(int argc, char *argv[])
     then = SDL_GetTicks();
     done = 0;
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop(loop, 0, 1);
 #else
     if (threaded) {
@@ -950,7 +951,7 @@ int main(int argc, char *argv[])
         SDL_Log("%2.2f frames per second\n",
                 ((double)frames * 1000) / (now - then));
     }
-#ifndef __ANDROID__
+#ifndef SDL_PLATFORM_ANDROID
     quit(0);
 #endif
     return 0;

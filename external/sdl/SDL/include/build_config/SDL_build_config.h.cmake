@@ -76,14 +76,12 @@
 #cmakedefine HAVE_CALLOC 1
 #cmakedefine HAVE_REALLOC 1
 #cmakedefine HAVE_FREE 1
-#ifndef __WIN32__ /* Don't use C runtime versions of these on Windows */
+#ifndef SDL_PLATFORM_WIN32 /* Don't use C runtime versions of these on Windows */
 #cmakedefine HAVE_GETENV 1
 #cmakedefine HAVE_SETENV 1
 #cmakedefine HAVE_PUTENV 1
 #cmakedefine HAVE_UNSETENV 1
 #endif
-#cmakedefine HAVE_QSORT 1
-#cmakedefine HAVE_BSEARCH 1
 #cmakedefine HAVE_ABS 1
 #cmakedefine HAVE_BCOPY 1
 #cmakedefine HAVE_MEMSET 1
@@ -188,10 +186,16 @@
 #cmakedefine HAVE_FOPEN64 1
 #cmakedefine HAVE_FSEEKO 1
 #cmakedefine HAVE_FSEEKO64 1
+#cmakedefine HAVE_MEMFD_CREATE 1
+#cmakedefine HAVE_POSIX_FALLOCATE 1
 #cmakedefine HAVE_SIGACTION 1
 #cmakedefine HAVE_SA_SIGACTION 1
+#cmakedefine HAVE_ST_MTIM 1
 #cmakedefine HAVE_SETJMP 1
 #cmakedefine HAVE_NANOSLEEP 1
+#cmakedefine HAVE_GMTIME_R 1
+#cmakedefine HAVE_LOCALTIME_R 1
+#cmakedefine HAVE_NL_LANGINFO 1
 #cmakedefine HAVE_SYSCONF 1
 #cmakedefine HAVE_SYSCTLBYNAME 1
 #cmakedefine HAVE_CLOCK_GETTIME 1
@@ -246,33 +250,22 @@
 
 #cmakedefine USE_POSIX_SPAWN @USE_POSIX_SPAWN@
 
-#cmakedefine HAVE_COREMEDIA
-
 /* SDL internal assertion support */
 #if @SDL_DEFAULT_ASSERT_LEVEL_CONFIGURED@
 #cmakedefine SDL_DEFAULT_ASSERT_LEVEL @SDL_DEFAULT_ASSERT_LEVEL@
 #endif
 
-#cmakedefine SDL_VIDEO_CAPTURE
-
-/* Allow disabling of core subsystems */
-#cmakedefine SDL_ATOMIC_DISABLED @SDL_ATOMIC_DISABLED@
+/* Allow disabling of major subsystems */
 #cmakedefine SDL_AUDIO_DISABLED @SDL_AUDIO_DISABLED@
-#cmakedefine SDL_CPUINFO_DISABLED @SDL_CPUINFO_DISABLED@
-#cmakedefine SDL_EVENTS_DISABLED @SDL_EVENTS_DISABLED@
-#cmakedefine SDL_FILE_DISABLED @SDL_FILE_DISABLED@
 #cmakedefine SDL_JOYSTICK_DISABLED @SDL_JOYSTICK_DISABLED@
 #cmakedefine SDL_HAPTIC_DISABLED @SDL_HAPTIC_DISABLED@
 #cmakedefine SDL_HIDAPI_DISABLED @SDL_HIDAPI_DISABLED@
 #cmakedefine SDL_SENSOR_DISABLED @SDL_SENSOR_DISABLED@
-#cmakedefine SDL_LOADSO_DISABLED @SDL_LOADSO_DISABLED@
 #cmakedefine SDL_RENDER_DISABLED @SDL_RENDER_DISABLED@
 #cmakedefine SDL_THREADS_DISABLED @SDL_THREADS_DISABLED@
 #cmakedefine SDL_VIDEO_DISABLED @SDL_VIDEO_DISABLED@
 #cmakedefine SDL_POWER_DISABLED @SDL_POWER_DISABLED@
-#cmakedefine SDL_FILESYSTEM_DISABLED @SDL_FILESYSTEM_DISABLED@
-#cmakedefine SDL_LOCALE_DISABLED @SDL_LOCALE_DISABLED@
-#cmakedefine SDL_MISC_DISABLED @SDL_MISC_DISABLED@
+#cmakedefine SDL_CAMERA_DISABLED @SDL_CAMERA_DISABLED@
 
 /* Enable various audio drivers */
 #cmakedefine SDL_AUDIO_DRIVER_ALSA @SDL_AUDIO_DRIVER_ALSA@
@@ -331,7 +324,6 @@
 #cmakedefine SDL_HAPTIC_LINUX @SDL_HAPTIC_LINUX@
 #cmakedefine SDL_HAPTIC_IOKIT @SDL_HAPTIC_IOKIT@
 #cmakedefine SDL_HAPTIC_DINPUT @SDL_HAPTIC_DINPUT@
-#cmakedefine SDL_HAPTIC_XINPUT @SDL_HAPTIC_XINPUT@
 #cmakedefine SDL_HAPTIC_ANDROID @SDL_HAPTIC_ANDROID@
 #cmakedefine SDL_LIBUSB_DYNAMIC @SDL_LIBUSB_DYNAMIC@
 #cmakedefine SDL_UDEV_DYNAMIC @SDL_UDEV_DYNAMIC@
@@ -361,6 +353,14 @@
 #cmakedefine SDL_THREAD_PSP @SDL_THREAD_PSP@
 #cmakedefine SDL_THREAD_PS2 @SDL_THREAD_PS2@
 #cmakedefine SDL_THREAD_N3DS @SDL_THREAD_N3DS@
+
+/* Enable various RTC systems */
+#cmakedefine SDL_TIME_UNIX @SDL_TIME_UNIX@
+#cmakedefine SDL_TIME_WINDOWS @SDL_TIME_WINDOWS@
+#cmakedefine SDL_TIME_VITA @SDL_TIME_VITA@
+#cmakedefine SDL_TIME_PSP @SDL_TIME_PSP@
+#cmakedefine SDL_TIME_PS2 @SDL_TIME_PS2@
+#cmakedefine SDL_TIME_N3DS @SDL_TIME_N3DS@
 
 /* Enable various timer systems */
 #cmakedefine SDL_TIMER_HAIKU @SDL_TIMER_HAIKU@
@@ -424,6 +424,7 @@
 #cmakedefine SDL_VIDEO_RENDER_D3D11 @SDL_VIDEO_RENDER_D3D11@
 #cmakedefine SDL_VIDEO_RENDER_D3D12 @SDL_VIDEO_RENDER_D3D12@
 #cmakedefine SDL_VIDEO_RENDER_METAL @SDL_VIDEO_RENDER_METAL@
+#cmakedefine SDL_VIDEO_RENDER_VULKAN @SDL_VIDEO_RENDER_VULKAN@
 #cmakedefine SDL_VIDEO_RENDER_OGL @SDL_VIDEO_RENDER_OGL@
 #cmakedefine SDL_VIDEO_RENDER_OGL_ES2 @SDL_VIDEO_RENDER_OGL_ES2@
 #cmakedefine SDL_VIDEO_RENDER_PS2 @SDL_VIDEO_RENDER_PS2@
@@ -476,6 +477,24 @@
 #cmakedefine SDL_FILESYSTEM_PS2 @SDL_FILESYSTEM_PS2@
 #cmakedefine SDL_FILESYSTEM_N3DS @SDL_FILESYSTEM_N3DS@
 
+/* Enable system storage support */
+#cmakedefine SDL_STORAGE_GENERIC @SDL_STORAGE_GENERIC@
+#cmakedefine SDL_STORAGE_STEAM @SDL_STORAGE_STEAM@
+
+/* Enable system FSops support */
+#cmakedefine SDL_FSOPS_POSIX @SDL_FSOPS_POSIX@
+#cmakedefine SDL_FSOPS_WINDOWS @SDL_FSOPS_WINDOWS@
+#cmakedefine SDL_FSOPS_DUMMY @SDL_FSOPS_DUMMY@
+
+/* Enable camera subsystem */
+#cmakedefine SDL_CAMERA_DRIVER_DUMMY @SDL_CAMERA_DRIVER_DUMMY@
+/* !!! FIXME: for later cmakedefine SDL_CAMERA_DRIVER_DISK @SDL_CAMERA_DRIVER_DISK@ */
+#cmakedefine SDL_CAMERA_DRIVER_V4L2 @SDL_CAMERA_DRIVER_V4L2@
+#cmakedefine SDL_CAMERA_DRIVER_COREMEDIA @SDL_CAMERA_DRIVER_COREMEDIA@
+#cmakedefine SDL_CAMERA_DRIVER_ANDROID @SDL_CAMERA_DRIVER_ANDROID@
+#cmakedefine SDL_CAMERA_DRIVER_EMSCRIPTEN @SDL_CAMERA_DRIVER_EMSCRIPTEN@
+#cmakedefine SDL_CAMERA_DRIVER_MEDIAFOUNDATION @SDL_CAMERA_DRIVER_MEDIAFOUNDATION@
+
 /* Enable misc subsystem */
 #cmakedefine SDL_MISC_DUMMY @SDL_MISC_DUMMY@
 
@@ -501,7 +520,10 @@
 #cmakedefine SDL_VIDEO_VITA_PVR @SDL_VIDEO_VITA_PVR@
 #cmakedefine SDL_VIDEO_VITA_PVR_OGL @SDL_VIDEO_VITA_PVR_OGL@
 
-#cmakedefine SDL_HAVE_LIBDECOR_VER_0_2_0 @SDL_HAVE_LIBDECOR_VER_0_2_0@
+/* Libdecor version info */
+#define SDL_LIBDECOR_VERSION_MAJOR @SDL_LIBDECOR_VERSION_MAJOR@
+#define SDL_LIBDECOR_VERSION_MINOR @SDL_LIBDECOR_VERSION_MINOR@
+#define SDL_LIBDECOR_VERSION_PATCH @SDL_LIBDECOR_VERSION_PATCH@
 
 #if !defined(HAVE_STDINT_H) && !defined(_STDINT_H_)
 /* Most everything except Visual Studio 2008 and earlier has stdint.h now */

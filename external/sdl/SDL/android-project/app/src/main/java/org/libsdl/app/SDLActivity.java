@@ -54,7 +54,7 @@ import java.util.Locale;
 public class SDLActivity extends Activity implements View.OnSystemUiVisibilityChangeListener {
     private static final String TAG = "SDL";
     private static final int SDL_MAJOR_VERSION = 3;
-    private static final int SDL_MINOR_VERSION = 0;
+    private static final int SDL_MINOR_VERSION = 1;
     private static final int SDL_MICRO_VERSION = 0;
 /*
     // Display InputType.SOURCE/CLASS of events and devices
@@ -1465,17 +1465,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
             if (device != null && ((device.getSources() & InputDevice.SOURCE_TOUCHSCREEN) == InputDevice.SOURCE_TOUCHSCREEN
                     || device.isVirtual())) {
 
-                int touchDevId = device.getId();
-                /*
-                 * Prevent id to be -1, since it's used in SDL internal for synthetic events
-                 * Appears when using Android emulator, eg:
-                 *  adb shell input mouse tap 100 100
-                 *  adb shell input touchscreen tap 100 100
-                 */
-                if (touchDevId < 0) {
-                    touchDevId -= 1;
-                }
-                nativeAddTouch(touchDevId, device.getName());
+                nativeAddTouch(device.getId(), device.getName());
             }
         }
     }

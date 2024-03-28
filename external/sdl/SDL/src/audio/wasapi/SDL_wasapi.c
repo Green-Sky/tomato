@@ -71,7 +71,7 @@ static void ManagementThreadMainloop(void)
 {
     SDL_LockMutex(ManagementThreadLock);
     ManagementThreadPendingTask *task;
-    while (((task = SDL_AtomicGetPtr((void **) &ManagementThreadPendingTasks)) != NULL) || !SDL_AtomicGet(&ManagementThreadShutdown)) {
+    while (((task = (ManagementThreadPendingTask *)SDL_AtomicGetPtr((void **)&ManagementThreadPendingTasks)) != NULL) || !SDL_AtomicGet(&ManagementThreadShutdown)) {
         if (!task) {
             SDL_WaitCondition(ManagementThreadCondition, ManagementThreadLock); // block until there's something to do.
         } else {
@@ -93,7 +93,7 @@ static void ManagementThreadMainloop(void)
 int WASAPI_ProxyToManagementThread(ManagementThreadTask task, void *userdata, int *wait_on_result)
 {
     // We want to block for a result, but we are already running from the management thread! Just run the task now so we don't deadlock.
-    if ((wait_on_result) && (SDL_ThreadID() == SDL_GetThreadID(ManagementThread))) {
+    if ((wait_on_result) && (SDL_GetCurrentThreadID() == SDL_GetThreadID(ManagementThread))) {
         *wait_on_result = task(userdata);
         return 0;  // completed!
     }
@@ -102,7 +102,7 @@ int WASAPI_ProxyToManagementThread(ManagementThreadTask task, void *userdata, in
         return SDL_SetError("Can't add task, we're shutting down");
     }
 
-    ManagementThreadPendingTask *pending = SDL_calloc(1, sizeof(ManagementThreadPendingTask));
+    ManagementThreadPendingTask *pending = (ManagementThreadPendingTask *)SDL_calloc(1, sizeof(ManagementThreadPendingTask));
     if (!pending) {
         return -1;
     }
@@ -124,7 +124,7 @@ int WASAPI_ProxyToManagementThread(ManagementThreadTask task, void *userdata, in
 
     // add to end of task list.
     ManagementThreadPendingTask *prev = NULL;
-    for (ManagementThreadPendingTask *i = SDL_AtomicGetPtr((void **) &ManagementThreadPendingTasks); i; i = i->next) {
+    for (ManagementThreadPendingTask *i = (ManagementThreadPendingTask *)SDL_AtomicGetPtr((void **)&ManagementThreadPendingTasks); i; i = i->next) {
         prev = i;
     }
 
@@ -265,7 +265,9 @@ static void WASAPI_DetectDevices(SDL_AudioDevice **default_output, SDL_AudioDevi
 {
     int rc;
     // this blocks because it needs to finish before the audio subsystem inits
-    mgmtthrtask_DetectDevicesData data = { default_output, default_capture };
+    mgmtthrtask_DetectDevicesData data;
+    data.default_output = default_output;
+    data.default_capture = default_capture;
     WASAPI_ProxyToManagementThread(mgmtthrtask_DetectDevices, &data, &rc);
 }
 
@@ -432,7 +434,11 @@ static Uint8 *WASAPI_GetDeviceBuf(SDL_AudioDevice *device, int *buffer_size)
     BYTE *buffer = NULL;
 
     if (device->hidden->render) {
-        if (WasapiFailed(device, IAudioRenderClient_GetBuffer(device->hidden->render, device->sample_frames, &buffer))) {
+        const HRESULT ret = IAudioRenderClient_GetBuffer(device->hidden->render, device->sample_frames, &buffer);
+        if (ret == AUDCLNT_E_BUFFER_TOO_LARGE) {
+            SDL_assert(buffer == NULL);
+            *buffer_size = 0;  // just go back to WaitDevice and try again after the hardware has consumed some more data.
+        } else if (WasapiFailed(device, ret)) {
             SDL_assert(buffer == NULL);
             if (device->hidden->device_lost) {  // just use an available buffer, we won't be playing it anyhow.
                 *buffer_size = 0;  // we'll recover during WaitDevice and try again.
@@ -564,7 +570,7 @@ static int mgmtthrtask_PrepDevice(void *userdata)
     IAudioClient *client = device->hidden->client;
     SDL_assert(client != NULL);
 
-#if defined(__WINRT__) || defined(__GDK__) // CreateEventEx() arrived in Vista, so we need an #ifdef for XP.
+#if defined(SDL_PLATFORM_WINRT) || defined(SDL_PLATFORM_GDK) // CreateEventEx() arrived in Vista, so we need an #ifdef for XP.
     device->hidden->event = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 #else
     device->hidden->event = CreateEventW(NULL, 0, 0, NULL);
@@ -642,11 +648,16 @@ static int mgmtthrtask_PrepDevice(void *userdata)
         return WIN_SetErrorFromHRESULT("WASAPI can't determine buffer size", ret);
     }
 
-    /* Match the callback size to the period size to cut down on the number of
-       interrupts waited for in each call to WaitDevice */
+    // Match the callback size to the period size to cut down on the number of
+    // interrupts waited for in each call to WaitDevice
     const float period_millis = default_period / 10000.0f;
     const float period_frames = period_millis * newspec.freq / 1000.0f;
-    const int new_sample_frames = (int) SDL_ceilf(period_frames);
+    int new_sample_frames = (int) SDL_ceilf(period_frames);
+
+    // regardless of what we calculated for the period size, clamp it to the expected hardware buffer size.
+    if (new_sample_frames > (int) bufsize) {
+        new_sample_frames = (int) bufsize;
+    }
 
     // Update the fragment size as size in bytes
     if (SDL_AudioDeviceFormatChangedAlreadyLocked(device, &newspec, new_sample_frames) < 0) {

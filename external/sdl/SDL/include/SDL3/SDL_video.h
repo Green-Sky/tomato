@@ -47,7 +47,7 @@ typedef Uint32 SDL_WindowID;
 /**
  *  Global video properties
  *
- *  - `SDL_PROPERTY_GLOBAL_VIDEO_WAYLAND_WL_DISPLAY_POINTER`: the pointer to
+ *  - `SDL_PROP_GLOBAL_VIDEO_WAYLAND_WL_DISPLAY_POINTER`: the pointer to
  *    the global `wl_display` object used by the Wayland video backend. Can be
  *    set before the video subsystem is initialized to import an external
  *    `wl_display` object from an application or toolkit for use in SDL, or
@@ -58,7 +58,7 @@ typedef Uint32 SDL_WindowID;
  *    if one was set prior to initialization, or NULL. See
  *    docs/README-wayland.md for more information.
  */
-#define SDL_PROPERTY_GLOBAL_VIDEO_WAYLAND_WL_DISPLAY_POINTER "video.wayland.wl_display"
+#define SDL_PROP_GLOBAL_VIDEO_WAYLAND_WL_DISPLAY_POINTER "SDL.video.wayland.wl_display"
 
 /**
  *  System theme
@@ -82,7 +82,7 @@ typedef enum
 typedef struct
 {
     SDL_DisplayID displayID;    /**< the display this mode is associated with */
-    Uint32 format;              /**< pixel format */
+    SDL_PixelFormatEnum format; /**< pixel format */
     int w;                      /**< width */
     int h;                      /**< height */
     float pixel_density;        /**< scale converting size to pixels (e.g. a 1920x1080 mode with 2.0 scale would have 3840x2160 pixels) */
@@ -104,35 +104,6 @@ typedef enum
 
 /**
  *  The type used to identify a window
- *
- *  \sa SDL_CreateWindow
- *  \sa SDL_CreateWindowWithProperties
- *  \sa SDL_DestroyWindow
- *  \sa SDL_FlashWindow
- *  \sa SDL_GetWindowFlags
- *  \sa SDL_GetWindowGrab
- *  \sa SDL_GetWindowKeyboardGrab
- *  \sa SDL_GetWindowMouseGrab
- *  \sa SDL_GetWindowPosition
- *  \sa SDL_GetWindowSize
- *  \sa SDL_GetWindowTitle
- *  \sa SDL_HideWindow
- *  \sa SDL_MaximizeWindow
- *  \sa SDL_MinimizeWindow
- *  \sa SDL_RaiseWindow
- *  \sa SDL_RestoreWindow
- *  \sa SDL_SetWindowFullscreen
- *  \sa SDL_SetWindowGrab
- *  \sa SDL_SetWindowKeyboardGrab
- *  \sa SDL_SetWindowMouseGrab
- *  \sa SDL_SetWindowIcon
- *  \sa SDL_SetWindowPosition
- *  \sa SDL_SetWindowSize
- *  \sa SDL_SetWindowBordered
- *  \sa SDL_SetWindowResizable
- *  \sa SDL_SetWindowTitle
- *  \sa SDL_ShowWindow
- *  \sa SDL_ShowWindowSystemMenu
  */
 typedef struct SDL_Window SDL_Window;
 
@@ -141,6 +112,8 @@ typedef struct SDL_Window SDL_Window;
  *
  *  \sa SDL_GetWindowFlags
  */
+typedef Uint32 SDL_WindowFlags;
+
 #define SDL_WINDOW_FULLSCREEN           0x00000001U /**< window is in fullscreen mode */
 #define SDL_WINDOW_OPENGL               0x00000002U /**< window usable with OpenGL context */
 #define SDL_WINDOW_OCCLUDED             0x00000004U /**< window is occluded */
@@ -353,6 +326,21 @@ extern DECLSPEC SDL_DisplayID SDLCALL SDL_GetPrimaryDisplay(void);
 /**
  * Get the properties associated with a display.
  *
+ * The following read-only properties are provided by SDL:
+ *
+ * - `SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN`: true if the display has HDR
+ *   headroom above the SDR white point. This property can change dynamically
+ *   when SDL_EVENT_DISPLAY_HDR_STATE_CHANGED is sent.
+ * - `SDL_PROP_DISPLAY_SDR_WHITE_POINT_FLOAT`: the value of SDR white in the
+ *   SDL_COLORSPACE_SRGB_LINEAR colorspace. On Windows this corresponds to the
+ *   SDR white level in scRGB colorspace, and on Apple platforms this is
+ *   always 1.0 for EDR content. This property can change dynamically when
+ *   SDL_EVENT_DISPLAY_HDR_STATE_CHANGED is sent.
+ * - `SDL_PROP_DISPLAY_HDR_HEADROOM_FLOAT`: the additional high dynamic range
+ *   that can be displayed, in terms of the SDR white point. When HDR is not
+ *   enabled, this will be 1.0. This property can change dynamically when
+ *   SDL_EVENT_DISPLAY_HDR_STATE_CHANGED is sent.
+ *
  * \param displayID the instance ID of the display to query
  * \returns a valid property ID on success or 0 on failure; call
  *          SDL_GetError() for more information.
@@ -363,6 +351,10 @@ extern DECLSPEC SDL_DisplayID SDLCALL SDL_GetPrimaryDisplay(void);
  * \sa SDL_SetProperty
  */
 extern DECLSPEC SDL_PropertiesID SDLCALL SDL_GetDisplayProperties(SDL_DisplayID displayID);
+
+#define SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN            "SDL.display.HDR_enabled"
+#define SDL_PROP_DISPLAY_SDR_WHITE_POINT_FLOAT          "SDL.display.SDR_white_point"
+#define SDL_PROP_DISPLAY_HDR_HEADROOM_FLOAT             "SDL.display.HDR_headroom"
 
 /**
  * Get the name of a display in UTF-8 encoding.
@@ -654,8 +646,9 @@ extern DECLSPEC float SDLCALL SDL_GetWindowDisplayScale(SDL_Window *window);
  *
  * \param window the window to affect
  * \param mode a pointer to the display mode to use, which can be NULL for
- *             desktop mode, or one of the fullscreen modes returned by
- *             SDL_GetFullscreenDisplayModes().
+ *             borderless fullscreen desktop mode, or one of the fullscreen
+ *             modes returned by SDL_GetFullscreenDisplayModes() to set an
+ *             exclusive fullscreen mode.
  * \returns 0 on success or a negative error code on failure; call
  *          SDL_GetError() for more information.
  *
@@ -671,7 +664,8 @@ extern DECLSPEC int SDLCALL SDL_SetWindowFullscreenMode(SDL_Window *window, cons
  * Query the display mode to use when a window is visible at fullscreen.
  *
  * \param window the window to query
- * \returns a pointer to the fullscreen mode to use or NULL for desktop mode
+ * \returns a pointer to the exclusive fullscreen mode to use or NULL for
+ *          borderless fullscreen desktop mode
  *
  * \since This function is available since SDL 3.0.0.
  *
@@ -763,7 +757,7 @@ extern DECLSPEC Uint32 SDLCALL SDL_GetWindowPixelFormat(SDL_Window *window);
  * \sa SDL_CreateWindowWithProperties
  * \sa SDL_DestroyWindow
  */
-extern DECLSPEC SDL_Window *SDLCALL SDL_CreateWindow(const char *title, int w, int h, Uint32 flags);
+extern DECLSPEC SDL_Window *SDLCALL SDL_CreateWindow(const char *title, int w, int h, SDL_WindowFlags flags);
 
 /**
  * Create a child popup window of the specified parent window.
@@ -818,93 +812,104 @@ extern DECLSPEC SDL_Window *SDLCALL SDL_CreateWindow(const char *title, int w, i
  * \sa SDL_DestroyWindow
  * \sa SDL_GetWindowParent
  */
-extern DECLSPEC SDL_Window *SDLCALL SDL_CreatePopupWindow(SDL_Window *parent, int offset_x, int offset_y, int w, int h, Uint32 flags);
+extern DECLSPEC SDL_Window *SDLCALL SDL_CreatePopupWindow(SDL_Window *parent, int offset_x, int offset_y, int w, int h, SDL_WindowFlags flags);
 
 /**
  * Create a window with the specified properties.
  *
  * These are the supported properties:
  *
- * - `SDL_PROPERTY_WINDOW_CREATE_ALWAYS_ON_TOP_BOOLEAN`: true if the window
- *   should be always on top
- * - `SDL_PROPERTY_WINDOW_CREATE_BORDERLESS_BOOLEAN`: true if the window has
- *   no window decoration
- * - `SDL_PROPERTY_WINDOW_CREATE_FOCUSABLE_BOOLEAN`: true if the window should
+ * - `SDL_PROP_WINDOW_CREATE_ALWAYS_ON_TOP_BOOLEAN`: true if the window should
+ *   be always on top
+ * - `SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN`: true if the window has no
+ *   window decoration
+ * - `SDL_PROP_WINDOW_CREATE_EXTERNAL_GRAPHICS_CONTEXT_BOOLEAN`: true if the
+ *   window will be used with an externally managed graphics context.
+ * - `SDL_PROP_WINDOW_CREATE_FOCUSABLE_BOOLEAN`: true if the window should
  *   accept keyboard input (defaults true)
- * - `SDL_PROPERTY_WINDOW_CREATE_FULLSCREEN_BOOLEAN`: true if the window
- *   should start in fullscreen mode at desktop resolution
- * - `SDL_PROPERTY_WINDOW_CREATE_HEIGHT_NUMBER`: the height of the window
- * - `SDL_PROPERTY_WINDOW_CREATE_HIDDEN_BOOLEAN`: true if the window should
- *   start hidden
- * - `SDL_PROPERTY_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN`: true if the
- *   window uses a high pixel density buffer if possible
- * - `SDL_PROPERTY_WINDOW_CREATE_MAXIMIZED_BOOLEAN`: true if the window should
+ * - `SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN`: true if the window should
+ *   start in fullscreen mode at desktop resolution
+ * - `SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER`: the height of the window
+ * - `SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN`: true if the window should start
+ *   hidden
+ * - `SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN`: true if the window
+ *   uses a high pixel density buffer if possible
+ * - `SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN`: true if the window should
  *   start maximized
- * - `SDL_PROPERTY_WINDOW_CREATE_MENU_BOOLEAN`: true if the window is a popup
- *   menu
- * - `SDL_PROPERTY_WINDOW_CREATE_METAL_BOOLEAN`: true if the window will be
- *   used with Metal rendering
- * - `SDL_PROPERTY_WINDOW_CREATE_MINIMIZED_BOOLEAN`: true if the window should
+ * - `SDL_PROP_WINDOW_CREATE_MENU_BOOLEAN`: true if the window is a popup menu
+ * - `SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN`: true if the window will be used
+ *   with Metal rendering
+ * - `SDL_PROP_WINDOW_CREATE_MINIMIZED_BOOLEAN`: true if the window should
  *   start minimized
- * - `SDL_PROPERTY_WINDOW_CREATE_MOUSE_GRABBED_BOOLEAN`: true if the window
- *   starts with grabbed mouse focus
- * - `SDL_PROPERTY_WINDOW_CREATE_OPENGL_BOOLEAN`: true if the window will be
- *   used with OpenGL rendering
- * - `SDL_PROPERTY_WINDOW_CREATE_PARENT_POINTER`: an SDL_Window that will be
- *   the parent of this window, required for windows with the "toolip" and
- *   "menu" properties
- * - `SDL_PROPERTY_WINDOW_CREATE_RESIZABLE_BOOLEAN`: true if the window should
- *   be resizable
- * - `SDL_PROPERTY_WINDOW_CREATE_TITLE_STRING`: the title of the window, in
- *   UTF-8 encoding
- * - `SDL_PROPERTY_WINDOW_CREATE_TRANSPARENT_BOOLEAN`: true if the window show
+ * - `SDL_PROP_WINDOW_CREATE_MOUSE_GRABBED_BOOLEAN`: true if the window starts
+ *   with grabbed mouse focus
+ * - `SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN`: true if the window will be used
+ *   with OpenGL rendering
+ * - `SDL_PROP_WINDOW_CREATE_PARENT_POINTER`: an SDL_Window that will be the
+ *   parent of this window, required for windows with the "toolip" and "menu"
+ *   properties
+ * - `SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN`: true if the window should be
+ *   resizable
+ * - `SDL_PROP_WINDOW_CREATE_TITLE_STRING`: the title of the window, in UTF-8
+ *   encoding
+ * - `SDL_PROP_WINDOW_CREATE_TRANSPARENT_BOOLEAN`: true if the window show
  *   transparent in the areas with alpha of 0
- * - `SDL_PROPERTY_WINDOW_CREATE_TOOLTIP_BOOLEAN`: true if the window is a
- *   tooltip
- * - `SDL_PROPERTY_WINDOW_CREATE_UTILITY_BOOLEAN`: true if the window is a
- *   utility window, not showing in the task bar and window list
- * - `SDL_PROPERTY_WINDOW_CREATE_VULKAN_BOOLEAN`: true if the window will be
- *   used with Vulkan rendering
- * - `SDL_PROPERTY_WINDOW_CREATE_WIDTH_NUMBER`: the width of the window
- * - `SDL_PROPERTY_WINDOW_CREATE_X_NUMBER`: the x position of the window, or
+ * - `SDL_PROP_WINDOW_CREATE_TOOLTIP_BOOLEAN`: true if the window is a tooltip
+ * - `SDL_PROP_WINDOW_CREATE_UTILITY_BOOLEAN`: true if the window is a utility
+ *   window, not showing in the task bar and window list
+ * - `SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN`: true if the window will be used
+ *   with Vulkan rendering
+ * - `SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER`: the width of the window
+ * - `SDL_PROP_WINDOW_CREATE_X_NUMBER`: the x position of the window, or
  *   `SDL_WINDOWPOS_CENTERED`, defaults to `SDL_WINDOWPOS_UNDEFINED`. This is
  *   relative to the parent for windows with the "parent" property set.
- * - `SDL_PROPERTY_WINDOW_CREATE_Y_NUMBER`: the y position of the window, or
+ * - `SDL_PROP_WINDOW_CREATE_Y_NUMBER`: the y position of the window, or
  *   `SDL_WINDOWPOS_CENTERED`, defaults to `SDL_WINDOWPOS_UNDEFINED`. This is
  *   relative to the parent for windows with the "parent" property set.
  *
  * These are additional supported properties on macOS:
  *
- * - `SDL_PROPERTY_WINDOW_CREATE_COCOA_WINDOW_POINTER`: the
+ * - `SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER`: the
  *   `(__unsafe_unretained)` NSWindow associated with the window, if you want
  *   to wrap an existing window.
- * - `SDL_PROPERTY_WINDOW_CREATE_COCOA_VIEW_POINTER`: the
- *   `(__unsafe_unretained)` NSView associated with the window, defaults to
- *   `[window contentView]`
+ * - `SDL_PROP_WINDOW_CREATE_COCOA_VIEW_POINTER`: the `(__unsafe_unretained)`
+ *   NSView associated with the window, defaults to `[window contentView]`
  *
  * These are additional supported properties on Wayland:
  *
- * - `SDL_PROPERTY_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN` - true
- *   if the application wants to use the Wayland surface for a custom role and
+ * - `SDL_PROP_WINDOW_CREATE_WAYLAND_SCALE_TO_DISPLAY_BOOLEAN` - true if the
+ *   window should use forced scaling designed to produce 1:1 pixel mapping if
+ *   not flagged as being DPI-aware. This is intended to allow legacy
+ *   applications to be displayed without desktop scaling being applied, and
+ *   has issues with certain display configurations, as this forces the window
+ *   to behave in a way that Wayland desktops were not designed to
+ *   accommodate. Potential issues include, but are not limited to: rounding
+ *   errors can result when odd window sizes/scales are used, the window may
+ *   be unusably small, the window may jump in visible size at times, the
+ *   window may appear to be larger than the desktop space, and possible loss
+ *   of cursor precision can occur. New applications should be designed with
+ *   proper DPI awareness and handling instead of enabling this.
+ * - `SDL_PROP_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN` - true if
+ *   the application wants to use the Wayland surface for a custom role and
  *   does not want it attached to an XDG toplevel window. See
  *   docs/README-wayland.md for more information on using custom surfaces.
- * - `SDL_PROPERTY_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN - true if
- *   the application wants an associated `wl_egl_window` object to be created,
+ * - `SDL_PROP_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN - true if the
+ *   application wants an associated `wl_egl_window` object to be created,
  *   even if the window does not have the OpenGL property or flag set.
- * - `SDL_PROPERTY_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER` - the wl_surface
+ * - `SDL_PROP_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER` - the wl_surface
  *   associated with the window, if you want to wrap an existing window. See
  *   docs/README-wayland.md for more information.
  *
  * These are additional supported properties on Windows:
  *
- * - `SDL_PROPERTY_WINDOW_CREATE_WIN32_HWND_POINTER`: the HWND associated with
- *   the window, if you want to wrap an existing window.
- * - `SDL_PROPERTY_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER`: optional,
+ * - `SDL_PROP_WINDOW_CREATE_WIN32_HWND_POINTER`: the HWND associated with the
+ *   window, if you want to wrap an existing window.
+ * - `SDL_PROP_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER`: optional,
  *   another window to share pixel format with, useful for OpenGL windows
  *
  * These are additional supported properties with X11:
  *
- * - `SDL_PROPERTY_WINDOW_CREATE_X11_WINDOW_NUMBER`: the X11 Window associated
+ * - `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`: the X11 Window associated
  *   with the window, if you want to wrap an existing window.
  *
  * The window is implicitly shown if the "hidden" property is not set.
@@ -918,42 +923,45 @@ extern DECLSPEC SDL_Window *SDLCALL SDL_CreatePopupWindow(SDL_Window *parent, in
  *
  * \since This function is available since SDL 3.0.0.
  *
+ * \sa SDL_CreateProperties
  * \sa SDL_CreateWindow
  * \sa SDL_DestroyWindow
  */
 extern DECLSPEC SDL_Window *SDLCALL SDL_CreateWindowWithProperties(SDL_PropertiesID props);
 
-#define SDL_PROPERTY_WINDOW_CREATE_ALWAYS_ON_TOP_BOOLEAN               "always-on-top"
-#define SDL_PROPERTY_WINDOW_CREATE_BORDERLESS_BOOLEAN                  "borderless"
-#define SDL_PROPERTY_WINDOW_CREATE_FOCUSABLE_BOOLEAN                   "focusable"
-#define SDL_PROPERTY_WINDOW_CREATE_FULLSCREEN_BOOLEAN                  "fullscreen"
-#define SDL_PROPERTY_WINDOW_CREATE_HEIGHT_NUMBER                       "height"
-#define SDL_PROPERTY_WINDOW_CREATE_HIDDEN_BOOLEAN                      "hidden"
-#define SDL_PROPERTY_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN          "high-pixel-density"
-#define SDL_PROPERTY_WINDOW_CREATE_MAXIMIZED_BOOLEAN                   "maximized"
-#define SDL_PROPERTY_WINDOW_CREATE_MENU_BOOLEAN                        "menu"
-#define SDL_PROPERTY_WINDOW_CREATE_METAL_BOOLEAN                       "metal"
-#define SDL_PROPERTY_WINDOW_CREATE_MINIMIZED_BOOLEAN                   "minimized"
-#define SDL_PROPERTY_WINDOW_CREATE_MOUSE_GRABBED_BOOLEAN               "mouse-grabbed"
-#define SDL_PROPERTY_WINDOW_CREATE_OPENGL_BOOLEAN                      "opengl"
-#define SDL_PROPERTY_WINDOW_CREATE_PARENT_POINTER                      "parent"
-#define SDL_PROPERTY_WINDOW_CREATE_RESIZABLE_BOOLEAN                   "resizable"
-#define SDL_PROPERTY_WINDOW_CREATE_TITLE_STRING                        "title"
-#define SDL_PROPERTY_WINDOW_CREATE_TRANSPARENT_BOOLEAN                 "transparent"
-#define SDL_PROPERTY_WINDOW_CREATE_TOOLTIP_BOOLEAN                     "tooltip"
-#define SDL_PROPERTY_WINDOW_CREATE_UTILITY_BOOLEAN                     "utility"
-#define SDL_PROPERTY_WINDOW_CREATE_VULKAN_BOOLEAN                      "vulkan"
-#define SDL_PROPERTY_WINDOW_CREATE_WIDTH_NUMBER                        "width"
-#define SDL_PROPERTY_WINDOW_CREATE_X_NUMBER                            "x"
-#define SDL_PROPERTY_WINDOW_CREATE_Y_NUMBER                            "y"
-#define SDL_PROPERTY_WINDOW_CREATE_COCOA_WINDOW_POINTER                "cocoa.window"
-#define SDL_PROPERTY_WINDOW_CREATE_COCOA_VIEW_POINTER                  "cocoa.view"
-#define SDL_PROPERTY_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN "wayland.surface_role_custom"
-#define SDL_PROPERTY_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN   "wayland.create_egl_window"
-#define SDL_PROPERTY_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER          "wayland.wl_surface"
-#define SDL_PROPERTY_WINDOW_CREATE_WIN32_HWND_POINTER                  "win32.hwnd"
-#define SDL_PROPERTY_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER     "win32.pixel_format_hwnd"
-#define SDL_PROPERTY_WINDOW_CREATE_X11_WINDOW_NUMBER                   "x11.window"
+#define SDL_PROP_WINDOW_CREATE_ALWAYS_ON_TOP_BOOLEAN               "always_on_top"
+#define SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN                  "borderless"
+#define SDL_PROP_WINDOW_CREATE_FOCUSABLE_BOOLEAN                   "focusable"
+#define SDL_PROP_WINDOW_CREATE_EXTERNAL_GRAPHICS_CONTEXT_BOOLEAN   "external_graphics_context"
+#define SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN                  "fullscreen"
+#define SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER                       "height"
+#define SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN                      "hidden"
+#define SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN          "high_pixel_density"
+#define SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN                   "maximized"
+#define SDL_PROP_WINDOW_CREATE_MENU_BOOLEAN                        "menu"
+#define SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN                       "metal"
+#define SDL_PROP_WINDOW_CREATE_MINIMIZED_BOOLEAN                   "minimized"
+#define SDL_PROP_WINDOW_CREATE_MOUSE_GRABBED_BOOLEAN               "mouse_grabbed"
+#define SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN                      "opengl"
+#define SDL_PROP_WINDOW_CREATE_PARENT_POINTER                      "parent"
+#define SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN                   "resizable"
+#define SDL_PROP_WINDOW_CREATE_TITLE_STRING                        "title"
+#define SDL_PROP_WINDOW_CREATE_TRANSPARENT_BOOLEAN                 "transparent"
+#define SDL_PROP_WINDOW_CREATE_TOOLTIP_BOOLEAN                     "tooltip"
+#define SDL_PROP_WINDOW_CREATE_UTILITY_BOOLEAN                     "utility"
+#define SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN                      "vulkan"
+#define SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER                        "width"
+#define SDL_PROP_WINDOW_CREATE_X_NUMBER                            "x"
+#define SDL_PROP_WINDOW_CREATE_Y_NUMBER                            "y"
+#define SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER                "cocoa.window"
+#define SDL_PROP_WINDOW_CREATE_COCOA_VIEW_POINTER                  "cocoa.view"
+#define SDL_PROP_WINDOW_CREATE_WAYLAND_SCALE_TO_DISPLAY_BOOLEAN    "wayland.scale_to_display"
+#define SDL_PROP_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN "wayland.surface_role_custom"
+#define SDL_PROP_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN   "wayland.create_egl_window"
+#define SDL_PROP_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER          "wayland.wl_surface"
+#define SDL_PROP_WINDOW_CREATE_WIN32_HWND_POINTER                  "win32.hwnd"
+#define SDL_PROP_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER     "win32.pixel_format_hwnd"
+#define SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER                   "x11.window"
 
 /**
  * Get the numeric ID of a window.
@@ -1005,58 +1013,59 @@ extern DECLSPEC SDL_Window *SDLCALL SDL_GetWindowParent(SDL_Window *window);
  *
  * The following read-only properties are provided by SDL:
  *
+ * - `SDL_PROP_WINDOW_SHAPE_POINTER`: the surface associated with a shaped
+ *   window
+ *
  * On Android:
  *
- * - `SDL_PROPERTY_WINDOW_ANDROID_WINDOW_POINTER`: the ANativeWindow
- *   associated with the window
- * - `SDL_PROPERTY_WINDOW_ANDROID_SURFACE_POINTER`: the EGLSurface associated
+ * - `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`: the ANativeWindow associated
  *   with the window
+ * - `SDL_PROP_WINDOW_ANDROID_SURFACE_POINTER`: the EGLSurface associated with
+ *   the window
  *
  * On iOS:
  *
- * - `SDL_PROPERTY_WINDOW_UIKIT_WINDOW_POINTER`: the `(__unsafe_unretained)`
+ * - `SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER`: the `(__unsafe_unretained)`
  *   UIWindow associated with the window
- * - `SDL_PROPERTY_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER`: the NSInteger tag
+ * - `SDL_PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER`: the NSInteger tag
  *   assocated with metal views on the window
  *
  * On KMS/DRM:
  *
- * - `SDL_PROPERTY_WINDOW_KMSDRM_DEVICE_INDEX_NUMBER`: the device index
- *   associated with the window (e.g. the X in /dev/dri/cardX)
- * - `SDL_PROPERTY_WINDOW_KMSDRM_DRM_FD_NUMBER`: the DRM FD associated with
- *   the window
- * - `SDL_PROPERTY_WINDOW_KMSDRM_GBM_DEVICE_POINTER`: the GBM device
- *   associated with the window
+ * - `SDL_PROP_WINDOW_KMSDRM_DEVICE_INDEX_NUMBER`: the device index associated
+ *   with the window (e.g. the X in /dev/dri/cardX)
+ * - `SDL_PROP_WINDOW_KMSDRM_DRM_FD_NUMBER`: the DRM FD associated with the
+ *   window
+ * - `SDL_PROP_WINDOW_KMSDRM_GBM_DEVICE_POINTER`: the GBM device associated
+ *   with the window
  *
  * On macOS:
  *
- * - `SDL_PROPERTY_WINDOW_COCOA_WINDOW_POINTER`: the `(__unsafe_unretained)`
+ * - `SDL_PROP_WINDOW_COCOA_WINDOW_POINTER`: the `(__unsafe_unretained)`
  *   NSWindow associated with the window
- * - `SDL_PROPERTY_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER`: the NSInteger tag
+ * - `SDL_PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER`: the NSInteger tag
  *   assocated with metal views on the window
  *
  * On Vivante:
  *
- * - `SDL_PROPERTY_WINDOW_VIVANTE_DISPLAY_POINTER`: the EGLNativeDisplayType
+ * - `SDL_PROP_WINDOW_VIVANTE_DISPLAY_POINTER`: the EGLNativeDisplayType
  *   associated with the window
- * - `SDL_PROPERTY_WINDOW_VIVANTE_WINDOW_POINTER`: the EGLNativeWindowType
+ * - `SDL_PROP_WINDOW_VIVANTE_WINDOW_POINTER`: the EGLNativeWindowType
  *   associated with the window
- * - `SDL_PROPERTY_WINDOW_VIVANTE_SURFACE_POINTER`: the EGLSurface associated
- *   with the window
+ * - `SDL_PROP_WINDOW_VIVANTE_SURFACE_POINTER`: the EGLSurface associated with
+ *   the window
  *
  * On UWP:
  *
- * - `SDL_PROPERTY_WINDOW_WINRT_WINDOW_POINTER`: the IInspectable CoreWindow
+ * - `SDL_PROP_WINDOW_WINRT_WINDOW_POINTER`: the IInspectable CoreWindow
  *   associated with the window
  *
  * On Windows:
  *
- * - `SDL_PROPERTY_WINDOW_WIN32_HWND_POINTER`: the HWND associated with the
- *   window
- * - `SDL_PROPERTY_WINDOW_WIN32_HDC_POINTER`: the HDC associated with the
- *   window
- * - `SDL_PROPERTY_WINDOW_WIN32_INSTANCE_POINTER`: the HINSTANCE associated
- *   with the window
+ * - `SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the HWND associated with the window
+ * - `SDL_PROP_WINDOW_WIN32_HDC_POINTER`: the HDC associated with the window
+ * - `SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER`: the HINSTANCE associated with
+ *   the window
  *
  * On Wayland:
  *
@@ -1064,29 +1073,31 @@ extern DECLSPEC SDL_Window *SDLCALL SDL_GetWindowParent(SDL_Window *window);
  * show/hide calls. They will be null if the window is hidden and must be
  * queried each time it is shown.
  *
- * - `SDL_PROPERTY_WINDOW_WAYLAND_DISPLAY_POINTER`: the wl_display associated
+ * - `SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER`: the wl_display associated with
+ *   the window
+ * - `SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER`: the wl_surface associated with
+ *   the window
+ * - `SDL_PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER`: the wl_egl_window
+ *   associated with the window
+ * - `SDL_PROP_WINDOW_WAYLAND_XDG_SURFACE_POINTER`: the xdg_surface associated
  *   with the window
- * - `SDL_PROPERTY_WINDOW_WAYLAND_SURFACE_POINTER`: the wl_surface associated
- *   with the window
- * - `SDL_PROPERTY_WINDOW_WAYLAND_EGL_WINDOW_POINTER`: the wl_egl_window
+ * - `SDL_PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_POINTER`: the xdg_toplevel role
  *   associated with the window
- * - `SDL_PROPERTY_WINDOW_WAYLAND_XDG_SURFACE_POINTER`: the xdg_surface
+ * - 'SDL_PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_EXPORT_HANDLE_STRING': the export
+ *   handle associated with the window
+ * - `SDL_PROP_WINDOW_WAYLAND_XDG_POPUP_POINTER`: the xdg_popup role
  *   associated with the window
- * - `SDL_PROPERTY_WINDOW_WAYLAND_XDG_TOPLEVEL_POINTER`: the xdg_toplevel role
- *   associated with the window
- * - `SDL_PROPERTY_WINDOW_WAYLAND_XDG_POPUP_POINTER`: the xdg_popup role
- *   associated with the window
- * - `SDL_PROPERTY_WINDOW_WAYLAND_XDG_POSITIONER_POINTER`: the xdg_positioner
+ * - `SDL_PROP_WINDOW_WAYLAND_XDG_POSITIONER_POINTER`: the xdg_positioner
  *   associated with the window, in popup mode
  *
  * On X11:
  *
- * - `SDL_PROPERTY_WINDOW_X11_DISPLAY_POINTER`: the X11 Display associated
- *   with the window
- * - `SDL_PROPERTY_WINDOW_X11_SCREEN_NUMBER`: the screen number associated
- *   with the window
- * - `SDL_PROPERTY_WINDOW_X11_WINDOW_NUMBER`: the X11 Window associated with
+ * - `SDL_PROP_WINDOW_X11_DISPLAY_POINTER`: the X11 Display associated with
  *   the window
+ * - `SDL_PROP_WINDOW_X11_SCREEN_NUMBER`: the screen number associated with
+ *   the window
+ * - `SDL_PROP_WINDOW_X11_WINDOW_NUMBER`: the X11 Window associated with the
+ *   window
  *
  * \param window the window to query
  * \returns a valid property ID on success or 0 on failure; call
@@ -1099,32 +1110,34 @@ extern DECLSPEC SDL_Window *SDLCALL SDL_GetWindowParent(SDL_Window *window);
  */
 extern DECLSPEC SDL_PropertiesID SDLCALL SDL_GetWindowProperties(SDL_Window *window);
 
-#define SDL_PROPERTY_WINDOW_ANDROID_WINDOW_POINTER          "SDL.window.android.window"
-#define SDL_PROPERTY_WINDOW_ANDROID_SURFACE_POINTER         "SDL.window.android.surface"
-#define SDL_PROPERTY_WINDOW_UIKIT_WINDOW_POINTER            "SDL.window.uikit.window"
-#define SDL_PROPERTY_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER     "SDL.window.uikit.metal_view_tag"
-#define SDL_PROPERTY_WINDOW_KMSDRM_DEVICE_INDEX_NUMBER      "SDL.window.kmsdrm.dev_index"
-#define SDL_PROPERTY_WINDOW_KMSDRM_DRM_FD_NUMBER            "SDL.window.kmsdrm.drm_fd"
-#define SDL_PROPERTY_WINDOW_KMSDRM_GBM_DEVICE_POINTER       "SDL.window.kmsdrm.gbm_dev"
-#define SDL_PROPERTY_WINDOW_COCOA_WINDOW_POINTER            "SDL.window.cocoa.window"
-#define SDL_PROPERTY_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER     "SDL.window.cocoa.metal_view_tag"
-#define SDL_PROPERTY_WINDOW_VIVANTE_DISPLAY_POINTER         "SDL.window.vivante.display"
-#define SDL_PROPERTY_WINDOW_VIVANTE_WINDOW_POINTER          "SDL.window.vivante.window"
-#define SDL_PROPERTY_WINDOW_VIVANTE_SURFACE_POINTER         "SDL.window.vivante.surface"
-#define SDL_PROPERTY_WINDOW_WINRT_WINDOW_POINTER            "SDL.window.winrt.window"
-#define SDL_PROPERTY_WINDOW_WIN32_HWND_POINTER              "SDL.window.win32.hwnd"
-#define SDL_PROPERTY_WINDOW_WIN32_HDC_POINTER               "SDL.window.win32.hdc"
-#define SDL_PROPERTY_WINDOW_WIN32_INSTANCE_POINTER          "SDL.window.win32.instance"
-#define SDL_PROPERTY_WINDOW_WAYLAND_DISPLAY_POINTER         "SDL.window.wayland.display"
-#define SDL_PROPERTY_WINDOW_WAYLAND_SURFACE_POINTER         "SDL.window.wayland.surface"
-#define SDL_PROPERTY_WINDOW_WAYLAND_EGL_WINDOW_POINTER      "SDL.window.wayland.egl_window"
-#define SDL_PROPERTY_WINDOW_WAYLAND_XDG_SURFACE_POINTER     "SDL.window.wayland.xdg_surface"
-#define SDL_PROPERTY_WINDOW_WAYLAND_XDG_TOPLEVEL_POINTER    "SDL.window.wayland.xdg_toplevel"
-#define SDL_PROPERTY_WINDOW_WAYLAND_XDG_POPUP_POINTER       "SDL.window.wayland.xdg_popup"
-#define SDL_PROPERTY_WINDOW_WAYLAND_XDG_POSITIONER_POINTER  "SDL.window.wayland.xdg_positioner"
-#define SDL_PROPERTY_WINDOW_X11_DISPLAY_POINTER             "SDL.window.x11.display"
-#define SDL_PROPERTY_WINDOW_X11_SCREEN_NUMBER               "SDL.window.x11.screen"
-#define SDL_PROPERTY_WINDOW_X11_WINDOW_NUMBER               "SDL.window.x11.window"
+#define SDL_PROP_WINDOW_SHAPE_POINTER                             "SDL.window.shape"
+#define SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER                    "SDL.window.android.window"
+#define SDL_PROP_WINDOW_ANDROID_SURFACE_POINTER                   "SDL.window.android.surface"
+#define SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER                      "SDL.window.uikit.window"
+#define SDL_PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER               "SDL.window.uikit.metal_view_tag"
+#define SDL_PROP_WINDOW_KMSDRM_DEVICE_INDEX_NUMBER                "SDL.window.kmsdrm.dev_index"
+#define SDL_PROP_WINDOW_KMSDRM_DRM_FD_NUMBER                      "SDL.window.kmsdrm.drm_fd"
+#define SDL_PROP_WINDOW_KMSDRM_GBM_DEVICE_POINTER                 "SDL.window.kmsdrm.gbm_dev"
+#define SDL_PROP_WINDOW_COCOA_WINDOW_POINTER                      "SDL.window.cocoa.window"
+#define SDL_PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER               "SDL.window.cocoa.metal_view_tag"
+#define SDL_PROP_WINDOW_VIVANTE_DISPLAY_POINTER                   "SDL.window.vivante.display"
+#define SDL_PROP_WINDOW_VIVANTE_WINDOW_POINTER                    "SDL.window.vivante.window"
+#define SDL_PROP_WINDOW_VIVANTE_SURFACE_POINTER                   "SDL.window.vivante.surface"
+#define SDL_PROP_WINDOW_WINRT_WINDOW_POINTER                      "SDL.window.winrt.window"
+#define SDL_PROP_WINDOW_WIN32_HWND_POINTER                        "SDL.window.win32.hwnd"
+#define SDL_PROP_WINDOW_WIN32_HDC_POINTER                         "SDL.window.win32.hdc"
+#define SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER                    "SDL.window.win32.instance"
+#define SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER                   "SDL.window.wayland.display"
+#define SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER                   "SDL.window.wayland.surface"
+#define SDL_PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER                "SDL.window.wayland.egl_window"
+#define SDL_PROP_WINDOW_WAYLAND_XDG_SURFACE_POINTER               "SDL.window.wayland.xdg_surface"
+#define SDL_PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_POINTER              "SDL.window.wayland.xdg_toplevel"
+#define SDL_PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_EXPORT_HANDLE_STRING "SDL.window.wayland.xdg_toplevel_export_handle"
+#define SDL_PROP_WINDOW_WAYLAND_XDG_POPUP_POINTER                 "SDL.window.wayland.xdg_popup"
+#define SDL_PROP_WINDOW_WAYLAND_XDG_POSITIONER_POINTER            "SDL.window.wayland.xdg_positioner"
+#define SDL_PROP_WINDOW_X11_DISPLAY_POINTER                       "SDL.window.x11.display"
+#define SDL_PROP_WINDOW_X11_SCREEN_NUMBER                         "SDL.window.x11.screen"
+#define SDL_PROP_WINDOW_X11_WINDOW_NUMBER                         "SDL.window.x11.window"
 
 /**
  * Get the window flags.
@@ -1139,10 +1152,10 @@ extern DECLSPEC SDL_PropertiesID SDLCALL SDL_GetWindowProperties(SDL_Window *win
  * \sa SDL_MaximizeWindow
  * \sa SDL_MinimizeWindow
  * \sa SDL_SetWindowFullscreen
- * \sa SDL_SetWindowGrab
+ * \sa SDL_SetWindowMouseGrab
  * \sa SDL_ShowWindow
  */
-extern DECLSPEC Uint32 SDLCALL SDL_GetWindowFlags(SDL_Window *window);
+extern DECLSPEC SDL_WindowFlags SDLCALL SDL_GetWindowFlags(SDL_Window *window);
 
 /**
  * Set the title of a window.
@@ -1608,8 +1621,9 @@ extern DECLSPEC int SDLCALL SDL_RestoreWindow(SDL_Window *window);
 /**
  * Request that the window's fullscreen state be changed.
  *
- * By default a window in fullscreen state uses fullscreen desktop mode, but a
- * specific display mode can be set using SDL_SetWindowFullscreenMode().
+ * By default a window in fullscreen state uses borderless fullscreen desktop
+ * mode, but a specific exclusive display mode can be set using
+ * SDL_SetWindowFullscreenMode().
  *
  * On some windowing systems this request is asynchronous and the new
  * fullscreen state may not have have been applied immediately upon the return
@@ -1673,7 +1687,7 @@ extern DECLSPEC int SDLCALL SDL_SyncWindow(SDL_Window *window);
  *
  * \sa SDL_GetWindowSurface
  */
-extern DECLSPEC SDL_bool SDLCALL SDL_HasWindowSurface(SDL_Window *window);
+extern DECLSPEC SDL_bool SDLCALL SDL_WindowHasSurface(SDL_Window *window);
 
 /**
  * Get the SDL surface associated with the window.
@@ -1696,7 +1710,7 @@ extern DECLSPEC SDL_bool SDLCALL SDL_HasWindowSurface(SDL_Window *window);
  * \since This function is available since SDL 3.0.0.
  *
  * \sa SDL_DestroyWindowSurface
- * \sa SDL_HasWindowSurface
+ * \sa SDL_WindowHasSurface
  * \sa SDL_UpdateWindowSurface
  * \sa SDL_UpdateWindowSurfaceRects
  */
@@ -1758,31 +1772,9 @@ extern DECLSPEC int SDLCALL SDL_UpdateWindowSurfaceRects(SDL_Window *window, con
  * \since This function is available since SDL 3.0.0.
  *
  * \sa SDL_GetWindowSurface
- * \sa SDL_HasWindowSurface
+ * \sa SDL_WindowHasSurface
  */
 extern DECLSPEC int SDLCALL SDL_DestroyWindowSurface(SDL_Window *window);
-
-/**
- * Set a window's input grab mode.
- *
- * When input is grabbed, the mouse is confined to the window. This function
- * will also grab the keyboard if `SDL_HINT_GRAB_KEYBOARD` is set. To grab the
- * keyboard without also grabbing the mouse, use SDL_SetWindowKeyboardGrab().
- *
- * If the caller enables a grab while another window is currently grabbed, the
- * other window loses its grab in favor of the caller's window.
- *
- * \param window the window for which the input grab mode should be set
- * \param grabbed SDL_TRUE to grab input or SDL_FALSE to release input
- * \returns 0 on success or a negative error code on failure; call
- *          SDL_GetError() for more information.
- *
- * \since This function is available since SDL 3.0.0.
- *
- * \sa SDL_GetGrabbedWindow
- * \sa SDL_GetWindowGrab
- */
-extern DECLSPEC int SDLCALL SDL_SetWindowGrab(SDL_Window *window, SDL_bool grabbed);
 
 /**
  * Set a window's keyboard grab mode.
@@ -1812,7 +1804,6 @@ extern DECLSPEC int SDLCALL SDL_SetWindowGrab(SDL_Window *window, SDL_bool grabb
  *
  * \sa SDL_GetWindowKeyboardGrab
  * \sa SDL_SetWindowMouseGrab
- * \sa SDL_SetWindowGrab
  */
 extern DECLSPEC int SDLCALL SDL_SetWindowKeyboardGrab(SDL_Window *window, SDL_bool grabbed);
 
@@ -1830,21 +1821,8 @@ extern DECLSPEC int SDLCALL SDL_SetWindowKeyboardGrab(SDL_Window *window, SDL_bo
  *
  * \sa SDL_GetWindowMouseGrab
  * \sa SDL_SetWindowKeyboardGrab
- * \sa SDL_SetWindowGrab
  */
 extern DECLSPEC int SDLCALL SDL_SetWindowMouseGrab(SDL_Window *window, SDL_bool grabbed);
-
-/**
- * Get a window's input grab mode.
- *
- * \param window the window to query
- * \returns SDL_TRUE if input is grabbed, SDL_FALSE otherwise.
- *
- * \since This function is available since SDL 3.0.0.
- *
- * \sa SDL_SetWindowGrab
- */
-extern DECLSPEC SDL_bool SDLCALL SDL_GetWindowGrab(SDL_Window *window);
 
 /**
  * Get a window's keyboard grab mode.
@@ -1855,7 +1833,6 @@ extern DECLSPEC SDL_bool SDLCALL SDL_GetWindowGrab(SDL_Window *window);
  * \since This function is available since SDL 3.0.0.
  *
  * \sa SDL_SetWindowKeyboardGrab
- * \sa SDL_GetWindowGrab
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_GetWindowKeyboardGrab(SDL_Window *window);
 
@@ -1868,7 +1845,6 @@ extern DECLSPEC SDL_bool SDLCALL SDL_GetWindowKeyboardGrab(SDL_Window *window);
  * \since This function is available since SDL 3.0.0.
  *
  * \sa SDL_SetWindowKeyboardGrab
- * \sa SDL_GetWindowGrab
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_GetWindowMouseGrab(SDL_Window *window);
 
@@ -1879,8 +1855,8 @@ extern DECLSPEC SDL_bool SDLCALL SDL_GetWindowMouseGrab(SDL_Window *window);
  *
  * \since This function is available since SDL 3.0.0.
  *
- * \sa SDL_GetWindowGrab
- * \sa SDL_SetWindowGrab
+ * \sa SDL_SetWindowMouseGrab
+ * \sa SDL_SetWindowKeyboardGrab
  */
 extern DECLSPEC SDL_Window *SDLCALL SDL_GetGrabbedWindow(void);
 
@@ -2098,6 +2074,30 @@ typedef SDL_HitTestResult (SDLCALL *SDL_HitTest)(SDL_Window *win,
 extern DECLSPEC int SDLCALL SDL_SetWindowHitTest(SDL_Window *window, SDL_HitTest callback, void *callback_data);
 
 /**
+ * Set the shape of a transparent window.
+ *
+ * This sets the alpha channel of a transparent window and any fully
+ * transparent areas are also transparent to mouse clicks. If you are using
+ * something besides the SDL render API, then you are responsible for setting
+ * the alpha channel of the window yourself.
+ *
+ * The shape is copied inside this function, so you can free it afterwards. If
+ * your shape surface changes, you should call SDL_SetWindowShape() again to
+ * update the window.
+ *
+ * The window must have been created with the SDL_WINDOW_TRANSPARENT flag.
+ *
+ * \param window the window
+ * \param shape the surface representing the shape of the window, or NULL to
+ *              remove any current shape
+ * \returns 0 on success or a negative error code on failure; call
+ *          SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 3.0.0.
+ */
+extern DECLSPEC int SDLCALL SDL_SetWindowShape(SDL_Window *window, SDL_Surface *shape);
+
+/**
  * Request a window to demand attention from the user.
  *
  * \param window the window to be flashed
@@ -2111,6 +2111,9 @@ extern DECLSPEC int SDLCALL SDL_FlashWindow(SDL_Window *window, SDL_FlashOperati
 
 /**
  * Destroy a window.
+ *
+ * If the window has an associated SDL_Renderer, it will be implicitly
+ * destroyed as well.
  *
  * If `window` is NULL, this function will return immediately after setting
  * the SDL error message to "Invalid window". See SDL_GetError().

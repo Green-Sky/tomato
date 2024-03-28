@@ -40,8 +40,23 @@
 #define SDL_JOYSTICK_HIDAPI_XBOXONE
 #define SDL_JOYSTICK_HIDAPI_SHIELD
 
+/* Joystick capability definitions */
+#define SDL_JOYSTICK_CAP_MONO_LED       0x00000001
+#define SDL_JOYSTICK_CAP_RGB_LED        0x00000002
+#define SDL_JOYSTICK_CAP_PLAYER_LED     0x00000004
+#define SDL_JOYSTICK_CAP_RUMBLE         0x00000010
+#define SDL_JOYSTICK_CAP_TRIGGER_RUMBLE 0x00000020
+
 /* Whether HIDAPI is enabled by default */
+#if defined(SDL_PLATFORM_ANDROID) || \
+    defined(SDL_PLATFORM_IOS) || \
+    defined(SDL_PLATFORM_TVOS) || \
+    defined(SDL_PLATFORM_VISIONOS)
+/* On Android, HIDAPI prompts for permissions and acquires exclusive access to the device, and on Apple mobile platforms it doesn't do anything except for handling Bluetooth Steam Controllers, so we'll leave it off by default. */
+#define SDL_HIDAPI_DEFAULT SDL_FALSE
+#else
 #define SDL_HIDAPI_DEFAULT SDL_TRUE
+#endif
 
 /* The maximum size of a USB packet for HID devices */
 #define USB_PACKET_LENGTH 64
@@ -124,6 +139,7 @@ extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverLuna;
 extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverNintendoClassic;
 extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS3;
 extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS3ThirdParty;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS3SonySixaxis;
 extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS4;
 extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS5;
 extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverShield;
@@ -156,6 +172,7 @@ extern SDL_bool HIDAPI_HasConnectedUSBDevice(const char *serial);
 extern void HIDAPI_DisconnectBluetoothDevice(const char *serial);
 extern SDL_bool HIDAPI_JoystickConnected(SDL_HIDAPI_Device *device, SDL_JoystickID *pJoystickID);
 extern void HIDAPI_JoystickDisconnected(SDL_HIDAPI_Device *device, SDL_JoystickID joystickID);
+extern void HIDAPI_UpdateDeviceProperties(SDL_HIDAPI_Device *device);
 
 extern void HIDAPI_DumpPacket(const char *prefix, const Uint8 *data, int size);
 

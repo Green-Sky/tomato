@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#if defined(SDL_VIDEO_RENDER_D3D11) && !defined(SDL_RENDER_DISABLED)
+#if SDL_VIDEO_RENDER_D3D11
 
 #include "../../video/winrt/SDL_winrtvideo_cpp.h"
 extern "C" {
@@ -44,7 +44,7 @@ using namespace Windows::Graphics::Display;
 extern "C" void *
 D3D11_GetCoreWindowFromSDLRenderer(SDL_Renderer *renderer)
 {
-    IInspectable *window = (IInspectable *)SDL_GetProperty(SDL_GetWindowProperties(renderer->window), SDL_PROPERTY_WINDOW_WINRT_WINDOW_POINTER, NULL);
+    IInspectable *window = (IInspectable *)SDL_GetProperty(SDL_GetWindowProperties(renderer->window), SDL_PROP_WINDOW_WINRT_WINDOW_POINTER, NULL);
     ABI::Windows::UI::Core::ICoreWindow *coreWindow = NULL;
     if (!window || FAILED(window->QueryInterface(&coreWindow))) {
         return NULL;
@@ -90,4 +90,4 @@ D3D11_GetCurrentRotation()
     return DXGI_MODE_ROTATION_IDENTITY;
 }
 
-#endif /* SDL_VIDEO_RENDER_D3D11 && !SDL_RENDER_DISABLED */
+#endif /* SDL_VIDEO_RENDER_D3D11 */

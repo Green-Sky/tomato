@@ -20,7 +20,9 @@
 */
 #include "SDL_internal.h"
 
-#if SDL_VIDEO_RENDER_SW && !defined(SDL_RENDER_DISABLED)
+#if SDL_VIDEO_RENDER_SW
+
+#include <limits.h>
 
 #include "SDL_triangle.h"
 
@@ -222,7 +224,8 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
     Uint8 *dst_ptr;
     int dst_pitch;
 
-    int area, is_clockwise;
+    Sint64 area;
+    int is_clockwise;
 
     int d2d1_y, d1d2_x, d0d2_y, d2d0_x, d1d0_y, d0d1_x;
     Sint64 w0_row, w1_row, w2_row;
@@ -275,7 +278,7 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
     }
 
     if (blend != SDL_BLENDMODE_NONE) {
-        int format = dst->format->format;
+        SDL_PixelFormatEnum format = dst->format->format;
 
         /* need an alpha format */
         if (!dst->format->Amask) {
@@ -296,19 +299,21 @@ int SDL_SW_FillTriangle(SDL_Surface *dst, SDL_Point *d0, SDL_Point *d1, SDL_Poin
 
         SDL_SetSurfaceBlendMode(tmp, blend);
 
-        dstbpp = tmp->format->BytesPerPixel;
-        dst_ptr = tmp->pixels;
+        dstbpp = tmp->format->bytes_per_pixel;
+        dst_ptr = (Uint8 *)tmp->pixels;
         dst_pitch = tmp->pitch;
 
     } else {
         /* Write directly to destination surface */
-        dstbpp = dst->format->BytesPerPixel;
+        dstbpp = dst->format->bytes_per_pixel;
         dst_ptr = (Uint8 *)dst->pixels + dstrect.x * dstbpp + dstrect.y * dst->pitch;
         dst_pitch = dst->pitch;
     }
 
     is_clockwise = area > 0;
-    area = SDL_abs(area);
+    if (area < 0) {
+        area = -area;
+    }
 
     {
         int val;
@@ -460,10 +465,11 @@ int SDL_SW_BlitTriangle(
     Uint8 *dst_ptr;
     int dst_pitch;
 
-    int *src_ptr;
+    const int *src_ptr;
     int src_pitch;
 
-    int area, is_clockwise;
+    Sint64 area, tmp64;
+    int is_clockwise;
 
     int d2d1_y, d1d2_x, d0d2_y, d2d0_x, d1d0_y, d0d1_x;
     int s2s0_x, s2s1_x, s2s0_y, s2s1_y;
@@ -475,8 +481,11 @@ int SDL_SW_BlitTriangle(
 
     int has_modulation;
 
-    if (!src || !dst) {
-        return -1;
+    if (!src) {
+        return SDL_InvalidParamError("src");
+    }
+    if (!src) {
+        return SDL_InvalidParamError("dst");
     }
 
     area = cross_product(d0, d1, d2->x, d2->y);
@@ -569,16 +578,18 @@ int SDL_SW_BlitTriangle(
     }
 
     /* Set destination pointer */
-    dstbpp = dst->format->BytesPerPixel;
+    dstbpp = dst->format->bytes_per_pixel;
     dst_ptr = (Uint8 *)dst->pixels + dstrect.x * dstbpp + dstrect.y * dst->pitch;
     dst_pitch = dst->pitch;
 
     /* Set source pointer */
-    src_ptr = src->pixels;
+    src_ptr = (const int *)src->pixels;
     src_pitch = src->pitch;
 
     is_clockwise = area > 0;
-    area = SDL_abs(area);
+    if (area < 0) {
+        area = -area;
+    }
 
     {
         int val;
@@ -627,8 +638,20 @@ int SDL_SW_BlitTriangle(
     bias_w2 = (is_top_left(d0, d1, is_clockwise) ? 0 : -1);
 
     /* precompute constant 's2->x * area' used in TRIANGLE_GET_TEXTCOORD */
-    s2_x_area.x = s2->x * area;
-    s2_x_area.y = s2->y * area;
+    tmp64 = s2->x * area;
+    if (tmp64 >= INT_MIN && tmp64 <= INT_MAX) {
+        s2_x_area.x = (int)tmp64;
+    } else {
+        ret = SDL_SetError("triangle area overflow");
+        goto end;
+    }
+    tmp64 = s2->y * area;
+    if (tmp64 >= INT_MIN && tmp64 <= INT_MAX) {
+        s2_x_area.y = (int)tmp64;
+    } else {
+        ret = SDL_SetError("triangle area overflow");
+        goto end;
+    }
 
     if (blend != SDL_BLENDMODE_NONE || src->format->format != dst->format->format || has_modulation || !is_uniform) {
         /* Use SDL_BlitTriangle_Slow */
@@ -674,9 +697,18 @@ int SDL_SW_BlitTriangle(
         tmp_info.dst = dst_ptr;
         tmp_info.dst_pitch = dst_pitch;
 
-        SDL_BlitTriangle_Slow(&tmp_info, s2_x_area, dstrect, area, bias_w0, bias_w1, bias_w2,
+#define CHECK_INT_RANGE(X) \
+    if ((X) < INT_MIN || (X) > INT_MAX) { \
+        ret = SDL_SetError("integer overflow (%s = %" SDL_PRIs64 ")", #X, X); \
+        goto end; \
+    }
+        CHECK_INT_RANGE(area);
+        CHECK_INT_RANGE(w0_row);
+        CHECK_INT_RANGE(w1_row);
+        CHECK_INT_RANGE(w2_row);
+        SDL_BlitTriangle_Slow(&tmp_info, s2_x_area, dstrect, (int)area, bias_w0, bias_w1, bias_w2,
                               d2d1_y, d1d2_x, d0d2_y, d2d0_x, d1d0_y, d0d1_x,
-                              s2s0_x, s2s1_x, s2s0_y, s2s1_y, w0_row, w1_row, w2_row,
+                              s2s0_x, s2s1_x, s2s0_y, s2s1_y, (int)w0_row, (int)w1_row, (int)w2_row,
                               c0, c1, c2, is_uniform);
 
         goto end;
@@ -762,8 +794,8 @@ static void SDL_BlitTriangle_Slow(SDL_BlitInfo *info,
     Uint32 dstR, dstG, dstB, dstA;
     SDL_PixelFormat *src_fmt = info->src_fmt;
     SDL_PixelFormat *dst_fmt = info->dst_fmt;
-    int srcbpp = src_fmt->BytesPerPixel;
-    int dstbpp = dst_fmt->BytesPerPixel;
+    int srcbpp = src_fmt->bytes_per_pixel;
+    int dstbpp = dst_fmt->bytes_per_pixel;
     int srcfmt_val;
     int dstfmt_val;
     Uint32 rgbmask = ~src_fmt->Amask;
@@ -902,4 +934,4 @@ static void SDL_BlitTriangle_Slow(SDL_BlitInfo *info,
     TRIANGLE_END_LOOP
 }
 
-#endif /* SDL_VIDEO_RENDER_SW && !SDL_RENDER_DISABLED */
+#endif /* SDL_VIDEO_RENDER_SW */

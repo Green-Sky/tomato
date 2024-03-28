@@ -19,11 +19,9 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <math.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_test.h>
-#include <SDL3/SDL_test_common.h>
 
 #define WIDTH  1600
 #define HEIGHT 1200
@@ -152,13 +150,13 @@ static void DrawScreen(SDL_Renderer *renderer)
                            (color & 0x01) ? 0xff : 0,
                            (color & 0x02) ? 0xff : 0,
                            (color & 0x04) ? 0xff : 0,
-                           (int)(0xff * last_pressure));
+                           (Uint8)(0xff * last_pressure));
     /* Cone base width based on pressure: */
     SDL_RenderLine(renderer, X, Y, endx + (ydelta * last_pressure / 3.0f), endy - (xdelta * last_pressure / 3.0f));
     SDL_RenderLine(renderer, X, Y, endx - (ydelta * last_pressure / 3.0f), endy + (xdelta * last_pressure / 3.0f));
 
     /* If tilt is very small (or zero, for pens that don't have tilt), add some extra lines, rotated by the current rotation value */
-    if (ALWAYS_SHOW_PRESSURE_BOX || (fabs(tilt_vec_x) < 0.2f && fabs(tilt_vec_y) < 0.2f)) {
+    if (ALWAYS_SHOW_PRESSURE_BOX || (SDL_fabsf(tilt_vec_x) < 0.2f && SDL_fabsf(tilt_vec_y) < 0.2f)) {
         int rot;
         float pressure = last_pressure * 80.0f;
 
@@ -468,7 +466,7 @@ static void process_event(SDL_Event event)
         last_button = 0;
         last_touching = (ev->type != SDL_EVENT_FINGER_UP);
 #if VERBOSE
-        SDL_Log("[%lu] finger %s: %s (touchId: %" SDL_PRIs64 ", fingerId: %" SDL_PRIs64 ") at (%.4f, %.4f); pressure=%.3f\n",
+        SDL_Log("[%lu] finger %s: %s (touchId: %" SDL_PRIu64 ", fingerId: %" SDL_PRIu64 ") at (%.4f, %.4f); pressure=%.3f\n",
                 (unsigned long) ev->timestamp,
                 ev->type == SDL_EVENT_FINGER_DOWN ? "down" : (ev->type == SDL_EVENT_FINGER_MOTION ? "motion" : "up"),
                 SDL_GetTouchDeviceName(ev->touchId),
@@ -508,8 +506,6 @@ int main(int argc, char *argv[])
     if (!state) {
         return 1;
     }
-
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
 
     state->window_title = "Pressure-Sensitive Pen Test";
     state->window_w = WIDTH;

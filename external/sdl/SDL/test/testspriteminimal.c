@@ -11,15 +11,15 @@
 */
 /* Simple program:  Move N sprites around on the screen as fast as possible */
 
-#include <stdlib.h>
-#include <time.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
 #include <emscripten/emscripten.h>
 #endif
 
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "icon.h"
 
@@ -39,9 +39,9 @@ static int done;
 static SDL_Texture *CreateTexture(SDL_Renderer *r, unsigned char *data, unsigned int len, int *w, int *h) {
     SDL_Texture *texture = NULL;
     SDL_Surface *surface;
-    SDL_RWops *src = SDL_RWFromConstMem(data, len);
+    SDL_IOStream *src = SDL_IOFromConstMem(data, len);
     if (src) {
-        surface = SDL_LoadBMP_RW(src, SDL_TRUE);
+        surface = SDL_LoadBMP_IO(src, SDL_TRUE);
         if (surface) {
             /* Treat white as transparent */
             SDL_SetSurfaceColorKey(surface, SDL_TRUE, SDL_MapRGB(surface->format, 255, 255, 255));
@@ -100,7 +100,7 @@ static void loop(void)
         }
     }
     MoveSprites();
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     if (done) {
         emscripten_cancel_main_loop();
     }
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
     /* Main render loop */
     done = 0;
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop(loop, 0, 1);
 #else
     while (!done) {

@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\SDL3\SDL_begin_code.h" />
+    <ClInclude Include="..\include\SDL3\SDL_camera.h" />
     <ClInclude Include="..\include\SDL3\SDL_close_code.h" />
     <ClInclude Include="..\include\SDL3\SDL.h" />
     <ClInclude Include="..\include\SDL3\SDL_assert.h" />
@@ -77,19 +78,20 @@
     <ClInclude Include="..\include\SDL3\SDL_rect.h" />
     <ClInclude Include="..\include\SDL3\SDL_render.h" />
     <ClInclude Include="..\include\SDL3\SDL_revision.h" />
-    <ClInclude Include="..\include\SDL3\SDL_rwops.h" />
+    <ClInclude Include="..\include\SDL3\SDL_iostream.h" />
     <ClInclude Include="..\include\SDL3\SDL_scancode.h" />
     <ClInclude Include="..\include\SDL3\SDL_sensor.h" />
     <ClInclude Include="..\include\SDL3\SDL_stdinc.h" />
+    <ClInclude Include="..\include\SDL3\SDL_storage.h" />
     <ClInclude Include="..\include\SDL3\SDL_surface.h" />
     <ClInclude Include="..\include\SDL3\SDL_system.h" />
     <ClInclude Include="..\include\SDL3\SDL_thread.h" />
+    <ClInclude Include="..\include\SDL3\SDL_time.h" />
     <ClInclude Include="..\include\SDL3\SDL_timer.h" />
     <ClInclude Include="..\include\SDL3\SDL_touch.h" />
     <ClInclude Include="..\include\SDL3\SDL_types.h" />
     <ClInclude Include="..\include\SDL3\SDL_version.h" />
     <ClInclude Include="..\include\SDL3\SDL_video.h" />
-    <ClInclude Include="..\include\SDL3\SDL_video_capture.h" />
     <ClInclude Include="..\src\audio\disk\SDL_diskaudio.h" />
     <ClInclude Include="..\src\audio\dummy\SDL_dummyaudio.h" />
     <ClInclude Include="..\src\audio\SDL_audiodev_c.h" />
@@ -99,12 +101,15 @@
     <ClInclude Include="..\src\audio\SDL_audioresample.h" />
     <ClInclude Include="..\src\audio\SDL_wave.h" />
     <ClInclude Include="..\src\audio\wasapi\SDL_wasapi.h" />
+    <ClInclude Include="..\src\camera\SDL_camera_c.h" />
+    <ClInclude Include="..\src\camera\SDL_syscamera.h" />
     <ClInclude Include="..\src\core\windows\SDL_directx.h" />
     <ClInclude Include="..\src\core\windows\SDL_windows.h" />
     <ClInclude Include="..\src\core\windows\SDL_xinput.h" />
     <ClInclude Include="..\src\core\winrt\SDL_winrtapp_common.h" />
     <ClInclude Include="..\src\core\winrt\SDL_winrtapp_direct3d.h" />
     <ClInclude Include="..\src\core\winrt\SDL_winrtapp_xaml.h" />
+    <ClInclude Include="..\src\cpuinfo\SDL_cpuinfo_c.h" />
     <ClInclude Include="..\src\dynapi\SDL_dynapi.h" />
     <ClInclude Include="..\src\dynapi\SDL_dynapi_overrides.h" />
     <ClInclude Include="..\src\dynapi\SDL_dynapi_procs.h" />
@@ -118,11 +123,11 @@
     <ClInclude Include="..\src\events\SDL_mouse_c.h" />
     <ClInclude Include="..\src\events\SDL_touch_c.h" />
     <ClInclude Include="..\src\events\SDL_windowevents_c.h" />
+    <ClInclude Include="..\src\filesystem\SDL_sysfilesystem.h" />
     <ClInclude Include="..\src\haptic\SDL_haptic_c.h" />
     <ClInclude Include="..\src\haptic\SDL_syshaptic.h" />
     <ClInclude Include="..\src\haptic\windows\SDL_dinputhaptic_c.h" />
     <ClInclude Include="..\src\haptic\windows\SDL_windowshaptic_c.h" />
-    <ClInclude Include="..\src\haptic\windows\SDL_xinputhaptic_c.h" />
     <ClInclude Include="..\src\joystick\controller_type.h" />
     <ClInclude Include="..\src\joystick\SDL_gamepad_c.h" />
     <ClInclude Include="..\src\joystick\SDL_gamepad_db.h" />
@@ -190,6 +195,14 @@
     <ClInclude Include="..\src\video\winrt\SDL_winrtopengles.h" />
     <ClInclude Include="..\src\video\winrt\SDL_winrtvideo_cpp.h" />
     <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_common.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_internal.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_lsx.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_lsx_func.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_sse.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_sse_func.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_std.h" />
+    <ClInclude Include="..\src\video\yuv2rgb\yuv_rgb_std_func.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\atomic\SDL_atomic.c" />
@@ -252,6 +265,8 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</CompileAsWinRT>
     </ClCompile>
+    <ClCompile Include="..\src\camera\dummy\SDL_camera_dummy.c" />
+    <ClCompile Include="..\src\camera\SDL_camera.c" />
     <ClCompile Include="..\src\core\SDL_core_unsupported.c" />
     <ClCompile Include="..\src\core\SDL_runapp.c" />
     <ClCompile Include="..\src\core\windows\SDL_windows.c" />
@@ -321,12 +336,13 @@
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)$(TargetName)_cpp.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)$(TargetName)_cpp.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
-    <ClCompile Include="..\src\file\SDL_rwops.c" />
+    <ClCompile Include="..\src\file\SDL_iostream.c" />
+    <ClCompile Include="..\src\filesystem\SDL_filesystem.c" />
+    <ClCompile Include="..\src\filesystem\windows\SDL_sysfsops.c" />
     <ClCompile Include="..\src\haptic\dummy\SDL_syshaptic.c" />
     <ClCompile Include="..\src\haptic\SDL_haptic.c" />
     <ClCompile Include="..\src\haptic\windows\SDL_dinputhaptic.c" />
     <ClCompile Include="..\src\haptic\windows\SDL_windowshaptic.c" />
-    <ClCompile Include="..\src\haptic\windows\SDL_xinputhaptic.c" />
     <ClCompile Include="..\src\hidapi\SDL_hidapi.c" />
     <ClCompile Include="..\src\joystick\dummy\SDL_sysjoystick.c" />
     <ClCompile Include="..\src\joystick\controller_type.c" />
@@ -418,6 +434,9 @@
     <ClCompile Include="..\src\stdlib\SDL_getenv.c" />
     <ClCompile Include="..\src\stdlib\SDL_iconv.c" />
     <ClCompile Include="..\src\stdlib\SDL_malloc.c" />
+    <ClCompile Include="..\src\stdlib\SDL_memcpy.c" />
+    <ClCompile Include="..\src\stdlib\SDL_memmove.c" />
+    <ClCompile Include="..\src\stdlib\SDL_memset.c" />
     <ClCompile Include="..\src\stdlib\SDL_mslibc.c" />
     <MASM Condition="'$(Platform)'=='x64'" Include="..\src\stdlib\SDL_mslibc_x64.masm" >
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -426,6 +445,8 @@
     <ClCompile Include="..\src\stdlib\SDL_stdlib.c" />
     <ClCompile Include="..\src\stdlib\SDL_string.c" />
     <ClCompile Include="..\src\stdlib\SDL_strtokr.c" />
+    <ClCompile Include="..\src\storage\generic\SDL_genericstorage.c" />
+    <ClCompile Include="..\src\storage\SDL_storage.c" />
     <ClCompile Include="..\src\thread\generic\SDL_syssem.c" />
     <ClCompile Include="..\src\thread\SDL_thread.c" />
     <ClCompile Include="..\src\thread\stdcpp\SDL_syscond.cpp">
@@ -502,6 +523,8 @@
     </ClCompile>
     <ClCompile Include="..\src\timer\SDL_timer.c" />
     <ClCompile Include="..\src\timer\windows\SDL_systimer.c" />
+    <ClCompile Include="..\src\time\SDL_time.c" />
+    <ClCompile Include="..\src\time\windows\SDL_systime.c" />
     <ClCompile Include="..\src\video\dummy\SDL_nullevents.c" />
     <ClCompile Include="..\src\video\dummy\SDL_nullframebuffer.c" />
     <ClCompile Include="..\src\video\dummy\SDL_nullvideo.c" />
@@ -523,7 +546,6 @@
     <ClCompile Include="..\src\video\SDL_stretch.c" />
     <ClCompile Include="..\src\video\SDL_surface.c" />
     <ClCompile Include="..\src\video\SDL_video.c" />
-    <ClCompile Include="..\src\video\SDL_video_capture.c" />
     <ClCompile Include="..\src\video\SDL_video_unsupported.c" />
     <ClCompile Include="..\src\video\SDL_yuv.c" />
     <ClCompile Include="..\src\video\winrt\SDL_winrtevents.cpp">
@@ -614,7 +636,9 @@
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)$(TargetName)_cpp.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)$(TargetName)_cpp.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
-    <ClCompile Include="..\src\video\yuv2rgb\yuv_rgb.c" />
+    <ClCompile Include="..\src\video\yuv2rgb\yuv_rgb_lsx.c" />
+    <ClCompile Include="..\src\video\yuv2rgb\yuv_rgb_sse.c" />
+    <ClCompile Include="..\src\video\yuv2rgb\yuv_rgb_std.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{89e9b32e-a86a-47c3-a948-d2b1622925ce}</ProjectGuid>

@@ -63,13 +63,16 @@ typedef struct SDL_RenderViewState
 struct SDL_Texture
 {
     const void *magic;
-    Uint32 format;              /**< The pixel format of the texture */
+    SDL_Colorspace colorspace;  /**< The colorspace of the texture */
+    float SDR_white_point;      /**< The SDR white point for this content */
+    float HDR_headroom;         /**< The HDR headroom needed by this content */
+    SDL_PixelFormatEnum format; /**< The pixel format of the texture */
     int access;                 /**< SDL_TextureAccess */
     int w;                      /**< The width of the texture */
     int h;                      /**< The height of the texture */
     SDL_BlendMode blendMode;    /**< The texture blend mode */
     SDL_ScaleMode scaleMode;    /**< The texture scale mode */
-    SDL_Color color;            /**< Texture modulation values */
+    SDL_FColor color;           /**< Texture modulation values */
     SDL_RenderViewState view;   /**< Target texture view state */
 
     SDL_Renderer *renderer;
@@ -126,14 +129,16 @@ typedef struct SDL_RenderCommand
         {
             size_t first;
             size_t count;
-            Uint8 r, g, b, a;
+            float color_scale;
+            SDL_FColor color;
             SDL_BlendMode blend;
             SDL_Texture *texture;
         } draw;
         struct
         {
             size_t first;
-            Uint8 r, g, b, a;
+            float color_scale;
+            SDL_FColor color;
         } color;
     } data;
     struct SDL_RenderCommand *next;
@@ -142,7 +147,7 @@ typedef struct SDL_RenderCommand
 typedef struct SDL_VertexSolid
 {
     SDL_FPoint position;
-    SDL_Color color;
+    SDL_FColor color;
 } SDL_VertexSolid;
 
 typedef enum
@@ -173,9 +178,9 @@ struct SDL_Renderer
                      const SDL_FRect *srcrect, const SDL_FRect *dstrect);
     int (*QueueCopyEx)(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Texture *texture,
                        const SDL_FRect *srcquad, const SDL_FRect *dstrect,
-                       const double angle, const SDL_FPoint *center, const SDL_RendererFlip flip, float scale_x, float scale_y);
+                       const double angle, const SDL_FPoint *center, const SDL_FlipMode flip, float scale_x, float scale_y);
     int (*QueueGeometry)(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Texture *texture,
-                         const float *xy, int xy_stride, const SDL_Color *color, int color_stride, const float *uv, int uv_stride,
+                         const float *xy, int xy_stride, const SDL_FColor *color, int color_stride, const float *uv, int uv_stride,
                          int num_vertices, const void *indices, int num_indices, int size_indices,
                          float scale_x, float scale_y);
 
@@ -200,8 +205,7 @@ struct SDL_Renderer
     void (*UnlockTexture)(SDL_Renderer *renderer, SDL_Texture *texture);
     void (*SetTextureScaleMode)(SDL_Renderer *renderer, SDL_Texture *texture, SDL_ScaleMode scaleMode);
     int (*SetRenderTarget)(SDL_Renderer *renderer, SDL_Texture *texture);
-    int (*RenderReadPixels)(SDL_Renderer *renderer, const SDL_Rect *rect,
-                            Uint32 format, void *pixels, int pitch);
+    SDL_Surface *(*RenderReadPixels)(SDL_Renderer *renderer, const SDL_Rect *rect);
     int (*RenderPresent)(SDL_Renderer *renderer);
     void (*DestroyTexture)(SDL_Renderer *renderer, SDL_Texture *texture);
 
@@ -211,6 +215,8 @@ struct SDL_Renderer
 
     void *(*GetMetalLayer)(SDL_Renderer *renderer);
     void *(*GetMetalCommandEncoder)(SDL_Renderer *renderer);
+
+    int (*AddVulkanRenderSemaphores)(SDL_Renderer *renderer, Uint32 wait_stage_mask, Sint64 wait_semaphore, Sint64 signal_semaphore);
 
     /* The current renderer info */
     SDL_RendererInfo info;
@@ -249,24 +255,36 @@ struct SDL_Renderer
     SDL_Texture *target;
     SDL_Mutex *target_mutex;
 
-    SDL_Color color;         /**< Color for drawing operations values */
+    SDL_Colorspace output_colorspace;
+    float SDR_white_point;
+    float HDR_headroom;
+
+    float color_scale;
+    SDL_FColor color;        /**< Color for drawing operations values */
     SDL_BlendMode blendMode; /**< The drawing blend mode */
 
     SDL_RenderCommand *render_commands;
     SDL_RenderCommand *render_commands_tail;
     SDL_RenderCommand *render_commands_pool;
     Uint32 render_command_generation;
-    Uint32 last_queued_color;
+    SDL_FColor last_queued_color;
+    float last_queued_color_scale;
     SDL_Rect last_queued_viewport;
     SDL_Rect last_queued_cliprect;
     SDL_bool last_queued_cliprect_enabled;
     SDL_bool color_queued;
+    SDL_bool color_scale_queued;
     SDL_bool viewport_queued;
     SDL_bool cliprect_queued;
 
     void *vertex_data;
     size_t vertex_data_used;
     size_t vertex_data_allocation;
+
+    /* Shaped window support */
+    SDL_bool transparent_window;
+    SDL_Surface *shape_surface;
+    SDL_Texture *shape_texture;
 
     SDL_PropertiesID props;
 
@@ -289,10 +307,19 @@ extern SDL_RenderDriver D3D12_RenderDriver;
 extern SDL_RenderDriver GL_RenderDriver;
 extern SDL_RenderDriver GLES2_RenderDriver;
 extern SDL_RenderDriver METAL_RenderDriver;
+extern SDL_RenderDriver VULKAN_RenderDriver;
 extern SDL_RenderDriver PS2_RenderDriver;
 extern SDL_RenderDriver PSP_RenderDriver;
 extern SDL_RenderDriver SW_RenderDriver;
 extern SDL_RenderDriver VITA_GXM_RenderDriver;
+
+/* Setup colorspace conversion */
+extern void SDL_SetupRendererColorspace(SDL_Renderer *renderer, SDL_PropertiesID props);
+
+/* Colorspace conversion functions */
+extern SDL_bool SDL_RenderingLinearSpace(SDL_Renderer *renderer);
+extern void SDL_ConvertToLinear(SDL_FColor *color);
+extern void SDL_ConvertFromLinear(SDL_FColor *color);
 
 /* Blend mode functions */
 extern SDL_BlendFactor SDL_GetBlendModeSrcColorFactor(SDL_BlendMode blendMode);

@@ -17,12 +17,12 @@
 #include <SDL3/SDL_test.h>
 #include <SDL3/SDL_test_font.h>
 
-#include "gamepadutils.h"
-#include "testutils.h"
-
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
 #include <emscripten/emscripten.h>
 #endif
+
+#include "gamepadutils.h"
+#include "testutils.h"
 
 #if 0
 #define DEBUG_AXIS_MAPPING
@@ -35,7 +35,7 @@
 #define BUTTON_MARGIN 16
 #define BUTTON_PADDING 12
 #define GAMEPAD_WIDTH 512
-#define GAMEPAD_HEIGHT 480
+#define GAMEPAD_HEIGHT 560
 
 #define SCREEN_WIDTH  (PANEL_WIDTH + PANEL_SPACING + GAMEPAD_WIDTH + PANEL_SPACING + PANEL_WIDTH)
 #define SCREEN_HEIGHT (TITLE_HEIGHT + GAMEPAD_HEIGHT)
@@ -782,6 +782,12 @@ static const char *GetBindingInstruction(void)
         return "Press the lower paddle under your left hand";
     case SDL_GAMEPAD_BUTTON_TOUCHPAD:
         return "Press down on the touchpad";
+    case SDL_GAMEPAD_BUTTON_MISC2:
+    case SDL_GAMEPAD_BUTTON_MISC3:
+    case SDL_GAMEPAD_BUTTON_MISC4:
+    case SDL_GAMEPAD_BUTTON_MISC5:
+    case SDL_GAMEPAD_BUTTON_MISC6:
+        return "Press any additional button not already bound";
     case SDL_GAMEPAD_ELEMENT_AXIS_LEFTX_NEGATIVE:
         return "Move the left thumbstick to the left";
     case SDL_GAMEPAD_ELEMENT_AXIS_LEFTX_POSITIVE:
@@ -977,6 +983,7 @@ static void HandleGamepadAdded(SDL_JoystickID id, SDL_bool verbose)
     gamepad = controllers[i].gamepad;
     if (gamepad) {
         if (verbose) {
+            SDL_PropertiesID props = SDL_GetGamepadProperties(gamepad);
             const char *name = SDL_GetGamepadName(gamepad);
             const char *path = SDL_GetGamepadPath(gamepad);
             SDL_Log("Opened gamepad %s%s%s\n", name, path ? ", " : "", path ? path : "");
@@ -986,11 +993,15 @@ static void HandleGamepadAdded(SDL_JoystickID id, SDL_bool verbose)
                 SDL_Log("Firmware version: 0x%x (%d)\n", firmware_version, firmware_version);
             }
 
-            if (SDL_GamepadHasRumble(gamepad)) {
+            if (SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_PLAYER_LED_BOOLEAN, SDL_FALSE)) {
+                SDL_Log("Has player LED");
+            }
+
+            if (SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, SDL_FALSE)) {
                 SDL_Log("Rumble supported");
             }
 
-            if (SDL_GamepadHasRumbleTriggers(gamepad)) {
+            if (SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_TRIGGER_RUMBLE_BOOLEAN, SDL_FALSE)) {
                 SDL_Log("Trigger rumble supported");
             }
 
@@ -1318,7 +1329,7 @@ static void DrawGamepadInfo(SDL_Renderer *renderer)
     if (display_mode == CONTROLLER_MODE_TESTING) {
         Uint64 steam_handle = SDL_GetGamepadSteamHandle(controller->gamepad);
         if (steam_handle) {
-            SDL_snprintf(text, SDL_arraysize(text), "Steam: 0x%.16" SDL_PRIx64 "", steam_handle);
+            SDL_snprintf(text, SDL_arraysize(text), "Steam: 0x%.16" SDL_PRIx64, steam_handle);
             y = (float)SCREEN_HEIGHT - 2 * (8.0f + FONT_LINE_HEIGHT);
             x = (float)SCREEN_WIDTH - 8.0f - (FONT_CHARACTER_SIZE * SDL_strlen(text));
             SDLTest_DrawString(renderer, x, y, text);
@@ -1883,7 +1894,7 @@ static void loop(void *arg)
     SDL_Delay(16);
     SDL_RenderPresent(screen);
 
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     if (done) {
         emscripten_cancel_main_loop();
     }
@@ -1906,13 +1917,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STEAM, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ROG_CHAKRAM, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
-    SDL_SetHint(SDL_HINT_LINUX_JOYSTICK_DEADZONES, "1");
+    SDL_SetHint(SDL_HINT_JOYSTICK_LINUX_DEADZONES, "1");
 
     /* Enable standard application logging */
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -2090,7 +2100,7 @@ int main(int argc, char *argv[])
     }
 
     /* Loop, getting gamepad events! */
-#ifdef __EMSCRIPTEN__
+#ifdef SDL_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop_arg(loop, NULL, 0, 1);
 #else
     while (!done) {

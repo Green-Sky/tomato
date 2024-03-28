@@ -41,6 +41,11 @@ static void DUMMY_JoystickDetect(void)
 {
 }
 
+static SDL_bool DUMMY_JoystickIsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)
+{
+    return SDL_FALSE;
+}
+
 static const char *DUMMY_JoystickGetDeviceName(int device_index)
 {
     return NULL;
@@ -92,11 +97,6 @@ static int DUMMY_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumb
     return SDL_Unsupported();
 }
 
-static Uint32 DUMMY_JoystickGetCapabilities(SDL_Joystick *joystick)
-{
-    return 0;
-}
-
 static int DUMMY_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
 {
     return SDL_Unsupported();
@@ -133,6 +133,7 @@ SDL_JoystickDriver SDL_DUMMY_JoystickDriver = {
     DUMMY_JoystickInit,
     DUMMY_JoystickGetCount,
     DUMMY_JoystickDetect,
+    DUMMY_JoystickIsDevicePresent,
     DUMMY_JoystickGetDeviceName,
     DUMMY_JoystickGetDevicePath,
     DUMMY_JoystickGetDeviceSteamVirtualGamepadSlot,
@@ -143,7 +144,6 @@ SDL_JoystickDriver SDL_DUMMY_JoystickDriver = {
     DUMMY_JoystickOpen,
     DUMMY_JoystickRumble,
     DUMMY_JoystickRumbleTriggers,
-    DUMMY_JoystickGetCapabilities,
     DUMMY_JoystickSetLED,
     DUMMY_JoystickSendEffect,
     DUMMY_JoystickSetSensorsEnabled,

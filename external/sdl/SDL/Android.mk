@@ -24,6 +24,9 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/src/audio/openslES/*.c) \
 	$(LOCAL_PATH)/src/atomic/SDL_atomic.c.arm \
 	$(LOCAL_PATH)/src/atomic/SDL_spinlock.c.arm \
+	$(wildcard $(LOCAL_PATH)/src/camera/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/camera/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/camera/dummy/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/core/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/core/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/cpuinfo/*.c) \
@@ -41,11 +44,15 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/src/loadso/dlopen/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/locale/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/locale/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/main/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/main/generic/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/misc/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/misc/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/power/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/power/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/filesystem/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/filesystem/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/filesystem/posix/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/sensor/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/sensor/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/render/*.c) \
@@ -53,6 +60,8 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/src/stdlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/thread/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/thread/pthread/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/time/*.c) \
+	$(wildcard $(LOCAL_PATH)/src/time/unix/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/timer/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/timer/unix/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/video/*.c) \

@@ -52,7 +52,7 @@ struct SDL_WindowData
     HBITMAP hbm;
     WNDPROC wndproc;
     HHOOK keyboard_hook;
-    WPARAM mouse_button_flags;
+    Uint64 mouse_button_flags;
     LPARAM last_pointer_update;
     WCHAR high_surrogate;
     SDL_bool initializing;
@@ -67,13 +67,15 @@ struct SDL_WindowData
     SDL_bool windowed_mode_was_maximized;
     SDL_bool in_window_deactivation;
     RECT cursor_clipped_rect;
-#if !defined(__XBOXONE__) && !defined(__XBOXSERIES__)
-    RAWINPUT *rawinput;
+    UINT windowed_mode_corner_rounding;
+    COLORREF dwma_border_color;
+#if !defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)
+    BYTE *rawinput;
     UINT rawinput_offset;
     UINT rawinput_size;
     UINT rawinput_count;
     Uint64 last_rawinput_poll;
-#endif /*!defined(__XBOXONE__) && !defined(__XBOXSERIES__)*/
+#endif /*!defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)*/
     SDL_Point last_raw_mouse_position;
     SDL_bool mouse_tracked;
     SDL_bool destroy_parent_with_window;
@@ -109,9 +111,9 @@ extern void WIN_SetWindowAlwaysOnTop(SDL_VideoDevice *_this, SDL_Window *window,
 extern int WIN_SetWindowFullscreen(SDL_VideoDevice *_this, SDL_Window *window, SDL_VideoDisplay *display, SDL_bool fullscreen);
 extern void WIN_UpdateWindowICCProfile(SDL_Window *window, SDL_bool send_event);
 extern void *WIN_GetWindowICCProfile(SDL_VideoDevice *_this, SDL_Window *window, size_t *size);
-extern void WIN_SetWindowMouseRect(SDL_VideoDevice *_this, SDL_Window *window);
-extern void WIN_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed);
-extern void WIN_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed);
+extern int WIN_SetWindowMouseRect(SDL_VideoDevice *_this, SDL_Window *window);
+extern int WIN_SetWindowMouseGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed);
+extern int WIN_SetWindowKeyboardGrab(SDL_VideoDevice *_this, SDL_Window *window, SDL_bool grabbed);
 extern void WIN_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern void WIN_OnWindowEnter(SDL_VideoDevice *_this, SDL_Window *window);
 extern void WIN_UpdateClipCursor(SDL_Window *window);

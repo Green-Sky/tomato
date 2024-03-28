@@ -158,6 +158,8 @@ int SDL_AddTouch(SDL_TouchID touchID, SDL_TouchDeviceType type, const char *name
     SDL_Touch **touchDevices;
     int index;
 
+    SDL_assert(touchID != 0);
+
     index = SDL_GetTouchIndex(touchID);
     if (index >= 0) {
         return index;
@@ -195,6 +197,8 @@ int SDL_AddTouch(SDL_TouchID touchID, SDL_TouchDeviceType type, const char *name
 static int SDL_AddFinger(SDL_Touch *touch, SDL_FingerID fingerid, float x, float y, float pressure)
 {
     SDL_Finger *finger;
+
+    SDL_assert(fingerid != 0);
 
     if (touch->num_fingers == touch->max_fingers) {
         SDL_Finger **new_fingers;
@@ -251,7 +255,7 @@ int SDL_SendTouch(Uint64 timestamp, SDL_TouchID id, SDL_FingerID fingerid, SDL_W
     /* SDL_HINT_TOUCH_MOUSE_EVENTS: controlling whether touch events should generate synthetic mouse events */
     /* SDL_HINT_VITA_TOUCH_MOUSE_DEVICE: controlling which touchpad should generate synthetic mouse events, PSVita-only */
     {
-#ifdef __vita__
+#ifdef SDL_PLATFORM_VITA
         if (mouse->touch_mouse_events && ((mouse->vita_touch_mouse_device == id) || (mouse->vita_touch_mouse_device == 2))) {
 #else
         if (mouse->touch_mouse_events) {
@@ -275,7 +279,7 @@ int SDL_SendTouch(Uint64 timestamp, SDL_TouchID id, SDL_FingerID fingerid, SDL_W
                             if (pos_y > (float)(window->h - 1)) {
                                 pos_y = (float)(window->h - 1);
                             }
-                            SDL_SendMouseMotion(timestamp, window, SDL_TOUCH_MOUSEID, 0, pos_x, pos_y);
+                            SDL_SendMouseMotion(timestamp, window, SDL_TOUCH_MOUSEID, SDL_FALSE, pos_x, pos_y);
                             SDL_SendMouseButton(timestamp, window, SDL_TOUCH_MOUSEID, SDL_PRESSED, SDL_BUTTON_LEFT);
                         }
                     } else {
@@ -324,8 +328,8 @@ int SDL_SendTouch(Uint64 timestamp, SDL_TouchID id, SDL_FingerID fingerid, SDL_W
             SDL_Event event;
             event.type = SDL_EVENT_FINGER_DOWN;
             event.common.timestamp = timestamp;
-            event.tfinger.touchId = id;
-            event.tfinger.fingerId = fingerid;
+            event.tfinger.touchID = id;
+            event.tfinger.fingerID = fingerid;
             event.tfinger.x = x;
             event.tfinger.y = y;
             event.tfinger.dx = 0;
@@ -345,8 +349,8 @@ int SDL_SendTouch(Uint64 timestamp, SDL_TouchID id, SDL_FingerID fingerid, SDL_W
             SDL_Event event;
             event.type = SDL_EVENT_FINGER_UP;
             event.common.timestamp = timestamp;
-            event.tfinger.touchId = id;
-            event.tfinger.fingerId = fingerid;
+            event.tfinger.touchID = id;
+            event.tfinger.fingerID = fingerid;
             /* I don't trust the coordinates passed on fingerUp */
             event.tfinger.x = finger->x;
             event.tfinger.y = finger->y;
@@ -399,7 +403,7 @@ int SDL_SendTouchMotion(Uint64 timestamp, SDL_TouchID id, SDL_FingerID fingerid,
                         if (pos_y > (float)(window->h - 1)) {
                             pos_y = (float)(window->h - 1);
                         }
-                        SDL_SendMouseMotion(timestamp, window, SDL_TOUCH_MOUSEID, 0, pos_x, pos_y);
+                        SDL_SendMouseMotion(timestamp, window, SDL_TOUCH_MOUSEID, SDL_FALSE, pos_x, pos_y);
                     }
                 }
             }
@@ -442,8 +446,8 @@ int SDL_SendTouchMotion(Uint64 timestamp, SDL_TouchID id, SDL_FingerID fingerid,
         SDL_Event event;
         event.type = SDL_EVENT_FINGER_MOTION;
         event.common.timestamp = timestamp;
-        event.tfinger.touchId = id;
-        event.tfinger.fingerId = fingerid;
+        event.tfinger.touchID = id;
+        event.tfinger.fingerID = fingerid;
         event.tfinger.x = x;
         event.tfinger.y = y;
         event.tfinger.dx = xrel;
