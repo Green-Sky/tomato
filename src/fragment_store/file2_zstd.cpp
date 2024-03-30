@@ -52,7 +52,7 @@ bool File2ZSTDW::write(const ByteSpan data, int64_t pos) {
 		}
 
 		_real_file.write(ByteSpan{compressed_buffer.data(), output.pos});
-	} while (input.pos < input.size && remaining_ret != 0 && _real_file.isGood());
+	} while ((input.pos < input.size || remaining_ret != 0) && _real_file.isGood());
 
 	return _real_file.isGood();
 }
@@ -105,11 +105,11 @@ std::variant<ByteSpan, std::vector<uint8_t>> File2ZSTDR::read(uint64_t size, int
 			if (!feedInput(_real_file.read(request_size, -1))) {
 				return ret_data;
 			}
-			std::cout << "---- fed input " << _z_input.size << "bytes\n";
+
 			// if _z_input.size < _in_buffer.size() -> assume eof?
 			if (_z_input.size < request_size) {
 				eof = true;
-				std::cout << "---- eof\n";
+				//std::cout << "---- eof\n";
 			}
 		}
 
@@ -124,6 +124,12 @@ std::variant<ByteSpan, std::vector<uint8_t>> File2ZSTDR::read(uint64_t size, int
 
 			// no new decomp data?
 			if (output.pos == 0) {
+				if (ret != 0) {
+					// if not error and not 0, indicates that
+					// there is additional flushing needed
+					continue;
+				}
+
 				assert(eof || ret == 0);
 				break;
 			}
@@ -157,7 +163,6 @@ bool File2ZSTDR::feedInput(std::variant<ByteSpan, std::vector<uint8_t>>&& read_b
 	// TODO: optimize, we copy the buffer, but we might not need to
 	if (std::holds_alternative<ByteSpan>(read_buff)) {
 		const auto& span = std::get<ByteSpan>(read_buff);
-		std::cout << "---- feedInput got span " << span.size << "\n";
 		if (span.size > _in_buffer.size()) {
 			// error, how did we read more than we asked for??
 			return {};
@@ -176,7 +181,6 @@ bool File2ZSTDR::feedInput(std::variant<ByteSpan, std::vector<uint8_t>>&& read_b
 		}
 	} else if (std::holds_alternative<std::vector<uint8_t>>(read_buff)) {
 		auto& vec = std::get<std::vector<uint8_t>>(read_buff);
-		std::cout << "---- feedInput got vec " << vec.size() << "\n";
 		if (vec.size() > _in_buffer.size()) {
 			// error, how did we read more than we asked for??
 			return {};
