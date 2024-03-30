@@ -31,9 +31,6 @@ struct FragmentStore : public FragmentStoreI {
 	FragmentStore(void);
 	FragmentStore(std::array<uint8_t, 16> session_uuid_namespace);
 
-	// HACK: get access to the reg
-	FragmentHandle fragmentHandle(FragmentID fid);
-
 	// TODO: make the frags ref counted
 
 	// TODO: check for exising

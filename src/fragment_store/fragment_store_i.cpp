@@ -2,6 +2,14 @@
 
 #include <iostream>
 
+FragmentRegistry& FragmentStoreI::registry(void) {
+	return _reg;
+}
+
+FragmentHandle FragmentStoreI::fragmentHandle(const FragmentID fid) {
+	return {_reg, fid};
+}
+
 void FragmentStoreI::throwEventConstruct(const FragmentID fid) {
 	std::cout << "FSI debug: event construct " << entt::to_integral(fid) << "\n";
 	dispatch(

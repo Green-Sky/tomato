@@ -67,10 +67,6 @@ FragmentStore::FragmentStore(
 	registerSerializers();
 }
 
-FragmentHandle FragmentStore::fragmentHandle(FragmentID fid) {
-	return {_reg, fid};
-}
-
 std::vector<uint8_t> FragmentStore::generateNewUID(std::array<uint8_t, 16>& uuid_namespace) {
 	std::vector<uint8_t> new_uid(uuid_namespace.cbegin(), uuid_namespace.cend());
 	new_uid.resize(new_uid.size() + 16);

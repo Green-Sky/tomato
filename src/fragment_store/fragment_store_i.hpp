@@ -52,8 +52,12 @@ struct FragmentStoreI  : public FragmentStoreEventProviderI {
 
 	virtual ~FragmentStoreI(void) {}
 
+	FragmentRegistry& registry(void);
+	FragmentHandle fragmentHandle(const FragmentID fid);
+
 	void throwEventConstruct(const FragmentID fid);
 	void throwEventUpdate(const FragmentID fid);
+	// TODO
 	//void throwEventDestroy();
 };
 
