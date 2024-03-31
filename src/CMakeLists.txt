@@ -62,11 +62,11 @@ target_link_libraries(message_fragment_store PUBLIC
 
 ########################################
 
-add_executable(fragment_store_test
+add_executable(test_fragment_store
 	fragment_store/test_fragstore.cpp
 )
 
-target_link_libraries(fragment_store_test PUBLIC
+target_link_libraries(test_fragment_store PUBLIC
 	fragment_store
 )
 

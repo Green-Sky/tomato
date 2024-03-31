@@ -50,7 +50,7 @@ int main(void) {
 	{
 		auto frag1h = fs.fragmentHandle(frag1);
 
-		frag1h.emplace_or_replace<FragComp::DataCompressionType>();
+		frag1h.emplace_or_replace<FragComp::DataCompressionType>().comp = Compression::ZSTD;
 		frag1h.emplace_or_replace<FragComp::DataEncryptionType>();
 
 		std::function<FragmentStore::write_to_storage_fetch_data_cb> fn_cb = [read = 0ul](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {

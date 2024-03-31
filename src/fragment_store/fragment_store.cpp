@@ -8,6 +8,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <solanaceae/file/file2_std.hpp>
+#include "./file2_zstd.hpp"
+
 #include <zstd.h>
 
 #include <cstdint>
@@ -18,9 +21,12 @@
 #include <type_traits>
 #include <utility>
 #include <algorithm>
+#include <stack>
+#include <string_view>
+#include <vector>
+#include <variant>
 
 #include <iostream>
-#include <vector>
 
 static const char* metaFileTypeSuffix(MetaFileType mft) {
 	switch (mft) {
@@ -125,7 +131,7 @@ FragmentID FragmentStore::newFragmentFile(
 	_reg.emplace<FragComp::Ephemeral::MetaFileType>(new_frag, mft);
 
 	// meta needs to be synced to file
-	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](const uint8_t*, uint64_t) -> uint64_t { return 0; };
+	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](auto*, auto) -> uint64_t { return 0; };
 	if (!syncToStorage(new_frag, empty_data_cb)) {
 		std::cerr << "FS error: syncToStorage failed while creating new fragment file\n";
 		_reg.destroy(new_frag);
@@ -421,72 +427,102 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 
 	std::cout << "FS: loading fragment '" << frag_path << "'\n";
 
-	std::ifstream data_file{
-		frag_path,
-		std::ios::in | std::ios::binary // always binary, also for text
-	};
+	std::stack<std::unique_ptr<File2I>> data_file_stack;
+	data_file_stack.push(std::make_unique<File2RFile>(std::string_view{frag_path}));
 
-	if (!data_file.is_open()) {
+	//std::ifstream data_file{
+		//frag_path,
+		//std::ios::in | std::ios::binary // always binary, also for text
+	//};
+
+	if (!data_file_stack.top()->isGood()) {
 		std::cerr << "FS error: fragment data file failed to open '" << frag_path << "'\n";
 		// error
 		return false;
 	}
+
+	// TODO: decrypt here
 
 	Compression data_comp = Compression::NONE;
 	if (_reg.all_of<FragComp::DataCompressionType>(fid)) {
 		data_comp = _reg.get<FragComp::DataCompressionType>(fid).comp;
 	}
 
-	if (data_comp == Compression::NONE) {
-		std::array<uint8_t, 1024> buffer;
-		uint64_t buffer_actual_size {0};
-		do {
-			data_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-			buffer_actual_size = data_file.gcount();
-
-			if (buffer_actual_size == 0) {
-				break;
-			}
-
-			data_cb(buffer.data(), buffer_actual_size);
-		} while (buffer_actual_size == buffer.size() && !data_file.eof());
-	} else if (data_comp == Compression::ZSTD) {
-		std::vector<uint8_t> in_buffer(ZSTD_DStreamInSize());
-		std::vector<uint8_t> out_buffer(ZSTD_DStreamOutSize());
-		std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> dctx{ZSTD_createDCtx(), &ZSTD_freeDCtx};
-
-		uint64_t buffer_actual_size {0};
-		do {
-			data_file.read(reinterpret_cast<char*>(in_buffer.data()), in_buffer.size());
-			buffer_actual_size = data_file.gcount();
-			if (buffer_actual_size == 0) {
-				break;
-			}
-
-			ZSTD_inBuffer input {in_buffer.data(), buffer_actual_size, 0 };
-			do {
-				ZSTD_outBuffer output = { out_buffer.data(), out_buffer.size(), 0 };
-				size_t const ret = ZSTD_decompressStream(dctx.get(), &output , &input);
-				if (ZSTD_isError(ret)) {
-					// error <.<
-					std::cerr << "FS error: decompression error\n";
-					break;
-				}
-
-				data_cb(out_buffer.data(), output.pos);
-			} while (input.pos < input.size);
-		} while (buffer_actual_size == in_buffer.size() && !data_file.eof());
+	// add layer based on enum
+	if (data_comp == Compression::ZSTD) {
+		data_file_stack.push(std::make_unique<File2ZSTDR>(*data_file_stack.top().get()));
+		if (!data_file_stack.top()->isGood()) {
+			std::cerr << "FS error: fragment data file failed to add zstd decompression layer '" << frag_path << "'\n";
+			// error
+			return false;
+		}
 	} else {
-		assert(false && "implement me");
+		assert(data_comp == Compression::NONE);
 	}
+
+	//if (data_comp == Compression::NONE) {
+	static constexpr int64_t chunk_size {1024 * 1024};
+	do {
+		auto data_var = data_file_stack.top()->read(chunk_size);
+		ByteSpan data;
+		if (std::holds_alternative<std::vector<uint8_t>>(data_var)) {
+			auto& vec = std::get<std::vector<uint8_t>>(data_var);
+			data = {vec.data(), vec.size()};
+		} else if (std::holds_alternative<ByteSpan>(data_var)) {
+			data = std::get<ByteSpan>(data_var);
+		} else {
+			assert(false);
+		}
+
+		if (data.empty()) {
+			// error or probably eof
+			break;
+		}
+
+		data_cb(data);
+
+		if (data.size < chunk_size) {
+			// eof
+			break;
+		}
+	} while (data_file_stack.top()->isGood());
+	//} else if (data_comp == Compression::ZSTD) {
+		//std::vector<uint8_t> in_buffer(ZSTD_DStreamInSize());
+		//std::vector<uint8_t> out_buffer(ZSTD_DStreamOutSize());
+		//std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> dctx{ZSTD_createDCtx(), &ZSTD_freeDCtx};
+
+		//uint64_t buffer_actual_size {0};
+		//do {
+			//data_file.read(reinterpret_cast<char*>(in_buffer.data()), in_buffer.size());
+			//buffer_actual_size = data_file.gcount();
+			//if (buffer_actual_size == 0) {
+				//break;
+			//}
+
+			//ZSTD_inBuffer input {in_buffer.data(), buffer_actual_size, 0 };
+			//do {
+				//ZSTD_outBuffer output = { out_buffer.data(), out_buffer.size(), 0 };
+				//size_t const ret = ZSTD_decompressStream(dctx.get(), &output , &input);
+				//if (ZSTD_isError(ret)) {
+					//// error <.<
+					//std::cerr << "FS error: decompression error\n";
+					//break;
+				//}
+
+				//data_cb(out_buffer.data(), output.pos);
+			//} while (input.pos < input.size);
+		//} while (buffer_actual_size == in_buffer.size() && !data_file.eof());
+	//} else {
+		//assert(false && "implement me");
+	//}
 
 	return true;
 }
 
 nlohmann::json FragmentStore::loadFromStorageNJ(FragmentID fid) {
 	std::vector<uint8_t> tmp_buffer;
-	std::function<read_from_storage_put_data_cb> cb = [&tmp_buffer](const uint8_t* buffer, const uint64_t buffer_size) {
-		tmp_buffer.insert(tmp_buffer.end(), buffer, buffer+buffer_size);
+	std::function<read_from_storage_put_data_cb> cb = [&tmp_buffer](const ByteSpan buffer) {
+		tmp_buffer.insert(tmp_buffer.end(), buffer.cbegin(), buffer.cend());
 	};
 
 	if (!loadFromStorage(fid, cb)) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <solanaceae/util/span.hpp>
+
 #include "./fragment_store_i.hpp"
 
 #include "./types.hpp"
@@ -80,7 +82,7 @@ struct FragmentStore : public FragmentStoreI {
 	bool syncToStorage(FragmentID fid, const uint8_t* data, const uint64_t data_size);
 
 	// ========== load fragment data from storage ==========
-	using read_from_storage_put_data_cb = void(const uint8_t* buffer, const uint64_t buffer_size);
+	using read_from_storage_put_data_cb = void(const ByteSpan buffer);
 	bool loadFromStorage(FragmentID fid, std::function<read_from_storage_put_data_cb>& data_cb);
 	// convenience function
 	nlohmann::json loadFromStorageNJ(FragmentID fid);
