@@ -7,6 +7,8 @@
 
 #include "./serializer.hpp"
 
+#include "./uuid_generator.hpp"
+
 #include <entt/core/type_info.hpp>
 #include <entt/entity/registry.hpp>
 
@@ -18,8 +20,7 @@
 #include <random>
 
 struct FragmentStore : public FragmentStoreI {
-	std::minstd_rand _rng{std::random_device{}()};
-	std::array<uint8_t, 16> _session_uuid_namespace;
+	UUIDGenerator_128_128 _session_uuid_gen;
 
 	std::string _default_store_path;
 
@@ -34,7 +35,6 @@ struct FragmentStore : public FragmentStoreI {
 	// TODO: make the frags ref counted
 
 	// TODO: check for exising
-	std::vector<uint8_t> generateNewUID(std::array<uint8_t, 16>& uuid_namespace);
 	std::vector<uint8_t> generateNewUID(void);
 
 	// ========== new fragment ==========

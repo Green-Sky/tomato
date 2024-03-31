@@ -4,6 +4,9 @@ add_library(fragment_store
 	./fragment_store/file2_zstd.hpp
 	./fragment_store/file2_zstd.cpp
 
+	./fragment_store/uuid_generator.hpp
+	./fragment_store/uuid_generator.cpp
+
 	./fragment_store/fragment_store_i.hpp
 	./fragment_store/fragment_store_i.cpp
 	./fragment_store/types.hpp
