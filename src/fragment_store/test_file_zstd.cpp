@@ -45,7 +45,7 @@ int main(void) {
 
 	const auto test1_file_path = temp_dir / "testfile1.zstd";
 	{ // simple write test
-		File2WFile f_w_file{test1_file_path.c_str(), true};
+		File2WFile f_w_file{std::string_view{test1_file_path.u8string()}, true};
 		assert(f_w_file.isGood());
 
 		File2ZSTDW f_w_zstd{f_w_file};
@@ -75,7 +75,7 @@ int main(void) {
 	assert(std::filesystem::file_size(test1_file_path) != 0);
 
 	{ // simple read test (using write test created file)
-		File2RFile f_r_file{test1_file_path.c_str()};
+		File2RFile f_r_file{std::string_view{test1_file_path.u8string()}};
 		assert(f_r_file.isGood());
 
 		File2ZSTDR f_r_zstd{f_r_file};
@@ -156,7 +156,7 @@ int main(void) {
 			{ // write
 				std::minstd_rand rng_data{11*1337};
 
-				File2WFile f_w_file{test2_file_path.c_str(), true};
+				File2WFile f_w_file{std::string_view{test2_file_path.u8string()}, true};
 				assert(f_w_file.isGood());
 
 				File2ZSTDW f_w_zstd{f_w_file};
@@ -178,7 +178,7 @@ int main(void) {
 			{ // read
 				std::minstd_rand rng_data{11*1337};
 
-				File2RFile f_r_file{test2_file_path.c_str()};
+				File2RFile f_r_file{std::string_view{test2_file_path.u8string()}};
 				assert(f_r_file.isGood());
 
 				File2ZSTDR f_r_zstd{f_r_file};
@@ -217,7 +217,7 @@ int main(void) {
 
 	const auto test3_file_path = temp_dir / "testfile3.zstd";
 	{ // large file test write
-		File2WFile f_w_file{test3_file_path.c_str(), true};
+		File2WFile f_w_file{std::string_view{test3_file_path.u8string()}, true};
 		assert(f_w_file.isGood());
 
 		File2ZSTDW f_w_zstd{f_w_file};
@@ -249,7 +249,7 @@ int main(void) {
 	std::cout << "t3 size on disk:   " << std::filesystem::file_size(test3_file_path) << "\n";
 
 	{ // large file test read
-		File2RFile f_r_file{test3_file_path.c_str()};
+		File2RFile f_r_file{std::string_view{test3_file_path.u8string()}};
 		assert(f_r_file.isGood());
 
 		File2ZSTDR f_r_zstd{f_r_file};

@@ -91,7 +91,7 @@ std::variant<ByteSpan, std::vector<uint8_t>> File2ZSTDR::read(uint64_t size, int
 
 	// actually first we check previous data
 	if (!_decompressed_buffer.empty()) {
-		uint64_t required_size = std::min(size, _decompressed_buffer.size());
+		uint64_t required_size = std::min<uint64_t>(size, _decompressed_buffer.size());
 		ret_data.insert(ret_data.end(), _decompressed_buffer.cbegin(), _decompressed_buffer.cbegin() + required_size);
 		_decompressed_buffer.erase(_decompressed_buffer.cbegin(), _decompressed_buffer.cbegin() + required_size);
 	}
