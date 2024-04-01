@@ -722,7 +722,7 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 				file.read(reinterpret_cast<char*>(full_meta_data.data()), full_meta_data.size());
 			}
 
-			const auto meta_header_j = nlohmann::json::from_msgpack(full_meta_data);
+			const auto meta_header_j = nlohmann::json::from_msgpack(full_meta_data, true, false);
 
 			if (!meta_header_j.is_array() || meta_header_j.size() < 4) {
 				std::cerr << "FS error: broken binary meta " << it.frag_path << "\n";
@@ -780,9 +780,9 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 			// TODO: enc
 
 			if (!meta_data_decomp.empty()) {
-				j = nlohmann::json::from_msgpack(meta_data_decomp);
+				j = nlohmann::json::from_msgpack(meta_data_decomp, true, false);
 			} else {
-				j = nlohmann::json::from_msgpack(meta_data_ref);
+				j = nlohmann::json::from_msgpack(meta_data_ref, true, false);
 			}
 		} else if (it.meta_ext == ".meta.json") {
 			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
