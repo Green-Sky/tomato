@@ -430,14 +430,8 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 	std::stack<std::unique_ptr<File2I>> data_file_stack;
 	data_file_stack.push(std::make_unique<File2RFile>(std::string_view{frag_path}));
 
-	//std::ifstream data_file{
-		//frag_path,
-		//std::ios::in | std::ios::binary // always binary, also for text
-	//};
-
 	if (!data_file_stack.top()->isGood()) {
 		std::cerr << "FS error: fragment data file failed to open '" << frag_path << "'\n";
-		// error
 		return false;
 	}
 
@@ -453,15 +447,14 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 		data_file_stack.push(std::make_unique<File2ZSTDR>(*data_file_stack.top().get()));
 		if (!data_file_stack.top()->isGood()) {
 			std::cerr << "FS error: fragment data file failed to add zstd decompression layer '" << frag_path << "'\n";
-			// error
 			return false;
 		}
 	} else {
 		assert(data_comp == Compression::NONE);
 	}
 
-	//if (data_comp == Compression::NONE) {
-	static constexpr int64_t chunk_size {1024 * 1024};
+	// TODO: make it read in a single chunk instead?
+	static constexpr int64_t chunk_size {1024 * 1024}; // 1MiB should be good for read
 	do {
 		auto data_var = data_file_stack.top()->read(chunk_size);
 		ByteSpan data;
@@ -486,35 +479,6 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 			break;
 		}
 	} while (data_file_stack.top()->isGood());
-	//} else if (data_comp == Compression::ZSTD) {
-		//std::vector<uint8_t> in_buffer(ZSTD_DStreamInSize());
-		//std::vector<uint8_t> out_buffer(ZSTD_DStreamOutSize());
-		//std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> dctx{ZSTD_createDCtx(), &ZSTD_freeDCtx};
-
-		//uint64_t buffer_actual_size {0};
-		//do {
-			//data_file.read(reinterpret_cast<char*>(in_buffer.data()), in_buffer.size());
-			//buffer_actual_size = data_file.gcount();
-			//if (buffer_actual_size == 0) {
-				//break;
-			//}
-
-			//ZSTD_inBuffer input {in_buffer.data(), buffer_actual_size, 0 };
-			//do {
-				//ZSTD_outBuffer output = { out_buffer.data(), out_buffer.size(), 0 };
-				//size_t const ret = ZSTD_decompressStream(dctx.get(), &output , &input);
-				//if (ZSTD_isError(ret)) {
-					//// error <.<
-					//std::cerr << "FS error: decompression error\n";
-					//break;
-				//}
-
-				//data_cb(out_buffer.data(), output.pos);
-			//} while (input.pos < input.size);
-		//} while (buffer_actual_size == in_buffer.size() && !data_file.eof());
-	//} else {
-		//assert(false && "implement me");
-	//}
 
 	return true;
 }
