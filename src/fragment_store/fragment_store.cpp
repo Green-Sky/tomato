@@ -50,6 +50,63 @@ static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>&
 	}
 }
 
+// TODO: these stacks are file specific
+static std::stack<std::unique_ptr<File2I>> buildFileStackRead(std::string_view file_path, Encryption encryption, Compression compression) {
+	std::stack<std::unique_ptr<File2I>> file_stack;
+	file_stack.push(std::make_unique<File2RFile>(file_path));
+
+	if (!file_stack.top()->isGood()) {
+		std::cerr << "FS error: opening file for reading '" << file_path << "'\n";
+		return {};
+	}
+
+	// TODO: decrypt here
+	assert(encryption == Encryption::NONE);
+
+	// add layer based on enum
+	if (compression == Compression::ZSTD) {
+		file_stack.push(std::make_unique<File2ZSTDR>(*file_stack.top().get()));
+	} else {
+		// TODO: make error instead
+		assert(compression == Compression::NONE);
+	}
+
+	if (!file_stack.top()->isGood()) {
+		std::cerr << "FS error: file failed to add " << (int)compression << " decompression layer '" << file_path << "'\n";
+		return {};
+	}
+
+	return file_stack;
+}
+
+static std::stack<std::unique_ptr<File2I>> buildFileStackWrite(std::string_view file_path, Encryption encryption, Compression compression) {
+	std::stack<std::unique_ptr<File2I>> file_stack;
+	file_stack.push(std::make_unique<File2WFile>(file_path));
+
+	if (!file_stack.top()->isGood()) {
+		std::cerr << "FS error: opening file for writing '" << file_path << "'\n";
+		return {};
+	}
+
+	// TODO: decrypt here
+	assert(encryption == Encryption::NONE);
+
+	// add layer based on enum
+	if (compression == Compression::ZSTD) {
+		file_stack.push(std::make_unique<File2ZSTDW>(*file_stack.top().get()));
+	} else {
+		// TODO: make error instead
+		assert(compression == Compression::NONE);
+	}
+
+	if (!file_stack.top()->isGood()) {
+		std::cerr << "FS error: file failed to add " << (int)compression << " compression layer '" << file_path << "'\n";
+		return {};
+	}
+
+	return file_stack;
+}
+
 FragmentStore::FragmentStore(void) {
 	registerSerializers();
 }
@@ -227,13 +284,12 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 
 	std::filesystem::path meta_tmp_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type) + ".tmp";
 	meta_tmp_path.replace_filename("." + meta_tmp_path.filename().generic_u8string());
-	std::ofstream meta_file{
-		meta_tmp_path,
-		std::ios::out | std::ios::trunc | std::ios::binary // always binary, also for text
-	};
+	auto meta_file_stack = buildFileStackWrite(std::string_view{meta_tmp_path.generic_u8string()}, meta_enc, meta_comp);
+	//meta_file_stack.push(std::make_unique<File2WFile>(std::string_view{meta_tmp_path.generic_u8string()}, true));
 
-	if (!meta_file.is_open()) {
-		std::cerr << "FS error: failed to create temporary meta file\n";
+	if (meta_file_stack.empty()) {
+		std::cerr << "FS error: failed to create temporary meta file stack\n";
+		std::filesystem::remove(meta_tmp_path); // might have created an empty file
 		return false;
 	}
 
@@ -250,7 +306,8 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	};
 
 	if (!data_file.is_open()) {
-		meta_file.close();
+		//meta_file.close();
+		while (!meta_file_stack.empty()) { meta_file_stack.pop(); }
 		std::filesystem::remove(meta_tmp_path);
 		std::cerr << "FS error: failed to create temporary data file\n";
 		return false;
@@ -320,10 +377,12 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		}
 
 		const auto meta_header_data = nlohmann::json::to_msgpack(meta_header_j);
-		meta_file.write(reinterpret_cast<const char*>(meta_header_data.data()), meta_header_data.size());
+		//meta_file.write(reinterpret_cast<const char*>(meta_header_data.data()), meta_header_data.size());
+		meta_file_stack.top()->write({meta_header_data.data(), meta_header_data.size()});
 	} else if (meta_type == MetaFileType::TEXT_JSON) {
 		// cant be compressed or encrypted
-		meta_file << meta_data_j.dump(2, ' ', true);
+		const auto meta_file_json_str = meta_data_j.dump(2, ' ', true);
+		meta_file_stack.top()->write({reinterpret_cast<const uint8_t*>(meta_file_json_str.data()), meta_file_json_str.size()});
 	}
 
 	// now data
@@ -385,8 +444,9 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		assert(false && "implement me");
 	}
 
-	meta_file.flush();
-	meta_file.close();
+	//meta_file.flush();
+	//meta_file.close();
+	while (!meta_file_stack.empty()) { meta_file_stack.pop(); } // destroy stack // TODO: maybe work with scope?
 	data_file.flush();
 	data_file.close();
 
@@ -440,31 +500,36 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 
 	std::cout << "FS: loading fragment '" << frag_path << "'\n";
 
-	std::stack<std::unique_ptr<File2I>> data_file_stack;
-	data_file_stack.push(std::make_unique<File2RFile>(std::string_view{frag_path}));
-
-	if (!data_file_stack.top()->isGood()) {
-		std::cerr << "FS error: fragment data file failed to open '" << frag_path << "'\n";
-		return false;
-	}
-
-	// TODO: decrypt here
-
 	Compression data_comp = Compression::NONE;
 	if (_reg.all_of<FragComp::DataCompressionType>(fid)) {
 		data_comp = _reg.get<FragComp::DataCompressionType>(fid).comp;
 	}
 
-	// add layer based on enum
-	if (data_comp == Compression::ZSTD) {
-		data_file_stack.push(std::make_unique<File2ZSTDR>(*data_file_stack.top().get()));
-	} else {
-		// TODO: make error instead
-		assert(data_comp == Compression::NONE);
-	}
+	//std::stack<std::unique_ptr<File2I>> data_file_stack;
+	//data_file_stack.push(std::make_unique<File2RFile>(std::string_view{frag_path}));
 
-	if (!data_file_stack.top()->isGood()) {
-		std::cerr << "FS error: fragment data file failed to add " << (int)data_comp << " decompression layer '" << frag_path << "'\n";
+	//if (!data_file_stack.top()->isGood()) {
+		//std::cerr << "FS error: fragment data file failed to open '" << frag_path << "'\n";
+		//return false;
+	//}
+
+	//// TODO: decrypt here
+
+
+	//// add layer based on enum
+	//if (data_comp == Compression::ZSTD) {
+		//data_file_stack.push(std::make_unique<File2ZSTDR>(*data_file_stack.top().get()));
+	//} else {
+		//// TODO: make error instead
+		//assert(data_comp == Compression::NONE);
+	//}
+
+	//if (!data_file_stack.top()->isGood()) {
+		//std::cerr << "FS error: fragment data file failed to add " << (int)data_comp << " decompression layer '" << frag_path << "'\n";
+		//return false;
+	//}
+	auto data_file_stack = buildFileStackRead(std::string_view{frag_path}, Encryption::NONE, data_comp);
+	if (data_file_stack.empty()) {
 		return false;
 	}
 
