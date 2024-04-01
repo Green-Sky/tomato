@@ -37,6 +37,19 @@ static const char* metaFileTypeSuffix(MetaFileType mft) {
 	return ""; // .unk?
 }
 
+// TODO: move to ... somewhere. (span? file2i?)
+static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>& data_var) {
+	if (std::holds_alternative<std::vector<uint8_t>>(data_var)) {
+		auto& vec = std::get<std::vector<uint8_t>>(data_var);
+		return {vec.data(), vec.size()};
+	} else if (std::holds_alternative<ByteSpan>(data_var)) {
+		return std::get<ByteSpan>(data_var);
+	} else {
+		assert(false);
+		return {};
+	}
+}
+
 FragmentStore::FragmentStore(void) {
 	registerSerializers();
 }
@@ -445,27 +458,21 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 	// add layer based on enum
 	if (data_comp == Compression::ZSTD) {
 		data_file_stack.push(std::make_unique<File2ZSTDR>(*data_file_stack.top().get()));
-		if (!data_file_stack.top()->isGood()) {
-			std::cerr << "FS error: fragment data file failed to add zstd decompression layer '" << frag_path << "'\n";
-			return false;
-		}
 	} else {
+		// TODO: make error instead
 		assert(data_comp == Compression::NONE);
+	}
+
+	if (!data_file_stack.top()->isGood()) {
+		std::cerr << "FS error: fragment data file failed to add " << (int)data_comp << " decompression layer '" << frag_path << "'\n";
+		return false;
 	}
 
 	// TODO: make it read in a single chunk instead?
 	static constexpr int64_t chunk_size {1024 * 1024}; // 1MiB should be good for read
 	do {
 		auto data_var = data_file_stack.top()->read(chunk_size);
-		ByteSpan data;
-		if (std::holds_alternative<std::vector<uint8_t>>(data_var)) {
-			auto& vec = std::get<std::vector<uint8_t>>(data_var);
-			data = {vec.data(), vec.size()};
-		} else if (std::holds_alternative<ByteSpan>(data_var)) {
-			data = std::get<ByteSpan>(data_var);
-		} else {
-			assert(false);
-		}
+		ByteSpan data = spanFromRead(data_var);
 
 		if (data.empty()) {
 			// error or probably eof
