@@ -15,7 +15,7 @@ struct File2ZSTDW : public File2I {
 	std::unique_ptr<ZSTD_CCtx, decltype(&ZSTD_freeCCtx)> _cctx{ZSTD_createCCtx(), &ZSTD_freeCCtx};
 
 	File2ZSTDW(File2I& real);
-	virtual ~File2ZSTDW(void) {}
+	virtual ~File2ZSTDW(void);
 
 	bool isGood(void) override;
 

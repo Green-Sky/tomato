@@ -15,6 +15,11 @@ File2ZSTDW::File2ZSTDW(File2I& real) :
 	ZSTD_CCtx_setParameter(_cctx.get(), ZSTD_c_checksumFlag, 1); // add extra checksums (to frames?)
 }
 
+File2ZSTDW::~File2ZSTDW(void) {
+	// flush remaining data (and maybe header)
+	// actually nvm, write will always flush all data, so only on empty files this would be an issue
+}
+
 bool File2ZSTDW::isGood(void) {
 	return _real_file.isGood();
 }
