@@ -283,11 +283,6 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	std::stack<std::unique_ptr<File2I>> meta_file_stack;
 	meta_file_stack.push(std::make_unique<File2WFile>(std::string_view{meta_tmp_path.generic_u8string()}));
 
-	if (!meta_file_stack.top()->isGood()) {
-		std::cerr << "FS error: opening file for writing '" << meta_tmp_path << "'\n";
-		return {};
-	}
-
 	if (meta_file_stack.empty()) {
 		std::cerr << "FS error: failed to create temporary meta file stack\n";
 		std::filesystem::remove(meta_tmp_path); // might have created an empty file
@@ -306,10 +301,10 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	std::filesystem::path data_tmp_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".tmp";
 	data_tmp_path.replace_filename("." + data_tmp_path.filename().generic_u8string());
 	auto data_file_stack = buildFileStackWrite(std::string_view{data_tmp_path.generic_u8string()}, data_enc, data_comp);
-	if (!data_file_stack.empty()) {
+	if (data_file_stack.empty()) {
 		while (!meta_file_stack.empty()) { meta_file_stack.pop(); }
 		std::filesystem::remove(meta_tmp_path);
-		std::cerr << "FS error: failed to create temporary data file\n";
+		std::cerr << "FS error: failed to create temporary data file stack\n";
 		return false;
 	}
 
@@ -389,7 +384,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	//if (data_comp == Compression::NONE) {
 		// for zstd compression, chunk size is frame size. (no cross frame referencing)
 		static constexpr int64_t chunk_size{1024*1024*10};
-		std::array<uint8_t, chunk_size> buffer;
+		std::vector<uint8_t> buffer(chunk_size);
 		uint64_t buffer_actual_size {0};
 		do {
 			buffer_actual_size = data_cb(buffer.data(), buffer.size());
