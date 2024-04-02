@@ -381,65 +381,22 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	}
 
 	// now data
-	//if (data_comp == Compression::NONE) {
-		// for zstd compression, chunk size is frame size. (no cross frame referencing)
-		static constexpr int64_t chunk_size{1024*1024*10};
-		std::vector<uint8_t> buffer(chunk_size);
-		uint64_t buffer_actual_size {0};
-		do {
-			buffer_actual_size = data_cb(buffer.data(), buffer.size());
-			if (buffer_actual_size == 0) {
-				break;
-			}
-			if (buffer_actual_size > buffer.size()) {
-				// wtf
-				break;
-			}
+	// for zstd compression, chunk size is frame size. (no cross frame referencing)
+	static constexpr int64_t chunk_size{1024*1024}; // 1MiB should be enough
+	std::vector<uint8_t> buffer(chunk_size);
+	uint64_t buffer_actual_size {0};
+	do {
+		buffer_actual_size = data_cb(buffer.data(), buffer.size());
+		if (buffer_actual_size == 0) {
+			break;
+		}
+		if (buffer_actual_size > buffer.size()) {
+			// wtf
+			break;
+		}
 
-			data_file_stack.top()->write({buffer.data(), buffer_actual_size});
-		} while (buffer_actual_size == buffer.size());
-	//} else if (data_comp == Compression::ZSTD) {
-		//std::vector<uint8_t> buffer(ZSTD_CStreamInSize());
-		//std::vector<uint8_t> compressed_buffer(ZSTD_CStreamOutSize());
-		//uint64_t buffer_actual_size {0};
-
-		//std::unique_ptr<ZSTD_CCtx, decltype(&ZSTD_freeCCtx)> cctx{ZSTD_createCCtx(), &ZSTD_freeCCtx};
-		//ZSTD_CCtx_setParameter(cctx.get(), ZSTD_c_compressionLevel, 0); // default (3)
-		//ZSTD_CCtx_setParameter(cctx.get(), ZSTD_c_checksumFlag, 1); // add extra checksums (to frames?)
-		//do {
-			//buffer_actual_size = data_cb(buffer.data(), buffer.size());
-			////if (buffer_actual_size == 0) {
-				////break;
-			////}
-			//if (buffer_actual_size > buffer.size()) {
-				//// wtf
-				//break;
-			//}
-			//bool const lastChunk = (buffer_actual_size < buffer.size());
-
-			//ZSTD_EndDirective const mode = lastChunk ? ZSTD_e_end : ZSTD_e_continue;
-			//ZSTD_inBuffer input = { buffer.data(), buffer_actual_size, 0 };
-
-			//while (input.pos < input.size) {
-				//ZSTD_outBuffer output = { compressed_buffer.data(), compressed_buffer.size(), 0 };
-
-				//size_t const remaining = ZSTD_compressStream2(cctx.get(), &output , &input, mode);
-				//if (ZSTD_isError(remaining)) {
-					//std::cerr << "FS error: compressing data failed\n";
-					//break;
-				//}
-
-				//data_file.write(reinterpret_cast<const char*>(compressed_buffer.data()), output.pos);
-
-				//if (remaining == 0) {
-					//break;
-				//}
-			//}
-			//// same as if lastChunk break;
-		//} while (buffer_actual_size == buffer.size());
-	//} else {
-		//assert(false && "implement me");
-	//}
+		data_file_stack.top()->write({buffer.data(), buffer_actual_size});
+	} while (buffer_actual_size == buffer.size());
 
 	//meta_file.flush();
 	//meta_file.close();
