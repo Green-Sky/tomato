@@ -1,6 +1,7 @@
 #include "./file2_zstd.hpp"
 
 #include <solanaceae/util/span.hpp>
+#include <solanaceae/file/file2_mem.hpp>
 #include <solanaceae/file/file2_std.hpp>
 
 #include <filesystem>
@@ -37,6 +38,105 @@ const static ByteSpan data_test_text3{
 };
 
 int main(void) {
+	{ // first do a simple mem backed test
+		std::vector<uint8_t> buffer;
+		{ // write
+			File2MemW f_w_mem{buffer};
+			assert(f_w_mem.isGood());
+
+			File2ZSTDW f_w_zstd{f_w_mem};
+			assert(f_w_zstd.isGood());
+
+			bool res = f_w_zstd.write(data_test_text1);
+			assert(res);
+			assert(f_w_zstd.isGood());
+
+			// write another frame of the same data
+			res = f_w_zstd.write(data_test_text2);
+			assert(res);
+			assert(f_w_zstd.isGood());
+
+			// write larger frame
+			res = f_w_zstd.write(data_test_text3);
+			assert(res);
+			assert(f_w_zstd.isGood());
+		}
+
+		std::cout << "in mem size: " << buffer.size() << "\n";
+
+		{ // read
+			File2MemR f_r_mem{ByteSpan{buffer}};
+			assert(f_r_mem.isGood());
+
+			File2ZSTDR f_r_zstd{f_r_mem};
+			assert(f_r_zstd.isGood());
+
+			// reads return owning buffers
+
+			{ // readback data_test_text1
+				auto r_res_var = f_r_zstd.read(data_test_text1.size);
+
+				//assert(f_r_zstd.isGood());
+				//assert(f_r_file.isGood());
+				assert(std::holds_alternative<std::vector<uint8_t>>(r_res_var));
+				const auto& r_res_vec = std::get<std::vector<uint8_t>>(r_res_var);
+
+				//std::cout << "decomp: " << std::string_view{reinterpret_cast<const char*>(r_res_vec.data()), r_res_vec.size()};
+
+				assert(r_res_vec.size() == data_test_text1.size);
+				assert(std::equal(data_test_text1.cbegin(), data_test_text1.cend(), r_res_vec.cbegin()));
+			}
+
+			{ // readback data_test_text2
+				auto r_res_var = f_r_zstd.read(data_test_text2.size);
+
+				//assert(f_r_zstd.isGood());
+				//assert(f_r_file.isGood());
+				assert(std::holds_alternative<std::vector<uint8_t>>(r_res_var));
+				const auto& r_res_vec = std::get<std::vector<uint8_t>>(r_res_var);
+
+				//std::cout << "decomp: " << std::string_view{reinterpret_cast<const char*>(r_res_vec.data()), r_res_vec.size()};
+
+				assert(r_res_vec.size() == data_test_text2.size);
+				assert(std::equal(
+					data_test_text2.cbegin(),
+					data_test_text2.cend(),
+					r_res_vec.cbegin()
+				));
+			}
+
+			{ // readback data_test_text3
+				auto r_res_var = f_r_zstd.read(data_test_text3.size);
+
+				//assert(f_r_zstd.isGood());
+				//assert(f_r_file.isGood());
+				assert(std::holds_alternative<std::vector<uint8_t>>(r_res_var));
+				const auto& r_res_vec = std::get<std::vector<uint8_t>>(r_res_var);
+
+				//std::cout << "decomp: " << std::string_view{reinterpret_cast<const char*>(r_res_vec.data()), r_res_vec.size()};
+
+				assert(r_res_vec.size() == data_test_text3.size);
+				assert(std::equal(
+					data_test_text3.cbegin(),
+					data_test_text3.cend(),
+					r_res_vec.cbegin()
+				));
+			}
+
+			{ // assert eof somehow
+				// since its eof, reading a single byte should return a zero sized buffer
+				auto r_res_var = f_r_zstd.read(1);
+				if (std::holds_alternative<std::vector<uint8_t>>(r_res_var)) {
+					assert(std::get<std::vector<uint8_t>>(r_res_var).empty());
+				} else if (std::holds_alternative<ByteSpan>(r_res_var)) {
+					assert(std::get<ByteSpan>(r_res_var).empty());
+				} else {
+					assert(false);
+				}
+			}
+		}
+	}
+
 	const auto temp_dir = std::filesystem::temp_directory_path() / "file2_zstd_tests";
 
 	std::filesystem::create_directories(temp_dir); // making sure
