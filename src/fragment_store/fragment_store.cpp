@@ -308,76 +308,86 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		return false;
 	}
 
-	// sharing code between binary msgpack and text json for now
-	nlohmann::json meta_data_j = nlohmann::json::object(); // metadata needs to be an object, null not allowed
-	// metadata file
+	try { // TODO: properly sanitize strings, so this cant throw
+		// sharing code between binary msgpack and text json for now
+		nlohmann::json meta_data_j = nlohmann::json::object(); // metadata needs to be an object, null not allowed
+		// metadata file
 
-	for (const auto& [type_id, storage] : _reg.storage()) {
-		if (!storage.contains(fid)) {
-			continue;
-		}
-
-		//std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
-
-		// use type_id to find serializer
-		auto s_cb_it = _sc._serl_json.find(type_id);
-		if (s_cb_it == _sc._serl_json.end()) {
-			// could not find serializer, not saving
-			continue;
-		}
-
-		// noooo, why cant numbers be keys
-		//if (meta_type == MetaFileType::BINARY_MSGPACK) { // msgpack uses the hash id instead
-			//s_cb_it->second(storage.value(fid), meta_data[storage.type().hash()]);
-		//} else if (meta_type == MetaFileType::TEXT_JSON) {
-		s_cb_it->second({_reg, fid}, meta_data_j[storage.type().name()]);
-		//}
-	}
-
-	if (meta_type == MetaFileType::BINARY_MSGPACK) { // binary metadata file
-		const std::vector<uint8_t> meta_data = nlohmann::json::to_msgpack(meta_data_j);
-		std::vector<uint8_t> meta_data_compressed; // empty if none
-		//std::vector<uint8_t> meta_data_encrypted; // empty if none
-
-		if (meta_comp == Compression::ZSTD) {
-			meta_data_compressed.resize(ZSTD_compressBound(meta_data.size()));
-
-			size_t const cSize = ZSTD_compress(meta_data_compressed.data(), meta_data_compressed.size(), meta_data.data(), meta_data.size(), 0); // 0 is default is probably 3
-			if (ZSTD_isError(cSize)) {
-				std::cerr << "FS error: compressing meta failed\n";
-				meta_data_compressed.clear();
-				meta_comp = Compression::NONE;
-			} else {
-				meta_data_compressed.resize(cSize);
+		for (const auto& [type_id, storage] : _reg.storage()) {
+			if (!storage.contains(fid)) {
+				continue;
 			}
-		} else if (meta_comp == Compression::NONE) {
-			// do nothing
-		} else {
-			assert(false && "implement me");
+
+			//std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
+
+			// use type_id to find serializer
+			auto s_cb_it = _sc._serl_json.find(type_id);
+			if (s_cb_it == _sc._serl_json.end()) {
+				// could not find serializer, not saving
+				continue;
+			}
+
+			// noooo, why cant numbers be keys
+			//if (meta_type == MetaFileType::BINARY_MSGPACK) { // msgpack uses the hash id instead
+				//s_cb_it->second(storage.value(fid), meta_data[storage.type().hash()]);
+			//} else if (meta_type == MetaFileType::TEXT_JSON) {
+			s_cb_it->second({_reg, fid}, meta_data_j[storage.type().name()]);
+			//}
 		}
 
-		// TODO: encryption
+		if (meta_type == MetaFileType::BINARY_MSGPACK) { // binary metadata file
+			const std::vector<uint8_t> meta_data = nlohmann::json::to_msgpack(meta_data_j);
+			std::vector<uint8_t> meta_data_compressed; // empty if none
+			//std::vector<uint8_t> meta_data_encrypted; // empty if none
 
-		// the meta file is itself msgpack data
-		nlohmann::json meta_header_j = nlohmann::json::array();
-		meta_header_j.emplace_back() = "SOLMET";
-		meta_header_j.push_back(meta_enc);
-		meta_header_j.push_back(meta_comp);
+			if (meta_comp == Compression::ZSTD) {
+				meta_data_compressed.resize(ZSTD_compressBound(meta_data.size()));
 
-		if (false) { // TODO: encryption
-		} else if (!meta_data_compressed.empty()) {
-			meta_header_j.push_back(nlohmann::json::binary(meta_data_compressed));
-		} else {
-			meta_header_j.push_back(nlohmann::json::binary(meta_data));
+				size_t const cSize = ZSTD_compress(meta_data_compressed.data(), meta_data_compressed.size(), meta_data.data(), meta_data.size(), 0); // 0 is default is probably 3
+				if (ZSTD_isError(cSize)) {
+					std::cerr << "FS error: compressing meta failed\n";
+					meta_data_compressed.clear();
+					meta_comp = Compression::NONE;
+				} else {
+					meta_data_compressed.resize(cSize);
+				}
+			} else if (meta_comp == Compression::NONE) {
+				// do nothing
+			} else {
+				assert(false && "implement me");
+			}
+
+			// TODO: encryption
+
+			// the meta file is itself msgpack data
+			nlohmann::json meta_header_j = nlohmann::json::array();
+			meta_header_j.emplace_back() = "SOLMET";
+			meta_header_j.push_back(meta_enc);
+			meta_header_j.push_back(meta_comp);
+
+			if (false) { // TODO: encryption
+			} else if (!meta_data_compressed.empty()) {
+				meta_header_j.push_back(nlohmann::json::binary(meta_data_compressed));
+			} else {
+				meta_header_j.push_back(nlohmann::json::binary(meta_data));
+			}
+
+			const auto meta_header_data = nlohmann::json::to_msgpack(meta_header_j);
+			//meta_file.write(reinterpret_cast<const char*>(meta_header_data.data()), meta_header_data.size());
+			meta_file_stack.top()->write({meta_header_data.data(), meta_header_data.size()});
+		} else if (meta_type == MetaFileType::TEXT_JSON) {
+			// cant be compressed or encrypted
+			const auto meta_file_json_str = meta_data_j.dump(2, ' ', true);
+			meta_file_stack.top()->write({reinterpret_cast<const uint8_t*>(meta_file_json_str.data()), meta_file_json_str.size()});
 		}
 
-		const auto meta_header_data = nlohmann::json::to_msgpack(meta_header_j);
-		//meta_file.write(reinterpret_cast<const char*>(meta_header_data.data()), meta_header_data.size());
-		meta_file_stack.top()->write({meta_header_data.data(), meta_header_data.size()});
-	} else if (meta_type == MetaFileType::TEXT_JSON) {
-		// cant be compressed or encrypted
-		const auto meta_file_json_str = meta_data_j.dump(2, ' ', true);
-		meta_file_stack.top()->write({reinterpret_cast<const uint8_t*>(meta_file_json_str.data()), meta_file_json_str.size()});
+	} catch (...) {
+		while (!meta_file_stack.empty()) { meta_file_stack.pop(); } // destroy stack // TODO: maybe work with scope?
+		std::filesystem::remove(meta_tmp_path);
+		while (!data_file_stack.empty()) { data_file_stack.pop(); } // destroy stack // TODO: maybe work with scope?
+		std::filesystem::remove(data_tmp_path);
+		std::cerr << "FS error: failed to serialize json data\n";
+		return false;
 	}
 
 	// now data
@@ -460,29 +470,6 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 		data_comp = _reg.get<FragComp::DataCompressionType>(fid).comp;
 	}
 
-	//std::stack<std::unique_ptr<File2I>> data_file_stack;
-	//data_file_stack.push(std::make_unique<File2RFile>(std::string_view{frag_path}));
-
-	//if (!data_file_stack.top()->isGood()) {
-		//std::cerr << "FS error: fragment data file failed to open '" << frag_path << "'\n";
-		//return false;
-	//}
-
-	//// TODO: decrypt here
-
-
-	//// add layer based on enum
-	//if (data_comp == Compression::ZSTD) {
-		//data_file_stack.push(std::make_unique<File2ZSTDR>(*data_file_stack.top().get()));
-	//} else {
-		//// TODO: make error instead
-		//assert(data_comp == Compression::NONE);
-	//}
-
-	//if (!data_file_stack.top()->isGood()) {
-		//std::cerr << "FS error: fragment data file failed to add " << (int)data_comp << " decompression layer '" << frag_path << "'\n";
-		//return false;
-	//}
 	auto data_file_stack = buildFileStackRead(std::string_view{frag_path}, Encryption::NONE, data_comp);
 	if (data_file_stack.empty()) {
 		return false;
