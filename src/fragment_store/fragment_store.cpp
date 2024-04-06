@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include <solanaceae/file/file2_std.hpp>
+#include <solanaceae/file/file2_mem.hpp>
 #include "./file2_zstd.hpp"
 
 #include <zstd.h>
@@ -76,6 +77,7 @@ static bool buildStackRead(std::stack<std::unique_ptr<File2I>>& file_stack, Encr
 	return true;
 }
 
+// do i need this?
 static std::stack<std::unique_ptr<File2I>> buildFileStackRead(std::string_view file_path, Encryption encryption, Compression compression) {
 	std::stack<std::unique_ptr<File2I>> file_stack;
 	file_stack.push(std::make_unique<File2RFile>(file_path));
@@ -93,16 +95,12 @@ static std::stack<std::unique_ptr<File2I>> buildFileStackRead(std::string_view f
 	return file_stack;
 }
 
-static std::stack<std::unique_ptr<File2I>> buildFileStackWrite(std::string_view file_path, Encryption encryption, Compression compression) {
-	std::stack<std::unique_ptr<File2I>> file_stack;
-	file_stack.push(std::make_unique<File2WFile>(file_path));
+// add enc and comp file layers
+// assumes a file is already in the stack
+static bool buildStackWrite(std::stack<std::unique_ptr<File2I>>& file_stack, Encryption encryption, Compression compression) {
+	assert(!file_stack.empty());
 
-	if (!file_stack.top()->isGood()) {
-		std::cerr << "FS error: opening file for writing '" << file_path << "'\n";
-		return {};
-	}
-
-	// TODO: decrypt here
+	// TODO: encrypt here
 	assert(encryption == Encryption::NONE);
 
 	// add layer based on enum
@@ -114,7 +112,25 @@ static std::stack<std::unique_ptr<File2I>> buildFileStackWrite(std::string_view 
 	}
 
 	if (!file_stack.top()->isGood()) {
-		std::cerr << "FS error: file failed to add " << (int)compression << " compression layer '" << file_path << "'\n";
+		std::cerr << "FS error: file failed to add " << (int)compression << " compression layer\n";
+		return false;
+	}
+
+	return true;
+}
+
+// do i need this?
+static std::stack<std::unique_ptr<File2I>> buildFileStackWrite(std::string_view file_path, Encryption encryption, Compression compression) {
+	std::stack<std::unique_ptr<File2I>> file_stack;
+	file_stack.push(std::make_unique<File2WFile>(file_path));
+
+	if (!file_stack.top()->isGood()) {
+		std::cerr << "FS error: opening file for writing '" << file_path << "'\n";
+		return {};
+	}
+
+	if (!buildStackWrite(file_stack, encryption, compression)) {
+		std::cerr << "FS error: file failed to add layers for '" << file_path << "'\n";
 		return {};
 	}
 
@@ -706,37 +722,20 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 			}
 			const nlohmann::json::binary_t& meta_data_ref = meta_header_j.at(3);
 
-			std::vector<uint8_t> meta_data_decomp;
-			if (meta_comp == Compression::NONE) {
-				// do nothing
-			} else if (meta_comp == Compression::ZSTD) {
-				meta_data_decomp.resize(ZSTD_DStreamOutSize());
-				std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> dctx{ZSTD_createDCtx(), &ZSTD_freeDCtx};
+			std::stack<std::unique_ptr<File2I>> binary_reader_stack;
+			binary_reader_stack.push(std::make_unique<File2MemR>(ByteSpan{meta_data_ref.data(), meta_data_ref.size()}));
 
-				ZSTD_inBuffer input {meta_data_ref.data(), meta_data_ref.size(), 0};
-				ZSTD_outBuffer output = {meta_data_decomp.data(), meta_data_decomp.size(), 0};
-				do {
-					size_t const ret = ZSTD_decompressStream(dctx.get(), &output , &input);
-					if (ZSTD_isError(ret)) {
-						// error <.<
-						std::cerr << "FS error: decompression error\n";
-						//meta_data_decomp.clear();
-						output.pos = 0; // resize after loop
-						break;
-					}
-				} while (input.pos < input.size);
-				meta_data_decomp.resize(output.pos);
-			} else {
-				assert(false && "implement me");
+			if (!buildStackRead(binary_reader_stack, meta_enc, meta_comp)) {
+				std::cerr << "FS error: binary reader creation failed " << it.frag_path << "\n";
+				continue;
 			}
 
-			// TODO: enc
+			// HACK: read fixed amout of data, but this way if we have neither enc nor comp we pass the span through
+			auto binary_read_value = binary_reader_stack.top()->read(10*1024*1024); // is 10MiB large enough for meta?
+			const auto binary_read_span = spanFromRead(binary_read_value);
+			assert(binary_read_span.size < 10*1024*1024);
 
-			if (!meta_data_decomp.empty()) {
-				j = nlohmann::json::from_msgpack(meta_data_decomp, true, false);
-			} else {
-				j = nlohmann::json::from_msgpack(meta_data_ref, true, false);
-			}
+			j = nlohmann::json::from_msgpack(binary_read_span, true, false);
 		} else if (it.meta_ext == ".meta.json") {
 			std::ifstream file(it.frag_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
 			if (!file.is_open()) {
