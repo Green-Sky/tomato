@@ -48,8 +48,6 @@ struct MainScreen final : public Screen {
 	RegistryMessageModel rmm;
 	MessageTimeSort mts;
 
-	PluginManager pm;
-
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;
 	ToxPrivateImpl tpi;
@@ -74,6 +72,8 @@ struct MainScreen final : public Screen {
 	SettingsWindow sw;
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
+
+	PluginManager pm; // last, so it gets destroyed first
 
 	bool _show_tool_style_editor {false};
 	bool _show_tool_metrics {false};
