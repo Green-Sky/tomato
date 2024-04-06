@@ -51,14 +51,11 @@ static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>&
 }
 
 // TODO: these stacks are file specific
-static std::stack<std::unique_ptr<File2I>> buildFileStackRead(std::string_view file_path, Encryption encryption, Compression compression) {
-	std::stack<std::unique_ptr<File2I>> file_stack;
-	file_stack.push(std::make_unique<File2RFile>(file_path));
 
-	if (!file_stack.top()->isGood()) {
-		std::cerr << "FS error: opening file for reading '" << file_path << "'\n";
-		return {};
-	}
+// add enc and comp file layers
+// assumes a file is already in the stack
+static bool buildStackRead(std::stack<std::unique_ptr<File2I>>& file_stack, Encryption encryption, Compression compression) {
+	assert(!file_stack.empty());
 
 	// TODO: decrypt here
 	assert(encryption == Encryption::NONE);
@@ -72,7 +69,24 @@ static std::stack<std::unique_ptr<File2I>> buildFileStackRead(std::string_view f
 	}
 
 	if (!file_stack.top()->isGood()) {
-		std::cerr << "FS error: file failed to add " << (int)compression << " decompression layer '" << file_path << "'\n";
+		std::cerr << "FS error: file failed to add " << (int)compression << " decompression layer\n";
+		return false;
+	}
+
+	return true;
+}
+
+static std::stack<std::unique_ptr<File2I>> buildFileStackRead(std::string_view file_path, Encryption encryption, Compression compression) {
+	std::stack<std::unique_ptr<File2I>> file_stack;
+	file_stack.push(std::make_unique<File2RFile>(file_path));
+
+	if (!file_stack.top()->isGood()) {
+		std::cerr << "FS error: opening file for reading '" << file_path << "'\n";
+		return {};
+	}
+
+	if (!buildStackRead(file_stack, encryption, compression)) {
+		std::cerr << "FS error: file failed to add layers for '" << file_path << "'\n";
 		return {};
 	}
 
