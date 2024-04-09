@@ -68,7 +68,7 @@ namespace Message::Components {
 
 } // Message::Components
 
-namespace Fragment::Components {
+namespace ObjectStore::Components {
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesTSRange, begin, end)
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesContact, id)
 
@@ -82,7 +82,7 @@ namespace Fragment::Components {
 			Contact3 e {entt::null};
 		};
 	}
-} // Fragment::Component
+} // ObjectStore::Component
 
 void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (_fs_ignore_event) {
@@ -133,7 +133,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			assert(static_cast<bool>(fh));
 
 			// assuming ts range exists
-			auto& fts_comp = fh.get<FragComp::MessagesTSRange>();
+			auto& fts_comp = fh.get<ObjComp::MessagesTSRange>();
 
 			if (fts_comp.begin <= msg_ts && fts_comp.end >= msg_ts) {
 				fragment_id = fid;
@@ -149,7 +149,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 				assert(static_cast<bool>(fh));
 
 				// assuming ts range exists
-				auto& fts_comp = fh.get<FragComp::MessagesTSRange>();
+				auto& fts_comp = fh.get<ObjComp::MessagesTSRange>();
 
 				const int64_t frag_range = int64_t(fts_comp.end) - int64_t(fts_comp.begin);
 				constexpr static int64_t max_frag_ts_extent {1000*60*60};
@@ -205,17 +205,17 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 			fragment_id = fh;
 
-			fh.emplace_or_replace<FragComp::Ephemeral::MetaCompressionType>().comp = Compression::ZSTD;
-			fh.emplace_or_replace<FragComp::DataCompressionType>().comp = Compression::ZSTD;
+			fh.emplace_or_replace<ObjComp::Ephemeral::MetaCompressionType>().comp = Compression::ZSTD;
+			fh.emplace_or_replace<ObjComp::DataCompressionType>().comp = Compression::ZSTD;
 
-			auto& new_ts_range = fh.emplace_or_replace<FragComp::MessagesTSRange>();
+			auto& new_ts_range = fh.emplace_or_replace<ObjComp::MessagesTSRange>();
 			new_ts_range.begin = msg_ts;
 			new_ts_range.end = msg_ts;
 
 			{
 				const auto msg_reg_contact = m.registry()->ctx().get<Contact3>();
 				if (_cr.all_of<Contact::Components::ID>(msg_reg_contact)) {
-					fh.emplace<FragComp::MessagesContact>(_cr.get<Contact::Components::ID>(msg_reg_contact).data);
+					fh.emplace<ObjComp::MessagesContact>(_cr.get<Contact::Components::ID>(msg_reg_contact).data);
 				} else {
 					// ? rage quit?
 				}
@@ -235,7 +235,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 			fid_open.emplace(fragment_id);
 
-			std::cout << "MFS: created new fragment " << bin2hex(fh.get<FragComp::ID>().v) << "\n";
+			std::cout << "MFS: created new fragment " << bin2hex(fh.get<ObjComp::ID>().v) << "\n";
 
 			_fs_ignore_event = true;
 			_fs.throwEventConstruct(fh);
@@ -296,13 +296,13 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 
 	if (!j.is_array()) {
 		// wrong data
-		fh.emplace_or_replace<FragComp::Ephemeral::MessagesEmptyTag>();
+		fh.emplace_or_replace<ObjComp::Ephemeral::MessagesEmptyTag>();
 		return;
 	}
 
 	if (j.size() == 0) {
 		// empty array
-		fh.emplace_or_replace<FragComp::Ephemeral::MessagesEmptyTag>();
+		fh.emplace_or_replace<ObjComp::Ephemeral::MessagesEmptyTag>();
 		return;
 	}
 
@@ -389,12 +389,12 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 	if (messages_new_or_updated == 0) {
 		// useless frag
 		// TODO: unload?
-		fh.emplace_or_replace<FragComp::Ephemeral::MessagesEmptyTag>();
+		fh.emplace_or_replace<ObjComp::Ephemeral::MessagesEmptyTag>();
 	}
 }
 
 bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry& reg) {
-	auto& ftsrange = fh.get_or_emplace<FragComp::MessagesTSRange>(Message::getTimeMS(), Message::getTimeMS());
+	auto& ftsrange = fh.get_or_emplace<ObjComp::MessagesTSRange>(Message::getTimeMS(), Message::getTimeMS());
 
 	auto j = nlohmann::json::array();
 
@@ -476,10 +476,16 @@ MessageFragmentStore::MessageFragmentStore(
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
-	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>();
-	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>();
-	_fs._sc.registerSerializerJson<FragComp::MessagesContact>();
-	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>();
+	_fs._sc.registerSerializerJson<ObjComp::MessagesTSRange>();
+	_fs._sc.registerDeSerializerJson<ObjComp::MessagesTSRange>();
+	_fs._sc.registerSerializerJson<ObjComp::MessagesContact>();
+	_fs._sc.registerDeSerializerJson<ObjComp::MessagesContact>();
+
+	// old
+	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(_fs._sc.component_get_json<ObjComp::MessagesTSRange>);
+	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>(_fs._sc.component_emplace_or_replace_json<ObjComp::MessagesTSRange>);
+	_fs._sc.registerSerializerJson<FragComp::MessagesContact>(_fs._sc.component_get_json<ObjComp::MessagesContact>);
+	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>(_fs._sc.component_emplace_or_replace_json<ObjComp::MessagesContact>);
 
 	_fs.subscribe(this, FragmentStore_Event::fragment_construct);
 	_fs.subscribe(this, FragmentStore_Event::fragment_updated);
@@ -589,12 +595,12 @@ float MessageFragmentStore::tick(float) {
 			return 0.05f;
 		}
 
-		if (!fh.all_of<FragComp::MessagesTSRange>()) {
+		if (!fh.all_of<ObjComp::MessagesTSRange>()) {
 			return 0.05f;
 		}
 
 		// get ts range of frag and collide with all curser(s/ranges)
-		const auto& frag_range = fh.get<FragComp::MessagesTSRange>();
+		const auto& frag_range = fh.get<ObjComp::MessagesTSRange>();
 
 		auto* msg_reg = _rmm.get(c);
 		if (msg_reg == nullptr) {
@@ -646,19 +652,19 @@ float MessageFragmentStore::tick(float) {
 						return 0.05f;
 					}
 
-					if (!fh.all_of<FragComp::MessagesTSRange>()) {
+					if (!fh.all_of<ObjComp::MessagesTSRange>()) {
 						std::cerr << "MFS error: frag has no range\n";
 						// ????
 						msg_reg->ctx().get<Message::Components::ContactFragments>().erase(fid);
 						return 0.05f;
 					}
 
-					if (fh.all_of<FragComp::Ephemeral::MessagesEmptyTag>()) {
+					if (fh.all_of<ObjComp::Ephemeral::MessagesEmptyTag>()) {
 						continue; // skip known empty
 					}
 
 					// get ts range of frag and collide with all curser(s/ranges)
-					const auto& [range_begin, range_end] = fh.get<FragComp::MessagesTSRange>();
+					const auto& [range_begin, range_end] = fh.get<ObjComp::MessagesTSRange>();
 
 					if (rangeVisible(range_begin, range_end, *msg_reg)) {
 						std::cout << "MFS: frag hit by vis range\n";
@@ -691,7 +697,7 @@ float MessageFragmentStore::tick(float) {
 							cf.sorted_end.crend(),
 							ts_begin_comp.ts,
 							[&](const FragmentID element, const auto& value) -> bool {
-								return _fs._reg.get<FragComp::MessagesTSRange>(element).end >= value;
+								return _fs._reg.get<ObjComp::MessagesTSRange>(element).end >= value;
 							}
 						);
 
@@ -709,7 +715,7 @@ float MessageFragmentStore::tick(float) {
 						// only ok bc next is cheap
 						for (size_t i = 0; i < 5 && _fs._reg.valid(next_frag); next_frag = cf.next(next_frag)) {
 							auto fh = _fs.fragmentHandle(next_frag);
-							if (fh.any_of<FragComp::Ephemeral::MessagesEmptyTag>()) {
+							if (fh.any_of<ObjComp::Ephemeral::MessagesEmptyTag>()) {
 								continue; // skip known empty
 							}
 
@@ -739,7 +745,7 @@ float MessageFragmentStore::tick(float) {
 							cf.sorted_begin.cend(),
 							ts_end,
 							[&](const FragmentID element, const auto& value) -> bool {
-								return _fs._reg.get<FragComp::MessagesTSRange>(element).begin < value;
+								return _fs._reg.get<ObjComp::MessagesTSRange>(element).begin < value;
 							}
 						);
 
@@ -757,7 +763,7 @@ float MessageFragmentStore::tick(float) {
 						// only ok bc next is cheap
 						for (size_t i = 0; i < 5 && _fs._reg.valid(prev_frag); prev_frag = cf.prev(prev_frag)) {
 							auto fh = _fs.fragmentHandle(prev_frag);
-							if (fh.any_of<FragComp::Ephemeral::MessagesEmptyTag>()) {
+							if (fh.any_of<ObjComp::Ephemeral::MessagesEmptyTag>()) {
 								continue; // skip known empty
 							}
 
@@ -806,7 +812,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 		return false; // skip self
 	}
 
-	if (!e.e.all_of<FragComp::MessagesTSRange, FragComp::MessagesContact>()) {
+	if (!e.e.all_of<ObjComp::MessagesTSRange, ObjComp::MessagesContact>()) {
 		return false; // not for us
 	}
 
@@ -814,7 +820,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 
 	Contact3 frag_contact = entt::null;
 	{ // get contact
-		const auto& frag_contact_id = e.e.get<FragComp::MessagesContact>().id;
+		const auto& frag_contact_id = e.e.get<ObjComp::MessagesContact>().id;
 		// TODO: id lookup table, this is very inefficent
 		for (const auto& [c_it, id_it] : _cr.view<Contact::Components::ID>().each()) {
 			if (frag_contact_id == id_it.data) {
@@ -826,7 +832,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 			// unkown contact
 			return false;
 		}
-		e.e.emplace_or_replace<FragComp::Ephemeral::MessagesContactEntity>(frag_contact);
+		e.e.emplace_or_replace<ObjComp::Ephemeral::MessagesContactEntity>(frag_contact);
 	}
 
 	// create if not exist
@@ -853,23 +859,23 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentUpdated& e) {
 		return false; // skip self
 	}
 
-	if (!e.e.all_of<FragComp::MessagesTSRange, FragComp::MessagesContact>()) {
+	if (!e.e.all_of<ObjComp::MessagesTSRange, ObjComp::MessagesContact>()) {
 		return false; // not for us
 	}
 
 	// since its an update, we might have it associated, or not
 	// its also possible it was tagged as empty
-	e.e.remove<FragComp::Ephemeral::MessagesEmptyTag>();
+	e.e.remove<ObjComp::Ephemeral::MessagesEmptyTag>();
 
 	Contact3 frag_contact = entt::null;
 	{ // get contact
 		// probably cached already
-		if (e.e.all_of<FragComp::Ephemeral::MessagesContactEntity>()) {
-			frag_contact = e.e.get<FragComp::Ephemeral::MessagesContactEntity>().e;
+		if (e.e.all_of<ObjComp::Ephemeral::MessagesContactEntity>()) {
+			frag_contact = e.e.get<ObjComp::Ephemeral::MessagesContactEntity>().e;
 		}
 
 		if (!_cr.valid(frag_contact)) {
-			const auto& frag_contact_id = e.e.get<FragComp::MessagesContact>().id;
+			const auto& frag_contact_id = e.e.get<ObjComp::MessagesContact>().id;
 			// TODO: id lookup table, this is very inefficent
 			for (const auto& [c_it, id_it] : _cr.view<Contact::Components::ID>().each()) {
 				if (frag_contact_id == id_it.data) {
@@ -881,7 +887,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentUpdated& e) {
 				// unkown contact
 				return false;
 			}
-			e.e.emplace_or_replace<FragComp::Ephemeral::MessagesContactEntity>(frag_contact);
+			e.e.emplace_or_replace<ObjComp::Ephemeral::MessagesContactEntity>(frag_contact);
 		}
 	}
 
@@ -921,15 +927,15 @@ bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
 			sorted_begin.cbegin(),
 			sorted_begin.cend(),
 			[frag](const FragmentID a) -> bool {
-				const auto begin_a = frag.registry()->get<FragComp::MessagesTSRange>(a).begin;
-				const auto begin_frag = frag.get<FragComp::MessagesTSRange>().begin;
+				const auto begin_a = frag.registry()->get<ObjComp::MessagesTSRange>(a).begin;
+				const auto begin_frag = frag.get<ObjComp::MessagesTSRange>().begin;
 				if (begin_a > begin_frag) {
 					return true;
 				} else if (begin_a < begin_frag) {
 					return false;
 				} else {
 					// equal ts, we need to fall back to id (id can not be equal)
-					return isLess(frag.get<FragComp::ID>().v, frag.registry()->get<FragComp::ID>(a).v);
+					return isLess(frag.get<ObjComp::ID>().v, frag.registry()->get<ObjComp::ID>(a).v);
 				}
 			}
 		);
@@ -946,15 +952,15 @@ bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
 			sorted_end.cbegin(),
 			sorted_end.cend(),
 			[frag](const FragmentID a) -> bool {
-				const auto end_a = frag.registry()->get<FragComp::MessagesTSRange>(a).end;
-				const auto end_frag = frag.get<FragComp::MessagesTSRange>().end;
+				const auto end_a = frag.registry()->get<ObjComp::MessagesTSRange>(a).end;
+				const auto end_frag = frag.get<ObjComp::MessagesTSRange>().end;
 				if (end_a > end_frag) {
 					return true;
 				} else if (end_a < end_frag) {
 					return false;
 				} else {
 					// equal ts, we need to fall back to id (id can not be equal)
-					return isLess(frag.get<FragComp::ID>().v, frag.registry()->get<FragComp::ID>(a).v);
+					return isLess(frag.get<ObjComp::ID>().v, frag.registry()->get<ObjComp::ID>(a).v);
 				}
 			}
 		);

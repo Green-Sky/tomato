@@ -80,6 +80,15 @@ target_link_libraries(test_fragment_store PUBLIC
 
 ########################################
 
+add_executable(convert_frag_to_obj
+	fragment_store/convert_frag_to_obj.cpp
+)
+
+target_link_libraries(convert_frag_to_obj PUBLIC
+	fragment_store
+)
+
+########################################
 add_executable(tomato
 	./main.cpp
 	./icon.rc

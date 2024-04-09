@@ -18,6 +18,10 @@ constexpr std::string_view entt::type_name<x>::value() noexcept { \
 
 // cross compiler stable ids
 
+DEFINE_COMP_ID(ObjComp::DataEncryptionType)
+DEFINE_COMP_ID(ObjComp::DataCompressionType)
+
+// old stuff
 DEFINE_COMP_ID(FragComp::DataEncryptionType)
 DEFINE_COMP_ID(FragComp::DataCompressionType)
 

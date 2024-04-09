@@ -75,8 +75,6 @@ struct ObjectStore2 : public ObjectStoreEventProviderI {
 
 	ObjectRegistry _reg;
 
-	SerializerCallbacks<Object> _sc;
-
 	// TODO: default backend?
 
 	ObjectStore2(void);

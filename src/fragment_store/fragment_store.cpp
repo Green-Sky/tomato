@@ -139,9 +139,9 @@ FragmentID FragmentStore::newFragmentFile(
 	_reg.emplace<FragComp::ID>(new_frag, id);
 
 	// file (info) comp
-	_reg.emplace<FragComp::Ephemeral::FilePath>(new_frag, fragment_file_path.generic_u8string());
+	_reg.emplace<ObjComp::Ephemeral::FilePath>(new_frag, fragment_file_path.generic_u8string());
 
-	_reg.emplace<FragComp::Ephemeral::MetaFileType>(new_frag, mft);
+	_reg.emplace<ObjComp::Ephemeral::MetaFileType>(new_frag, mft);
 
 	// meta needs to be synced to file
 	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](auto*, auto) -> uint64_t { return 0; };
@@ -188,7 +188,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		return false;
 	}
 
-	if (!_reg.all_of<FragComp::Ephemeral::FilePath>(fid)) {
+	if (!_reg.all_of<ObjComp::Ephemeral::FilePath>(fid)) {
 		// not a file fragment?
 		return false;
 	}
@@ -196,30 +196,30 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 	// split object storage
 
 	MetaFileType meta_type = MetaFileType::TEXT_JSON; // TODO: better defaults
-	if (_reg.all_of<FragComp::Ephemeral::MetaFileType>(fid)) {
-		meta_type = _reg.get<FragComp::Ephemeral::MetaFileType>(fid).type;
+	if (_reg.all_of<ObjComp::Ephemeral::MetaFileType>(fid)) {
+		meta_type = _reg.get<ObjComp::Ephemeral::MetaFileType>(fid).type;
 	}
 
 	Encryption meta_enc = Encryption::NONE; // TODO: better defaults
 	Compression meta_comp = Compression::NONE; // TODO: better defaults
 
 	if (meta_type != MetaFileType::TEXT_JSON) {
-		if (_reg.all_of<FragComp::Ephemeral::MetaEncryptionType>(fid)) {
-			meta_enc = _reg.get<FragComp::Ephemeral::MetaEncryptionType>(fid).enc;
+		if (_reg.all_of<ObjComp::Ephemeral::MetaEncryptionType>(fid)) {
+			meta_enc = _reg.get<ObjComp::Ephemeral::MetaEncryptionType>(fid).enc;
 		}
 
-		if (_reg.all_of<FragComp::Ephemeral::MetaCompressionType>(fid)) {
-			meta_comp = _reg.get<FragComp::Ephemeral::MetaCompressionType>(fid).comp;
+		if (_reg.all_of<ObjComp::Ephemeral::MetaCompressionType>(fid)) {
+			meta_comp = _reg.get<ObjComp::Ephemeral::MetaCompressionType>(fid).comp;
 		}
 	} else {
 		// we cant have encryption or compression
 		// so we force NONE for TEXT JSON
 
-		_reg.emplace_or_replace<FragComp::Ephemeral::MetaEncryptionType>(fid, Encryption::NONE);
-		_reg.emplace_or_replace<FragComp::Ephemeral::MetaCompressionType>(fid, Compression::NONE);
+		_reg.emplace_or_replace<ObjComp::Ephemeral::MetaEncryptionType>(fid, Encryption::NONE);
+		_reg.emplace_or_replace<ObjComp::Ephemeral::MetaCompressionType>(fid, Compression::NONE);
 	}
 
-	std::filesystem::path meta_tmp_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type) + ".tmp";
+	std::filesystem::path meta_tmp_path = _reg.get<ObjComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type) + ".tmp";
 	meta_tmp_path.replace_filename("." + meta_tmp_path.filename().generic_u8string());
 	// TODO: make meta comp work with mem compressor
 	//auto meta_file_stack = buildFileStackWrite(std::string_view{meta_tmp_path.generic_u8string()}, meta_enc, meta_comp);
@@ -241,7 +241,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 		data_comp = _reg.get<FragComp::DataCompressionType>(fid).comp;
 	}
 
-	std::filesystem::path data_tmp_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".tmp";
+	std::filesystem::path data_tmp_path = _reg.get<ObjComp::Ephemeral::FilePath>(fid).path + ".tmp";
 	data_tmp_path.replace_filename("." + data_tmp_path.filename().generic_u8string());
 	auto data_file_stack = buildFileStackWrite(std::string_view{data_tmp_path.generic_u8string()}, data_enc, data_comp);
 	if (data_file_stack.empty()) {
@@ -289,7 +289,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 					std::filesystem::remove(meta_tmp_path);
 					while (!data_file_stack.empty()) { data_file_stack.pop(); }
 					std::filesystem::remove(data_tmp_path);
-					std::cerr << "FS error: binary writer creation failed '" << _reg.get<FragComp::Ephemeral::FilePath>(fid).path << "'\n";
+					std::cerr << "FS error: binary writer creation failed '" << _reg.get<ObjComp::Ephemeral::FilePath>(fid).path << "'\n";
 					return false;
 				}
 
@@ -301,7 +301,7 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 						std::filesystem::remove(meta_tmp_path);
 						while (!data_file_stack.empty()) { data_file_stack.pop(); }
 						std::filesystem::remove(data_tmp_path);
-						std::cerr << "FS error: binary writer failed '" << _reg.get<FragComp::Ephemeral::FilePath>(fid).path << "'\n";
+						std::cerr << "FS error: binary writer failed '" << _reg.get<ObjComp::Ephemeral::FilePath>(fid).path << "'\n";
 						return false;
 					}
 				}
@@ -361,18 +361,18 @@ bool FragmentStore::syncToStorage(FragmentID fid, std::function<write_to_storage
 
 	std::filesystem::rename(
 		meta_tmp_path,
-		_reg.get<FragComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type)
+		_reg.get<ObjComp::Ephemeral::FilePath>(fid).path + ".meta" + metaFileTypeSuffix(meta_type)
 	);
 
 	std::filesystem::rename(
 		data_tmp_path,
-		_reg.get<FragComp::Ephemeral::FilePath>(fid).path
+		_reg.get<ObjComp::Ephemeral::FilePath>(fid).path
 	);
 
 	// TODO: check return value of renames
 
-	if (_reg.all_of<FragComp::Ephemeral::DirtyTag>(fid)) {
-		_reg.remove<FragComp::Ephemeral::DirtyTag>(fid);
+	if (_reg.all_of<ObjComp::Ephemeral::DirtyTag>(fid)) {
+		_reg.remove<ObjComp::Ephemeral::DirtyTag>(fid);
 	}
 
 	return true;
@@ -396,13 +396,13 @@ bool FragmentStore::loadFromStorage(FragmentID fid, std::function<read_from_stor
 		return false;
 	}
 
-	if (!_reg.all_of<FragComp::Ephemeral::FilePath>(fid)) {
+	if (!_reg.all_of<ObjComp::Ephemeral::FilePath>(fid)) {
 		// not a file fragment?
 		// TODO: memory fragments
 		return false;
 	}
 
-	const auto& frag_path = _reg.get<FragComp::Ephemeral::FilePath>(fid).path;
+	const auto& frag_path = _reg.get<ObjComp::Ephemeral::FilePath>(fid).path;
 
 	// TODO: check if metadata dirty?
 	// TODO: what if file changed on disk?
@@ -672,7 +672,7 @@ size_t FragmentStore::scanStoragePath(std::string_view path) {
 		FragmentHandle fh{_reg, _reg.create()};
 		fh.emplace<FragComp::ID>(hex2bin(it.id_str));
 
-		fh.emplace<FragComp::Ephemeral::FilePath>(it.frag_path.generic_u8string());
+		fh.emplace<ObjComp::Ephemeral::FilePath>(it.frag_path.generic_u8string());
 
 		for (const auto& [k, v] : j.items()) {
 			// type id from string hash

@@ -54,7 +54,7 @@ namespace Message::Components {
 
 } // Message::Components
 
-namespace Fragment::Components {
+namespace ObjectStore::Components {
 	struct MessagesTSRange {
 		// timestamp range within the fragment
 		uint64_t begin {0}; // newer msg -> higher number
@@ -67,6 +67,12 @@ namespace Fragment::Components {
 
 	// TODO: add src contact (self id)
 
+} // ObjectStore::Components
+
+// old
+namespace Fragment::Components {
+	struct MessagesTSRange : public ObjComp::MessagesTSRange {};
+	struct MessagesContact : public ObjComp::MessagesContact {};
 } // Fragment::Components
 
 // handles fragments for messages

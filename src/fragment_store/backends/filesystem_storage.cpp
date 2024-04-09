@@ -2,6 +2,9 @@
 
 #include "../meta_components.hpp"
 
+#include <solanaceae/util/utils.hpp>
+
+#include <entt/container/dense_set.hpp>
 #include <nlohmann/json.hpp>
 
 #include <solanaceae/file/file2_std.hpp>
@@ -22,9 +25,65 @@ static const char* metaFileTypeSuffix(MetaFileType mft) {
 	return ""; // .unk?
 }
 
+// TODO: move to ... somewhere. (span? file2i?)
+static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>& data_var) {
+	if (std::holds_alternative<std::vector<uint8_t>>(data_var)) {
+		auto& vec = std::get<std::vector<uint8_t>>(data_var);
+		return {vec.data(), vec.size()};
+	} else if (std::holds_alternative<ByteSpan>(data_var)) {
+		return std::get<ByteSpan>(data_var);
+	} else {
+		assert(false);
+		return {};
+	}
+}
+
+// TODO: move somewhere else
+static bool serl_json_data_enc_type(const ObjectHandle oh, nlohmann::json& out) {
+	out = static_cast<std::underlying_type_t<Encryption>>(
+		oh.get<ObjComp::DataEncryptionType>().enc
+	);
+	return true;
+}
+
+static bool deserl_json_data_enc_type(ObjectHandle oh, const nlohmann::json& in) {
+	oh.emplace_or_replace<ObjComp::DataEncryptionType>(
+		static_cast<Encryption>(
+			static_cast<std::underlying_type_t<Encryption>>(in)
+		)
+	);
+	return true;
+}
+
+static bool serl_json_data_comp_type(const ObjectHandle oh, nlohmann::json& out) {
+	out = static_cast<std::underlying_type_t<Compression>>(
+		oh.get<ObjComp::DataCompressionType>().comp
+	);
+	return true;
+}
+
+static bool deserl_json_data_comp_type(ObjectHandle oh, const nlohmann::json& in) {
+	oh.emplace_or_replace<ObjComp::DataCompressionType>(
+		static_cast<Compression>(
+			static_cast<std::underlying_type_t<Compression>>(in)
+		)
+	);
+	return true;
+}
+
 namespace backend {
 
-FilesystemStorage::FilesystemStorage(ObjectStore2& os) : StorageBackendI::StorageBackendI(os) {
+FilesystemStorage::FilesystemStorage(ObjectStore2& os, std::string_view storage_path) : StorageBackendI::StorageBackendI(os), _storage_path(storage_path) {
+	_sc.registerSerializerJson<ObjComp::DataEncryptionType>(serl_json_data_enc_type);
+	_sc.registerDeSerializerJson<ObjComp::DataEncryptionType>(deserl_json_data_enc_type);
+	_sc.registerSerializerJson<ObjComp::DataCompressionType>(serl_json_data_comp_type);
+	_sc.registerDeSerializerJson<ObjComp::DataCompressionType>(deserl_json_data_comp_type);
+
+	// old stuff
+	_sc.registerSerializerJson<FragComp::DataEncryptionType>(serl_json_data_enc_type);
+	_sc.registerDeSerializerJson<FragComp::DataEncryptionType>(deserl_json_data_enc_type);
+	_sc.registerSerializerJson<FragComp::DataCompressionType>(serl_json_data_comp_type);
+	_sc.registerDeSerializerJson<FragComp::DataCompressionType>(deserl_json_data_comp_type);
 }
 
 FilesystemStorage::~FilesystemStorage(void) {
@@ -39,38 +98,38 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 
 	ObjectHandle oh {reg, o};
 
-	if (!oh.all_of<FragComp::Ephemeral::FilePath>()) {
+	if (!oh.all_of<ObjComp::Ephemeral::FilePath>()) {
 		// not a file fragment?
 		return false;
 	}
 
-	// split object storage
+	// split object storage (meta and data are 2 files)
 
-	MetaFileType meta_type = MetaFileType::TEXT_JSON; // TODO: better defaults
-	if (reg.all_of<FragComp::Ephemeral::MetaFileType>(o)) {
-		meta_type = oh.get<FragComp::Ephemeral::MetaFileType>().type;
+	MetaFileType meta_type = MetaFileType::TEXT_JSON; // TODO: better defaults?
+	if (reg.all_of<ObjComp::Ephemeral::MetaFileType>(o)) {
+		meta_type = oh.get<ObjComp::Ephemeral::MetaFileType>().type;
 	}
 
-	Encryption meta_enc = Encryption::NONE; // TODO: better defaults
-	Compression meta_comp = Compression::NONE; // TODO: better defaults
+	Encryption meta_enc = Encryption::NONE; // TODO: better defaults?
+	Compression meta_comp = Compression::NONE; // TODO: better defaults?
 
 	if (meta_type != MetaFileType::TEXT_JSON) {
-		if (oh.all_of<FragComp::Ephemeral::MetaEncryptionType>()) {
-			meta_enc = oh.get<FragComp::Ephemeral::MetaEncryptionType>().enc;
+		if (oh.all_of<ObjComp::Ephemeral::MetaEncryptionType>()) {
+			meta_enc = oh.get<ObjComp::Ephemeral::MetaEncryptionType>().enc;
 		}
 
-		if (oh.all_of<FragComp::Ephemeral::MetaCompressionType>()) {
-			meta_comp = oh.get<FragComp::Ephemeral::MetaCompressionType>().comp;
+		if (oh.all_of<ObjComp::Ephemeral::MetaCompressionType>()) {
+			meta_comp = oh.get<ObjComp::Ephemeral::MetaCompressionType>().comp;
 		}
 	} else {
 		// we cant have encryption or compression
 		// so we force NONE for TEXT JSON
 
-		oh.emplace_or_replace<FragComp::Ephemeral::MetaEncryptionType>(Encryption::NONE);
-		oh.emplace_or_replace<FragComp::Ephemeral::MetaCompressionType>(Compression::NONE);
+		oh.emplace_or_replace<ObjComp::Ephemeral::MetaEncryptionType>(Encryption::NONE);
+		oh.emplace_or_replace<ObjComp::Ephemeral::MetaCompressionType>(Compression::NONE);
 	}
 
-	std::filesystem::path meta_tmp_path = oh.get<FragComp::Ephemeral::FilePath>().path + ".meta" + metaFileTypeSuffix(meta_type) + ".tmp";
+	std::filesystem::path meta_tmp_path = oh.get<ObjComp::Ephemeral::FilePath>().path + ".meta" + metaFileTypeSuffix(meta_type) + ".tmp";
 	meta_tmp_path.replace_filename("." + meta_tmp_path.filename().generic_u8string());
 	// TODO: make meta comp work with mem compressor
 	//auto meta_file_stack = buildFileStackWrite(std::string_view{meta_tmp_path.generic_u8string()}, meta_enc, meta_comp);
@@ -85,14 +144,14 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 
 	Encryption data_enc = Encryption::NONE; // TODO: better defaults
 	Compression data_comp = Compression::NONE; // TODO: better defaults
-	if (oh.all_of<FragComp::DataEncryptionType>()) {
-		data_enc = oh.get<FragComp::DataEncryptionType>().enc;
+	if (oh.all_of<ObjComp::DataEncryptionType>()) {
+		data_enc = oh.get<ObjComp::DataEncryptionType>().enc;
 	}
-	if (oh.all_of<FragComp::DataCompressionType>()) {
-		data_comp = oh.get<FragComp::DataCompressionType>().comp;
+	if (oh.all_of<ObjComp::DataCompressionType>()) {
+		data_comp = oh.get<ObjComp::DataCompressionType>().comp;
 	}
 
-	std::filesystem::path data_tmp_path = oh.get<FragComp::Ephemeral::FilePath>().path + ".tmp";
+	std::filesystem::path data_tmp_path = oh.get<ObjComp::Ephemeral::FilePath>().path + ".tmp";
 	data_tmp_path.replace_filename("." + data_tmp_path.filename().generic_u8string());
 	auto data_file_stack = buildFileStackWrite(std::string_view{data_tmp_path.generic_u8string()}, data_enc, data_comp);
 	if (data_file_stack.empty()) {
@@ -107,6 +166,7 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 		nlohmann::json meta_data_j = nlohmann::json::object(); // metadata needs to be an object, null not allowed
 		// metadata file
 
+		// TODO: refactor extract to OS
 		for (const auto& [type_id, storage] : reg.storage()) {
 			if (!storage.contains(o)) {
 				continue;
@@ -115,8 +175,8 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 			//std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
 
 			// use type_id to find serializer
-			auto s_cb_it = _os._sc._serl_json.find(type_id);
-			if (s_cb_it == _os._sc._serl_json.end()) {
+			auto s_cb_it = _sc._serl_json.find(type_id);
+			if (s_cb_it == _sc._serl_json.end()) {
 				// could not find serializer, not saving
 				continue;
 			}
@@ -140,7 +200,7 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 					std::filesystem::remove(meta_tmp_path);
 					while (!data_file_stack.empty()) { data_file_stack.pop(); }
 					std::filesystem::remove(data_tmp_path);
-					std::cerr << "FS error: binary writer creation failed '" << oh.get<FragComp::Ephemeral::FilePath>().path << "'\n";
+					std::cerr << "FS error: binary writer creation failed '" << oh.get<ObjComp::Ephemeral::FilePath>().path << "'\n";
 					return false;
 				}
 
@@ -152,7 +212,7 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 						std::filesystem::remove(meta_tmp_path);
 						while (!data_file_stack.empty()) { data_file_stack.pop(); }
 						std::filesystem::remove(data_tmp_path);
-						std::cerr << "FS error: binary writer failed '" << oh.get<FragComp::Ephemeral::FilePath>().path << "'\n";
+						std::cerr << "FS error: binary writer failed '" << oh.get<ObjComp::Ephemeral::FilePath>().path << "'\n";
 						return false;
 					}
 				}
@@ -203,27 +263,24 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 		data_file_stack.top()->write({buffer.data(), buffer_actual_size});
 	} while (buffer_actual_size == buffer.size());
 
-	//meta_file.flush();
-	//meta_file.close();
+	// flush // TODO: use scope
 	while (!meta_file_stack.empty()) { meta_file_stack.pop(); } // destroy stack // TODO: maybe work with scope?
-	//data_file.flush();
-	//data_file.close();
 	while (!data_file_stack.empty()) { data_file_stack.pop(); } // destroy stack // TODO: maybe work with scope?
 
 	std::filesystem::rename(
 		meta_tmp_path,
-		oh.get<FragComp::Ephemeral::FilePath>().path + ".meta" + metaFileTypeSuffix(meta_type)
+		oh.get<ObjComp::Ephemeral::FilePath>().path + ".meta" + metaFileTypeSuffix(meta_type)
 	);
 
 	std::filesystem::rename(
 		data_tmp_path,
-		oh.get<FragComp::Ephemeral::FilePath>().path
+		oh.get<ObjComp::Ephemeral::FilePath>().path
 	);
 
 	// TODO: check return value of renames
 
-	if (oh.all_of<FragComp::Ephemeral::DirtyTag>()) {
-		oh.remove<FragComp::Ephemeral::DirtyTag>();
+	if (oh.all_of<ObjComp::Ephemeral::DirtyTag>()) {
+		oh.remove<ObjComp::Ephemeral::DirtyTag>();
 	}
 
 	return true;
@@ -231,6 +288,262 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 
 bool FilesystemStorage::read(Object o, std::function<read_from_storage_put_data_cb>& data_cb) {
 	return false;
+}
+
+void FilesystemStorage::scanAsync(void) {
+	scanPathAsync(_storage_path);
+}
+
+size_t FilesystemStorage::scanPath(std::string_view path) {
+	// TODO: extract so async can work (or/and make iteratable generator)
+
+	if (path.empty() || !std::filesystem::is_directory(path)) {
+		std::cerr << "FS error: scan path not a directory '" << path << "'\n";
+		return 0;
+	}
+
+	// step 1: make snapshot of files, validate metafiles and save id/path+meta.ext
+	// can be extra thread (if non vfs)
+	struct ObjFileEntry {
+		std::string id_str;
+		std::filesystem::path obj_path;
+		std::string meta_ext;
+
+		bool operator==(const ObjFileEntry& other) const {
+			// only compare by id
+			return id_str == other.id_str;
+		}
+	};
+	struct ObjFileEntryHash {
+		size_t operator()(const ObjFileEntry& it) const {
+			return entt::hashed_string(it.id_str.data(), it.id_str.size());
+		}
+	};
+	entt::dense_set<ObjFileEntry, ObjFileEntryHash> file_obj_list;
+
+	std::filesystem::path storage_path{path};
+
+	auto handle_file = [&](const std::filesystem::path& file_path) {
+		if (!std::filesystem::is_regular_file(file_path)) {
+			return;
+		}
+		// handle file
+
+		if (file_path.has_extension()) {
+			// skip over metadata, assuming only metafiles have extentions (might be wrong?)
+			// also skips temps
+			return;
+		}
+
+		auto relative_path = std::filesystem::proximate(file_path, storage_path);
+		std::string id_str = relative_path.generic_u8string();
+		// delete all '/'
+		id_str.erase(std::remove(id_str.begin(), id_str.end(), '/'), id_str.end());
+		if (id_str.size() % 2 != 0) {
+			std::cerr << "FS error: non hex object uid detected: '" << id_str << "'\n";
+		}
+
+		if (file_obj_list.contains(ObjFileEntry{id_str, {}, ""})) {
+			std::cerr << "FS error: object duplicate detected: '" << id_str << "'\n";
+			return; // skip
+		}
+
+		const char* meta_ext = ".meta.msgpack";
+		{ // find meta
+			// TODO: this as to know all possible extentions
+			bool has_meta_msgpack = std::filesystem::is_regular_file(file_path.generic_u8string() + ".meta.msgpack");
+			bool has_meta_json = std::filesystem::is_regular_file(file_path.generic_u8string() + ".meta.json");
+			const size_t meta_sum =
+				(has_meta_msgpack?1:0) +
+				(has_meta_json?1:0)
+			;
+
+			if (meta_sum > 1) { // has multiple
+				std::cerr << "FS error: object with multiple meta files detected: " << id_str << "\n";
+				return; // skip
+			}
+
+			if (meta_sum == 0) {
+				std::cerr << "FS error: object missing meta file detected: " << id_str << "\n";
+				return; // skip
+			}
+
+			if (has_meta_json) {
+				meta_ext = ".meta.json";
+			}
+		}
+
+		file_obj_list.emplace(ObjFileEntry{
+			std::move(id_str),
+			file_path,
+			meta_ext
+		});
+	};
+
+	for (const auto& outer_path : std::filesystem::directory_iterator(storage_path)) {
+		if (std::filesystem::is_regular_file(outer_path)) {
+			handle_file(outer_path);
+		} else if (std::filesystem::is_directory(outer_path)) {
+			// subdir, part of id
+			for (const auto& inner_path : std::filesystem::directory_iterator(outer_path)) {
+				//if (std::filesystem::is_regular_file(inner_path)) {
+
+					//// handle file
+				//} // TODO: support deeper recursion?
+				handle_file(inner_path);
+			}
+		}
+	}
+
+	std::cout << "FS: scan found:\n";
+	for (const auto& it : file_obj_list) {
+		std::cout << "  " << it.id_str << "\n";
+	}
+
+	// step 2: check if files preexist in reg
+	// main thread
+	// (merge into step 3 and do more error checking?)
+	// TODO: properly handle duplicates, dups form different backends might be legit
+	// important
+#if 0
+	for (auto it = file_obj_list.begin(); it != file_obj_list.end();) {
+		auto id = hex2bin(it->id_str);
+		auto fid = getFragmentByID(id);
+		if (_reg.valid(fid)) {
+			// pre exising (handle differently??)
+			// check if store differs?
+			it = file_obj_list.erase(it);
+		} else {
+			it++;
+		}
+	}
+#endif
+
+	std::vector<Object> scanned_objs;
+	// step 3: parse meta and insert into reg of non preexising
+	// main thread
+	// TODO: check timestamps of preexisting and reload? mark external/remote dirty?
+	for (const auto& it : file_obj_list) {
+		nlohmann::json j;
+		if (it.meta_ext == ".meta.msgpack") {
+			std::ifstream file(it.obj_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
+			if (!file.is_open()) {
+				std::cout << "FS error: failed opening meta " << it.obj_path << "\n";
+				continue;
+			}
+
+			// file is a msgpack within a msgpack
+
+			std::vector<uint8_t> full_meta_data;
+			{ // read meta file
+				// figure out size
+				file.seekg(0, file.end);
+				uint64_t file_size = file.tellg();
+				file.seekg(0, file.beg);
+
+				full_meta_data.resize(file_size);
+
+				file.read(reinterpret_cast<char*>(full_meta_data.data()), full_meta_data.size());
+			}
+
+			const auto meta_header_j = nlohmann::json::from_msgpack(full_meta_data, true, false);
+
+			if (!meta_header_j.is_array() || meta_header_j.size() < 4) {
+				std::cerr << "FS error: broken binary meta " << it.obj_path << "\n";
+				continue;
+			}
+
+			if (meta_header_j.at(0) != "SOLMET") {
+				std::cerr << "FS error: wrong magic '" << meta_header_j.at(0) << "' in meta " << it.obj_path << "\n";
+				continue;
+			}
+
+			Encryption meta_enc = meta_header_j.at(1);
+			if (meta_enc != Encryption::NONE) {
+				std::cerr << "FS error: unknown encryption " << it.obj_path << "\n";
+				continue;
+			}
+
+			Compression meta_comp = meta_header_j.at(2);
+			if (meta_comp != Compression::NONE && meta_comp != Compression::ZSTD) {
+				std::cerr << "FS error: unknown compression " << it.obj_path << "\n";
+				continue;
+			}
+
+			//const auto& meta_data_ref = meta_header_j.at(3).is_binary()?meta_header_j.at(3):meta_header_j.at(3).at("data");
+			if (!meta_header_j.at(3).is_binary()) {
+				std::cerr << "FS error: meta data not binary " << it.obj_path << "\n";
+				continue;
+			}
+			const nlohmann::json::binary_t& meta_data_ref = meta_header_j.at(3);
+
+			std::stack<std::unique_ptr<File2I>> binary_reader_stack;
+			binary_reader_stack.push(std::make_unique<File2MemR>(ByteSpan{meta_data_ref.data(), meta_data_ref.size()}));
+
+			if (!buildStackRead(binary_reader_stack, meta_enc, meta_comp)) {
+				std::cerr << "FS error: binary reader creation failed " << it.obj_path << "\n";
+				continue;
+			}
+
+			// HACK: read fixed amout of data, but this way if we have neither enc nor comp we pass the span through
+			auto binary_read_value = binary_reader_stack.top()->read(10*1024*1024); // is 10MiB large enough for meta?
+			const auto binary_read_span = spanFromRead(binary_read_value);
+			assert(binary_read_span.size < 10*1024*1024);
+
+			j = nlohmann::json::from_msgpack(binary_read_span, true, false);
+		} else if (it.meta_ext == ".meta.json") {
+			std::ifstream file(it.obj_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
+			if (!file.is_open()) {
+				std::cerr << "FS error: failed opening meta " << it.obj_path << "\n";
+				continue;
+			}
+
+			file >> j;
+		} else {
+			assert(false);
+		}
+
+		if (!j.is_object()) {
+			std::cerr << "FS error: json in meta is broken " << it.id_str << "\n";
+			continue;
+		}
+
+		// TODO: existing fragment file
+		//newFragmentFile();
+		ObjectHandle oh{_os.registry(), _os.registry().create()};
+		oh.emplace<ObjComp::Ephemeral::Backend>(this);
+		oh.emplace<ObjComp::ID>(hex2bin(it.id_str));
+
+		oh.emplace<ObjComp::Ephemeral::FilePath>(it.obj_path.generic_u8string());
+
+		for (const auto& [k, v] : j.items()) {
+			// type id from string hash
+			const auto type_id = entt::hashed_string(k.data(), k.size());
+			const auto deserl_fn_it = _sc._deserl_json.find(type_id);
+			if (deserl_fn_it != _sc._deserl_json.cend()) {
+				// TODO: check return value
+				deserl_fn_it->second(oh, v);
+			} else {
+				std::cerr << "FS warning: missing deserializer for meta key '" << k << "'\n";
+			}
+		}
+		scanned_objs.push_back(oh);
+	}
+
+	// TODO: mutex and move code to async and return this list ?
+
+	// throw new frag event here, after loading them all
+	for (const Object o : scanned_objs) {
+		_os.throwEventConstruct(o);
+	}
+
+	return scanned_objs.size();
+}
+
+void FilesystemStorage::scanPathAsync(std::string path) {
+	// add path to queue
+	// HACK: if path is known/any fragment is in the path, this operation blocks (non async)
+	scanPath(path); // TODO: make async and post result
 }
 
 } // backend

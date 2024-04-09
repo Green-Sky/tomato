@@ -94,9 +94,5 @@ struct FragmentStore : public FragmentStoreI {
 
 	private:
 		void registerSerializers(void); // internal comps
-		// internal actual backends
-		// TODO: seperate out
-		bool syncToMemory(FragmentID fid, std::function<write_to_storage_fetch_data_cb>& data_cb);
-		bool syncToFile(FragmentID fid, std::function<write_to_storage_fetch_data_cb>& data_cb);
 };
 
