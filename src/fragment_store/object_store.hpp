@@ -1,6 +1,7 @@
 #pragma once
 
 #include <solanaceae/util/event_provider.hpp>
+#include <solanaceae/util/span.hpp>
 
 #include "./serializer.hpp" // TODO: get rid of the tight nljson integration
 
@@ -13,6 +14,28 @@
 enum class Object : uint32_t {};
 using ObjectRegistry = entt::basic_registry<Object>;
 using ObjectHandle = entt::basic_handle<ObjectRegistry>;
+
+// fwd
+struct ObjectStore2;
+
+struct StorageBackendI {
+	// OR or OS ?
+	ObjectStore2& _os;
+
+	StorageBackendI(ObjectStore2& os);
+
+	// ========== write object to storage ==========
+	using write_to_storage_fetch_data_cb = uint64_t(uint8_t* request_buffer, uint64_t buffer_size);
+	// calls data_cb with a buffer to be filled in, cb returns actual count of data. if returned < max, its the last buffer.
+	virtual bool write(Object o, std::function<write_to_storage_fetch_data_cb>& data_cb) = 0;
+	//virtual bool write(Object o, const uint8_t* data, const uint64_t data_size); // default impl
+	virtual bool write(Object o, const ByteSpan data); // default impl
+
+	// ========== read object from storage ==========
+	using read_from_storage_put_data_cb = void(const ByteSpan buffer);
+	virtual bool read(Object o, std::function<read_from_storage_put_data_cb>& data_cb) = 0;
+
+};
 
 namespace ObjectStore::Events {
 
@@ -54,11 +77,15 @@ struct ObjectStore2 : public ObjectStoreEventProviderI {
 
 	SerializerCallbacks<Object> _sc;
 
+	// TODO: default backend?
+
 	ObjectStore2(void);
 	virtual ~ObjectStore2(void);
 
 	ObjectRegistry& registry(void);
 	ObjectHandle objectHandle(const Object o);
+
+	// sync?
 
 	void throwEventConstruct(const Object o);
 	void throwEventUpdate(const Object o);

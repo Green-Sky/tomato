@@ -21,6 +21,8 @@ add_library(fragment_store
 	#new
 	./fragment_store/object_store.hpp
 	./fragment_store/object_store.cpp
+	./fragment_store/backends/filesystem_storage.hpp
+	./fragment_store/backends/filesystem_storage.cpp
 
 	./json/message_components.hpp # TODO: move
 	./json/tox_message_components.hpp # TODO: move

@@ -6,6 +6,22 @@
 
 #include <iostream>
 
+StorageBackendI::StorageBackendI(ObjectStore2& os) : _os(os) {
+}
+
+bool StorageBackendI::write(Object o, const ByteSpan data) {
+	std::function<write_to_storage_fetch_data_cb> fn_cb = [read = 0ull, data](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {
+		uint64_t i = 0;
+		for (; i+read < data.size && i < buffer_size; i++) {
+			request_buffer[i] = data[i+read];
+		}
+		read += i;
+
+		return i;
+	};
+	return write(o, fn_cb);
+}
+
 static bool serl_json_data_enc_type(const ObjectHandle oh, nlohmann::json& out) {
 	out = static_cast<std::underlying_type_t<Encryption>>(
 		oh.get<FragComp::DataEncryptionType>().enc
