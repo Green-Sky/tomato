@@ -287,7 +287,56 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 }
 
 bool FilesystemStorage::read(Object o, std::function<read_from_storage_put_data_cb>& data_cb) {
-	return false;
+	auto& reg = _os.registry();
+
+	if (!reg.valid(o)) {
+		return false;
+	}
+
+	ObjectHandle oh {reg, o};
+
+	if (!oh.all_of<ObjComp::Ephemeral::FilePath>()) {
+		// not a file
+		return false;
+	}
+
+	const auto& obj_path = oh.get<ObjComp::Ephemeral::FilePath>().path;
+
+	// TODO: check if metadata dirty?
+	// TODO: what if file changed on disk?
+
+	std::cout << "FS: loading fragment '" << obj_path << "'\n";
+
+	Compression data_comp = Compression::NONE;
+	if (oh.all_of<ObjComp::DataCompressionType>()) {
+		data_comp = oh.get<ObjComp::DataCompressionType>().comp;
+	}
+
+	auto data_file_stack = buildFileStackRead(std::string_view{obj_path}, Encryption::NONE, data_comp);
+	if (data_file_stack.empty()) {
+		return false;
+	}
+
+	// TODO: make it read in a single chunk instead?
+	static constexpr int64_t chunk_size {1024 * 1024}; // 1MiB should be good for read
+	do {
+		auto data_var = data_file_stack.top()->read(chunk_size);
+		ByteSpan data = spanFromRead(data_var);
+
+		if (data.empty()) {
+			// error or probably eof
+			break;
+		}
+
+		data_cb(data);
+
+		if (data.size < chunk_size) {
+			// eof
+			break;
+		}
+	} while (data_file_stack.top()->isGood());
+
+	return true;
 }
 
 void FilesystemStorage::scanAsync(void) {
