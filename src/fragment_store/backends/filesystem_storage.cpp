@@ -40,6 +40,10 @@ static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>&
 
 // TODO: move somewhere else
 static bool serl_json_data_enc_type(const ObjectHandle oh, nlohmann::json& out) {
+	if (!oh.all_of<ObjComp::DataEncryptionType>()) {
+		return false;
+	}
+
 	out = static_cast<std::underlying_type_t<Encryption>>(
 		oh.get<ObjComp::DataEncryptionType>().enc
 	);
@@ -56,6 +60,10 @@ static bool deserl_json_data_enc_type(ObjectHandle oh, const nlohmann::json& in)
 }
 
 static bool serl_json_data_comp_type(const ObjectHandle oh, nlohmann::json& out) {
+	if (!oh.all_of<ObjComp::DataCompressionType>()) {
+		return false;
+	}
+
 	out = static_cast<std::underlying_type_t<Compression>>(
 		oh.get<ObjComp::DataCompressionType>().comp
 	);
@@ -524,6 +532,9 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 	// main thread
 	// TODO: check timestamps of preexisting and reload? mark external/remote dirty?
 	for (const auto& it : file_obj_list) {
+		MetaFileType mft {MetaFileType::TEXT_JSON};
+		Encryption meta_enc {Encryption::NONE};
+		Compression meta_comp {Compression::NONE};
 		nlohmann::json j;
 		if (it.meta_ext == ".meta.msgpack") {
 			std::ifstream file(it.obj_path.generic_u8string() + it.meta_ext, std::ios::in | std::ios::binary);
@@ -531,6 +542,8 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 				std::cout << "FS error: failed opening meta " << it.obj_path << "\n";
 				continue;
 			}
+
+			mft = MetaFileType::BINARY_MSGPACK;
 
 			// file is a msgpack within a msgpack
 
@@ -558,13 +571,13 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 				continue;
 			}
 
-			Encryption meta_enc = meta_header_j.at(1);
+			meta_enc = meta_header_j.at(1);
 			if (meta_enc != Encryption::NONE) {
 				std::cerr << "FS error: unknown encryption " << it.obj_path << "\n";
 				continue;
 			}
 
-			Compression meta_comp = meta_header_j.at(2);
+			meta_comp = meta_header_j.at(2);
 			if (meta_comp != Compression::NONE && meta_comp != Compression::ZSTD) {
 				std::cerr << "FS error: unknown compression " << it.obj_path << "\n";
 				continue;
@@ -598,6 +611,8 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 				continue;
 			}
 
+			mft = MetaFileType::TEXT_JSON;
+
 			file >> j;
 		} else {
 			assert(false);
@@ -613,6 +628,9 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 		ObjectHandle oh{_os.registry(), _os.registry().create()};
 		oh.emplace<ObjComp::Ephemeral::Backend>(this);
 		oh.emplace<ObjComp::ID>(hex2bin(it.id_str));
+		oh.emplace<ObjComp::Ephemeral::MetaFileType>(mft);
+		oh.emplace<ObjComp::Ephemeral::MetaEncryptionType>(meta_enc);
+		oh.emplace<ObjComp::Ephemeral::MetaCompressionType>(meta_comp);
 
 		oh.emplace<ObjComp::Ephemeral::FilePath>(it.obj_path.generic_u8string());
 

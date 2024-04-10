@@ -29,7 +29,7 @@ struct StorageBackendI {
 	// calls data_cb with a buffer to be filled in, cb returns actual count of data. if returned < max, its the last buffer.
 	virtual bool write(Object o, std::function<write_to_storage_fetch_data_cb>& data_cb) = 0;
 	//virtual bool write(Object o, const uint8_t* data, const uint64_t data_size); // default impl
-	virtual bool write(Object o, const ByteSpan data); // default impl
+	bool write(Object o, const ByteSpan data);
 
 	// ========== read object from storage ==========
 	using read_from_storage_put_data_cb = void(const ByteSpan buffer);
