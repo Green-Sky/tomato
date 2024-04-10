@@ -36,6 +36,18 @@ ObjectHandle ObjectStore2::objectHandle(const Object o) {
 	return {_reg, o};
 }
 
+ObjectHandle ObjectStore2::getOneObjectByID(const ByteSpan id) {
+	// TODO: accelerate
+	// maybe keep it sorted and binary search? hash table lookup?
+	for (const auto& [obj, id_comp] : _reg.view<ObjComp::ID>().each()) {
+		if (id == ByteSpan{id_comp.v}) {
+			return {_reg, obj};
+		}
+	}
+
+	return {_reg, entt::null};
+}
+
 void ObjectStore2::throwEventConstruct(const Object o) {
 	std::cout << "OS debug: event construct " << entt::to_integral(o) << "\n";
 	dispatch(

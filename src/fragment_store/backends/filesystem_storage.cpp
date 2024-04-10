@@ -89,6 +89,59 @@ FilesystemStorage::FilesystemStorage(ObjectStore2& os, std::string_view storage_
 FilesystemStorage::~FilesystemStorage(void) {
 }
 
+ObjectHandle FilesystemStorage::newObject(MetaFileType mft, ByteSpan id) {
+	{ // first check if id is already used (TODO: solve the multi obj/backend problem)
+		auto exising_oh = _os.getOneObjectByID(id);
+		if (static_cast<bool>(exising_oh)) {
+			return {};
+		}
+	}
+
+	std::filesystem::create_directories(_storage_path);
+
+	if (!std::filesystem::is_directory(_storage_path)) {
+		std::cerr << "FS error: failed to create storage path dir '" << _storage_path << "'\n";
+		return {};
+	}
+
+	const auto id_hex = bin2hex(id);
+	std::filesystem::path object_file_path;
+
+	// TODO: refactor this magic somehow
+	if (id_hex.size() < 6) {
+		object_file_path = std::filesystem::path{_storage_path}/id_hex;
+	} else {
+		// use the first 2hex (1byte) as a subfolder
+		std::filesystem::create_directories(std::string{_storage_path} + id_hex.substr(0, 2));
+		object_file_path = std::filesystem::path{std::string{_storage_path} + id_hex.substr(0, 2)} / id_hex.substr(2);
+	}
+
+	if (std::filesystem::exists(object_file_path)) {
+		std::cerr << "FS error: object already exists in path '" << id_hex << "'\n";
+		return {};
+	}
+
+	ObjectHandle oh{_os.registry(), _os.registry().create()};
+
+	oh.emplace<ObjComp::Ephemeral::Backend>(this);
+	oh.emplace<ObjComp::ID>(std::vector<uint8_t>{id});
+	oh.emplace<ObjComp::Ephemeral::FilePath>(object_file_path.generic_u8string());
+	oh.emplace<ObjComp::Ephemeral::MetaFileType>(mft);
+
+	// meta needs to be synced to file
+	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](auto*, auto) -> uint64_t { return 0; };
+	if (!write(oh, empty_data_cb)) {
+		std::cerr << "FS error: write failed while creating new object file\n";
+		oh.destroy();
+		return {};
+	}
+
+	// while new metadata might be created here, making sure the file could be created is more important
+	_os.throwEventConstruct(oh);
+
+	return oh;
+}
+
 bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_data_cb>& data_cb) {
 	auto& reg = _os.registry();
 
@@ -454,11 +507,10 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 	// (merge into step 3 and do more error checking?)
 	// TODO: properly handle duplicates, dups form different backends might be legit
 	// important
-#if 0
 	for (auto it = file_obj_list.begin(); it != file_obj_list.end();) {
 		auto id = hex2bin(it->id_str);
-		auto fid = getFragmentByID(id);
-		if (_reg.valid(fid)) {
+		auto oh = _os.getOneObjectByID(ByteSpan{id});
+		if (static_cast<bool>(oh)) {
 			// pre exising (handle differently??)
 			// check if store differs?
 			it = file_obj_list.erase(it);
@@ -466,7 +518,6 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 			it++;
 		}
 	}
-#endif
 
 	std::vector<Object> scanned_objs;
 	// step 3: parse meta and insert into reg of non preexising

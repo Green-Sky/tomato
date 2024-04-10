@@ -83,6 +83,9 @@ struct ObjectStore2 : public ObjectStoreEventProviderI {
 	ObjectRegistry& registry(void);
 	ObjectHandle objectHandle(const Object o);
 
+	// TODO: properly think about multiple objects witht he same id / different backends
+	ObjectHandle getOneObjectByID(const ByteSpan id);
+
 	// sync?
 
 	void throwEventConstruct(const Object o);
