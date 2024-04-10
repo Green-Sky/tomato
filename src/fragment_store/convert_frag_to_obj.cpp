@@ -2,6 +2,8 @@
 #include "./backends/filesystem_storage.hpp"
 #include "./meta_components.hpp"
 
+#include <solanaceae/util/utils.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
@@ -57,6 +59,31 @@ int main(int argc, const char** argv) {
 			bool onEvent(const ObjectStore::Events::ObjectConstruct& e) override {
 				assert(e.e.all_of<ObjComp::Ephemeral::MetaFileType>());
 				assert(e.e.all_of<ObjComp::ID>());
+
+				// !! we read the obj first, so we can discard empty objects
+				// technically we could just copy the file, but meh
+				// read src and write dst data
+				std::vector<uint8_t> tmp_buffer;
+				std::function<StorageBackendI::read_from_storage_put_data_cb> cb = [&tmp_buffer](const ByteSpan buffer) {
+					tmp_buffer.insert(tmp_buffer.end(), buffer.cbegin(), buffer.cend());
+				};
+				if (!_fsb_src.read(e.e, cb)) {
+					std::cerr << "failed to read obj '" << bin2hex(e.e.get<ObjComp::ID>().v) << "'\n";
+					return false;
+				}
+
+				if (tmp_buffer.empty()) {
+					std::cerr << "discarded empty obj '" << bin2hex(e.e.get<ObjComp::ID>().v) << "'\n";
+					return false;
+				}
+				{ // try getting lucky and see if its an empty json
+					const auto j = nlohmann::json::parse(tmp_buffer, nullptr, false);
+					if (j.is_array() && j.empty()) {
+						std::cerr << "discarded empty json array obj '" << bin2hex(e.e.get<ObjComp::ID>().v) << "'\n";
+						return false;
+					}
+				}
+
 				auto oh = _fsb_dst.newObject(e.e.get<ObjComp::Ephemeral::MetaFileType>().type, ByteSpan{e.e.get<ObjComp::ID>().v});
 
 				if (!static_cast<bool>(oh)) {
@@ -84,8 +111,7 @@ int main(int argc, const char** argv) {
 					}
 				}
 
-				// read src and write dst data
-				static_cast<StorageBackendI&>(_fsb_dst).write(oh, ByteSpan{});
+				static_cast<StorageBackendI&>(_fsb_dst).write(oh, ByteSpan{tmp_buffer});
 
 				return false;
 			}
