@@ -2,9 +2,52 @@
 
 #include "./meta_components.hpp"
 
+#include "./serializer_json.hpp"
+
 #include <nlohmann/json.hpp> // this sucks
 
 #include <iostream>
+
+// TODO: move somewhere else
+static bool serl_json_data_enc_type(const ObjectHandle oh, nlohmann::json& out) {
+	if (!oh.all_of<ObjComp::DataEncryptionType>()) {
+		return false;
+	}
+
+	out = static_cast<std::underlying_type_t<Encryption>>(
+		oh.get<ObjComp::DataEncryptionType>().enc
+	);
+	return true;
+}
+
+static bool deserl_json_data_enc_type(ObjectHandle oh, const nlohmann::json& in) {
+	oh.emplace_or_replace<ObjComp::DataEncryptionType>(
+		static_cast<Encryption>(
+			static_cast<std::underlying_type_t<Encryption>>(in)
+		)
+	);
+	return true;
+}
+
+static bool serl_json_data_comp_type(const ObjectHandle oh, nlohmann::json& out) {
+	if (!oh.all_of<ObjComp::DataCompressionType>()) {
+		return false;
+	}
+
+	out = static_cast<std::underlying_type_t<Compression>>(
+		oh.get<ObjComp::DataCompressionType>().comp
+	);
+	return true;
+}
+
+static bool deserl_json_data_comp_type(ObjectHandle oh, const nlohmann::json& in) {
+	oh.emplace_or_replace<ObjComp::DataCompressionType>(
+		static_cast<Compression>(
+			static_cast<std::underlying_type_t<Compression>>(in)
+		)
+	);
+	return true;
+}
 
 StorageBackendI::StorageBackendI(ObjectStore2& os) : _os(os) {
 }
@@ -23,6 +66,18 @@ bool StorageBackendI::write(Object o, const ByteSpan data) {
 }
 
 ObjectStore2::ObjectStore2(void) {
+	// HACK: set them up independently
+	auto& sjc = _reg.ctx().emplace<SerializerJsonCallbacks<Object>>();
+	sjc.registerSerializer<ObjComp::DataEncryptionType>(serl_json_data_enc_type);
+	sjc.registerDeSerializer<ObjComp::DataEncryptionType>(deserl_json_data_enc_type);
+	sjc.registerSerializer<ObjComp::DataCompressionType>(serl_json_data_comp_type);
+	sjc.registerDeSerializer<ObjComp::DataCompressionType>(deserl_json_data_comp_type);
+
+	// old stuff
+	sjc.registerSerializer<FragComp::DataEncryptionType>(serl_json_data_enc_type);
+	sjc.registerDeSerializer<FragComp::DataEncryptionType>(deserl_json_data_enc_type);
+	sjc.registerSerializer<FragComp::DataCompressionType>(serl_json_data_comp_type);
+	sjc.registerDeSerializer<FragComp::DataCompressionType>(deserl_json_data_comp_type);
 }
 
 ObjectStore2::~ObjectStore2(void) {

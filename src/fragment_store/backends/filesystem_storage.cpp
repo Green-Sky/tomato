@@ -1,6 +1,7 @@
 #include "./filesystem_storage.hpp"
 
 #include "../meta_components.hpp"
+#include "../serializer_json.hpp"
 
 #include <solanaceae/util/utils.hpp>
 
@@ -38,60 +39,10 @@ static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>&
 	}
 }
 
-// TODO: move somewhere else
-static bool serl_json_data_enc_type(const ObjectHandle oh, nlohmann::json& out) {
-	if (!oh.all_of<ObjComp::DataEncryptionType>()) {
-		return false;
-	}
-
-	out = static_cast<std::underlying_type_t<Encryption>>(
-		oh.get<ObjComp::DataEncryptionType>().enc
-	);
-	return true;
-}
-
-static bool deserl_json_data_enc_type(ObjectHandle oh, const nlohmann::json& in) {
-	oh.emplace_or_replace<ObjComp::DataEncryptionType>(
-		static_cast<Encryption>(
-			static_cast<std::underlying_type_t<Encryption>>(in)
-		)
-	);
-	return true;
-}
-
-static bool serl_json_data_comp_type(const ObjectHandle oh, nlohmann::json& out) {
-	if (!oh.all_of<ObjComp::DataCompressionType>()) {
-		return false;
-	}
-
-	out = static_cast<std::underlying_type_t<Compression>>(
-		oh.get<ObjComp::DataCompressionType>().comp
-	);
-	return true;
-}
-
-static bool deserl_json_data_comp_type(ObjectHandle oh, const nlohmann::json& in) {
-	oh.emplace_or_replace<ObjComp::DataCompressionType>(
-		static_cast<Compression>(
-			static_cast<std::underlying_type_t<Compression>>(in)
-		)
-	);
-	return true;
-}
 
 namespace backend {
 
 FilesystemStorage::FilesystemStorage(ObjectStore2& os, std::string_view storage_path) : StorageBackendI::StorageBackendI(os), _storage_path(storage_path) {
-	_sc.registerSerializerJson<ObjComp::DataEncryptionType>(serl_json_data_enc_type);
-	_sc.registerDeSerializerJson<ObjComp::DataEncryptionType>(deserl_json_data_enc_type);
-	_sc.registerSerializerJson<ObjComp::DataCompressionType>(serl_json_data_comp_type);
-	_sc.registerDeSerializerJson<ObjComp::DataCompressionType>(deserl_json_data_comp_type);
-
-	// old stuff
-	_sc.registerSerializerJson<FragComp::DataEncryptionType>(serl_json_data_enc_type);
-	_sc.registerDeSerializerJson<FragComp::DataEncryptionType>(deserl_json_data_enc_type);
-	_sc.registerSerializerJson<FragComp::DataCompressionType>(serl_json_data_comp_type);
-	_sc.registerDeSerializerJson<FragComp::DataCompressionType>(deserl_json_data_comp_type);
 }
 
 FilesystemStorage::~FilesystemStorage(void) {
@@ -227,6 +178,8 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 		nlohmann::json meta_data_j = nlohmann::json::object(); // metadata needs to be an object, null not allowed
 		// metadata file
 
+		auto& sjc = _os.registry().ctx().get<SerializerJsonCallbacks<Object>>();
+
 		// TODO: refactor extract to OS
 		for (const auto& [type_id, storage] : reg.storage()) {
 			if (!storage.contains(o)) {
@@ -236,8 +189,8 @@ bool FilesystemStorage::write(Object o, std::function<write_to_storage_fetch_dat
 			//std::cout << "storage type: type_id:" << type_id << " name:" << storage.type().name() << "\n";
 
 			// use type_id to find serializer
-			auto s_cb_it = _sc._serl_json.find(type_id);
-			if (s_cb_it == _sc._serl_json.end()) {
+			auto s_cb_it = sjc._serl.find(type_id);
+			if (s_cb_it == sjc._serl.end()) {
 				// could not find serializer, not saving
 				continue;
 			}
@@ -527,6 +480,8 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 		}
 	}
 
+	auto& sjc = _os.registry().ctx().get<SerializerJsonCallbacks<Object>>();
+
 	std::vector<Object> scanned_objs;
 	// step 3: parse meta and insert into reg of non preexising
 	// main thread
@@ -637,8 +592,8 @@ size_t FilesystemStorage::scanPath(std::string_view path) {
 		for (const auto& [k, v] : j.items()) {
 			// type id from string hash
 			const auto type_id = entt::hashed_string(k.data(), k.size());
-			const auto deserl_fn_it = _sc._deserl_json.find(type_id);
-			if (deserl_fn_it != _sc._deserl_json.cend()) {
+			const auto deserl_fn_it = sjc._deserl.find(type_id);
+			if (deserl_fn_it != sjc._deserl.cend()) {
 				// TODO: check return value
 				deserl_fn_it->second(oh, v);
 			} else {

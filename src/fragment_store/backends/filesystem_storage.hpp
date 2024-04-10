@@ -26,11 +26,6 @@ struct FilesystemStorage : public StorageBackendI {
 	private:
 		size_t scanPath(std::string_view path);
 		void scanPathAsync(std::string path);
-
-	public: // TODO: private?
-		// this thing needs to change and be facilitated over the OS
-		// but the json serializer are specific to the backend
-		SerializerCallbacks<Object> _sc;
 };
 
 } // backend

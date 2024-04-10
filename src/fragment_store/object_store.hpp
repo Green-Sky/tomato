@@ -3,8 +3,6 @@
 #include <solanaceae/util/event_provider.hpp>
 #include <solanaceae/util/span.hpp>
 
-#include "./serializer.hpp" // TODO: get rid of the tight nljson integration
-
 #include <entt/entity/registry.hpp>
 #include <entt/entity/handle.hpp>
 

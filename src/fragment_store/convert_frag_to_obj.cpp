@@ -1,6 +1,7 @@
 #include "./object_store.hpp"
 #include "./backends/filesystem_storage.hpp"
 #include "./meta_components.hpp"
+#include "./serializer_json.hpp"
 
 #include <solanaceae/util/utils.hpp>
 
@@ -97,7 +98,7 @@ int main(int argc, const char** argv) {
 					oh.emplace_or_replace<ObjComp::Ephemeral::MetaCompressionType>(e.e.get_or_emplace<ObjComp::Ephemeral::MetaCompressionType>());
 
 					// serializable
-					for (const auto& [type, fn] : _fsb_src._sc._serl_json) {
+					for (const auto& [type, fn] : _os_src.registry().ctx().get<SerializerJsonCallbacks<Object>>()._serl) {
 						//if (!e.e.registry()->storage(type)->contains(e.e)) {
 							//continue;
 						//}
@@ -106,7 +107,7 @@ int main(int argc, const char** argv) {
 						// raw copy might be better in the future
 						nlohmann::json tmp_j;
 						if (fn(e.e, tmp_j)) {
-							_fsb_dst._sc._deserl_json.at(type)(oh, tmp_j);
+							_os_dst.registry().ctx().get<SerializerJsonCallbacks<Object>>()._deserl.at(type)(oh, tmp_j);
 						}
 					}
 				}
