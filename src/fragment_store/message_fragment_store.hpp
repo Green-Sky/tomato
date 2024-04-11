@@ -7,6 +7,8 @@
 
 #include "./message_serializer.hpp"
 
+#include "./messages_meta_components.hpp"
+
 #include <entt/container/dense_map.hpp>
 #include <entt/container/dense_set.hpp>
 
@@ -53,33 +55,6 @@ namespace Message::Components {
 	struct TagCurserUnsatisfied {};
 
 } // Message::Components
-
-namespace ObjectStore::Components {
-	struct MessagesVersion {
-		// messages Object version
-		// 1 -> text_json
-		uint16_t v {1};
-	};
-
-	struct MessagesTSRange {
-		// timestamp range within the fragment
-		uint64_t begin {0}; // newer msg -> higher number
-		uint64_t end {0};
-	};
-
-	struct MessagesContact {
-		std::vector<uint8_t> id;
-	};
-
-	// TODO: add src contact (self id)
-
-} // ObjectStore::Components
-
-// old
-namespace Fragment::Components {
-	struct MessagesTSRange : public ObjComp::MessagesTSRange {};
-	struct MessagesContact : public ObjComp::MessagesContact {};
-} // Fragment::Components
 
 // handles fragments for messages
 // on new message: assign fuid

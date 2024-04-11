@@ -48,6 +48,8 @@ target_link_libraries(test_file_zstd PUBLIC
 add_library(message_fragment_store
 	./fragment_store/message_serializer.hpp
 	./fragment_store/message_serializer.cpp
+	./fragment_store/messages_meta_components.hpp
+	./fragment_store/messages_meta_components_id.inl
 	./fragment_store/message_fragment_store.hpp
 	./fragment_store/message_fragment_store.cpp
 

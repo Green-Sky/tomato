@@ -1,7 +1,7 @@
 #pragma once
 
 #include "./types.hpp"
-#include "object_store.hpp"
+#include "./object_store.hpp"
 
 #include <vector>
 #include <string>
@@ -26,6 +26,7 @@ namespace ObjectStore::Components {
 	// meta that is not written to (meta-)file
 	namespace Ephemeral {
 
+		// TODO: move, backend specific
 		struct MetaFileType {
 			::MetaFileType type {::MetaFileType::TEXT_JSON};
 		};
@@ -61,7 +62,7 @@ namespace ObjectStore::Components {
 // shortened to save bytes (until I find a way to save by ID in msgpack)
 namespace ObjComp = ObjectStore::Components;
 
-// old names
+// old names from frag era
 namespace Fragment::Components {
 	//struct ID {};
 	//struct DataEncryptionType {};
