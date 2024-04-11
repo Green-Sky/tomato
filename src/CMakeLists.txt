@@ -64,12 +64,13 @@ target_link_libraries(message_fragment_store PUBLIC
 
 ########################################
 
-add_executable(convert_frag_to_obj
+add_executable(convert_message_object_store
 	fragment_store/convert_frag_to_obj.cpp
 )
 
-target_link_libraries(convert_frag_to_obj PUBLIC
+target_link_libraries(convert_message_object_store PUBLIC
 	fragment_store
+	message_fragment_store
 )
 
 ########################################

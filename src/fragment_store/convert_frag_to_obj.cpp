@@ -2,6 +2,7 @@
 #include "./backends/filesystem_storage.hpp"
 #include "./meta_components.hpp"
 #include "./serializer_json.hpp"
+#include "./message_fragment_store.hpp"
 
 #include <solanaceae/util/utils.hpp>
 
@@ -30,6 +31,13 @@ int main(int argc, const char** argv) {
 
 	backend::FilesystemStorage fsb_src(os_src, argv[1]);
 	backend::FilesystemStorage fsb_dst(os_dst, argv[2]);
+
+	Contact3Registry cr; // dummy
+	RegistryMessageModel rmm(cr); // dummy
+	// they only exist for the serializers (for now)
+	// TODO: version
+	MessageFragmentStore mfs_src(cr, rmm, os_src, fsb_src);
+	MessageFragmentStore mfs_dst(cr, rmm, os_dst, fsb_dst);
 
 	// add message fragment store too (adds meta?)
 

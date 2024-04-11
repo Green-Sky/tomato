@@ -55,6 +55,12 @@ namespace Message::Components {
 } // Message::Components
 
 namespace ObjectStore::Components {
+	struct MessagesVersion {
+		// messages Object version
+		// 1 -> text_json
+		uint16_t v {1};
+	};
+
 	struct MessagesTSRange {
 		// timestamp range within the fragment
 		uint64_t begin {0}; // newer msg -> higher number

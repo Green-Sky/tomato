@@ -71,6 +71,7 @@ namespace Message::Components {
 } // Message::Components
 
 namespace ObjectStore::Components {
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesVersion, v)
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesTSRange, begin, end)
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MessagesContact, id)
 
@@ -228,6 +229,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 			fh.emplace_or_replace<ObjComp::Ephemeral::MetaCompressionType>().comp = Compression::ZSTD;
 			fh.emplace_or_replace<ObjComp::DataCompressionType>().comp = Compression::ZSTD;
+			fh.emplace_or_replace<ObjComp::MessagesVersion>(); // default is current
 
 			auto& new_ts_range = fh.emplace_or_replace<ObjComp::MessagesTSRange>();
 			new_ts_range.begin = msg_ts;
@@ -464,7 +466,11 @@ bool MessageFragmentStore::syncFragToStorage(ObjectHandle fh, Message3Registry& 
 				continue;
 			}
 
-			s_cb_it->second(_sc, {reg, m}, j_entry[storage.type().name()]);
+			try {
+				s_cb_it->second(_sc, {reg, m}, j_entry[storage.type().name()]);
+			} catch (...) {
+				std::cerr << "MFS error: failed to serialize " << storage.type().name() << "(" << type_id << ")\n";
+			}
 		}
 	}
 
@@ -502,12 +508,14 @@ MessageFragmentStore::MessageFragmentStore(
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
 	auto& sjc = _os.registry().ctx().get<SerializerJsonCallbacks<Object>>();
+	sjc.registerSerializer<ObjComp::MessagesVersion>();
+	sjc.registerDeSerializer<ObjComp::MessagesVersion>();
 	sjc.registerSerializer<ObjComp::MessagesTSRange>();
 	sjc.registerDeSerializer<ObjComp::MessagesTSRange>();
 	sjc.registerSerializer<ObjComp::MessagesContact>();
 	sjc.registerDeSerializer<ObjComp::MessagesContact>();
 
-	// old
+	// old frag names
 	sjc.registerSerializer<FragComp::MessagesTSRange>(sjc.component_get_json<ObjComp::MessagesTSRange>);
 	sjc.registerDeSerializer<FragComp::MessagesTSRange>(sjc.component_emplace_or_replace_json<ObjComp::MessagesTSRange>);
 	sjc.registerSerializer<FragComp::MessagesContact>(sjc.component_get_json<ObjComp::MessagesContact>);
@@ -622,6 +630,15 @@ float MessageFragmentStore::tick(float) {
 		}
 
 		if (!fh.all_of<ObjComp::MessagesTSRange>()) {
+			return 0.05f;
+		}
+
+		if (!fh.all_of<ObjComp::MessagesVersion>()) {
+			// missing version, adding
+			fh.emplace<ObjComp::MessagesVersion>();
+		}
+		if (fh.get<ObjComp::MessagesVersion>().v != 1) {
+			std::cerr << "MFS: object with version mismatch\n";
 			return 0.05f;
 		}
 
@@ -836,6 +853,11 @@ bool MessageFragmentStore::onEvent(const ObjectStore::Events::ObjectConstruct& e
 
 	if (!e.e.all_of<ObjComp::MessagesTSRange, ObjComp::MessagesContact>()) {
 		return false; // not for us
+	}
+	if (!e.e.all_of<ObjComp::MessagesVersion>()) {
+		// missing version, adding
+		// version check is later
+		e.e.emplace<ObjComp::MessagesVersion>();
 	}
 
 	// TODO: are we sure it is a *new* fragment?
