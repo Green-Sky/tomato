@@ -85,7 +85,8 @@ int main(int argc, const char** argv) {
 					}
 				}
 
-				auto oh = _fsb_dst.newObject(e.e.get<ObjComp::Ephemeral::MetaFileType>().type, ByteSpan{e.e.get<ObjComp::ID>().v});
+				// we dont copy meta file type, it will be the same for all "new" objects
+				auto oh = _fsb_dst.newObject(ByteSpan{e.e.get<ObjComp::ID>().v});
 
 				if (!static_cast<bool>(oh)) {
 					// already exists

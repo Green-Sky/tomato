@@ -22,11 +22,13 @@ struct StorageBackendI {
 
 	StorageBackendI(ObjectStore2& os);
 
+	// default impl fails, acting like a read only store
+	virtual ObjectHandle newObject(ByteSpan id);
+
 	// ========== write object to storage ==========
 	using write_to_storage_fetch_data_cb = uint64_t(uint8_t* request_buffer, uint64_t buffer_size);
 	// calls data_cb with a buffer to be filled in, cb returns actual count of data. if returned < max, its the last buffer.
 	virtual bool write(Object o, std::function<write_to_storage_fetch_data_cb>& data_cb) = 0;
-	//virtual bool write(Object o, const uint8_t* data, const uint64_t data_size); // default impl
 	bool write(Object o, const ByteSpan data);
 
 	// ========== read object from storage ==========

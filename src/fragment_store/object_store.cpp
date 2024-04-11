@@ -52,6 +52,11 @@ static bool deserl_json_data_comp_type(ObjectHandle oh, const nlohmann::json& in
 StorageBackendI::StorageBackendI(ObjectStore2& os) : _os(os) {
 }
 
+ObjectHandle StorageBackendI::newObject(ByteSpan) {
+	//return {_os.registry(), entt::null};
+	return {};
+}
+
 bool StorageBackendI::write(Object o, const ByteSpan data) {
 	std::function<write_to_storage_fetch_data_cb> fn_cb = [read = 0ull, data](uint8_t* request_buffer, uint64_t buffer_size) mutable -> uint64_t {
 		uint64_t i = 0;

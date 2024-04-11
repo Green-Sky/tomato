@@ -42,13 +42,17 @@ static ByteSpan spanFromRead(const std::variant<ByteSpan, std::vector<uint8_t>>&
 
 namespace backend {
 
-FilesystemStorage::FilesystemStorage(ObjectStore2& os, std::string_view storage_path) : StorageBackendI::StorageBackendI(os), _storage_path(storage_path) {
+FilesystemStorage::FilesystemStorage(
+	ObjectStore2& os,
+	std::string_view storage_path,
+	MetaFileType mft_new
+) : StorageBackendI::StorageBackendI(os), _storage_path(storage_path), _mft_new(mft_new) {
 }
 
 FilesystemStorage::~FilesystemStorage(void) {
 }
 
-ObjectHandle FilesystemStorage::newObject(MetaFileType mft, ByteSpan id) {
+ObjectHandle FilesystemStorage::newObject(ByteSpan id) {
 	{ // first check if id is already used (TODO: solve the multi obj/backend problem)
 		auto exising_oh = _os.getOneObjectByID(id);
 		if (static_cast<bool>(exising_oh)) {
@@ -85,7 +89,7 @@ ObjectHandle FilesystemStorage::newObject(MetaFileType mft, ByteSpan id) {
 	oh.emplace<ObjComp::Ephemeral::Backend>(this);
 	oh.emplace<ObjComp::ID>(std::vector<uint8_t>{id});
 	oh.emplace<ObjComp::Ephemeral::FilePath>(object_file_path.generic_u8string());
-	oh.emplace<ObjComp::Ephemeral::MetaFileType>(mft);
+	oh.emplace<ObjComp::Ephemeral::MetaFileType>(_mft_new);
 
 	// meta needs to be synced to file
 	std::function<write_to_storage_fetch_data_cb> empty_data_cb = [](auto*, auto) -> uint64_t { return 0; };
