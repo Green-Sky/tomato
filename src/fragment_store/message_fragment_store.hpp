@@ -1,12 +1,12 @@
 #pragma once
 
 #include "./meta_components.hpp"
-#include "./fragment_store_i.hpp"
-#include "./fragment_store.hpp"
+#include "./object_store.hpp"
+
+#include "./uuid_generator.hpp"
 
 #include "./message_serializer.hpp"
 
-#include <entt/entity/registry.hpp>
 #include <entt/container/dense_map.hpp>
 #include <entt/container/dense_set.hpp>
 
@@ -22,8 +22,8 @@ namespace Message::Components {
 	// unused, consumes too much memory (highly compressable)
 	//using FUID = FragComp::ID;
 
-	struct FID {
-		FragmentID fid {entt::null};
+	struct Obj {
+		Object o {entt::null};
 	};
 
 	// points to the front/newer message
@@ -79,32 +79,35 @@ namespace Fragment::Components {
 // on new message: assign fuid
 // on new and update: mark as fragment dirty
 // on delete: mark as fragment dirty?
-class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentStoreEventI {
+class MessageFragmentStore : public RegistryMessageModelEventI, public ObjectStoreEventI {
 	protected:
 		Contact3Registry& _cr;
 		RegistryMessageModel& _rmm;
-		FragmentStore& _fs;
+		ObjectStore2& _os;
+		StorageBackendI& _sb;
 		bool _fs_ignore_event {false};
+
+		UUIDGenerator_128_128 _session_uuid_gen;
 
 		// for message components only
 		MessageSerializerCallbacks _sc;
 
 		void handleMessage(const Message3Handle& m);
 
-		void loadFragment(Message3Registry& reg, FragmentHandle fh);
+		void loadFragment(Message3Registry& reg, ObjectHandle oh);
 
-		bool syncFragToStorage(FragmentHandle fh, Message3Registry& reg);
+		bool syncFragToStorage(ObjectHandle oh, Message3Registry& reg);
 
 		struct SaveQueueEntry final {
 			uint64_t ts_since_dirty{0};
 			//std::vector<uint8_t> id;
-			FragmentID id;
+			ObjectHandle id;
 			Message3Registry* reg{nullptr};
 		};
 		std::deque<SaveQueueEntry> _fuid_save_queue;
 
 		struct ECQueueEntry final {
-			FragmentID fid;
+			ObjectHandle fid;
 			Contact3 c;
 		};
 		std::deque<ECQueueEntry> _event_check_queue;
@@ -118,7 +121,8 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 		MessageFragmentStore(
 			Contact3Registry& cr,
 			RegistryMessageModel& rmm,
-			FragmentStore& fs
+			ObjectStore2& os,
+			StorageBackendI& sb
 		);
 		virtual ~MessageFragmentStore(void);
 
@@ -126,14 +130,12 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public FragmentS
 
 		float tick(float time_delta);
 
-		void triggerScan(void);
-
 	protected: // rmm
 		bool onEvent(const Message::Events::MessageConstruct& e) override;
 		bool onEvent(const Message::Events::MessageUpdated& e) override;
 
 	protected: // fs
-		bool onEvent(const Fragment::Events::FragmentConstruct& e) override;
-		bool onEvent(const Fragment::Events::FragmentUpdated& e) override;
+		bool onEvent(const ObjectStore::Events::ObjectConstruct& e) override;
+		bool onEvent(const ObjectStore::Events::ObjectUpdate& e) override;
 };
 

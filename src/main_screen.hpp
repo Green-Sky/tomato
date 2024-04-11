@@ -2,7 +2,8 @@
 
 #include "./screen.hpp"
 
-#include "./fragment_store/fragment_store.hpp"
+#include "./fragment_store/object_store.hpp"
+#include "./fragment_store/backends/filesystem_storage.hpp"
 #include <solanaceae/util/simple_config_model.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
@@ -45,12 +46,13 @@ extern "C" {
 struct MainScreen final : public Screen {
 	SDL_Renderer* renderer;
 
-	FragmentStore fs;
+	ObjectStore2 os;
 
 	SimpleConfigModel conf;
 	Contact3Registry cr;
 	RegistryMessageModel rmm;
 	MessageTimeSort mts;
+	backend::FilesystemStorage mfsb; // message fsb // TODO: make configurable
 	MessageFragmentStore mfs;
 
 	ToxEventLogger tel{std::cout};

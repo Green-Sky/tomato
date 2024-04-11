@@ -12,13 +12,6 @@ add_library(fragment_store
 	./fragment_store/meta_components_id.inl
 	./fragment_store/file2_stack.hpp
 	./fragment_store/file2_stack.cpp
-	#old
-	./fragment_store/serializer.hpp
-	./fragment_store/fragment_store_i.hpp
-	./fragment_store/fragment_store_i.cpp
-	./fragment_store/fragment_store.hpp
-	./fragment_store/fragment_store.cpp
-	#new
 	./fragment_store/serializer_json.hpp
 	./fragment_store/object_store.hpp
 	./fragment_store/object_store.cpp
@@ -67,16 +60,6 @@ target_compile_features(message_fragment_store PRIVATE cxx_std_20)
 target_link_libraries(message_fragment_store PUBLIC
 	fragment_store
 	solanaceae_message3
-)
-
-########################################
-
-add_executable(test_fragment_store
-	fragment_store/test_fragstore.cpp
-)
-
-target_link_libraries(test_fragment_store PUBLIC
-	fragment_store
 )
 
 ########################################

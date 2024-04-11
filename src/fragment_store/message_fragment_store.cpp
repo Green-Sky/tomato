@@ -1,5 +1,7 @@
 #include "./message_fragment_store.hpp"
 
+#include "./serializer_json.hpp"
+
 #include "../json/message_components.hpp"
 
 #include <solanaceae/util/utils.hpp>
@@ -28,8 +30,8 @@ namespace Message::Components {
 			////std::vector<uint8_t> uid;
 			//FragmentID id;
 		//};
-		// only contains fragments with <1024 messages and <28h tsrage (or whatever)
-		entt::dense_set<FragmentID> fid_open;
+		// only contains fragments with <1024 messages and <2h tsrage (or whatever)
+		entt::dense_set<Object> fid_open;
 	};
 
 	// all message fragments of this contact
@@ -40,30 +42,30 @@ namespace Message::Components {
 			size_t i_b;
 			size_t i_e;
 		};
-		entt::dense_map<FragmentID, InternalEntry> frags;
+		entt::dense_map<Object, InternalEntry> frags;
 
 		// add 2 sorted contact lists for both range begin and end
 		// TODO: adding and removing becomes expensive with enough frags, consider splitting or heap
-		std::vector<FragmentID> sorted_begin;
-		std::vector<FragmentID> sorted_end;
+		std::vector<Object> sorted_begin;
+		std::vector<Object> sorted_end;
 
 		// api
 		// return true if it was actually inserted
-		bool insert(FragmentHandle frag);
-		bool erase(FragmentID frag);
+		bool insert(ObjectHandle frag);
+		bool erase(Object frag);
 		// update? (just erase() + insert())
 
 		// uses range begin to go back in time
-		FragmentID prev(FragmentID frag) const;
+		Object prev(Object frag) const;
 		// uses range end to go forward in time
-		FragmentID next(FragmentID frag) const;
+		Object next(Object frag) const;
 	};
 
 	// all LOADED message fragments
 	// TODO: merge into ContactFragments (and pull in openfrags)
 	struct LoadedContactFragments final {
 		// kept up-to-date by events
-		entt::dense_set<FragmentID> frags;
+		entt::dense_set<Object> frags;
 	};
 
 } // Message::Components
@@ -83,6 +85,23 @@ namespace ObjectStore::Components {
 		};
 	}
 } // ObjectStore::Component
+
+static nlohmann::json loadFromStorageNJ(ObjectHandle oh) {
+	assert(oh.all_of<ObjComp::Ephemeral::Backend>());
+	auto* backend = oh.get<ObjComp::Ephemeral::Backend>().ptr;
+	assert(backend != nullptr);
+
+	std::vector<uint8_t> tmp_buffer;
+	std::function<StorageBackendI::read_from_storage_put_data_cb> cb = [&tmp_buffer](const ByteSpan buffer) {
+		tmp_buffer.insert(tmp_buffer.end(), buffer.cbegin(), buffer.cend());
+	};
+	if (!backend->read(oh, cb)) {
+		std::cerr << "failed to read obj '" << bin2hex(oh.get<ObjComp::ID>().v) << "'\n";
+		return false;
+	}
+
+	return nlohmann::json::parse(tmp_buffer, nullptr, false);
+}
 
 void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (_fs_ignore_event) {
@@ -113,8 +132,8 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	}
 
 	// TODO: use fid, seving full fuid for every message consumes alot of memory (and heap frag)
-	if (!m.all_of<Message::Components::FID>()) {
-		std::cout << "MFS: new msg missing FID\n";
+	if (!m.all_of<Message::Components::Obj>()) {
+		std::cout << "MFS: new msg missing Object\n";
 		if (!m.registry()->ctx().contains<Message::Components::OpenFragments>()) {
 			m.registry()->ctx().emplace<Message::Components::OpenFragments>();
 		}
@@ -125,11 +144,11 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		// missing fuid
 		// find closesed non-sealed off fragment
 
-		FragmentID fragment_id{entt::null};
+		Object fragment_id{entt::null};
 
 		// first search for fragment where the ts falls into the range
 		for (const auto& fid : fid_open) {
-			auto fh = _fs.fragmentHandle(fid);
+			auto fh = _os.objectHandle(fid);
 			assert(static_cast<bool>(fh));
 
 			// assuming ts range exists
@@ -143,9 +162,9 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		}
 
 		// if it did not fit into an existing fragment, we next look for fragments that could be extended
-		if (!_fs._reg.valid(fragment_id)) {
+		if (!_os._reg.valid(fragment_id)) {
 			for (const auto& fid : fid_open) {
-				auto fh = _fs.fragmentHandle(fid);
+				auto fh = _os.objectHandle(fid);
 				assert(static_cast<bool>(fh));
 
 				// assuming ts range exists
@@ -195,11 +214,13 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		}
 
 		// if its still not found, we need a new fragment
-		if (!_fs._reg.valid(fragment_id)) {
-			const auto new_fid = _fs.newFragmentFile("test_message_store/", MetaFileType::BINARY_MSGPACK);
-			auto fh = _fs.fragmentHandle(new_fid);
+		if (!_os.registry().valid(fragment_id)) {
+			const auto new_uuid = _session_uuid_gen();
+			_fs_ignore_event = true;
+			auto fh = _sb.newObject(ByteSpan{new_uuid});
+			_fs_ignore_event = false;
 			if (!static_cast<bool>(fh)) {
-				std::cout << "MFS error: failed to create new fragment for message\n";
+				std::cout << "MFS error: failed to create new object for message\n";
 				return;
 			}
 
@@ -238,17 +259,17 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 			std::cout << "MFS: created new fragment " << bin2hex(fh.get<ObjComp::ID>().v) << "\n";
 
 			_fs_ignore_event = true;
-			_fs.throwEventConstruct(fh);
+			_os.throwEventConstruct(fh);
 			_fs_ignore_event = false;
 		}
 
 		// if this is still empty, something is very wrong and we exit here
-		if (!_fs._reg.valid(fragment_id)) {
+		if (!_os.registry().valid(fragment_id)) {
 			std::cout << "MFS error: failed to find/create fragment for message\n";
 			return;
 		}
 
-		m.emplace_or_replace<Message::Components::FID>(fragment_id);
+		m.emplace_or_replace<Message::Components::Obj>(fragment_id);
 
 		// in this case we know the fragment needs an update
 		for (const auto& it : _fuid_save_queue) {
@@ -257,11 +278,11 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 				return; // done
 			}
 		}
-		_fuid_save_queue.push_back({Message::getTimeMS(), fragment_id, m.registry()});
+		_fuid_save_queue.push_back({Message::getTimeMS(), {_os.registry(), fragment_id}, m.registry()});
 		return; // done
 	}
 
-	const auto msg_fh = _fs.fragmentHandle(m.get<Message::Components::FID>().fid);
+	const auto msg_fh = _os.objectHandle(m.get<Message::Components::Obj>().o);
 	if (!static_cast<bool>(msg_fh)) {
 		std::cerr << "MFS error: fid in message is invalid\n";
 		return; // TODO: properly handle this case
@@ -290,9 +311,9 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 
 // assumes not loaded frag
 // need update from frag
-void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh) {
+void MessageFragmentStore::loadFragment(Message3Registry& reg, ObjectHandle fh) {
 	std::cout << "MFS: loadFragment\n";
-	const auto j = _fs.loadFromStorageNJ(fh);
+	const auto j = loadFromStorageNJ(fh);
 
 	if (!j.is_array()) {
 		// wrong data
@@ -339,7 +360,7 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 			}
 		}
 
-		new_real_msg.emplace_or_replace<Message::Components::FID>(fh);
+		new_real_msg.emplace_or_replace<Message::Components::Obj>(fh);
 
 		// dup check (hacky, specific to protocols)
 		Message3 dup_msg {entt::null};
@@ -393,7 +414,7 @@ void MessageFragmentStore::loadFragment(Message3Registry& reg, FragmentHandle fh
 	}
 }
 
-bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry& reg) {
+bool MessageFragmentStore::syncFragToStorage(ObjectHandle fh, Message3Registry& reg) {
 	auto& ftsrange = fh.get_or_emplace<ObjComp::MessagesTSRange>(Message::getTimeMS(), Message::getTimeMS());
 
 	auto j = nlohmann::json::array();
@@ -404,7 +425,7 @@ bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry
 	for (auto it = msg_view.rbegin(), it_end = msg_view.rend(); it != it_end; it++) {
 		const Message3 m = *it;
 
-		if (!reg.all_of<Message::Components::FID, Message::Components::ContactFrom, Message::Components::ContactTo>(m)) {
+		if (!reg.all_of<Message::Components::Obj, Message::Components::ContactFrom, Message::Components::ContactTo>(m)) {
 			continue;
 		}
 
@@ -413,7 +434,7 @@ bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry
 			continue;
 		}
 
-		if (_fuid_save_queue.front().id != reg.get<Message::Components::FID>(m).fid) {
+		if (_fuid_save_queue.front().id != reg.get<Message::Components::Obj>(m).o) {
 			continue; // not ours
 		}
 
@@ -452,10 +473,13 @@ bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry
 	// if save as binary
 	//nlohmann::json::to_msgpack(j);
 	auto j_dump = j.dump(2, ' ', true);
-	if (_fs.syncToStorage(fh, reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size())) {
+	assert(fh.all_of<ObjComp::Ephemeral::Backend>());
+	auto* backend = fh.get<ObjComp::Ephemeral::Backend>().ptr;
+	//if (_os.syncToStorage(fh, reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size())) {
+	if (backend->write(fh, {reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size()})) {
 		// TODO: make this better, should this be called on fail? should this be called before sync? (prob not)
 		_fs_ignore_event = true;
-		_fs.throwEventUpdate(fh);
+		_os.throwEventUpdate(fh);
 		_fs_ignore_event = false;
 
 		//std::cout << "MFS: dumped " << j_dump << "\n";
@@ -470,30 +494,32 @@ bool MessageFragmentStore::syncFragToStorage(FragmentHandle fh, Message3Registry
 MessageFragmentStore::MessageFragmentStore(
 	Contact3Registry& cr,
 	RegistryMessageModel& rmm,
-	FragmentStore& fs
-) : _cr(cr), _rmm(rmm), _fs(fs), _sc{_cr, {}, {}} {
+	ObjectStore2& os,
+	StorageBackendI& sb
+) : _cr(cr), _rmm(rmm), _os(os), _sb(sb), _sc{_cr, {}, {}} {
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_destroy);
 
-	_fs._sc.registerSerializerJson<ObjComp::MessagesTSRange>();
-	_fs._sc.registerDeSerializerJson<ObjComp::MessagesTSRange>();
-	_fs._sc.registerSerializerJson<ObjComp::MessagesContact>();
-	_fs._sc.registerDeSerializerJson<ObjComp::MessagesContact>();
+	auto& sjc = _os.registry().ctx().get<SerializerJsonCallbacks<Object>>();
+	sjc.registerSerializer<ObjComp::MessagesTSRange>();
+	sjc.registerDeSerializer<ObjComp::MessagesTSRange>();
+	sjc.registerSerializer<ObjComp::MessagesContact>();
+	sjc.registerDeSerializer<ObjComp::MessagesContact>();
 
 	// old
-	_fs._sc.registerSerializerJson<FragComp::MessagesTSRange>(_fs._sc.component_get_json<ObjComp::MessagesTSRange>);
-	_fs._sc.registerDeSerializerJson<FragComp::MessagesTSRange>(_fs._sc.component_emplace_or_replace_json<ObjComp::MessagesTSRange>);
-	_fs._sc.registerSerializerJson<FragComp::MessagesContact>(_fs._sc.component_get_json<ObjComp::MessagesContact>);
-	_fs._sc.registerDeSerializerJson<FragComp::MessagesContact>(_fs._sc.component_emplace_or_replace_json<ObjComp::MessagesContact>);
+	sjc.registerSerializer<FragComp::MessagesTSRange>(sjc.component_get_json<ObjComp::MessagesTSRange>);
+	sjc.registerDeSerializer<FragComp::MessagesTSRange>(sjc.component_emplace_or_replace_json<ObjComp::MessagesTSRange>);
+	sjc.registerSerializer<FragComp::MessagesContact>(sjc.component_get_json<ObjComp::MessagesContact>);
+	sjc.registerDeSerializer<FragComp::MessagesContact>(sjc.component_emplace_or_replace_json<ObjComp::MessagesContact>);
 
-	_fs.subscribe(this, FragmentStore_Event::fragment_construct);
-	_fs.subscribe(this, FragmentStore_Event::fragment_updated);
+	_os.subscribe(this, ObjectStore_Event::object_construct);
+	_os.subscribe(this, ObjectStore_Event::object_update);
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
 	while (!_fuid_save_queue.empty()) {
-		auto fh = _fs.fragmentHandle(_fuid_save_queue.front().id);
+		auto fh = _fuid_save_queue.front().id;
 		auto* reg = _fuid_save_queue.front().reg;
 		assert(reg != nullptr);
 		syncFragToStorage(fh, *reg);
@@ -570,7 +596,7 @@ float MessageFragmentStore::tick(float) {
 	if (!_fuid_save_queue.empty()) {
 		// wait 10sec before saving
 		if (_fuid_save_queue.front().ts_since_dirty + 10*1000 <= ts_now) {
-			auto fh = _fs.fragmentHandle(_fuid_save_queue.front().id);
+			auto fh = _fuid_save_queue.front().id;
 			auto* reg = _fuid_save_queue.front().reg;
 			assert(reg != nullptr);
 			if (syncFragToStorage(fh, *reg)) {
@@ -587,7 +613,7 @@ float MessageFragmentStore::tick(float) {
 	const bool had_events = !_event_check_queue.empty();
 	for (size_t i = 0; i < 10 && !_event_check_queue.empty(); i++) {
 		std::cout << "MFS: event check\n";
-		auto fh = _fs.fragmentHandle(_event_check_queue.front().fid);
+		auto fh = _event_check_queue.front().fid;
 		auto c = _event_check_queue.front().c;
 		_event_check_queue.pop_front();
 
@@ -643,7 +669,7 @@ float MessageFragmentStore::tick(float) {
 						continue;
 					}
 
-					auto fh = _fs.fragmentHandle(fid);
+					auto fh = _os.objectHandle(fid);
 
 					if (!static_cast<bool>(fh)) {
 						std::cerr << "MFS error: frag is invalid\n";
@@ -696,25 +722,25 @@ float MessageFragmentStore::tick(float) {
 							cf.sorted_end.crbegin(),
 							cf.sorted_end.crend(),
 							ts_begin_comp.ts,
-							[&](const FragmentID element, const auto& value) -> bool {
-								return _fs._reg.get<ObjComp::MessagesTSRange>(element).end >= value;
+							[&](const Object element, const auto& value) -> bool {
+								return _os.registry().get<ObjComp::MessagesTSRange>(element).end >= value;
 							}
 						);
 
-						FragmentID next_frag{entt::null};
+						Object next_frag{entt::null};
 						if (right != cf.sorted_end.crend()) {
 							next_frag = cf.next(*right);
 						}
 						// we checked earlier that cf is not empty
-						if (!_fs._reg.valid(next_frag)) {
+						if (!_os.registry().valid(next_frag)) {
 							// fall back to closest, cf is not empty
 							next_frag = cf.sorted_end.front();
 						}
 
 						// a single adjacent frag is often not enough
 						// only ok bc next is cheap
-						for (size_t i = 0; i < 5 && _fs._reg.valid(next_frag); next_frag = cf.next(next_frag)) {
-							auto fh = _fs.fragmentHandle(next_frag);
+						for (size_t i = 0; i < 5 && _os.registry().valid(next_frag); next_frag = cf.next(next_frag)) {
+							auto fh = _os.objectHandle(next_frag);
 							if (fh.any_of<ObjComp::Ephemeral::MessagesEmptyTag>()) {
 								continue; // skip known empty
 							}
@@ -744,25 +770,25 @@ float MessageFragmentStore::tick(float) {
 							cf.sorted_begin.cbegin(),
 							cf.sorted_begin.cend(),
 							ts_end,
-							[&](const FragmentID element, const auto& value) -> bool {
-								return _fs._reg.get<ObjComp::MessagesTSRange>(element).begin < value;
+							[&](const Object element, const auto& value) -> bool {
+								return _os.registry().get<ObjComp::MessagesTSRange>(element).begin < value;
 							}
 						);
 
-						FragmentID prev_frag{entt::null};
+						Object prev_frag{entt::null};
 						if (left != cf.sorted_begin.cend()) {
 							prev_frag = cf.prev(*left);
 						}
 						// we checked earlier that cf is not empty
-						if (!_fs._reg.valid(prev_frag)) {
+						if (!_os.registry().valid(prev_frag)) {
 							// fall back to closest, cf is not empty
 							prev_frag = cf.sorted_begin.back();
 						}
 
 						// a single adjacent frag is often not enough
 						// only ok bc next is cheap
-						for (size_t i = 0; i < 5 && _fs._reg.valid(prev_frag); prev_frag = cf.prev(prev_frag)) {
-							auto fh = _fs.fragmentHandle(prev_frag);
+						for (size_t i = 0; i < 5 && _os.registry().valid(prev_frag); prev_frag = cf.prev(prev_frag)) {
+							auto fh = _os.objectHandle(prev_frag);
 							if (fh.any_of<ObjComp::Ephemeral::MessagesEmptyTag>()) {
 								continue; // skip known empty
 							}
@@ -791,10 +817,6 @@ float MessageFragmentStore::tick(float) {
 	return 1000.f*60.f*60.f;
 }
 
-void MessageFragmentStore::triggerScan(void) {
-	_fs.scanStoragePath("test_message_store/");
-}
-
 bool MessageFragmentStore::onEvent(const Message::Events::MessageConstruct& e) {
 	handleMessage(e.e);
 	return false;
@@ -807,7 +829,7 @@ bool MessageFragmentStore::onEvent(const Message::Events::MessageUpdated& e) {
 
 // TODO: handle deletes? diff between unload?
 
-bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e) {
+bool MessageFragmentStore::onEvent(const ObjectStore::Events::ObjectConstruct& e) {
 	if (_fs_ignore_event) {
 		return false; // skip self
 	}
@@ -854,7 +876,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentConstruct& e)
 	return false;
 }
 
-bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentUpdated& e) {
+bool MessageFragmentStore::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
 	if (_fs_ignore_event) {
 		return false; // skip self
 	}
@@ -911,7 +933,7 @@ bool MessageFragmentStore::onEvent(const Fragment::Events::FragmentUpdated& e) {
 	return false;
 }
 
-bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
+bool Message::Components::ContactFragments::insert(ObjectHandle frag) {
 	if (frags.contains(frag)) {
 		return false;
 	}
@@ -926,7 +948,7 @@ bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
 		const auto pos = std::find_if(
 			sorted_begin.cbegin(),
 			sorted_begin.cend(),
-			[frag](const FragmentID a) -> bool {
+			[frag](const Object a) -> bool {
 				const auto begin_a = frag.registry()->get<ObjComp::MessagesTSRange>(a).begin;
 				const auto begin_frag = frag.get<ObjComp::MessagesTSRange>().begin;
 				if (begin_a > begin_frag) {
@@ -951,7 +973,7 @@ bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
 		const auto pos = std::find_if_not(
 			sorted_end.cbegin(),
 			sorted_end.cend(),
-			[frag](const FragmentID a) -> bool {
+			[frag](const Object a) -> bool {
 				const auto end_a = frag.registry()->get<ObjComp::MessagesTSRange>(a).end;
 				const auto end_frag = frag.get<ObjComp::MessagesTSRange>().end;
 				if (end_a > end_frag) {
@@ -984,7 +1006,7 @@ bool Message::Components::ContactFragments::insert(FragmentHandle frag) {
 	return true;
 }
 
-bool Message::Components::ContactFragments::erase(FragmentID frag) {
+bool Message::Components::ContactFragments::erase(Object frag) {
 	auto frags_it = frags.find(frag);
 	if (frags_it == frags.end()) {
 		return false;
@@ -1001,7 +1023,7 @@ bool Message::Components::ContactFragments::erase(FragmentID frag) {
 	return true;
 }
 
-FragmentID Message::Components::ContactFragments::prev(FragmentID frag) const {
+Object Message::Components::ContactFragments::prev(Object frag) const {
 	// uses range begin to go back in time
 
 	auto it = frags.find(frag);
@@ -1017,7 +1039,7 @@ FragmentID Message::Components::ContactFragments::prev(FragmentID frag) const {
 	return entt::null;
 }
 
-FragmentID Message::Components::ContactFragments::next(FragmentID frag) const {
+Object Message::Components::ContactFragments::next(Object frag) const {
 	// uses range end to go forward in time
 
 	auto it = frags.find(frag);

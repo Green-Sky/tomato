@@ -16,7 +16,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	renderer(renderer_),
 	rmm(cr),
 	mts(rmm),
-	mfs(cr, rmm, fs),
+	mfsb(os, "test2_message_store/"),
+	mfs(cr, rmm, os, mfsb),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
@@ -55,9 +56,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	std::cout << "own address: " << tc.toxSelfGetAddressStr() << "\n";
 
 	{ // setup plugin instances
-		// TODO: make interface useful
-		g_provideInstance<FragmentStoreI>("FragmentStoreI", "host", &fs);
-		g_provideInstance<FragmentStore>("FragmentStore", "host", &fs);
+		g_provideInstance<ObjectStore2>("ObjectStore2", "host", &os);
 
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
@@ -85,7 +84,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 
 	conf.dump();
 
-	mfs.triggerScan(); // HACK: after plugins and tox contacts got loaded
+	mfsb.scanAsync(); // HACK: after plugins and tox contacts got loaded
 }
 
 MainScreen::~MainScreen(void) {
