@@ -3,9 +3,6 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 ########################################
 
 add_library(message_fragment_store
-	./fragment_store/uuid_generator.hpp
-	./fragment_store/uuid_generator.cpp
-
 	./json/message_components.hpp # TODO: move
 	./json/tox_message_components.hpp # TODO: move
 

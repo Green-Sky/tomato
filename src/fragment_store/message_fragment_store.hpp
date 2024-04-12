@@ -3,7 +3,7 @@
 #include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/object_store/meta_components.hpp>
 
-#include "./uuid_generator.hpp"
+#include <solanaceae/util/uuid_generator.hpp>
 
 #include "./message_serializer.hpp"
 
