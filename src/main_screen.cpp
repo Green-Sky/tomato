@@ -49,6 +49,8 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	std::cout << "own address: " << tc.toxSelfGetAddressStr() << "\n";
 
 	{ // setup plugin instances
+		g_provideInstance<ObjectStore2>("ObjectStore2", "host", &os);
+
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
