@@ -1,7 +1,7 @@
-#include "./object_store.hpp"
-#include "./backends/filesystem_storage.hpp"
-#include "./meta_components.hpp"
-#include "./serializer_json.hpp"
+#include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/object_store/backends/filesystem_storage.hpp>
+#include <solanaceae/object_store/meta_components.hpp>
+#include <solanaceae/object_store/serializer_json.hpp>
 #include "./message_fragment_store.hpp"
 
 #include <solanaceae/util/utils.hpp>

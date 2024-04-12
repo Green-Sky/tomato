@@ -20,3 +20,6 @@
 [submodule "external/solanaceae_plugin"]
 	path = external/solanaceae_plugin
 	url = https://github.com/Green-Sky/solanaceae_plugin.git
+[submodule "external/solanaceae_object_store"]
+	path = external/solanaceae_object_store
+	url = https://github.com/Green-Sky/solanaceae_object_store.git

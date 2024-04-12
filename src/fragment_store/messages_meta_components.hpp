@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./meta_components.hpp"
+#include <solanaceae/object_store/meta_components.hpp>
 
 namespace ObjectStore::Components {
 	struct MessagesVersion {

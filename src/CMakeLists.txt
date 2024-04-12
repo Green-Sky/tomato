@@ -1,51 +1,14 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
-add_library(fragment_store
-	./fragment_store/file2_zstd.hpp
-	./fragment_store/file2_zstd.cpp
-
-	./fragment_store/uuid_generator.hpp
-	./fragment_store/uuid_generator.cpp
-
-	./fragment_store/types.hpp
-	./fragment_store/meta_components.hpp
-	./fragment_store/meta_components_id.inl
-	./fragment_store/file2_stack.hpp
-	./fragment_store/file2_stack.cpp
-	./fragment_store/serializer_json.hpp
-	./fragment_store/object_store.hpp
-	./fragment_store/object_store.cpp
-	./fragment_store/backends/filesystem_storage.hpp
-	./fragment_store/backends/filesystem_storage.cpp
-
-	./json/message_components.hpp # TODO: move
-	./json/tox_message_components.hpp # TODO: move
-)
-
-target_link_libraries(fragment_store PUBLIC
-	nlohmann_json::nlohmann_json
-	EnTT::EnTT
-	solanaceae_util
-
-	solanaceae_file2
-	zstd::zstd
-
-	solanaceae_tox_messages # TODO: move
-)
-
-########################################
-
-add_executable(test_file_zstd
-	fragment_store/test_file_zstd.cpp
-)
-
-target_link_libraries(test_file_zstd PUBLIC
-	fragment_store
-)
-
 ########################################
 
 add_library(message_fragment_store
+	./fragment_store/uuid_generator.hpp
+	./fragment_store/uuid_generator.cpp
+
+	./json/message_components.hpp # TODO: move
+	./json/tox_message_components.hpp # TODO: move
+
 	./fragment_store/message_serializer.hpp
 	./fragment_store/message_serializer.cpp
 	./fragment_store/messages_meta_components.hpp
@@ -60,8 +23,9 @@ add_library(message_fragment_store
 )
 target_compile_features(message_fragment_store PRIVATE cxx_std_20)
 target_link_libraries(message_fragment_store PUBLIC
-	fragment_store
+	solanaceae_object_store
 	solanaceae_message3
+	solanaceae_tox_messages # TODO: move
 )
 
 ########################################
@@ -71,7 +35,8 @@ add_executable(convert_message_object_store
 )
 
 target_link_libraries(convert_message_object_store PUBLIC
-	fragment_store
+	solanaceae_object_store
+	solanaceae_object_store_backend_filesystem
 	message_fragment_store
 )
 
@@ -158,7 +123,8 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_tox_contacts
 	solanaceae_tox_messages
 
-	fragment_store
+	solanaceae_object_store
+	solanaceae_object_store_backend_filesystem
 	message_fragment_store
 
 	SDL3::SDL3

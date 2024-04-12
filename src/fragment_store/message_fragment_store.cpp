@@ -1,6 +1,6 @@
 #include "./message_fragment_store.hpp"
 
-#include "./serializer_json.hpp"
+#include <solanaceae/object_store/serializer_json.hpp>
 
 #include "../json/message_components.hpp"
 

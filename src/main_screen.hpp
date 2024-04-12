@@ -2,8 +2,8 @@
 
 #include "./screen.hpp"
 
-#include "./fragment_store/object_store.hpp"
-#include "./fragment_store/backends/filesystem_storage.hpp"
+#include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/object_store/backends/filesystem_storage.hpp>
 #include <solanaceae/util/simple_config_model.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>

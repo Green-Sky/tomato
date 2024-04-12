@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./meta_components.hpp"
-#include "./object_store.hpp"
+#include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/object_store/meta_components.hpp>
 
 #include "./uuid_generator.hpp"
 
