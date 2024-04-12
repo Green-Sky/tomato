@@ -37,10 +37,10 @@ jobs:
       run: |
         SHORT_HASH="$(git rev-parse --short=7 HEAD)"
         if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
         else
           SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
 
     - name: Compress artifacts
@@ -88,10 +88,10 @@ jobs:
       run: |
         SHORT_HASH="$(git rev-parse --short=7 HEAD)"
         if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
         else
           SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
 
     - name: Compress artifacts
@@ -139,10 +139,10 @@ jobs:
       run: |
         SHORT_HASH="$(git rev-parse --short=7 HEAD)"
         if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
         else
           SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
 
     - name: Compress artifacts
@@ -183,10 +183,10 @@ jobs:
       run: |
         SHORT_HASH="$(git rev-parse --short=7 HEAD)"
         if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
         else
           SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
 
     - name: Download artifacts
@@ -203,8 +203,8 @@ jobs:
       run: |
         gh release create "$tag" \
             --repo="$GITHUB_REPOSITORY" \
-            --title="nightly ${tag#v}" \
-            --notes="nightly build" \
+            --title="${tag#v}" \
+            --notes="preview build of the latest commit" \
             --prerelease
 
     - name: Upload artifacts
