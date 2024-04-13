@@ -93,6 +93,20 @@ int main(int argc, const char** argv) {
 					}
 				}
 
+				// WARNING: manual and hardcoded
+				// manually upconvert message json to msgpack (v1 to v2)
+				if (true && e.e.get<ObjComp::MessagesVersion>().v == 1) {
+					// TODO: error handling
+					const auto j = nlohmann::json::parse(tmp_buffer);
+
+					if (false) {
+						e.e.replace<ObjComp::MessagesVersion>(uint16_t(2));
+
+						// overwrite og
+						tmp_buffer = nlohmann::json::to_msgpack(j);
+					}
+				}
+
 				// we dont copy meta file type, it will be the same for all "new" objects
 				auto oh = _fsb_dst.newObject(ByteSpan{e.e.get<ObjComp::ID>().v});
 
@@ -121,21 +135,9 @@ int main(int argc, const char** argv) {
 					}
 				}
 
-				// WARNING: manual and hardcoded
-				// manually upconvert message json to msgpack (v1 to v2)
-				if (true && oh.get<ObjComp::MessagesVersion>().v == 1) {
-					// TODO: error handling
-					const auto j = nlohmann::json::parse(tmp_buffer);
-
-					if (false) {
-						oh.replace<ObjComp::MessagesVersion>(uint16_t(2));
-
-						// overwrite og
-						tmp_buffer = nlohmann::json::to_msgpack(j);
-					}
-				}
-
 				static_cast<StorageBackendI&>(_fsb_dst).write(oh, ByteSpan{tmp_buffer});
+
+				//assert(std::filesystem::file_size(e.e.get<ObjComp::Ephemeral::FilePath>().path) == std::filesystem::file_size(oh.get<ObjComp::Ephemeral::FilePath>().path));
 
 				return false;
 			}
