@@ -121,6 +121,20 @@ int main(int argc, const char** argv) {
 					}
 				}
 
+				// WARNING: manual and hardcoded
+				// manually upconvert message json to msgpack (v1 to v2)
+				if (true && oh.get<ObjComp::MessagesVersion>().v == 1) {
+					// TODO: error handling
+					const auto j = nlohmann::json::parse(tmp_buffer);
+
+					if (false) {
+						oh.replace<ObjComp::MessagesVersion>(uint16_t(2));
+
+						// overwrite og
+						tmp_buffer = nlohmann::json::to_msgpack(j);
+					}
+				}
+
 				static_cast<StorageBackendI&>(_fsb_dst).write(oh, ByteSpan{tmp_buffer});
 
 				return false;
