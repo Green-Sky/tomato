@@ -26,7 +26,7 @@ static bool isLess(const std::vector<uint8_t>& lhs, const std::vector<uint8_t>& 
 }
 
 bool Message::Contexts::ContactFragments::insert(ObjectHandle frag) {
-	if (frags.contains(frag)) {
+	if (sorted_frags.contains(frag)) {
 		return false;
 	}
 
@@ -85,22 +85,22 @@ bool Message::Contexts::ContactFragments::insert(ObjectHandle frag) {
 		sorted_end.insert(pos, frag);
 	}
 
-	frags.emplace(frag, InternalEntry{begin_index, end_index});
+	sorted_frags.emplace(frag, InternalEntry{begin_index, end_index});
 
 	// now adjust all indicies of fragments coming after the insert position
 	for (size_t i = begin_index + 1; i < sorted_begin.size(); i++) {
-		frags.at(sorted_begin[i]).i_b = i;
+		sorted_frags.at(sorted_begin[i]).i_b = i;
 	}
 	for (size_t i = end_index + 1; i < sorted_end.size(); i++) {
-		frags.at(sorted_end[i]).i_e = i;
+		sorted_frags.at(sorted_end[i]).i_e = i;
 	}
 
 	return true;
 }
 
 bool Message::Contexts::ContactFragments::erase(Object frag) {
-	auto frags_it = frags.find(frag);
-	if (frags_it == frags.end()) {
+	auto frags_it = sorted_frags.find(frag);
+	if (frags_it == sorted_frags.end()) {
 		return false;
 	}
 
@@ -110,7 +110,7 @@ bool Message::Contexts::ContactFragments::erase(Object frag) {
 	sorted_begin.erase(sorted_begin.begin() + frags_it->second.i_b);
 	sorted_end.erase(sorted_end.begin() + frags_it->second.i_e);
 
-	frags.erase(frags_it);
+	sorted_frags.erase(frags_it);
 
 	return true;
 }
@@ -118,8 +118,8 @@ bool Message::Contexts::ContactFragments::erase(Object frag) {
 Object Message::Contexts::ContactFragments::prev(Object frag) const {
 	// uses range begin to go back in time
 
-	auto it = frags.find(frag);
-	if (it == frags.end()) {
+	auto it = sorted_frags.find(frag);
+	if (it == sorted_frags.end()) {
 		return entt::null;
 	}
 
@@ -134,8 +134,8 @@ Object Message::Contexts::ContactFragments::prev(Object frag) const {
 Object Message::Contexts::ContactFragments::next(Object frag) const {
 	// uses range end to go forward in time
 
-	auto it = frags.find(frag);
-	if (it == frags.end()) {
+	auto it = sorted_frags.find(frag);
+	if (it == sorted_frags.end()) {
 		return entt::null;
 	}
 

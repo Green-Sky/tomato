@@ -6,7 +6,8 @@ namespace ObjectStore::Components {
 	struct MessagesVersion {
 		// messages Object version
 		// 1 -> text_json
-		uint16_t v {1};
+		// 2 -> msgpack
+		uint16_t v {2};
 	};
 
 	struct MessagesTSRange {

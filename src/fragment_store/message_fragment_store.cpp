@@ -5,6 +5,9 @@
 #include <solanaceae/object_store/serializer_json.hpp>
 
 #include "../json/message_components.hpp"
+#include "messages_meta_components.hpp"
+#include "nlohmann/json_fwd.hpp"
+#include "solanaceae/util/span.hpp"
 
 #include <solanaceae/util/utils.hpp>
 
@@ -55,7 +58,16 @@ static nlohmann::json loadFromStorageNJ(ObjectHandle oh) {
 		return false;
 	}
 
-	return nlohmann::json::parse(tmp_buffer, nullptr, false);
+	const auto obj_version = oh.get<ObjComp::MessagesVersion>().v;
+
+	if (obj_version == 1) {
+		return nlohmann::json::parse(tmp_buffer, nullptr, false);
+	} else if (obj_version == 2) {
+		return nlohmann::json::from_msgpack(tmp_buffer, true, false);
+	} else {
+		assert(false);
+		return {};
+	}
 }
 
 void MessageFragmentStore::handleMessage(const Message3Handle& m) {
@@ -228,13 +240,13 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 		m.emplace_or_replace<Message::Components::Obj>(fragment_id);
 
 		// in this case we know the fragment needs an update
-		for (const auto& it : _fuid_save_queue) {
+		for (const auto& it : _frag_save_queue) {
 			if (it.id == fragment_id) {
 				// already in queue
 				return; // done
 			}
 		}
-		_fuid_save_queue.push_back({Message::getTimeMS(), {_os.registry(), fragment_id}, m.registry()});
+		_frag_save_queue.push_back({Message::getTimeMS(), {_os.registry(), fragment_id}, m.registry()});
 		return; // done
 	}
 
@@ -253,7 +265,7 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 	if (fid_open.contains(msg_fh)) {
 		// TODO: dedup events
 		// TODO: cooldown per fragsave
-		_fuid_save_queue.push_back({Message::getTimeMS(), msg_fh, m.registry()});
+		_frag_save_queue.push_back({Message::getTimeMS(), msg_fh, m.registry()});
 		return;
 	}
 
@@ -269,7 +281,20 @@ void MessageFragmentStore::handleMessage(const Message3Handle& m) {
 // need update from frag
 void MessageFragmentStore::loadFragment(Message3Registry& reg, ObjectHandle fh) {
 	std::cout << "MFS: loadFragment\n";
-	const auto j = loadFromStorageNJ(fh);
+	// version HAS to be set, or we just fail
+	if (!fh.all_of<ObjComp::MessagesVersion>()) {
+		std::cerr << "MFS error: nope, object without version, cant load\n";
+		return;
+	}
+
+	nlohmann::json j;
+	const auto obj_version = fh.get<ObjComp::MessagesVersion>().v;
+	if (obj_version == 1 || obj_version == 2) {
+		j = loadFromStorageNJ(fh); // also handles version and json/msgpack
+	} else {
+		std::cerr << "MFS error: nope, object with unknown version, cant load\n";
+		return;
+	}
 
 	if (!j.is_array()) {
 		// wrong data
@@ -377,7 +402,7 @@ bool MessageFragmentStore::syncFragToStorage(ObjectHandle fh, Message3Registry& 
 
 	// TODO: does every message have ts?
 	auto msg_view = reg.view<Message::Components::Timestamp>();
-	// we also assume all messages have fid
+	// we also assume all messages have an associated object
 	for (auto it = msg_view.rbegin(), it_end = msg_view.rend(); it != it_end; it++) {
 		const Message3 m = *it;
 
@@ -385,12 +410,13 @@ bool MessageFragmentStore::syncFragToStorage(ObjectHandle fh, Message3Registry& 
 			continue;
 		}
 
-		// require msg for now
+		// filter: require msg for now
+		// this will be removed in the future
 		if (!reg.any_of<Message::Components::MessageText/*, Message::Components::Transfer::FileInfo*/>(m)) {
 			continue;
 		}
 
-		if (_fuid_save_queue.front().id != reg.get<Message::Components::Obj>(m).o) {
+		if (_frag_save_queue.front().id != reg.get<Message::Components::Obj>(m).o) {
 			continue; // not ours
 		}
 
@@ -430,13 +456,20 @@ bool MessageFragmentStore::syncFragToStorage(ObjectHandle fh, Message3Registry& 
 
 	// we cant skip if array is empty (in theory it will not be empty later on)
 
-	// if save as binary
-	//nlohmann::json::to_msgpack(j);
-	auto j_dump = j.dump(2, ' ', true);
+	std::vector<uint8_t> data_to_save;
+	const auto obj_version = fh.get_or_emplace<ObjComp::MessagesVersion>().v;
+	if (obj_version == 1) {
+		auto j_dump = j.dump(2, ' ', true);
+		data_to_save = std::vector<uint8_t>(j_dump.cbegin(), j_dump.cend());
+	} else if (obj_version == 2) {
+		data_to_save = nlohmann::json::to_msgpack(j);
+	} else {
+		std::cerr << "MFS error: unknown object version\n";
+		assert(false);
+	}
 	assert(fh.all_of<ObjComp::Ephemeral::Backend>());
 	auto* backend = fh.get<ObjComp::Ephemeral::Backend>().ptr;
-	//if (_os.syncToStorage(fh, reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size())) {
-	if (backend->write(fh, {reinterpret_cast<const uint8_t*>(j_dump.data()), j_dump.size()})) {
+	if (backend->write(fh, {reinterpret_cast<const uint8_t*>(data_to_save.data()), data_to_save.size()})) {
 		// TODO: make this better, should this be called on fail? should this be called before sync? (prob not)
 		_fs_ignore_event = true;
 		_os.throwEventUpdate(fh);
@@ -480,12 +513,12 @@ MessageFragmentStore::MessageFragmentStore(
 }
 
 MessageFragmentStore::~MessageFragmentStore(void) {
-	while (!_fuid_save_queue.empty()) {
-		auto fh = _fuid_save_queue.front().id;
-		auto* reg = _fuid_save_queue.front().reg;
+	while (!_frag_save_queue.empty()) {
+		auto fh = _frag_save_queue.front().id;
+		auto* reg = _frag_save_queue.front().reg;
 		assert(reg != nullptr);
 		syncFragToStorage(fh, *reg);
-		_fuid_save_queue.pop_front(); // pop unconditionally
+		_frag_save_queue.pop_front(); // pop unconditionally
 	}
 }
 
@@ -538,14 +571,14 @@ static bool rangeVisible(uint64_t range_begin, uint64_t range_end, const Message
 float MessageFragmentStore::tick(float) {
 	const auto ts_now = Message::getTimeMS();
 	// sync dirty fragments here
-	if (!_fuid_save_queue.empty()) {
+	if (!_frag_save_queue.empty()) {
 		// wait 10sec before saving
-		if (_fuid_save_queue.front().ts_since_dirty + 10*1000 <= ts_now) {
-			auto fh = _fuid_save_queue.front().id;
-			auto* reg = _fuid_save_queue.front().reg;
+		if (_frag_save_queue.front().ts_since_dirty + 10*1000 <= ts_now) {
+			auto fh = _frag_save_queue.front().id;
+			auto* reg = _frag_save_queue.front().reg;
 			assert(reg != nullptr);
 			if (syncFragToStorage(fh, *reg)) {
-				_fuid_save_queue.pop_front();
+				_frag_save_queue.pop_front();
 			}
 		}
 	}
@@ -612,13 +645,13 @@ float MessageFragmentStore::tick(float) {
 		// that is not already loaded !!
 		if (msg_reg->ctx().contains<Message::Contexts::ContactFragments>()) {
 			const auto& cf = msg_reg->ctx().get<Message::Contexts::ContactFragments>();
-			if (!cf.frags.empty()) {
+			if (!cf.sorted_frags.empty()) {
 				if (!msg_reg->ctx().contains<Message::Contexts::LoadedContactFragments>()) {
 					msg_reg->ctx().emplace<Message::Contexts::LoadedContactFragments>();
 				}
 				const auto& loaded_frags = msg_reg->ctx().get<Message::Contexts::LoadedContactFragments>().loaded_frags;
 
-				for (const auto& [fid, si] : msg_reg->ctx().get<Message::Contexts::ContactFragments>().frags) {
+				for (const auto& [fid, si] : msg_reg->ctx().get<Message::Contexts::ContactFragments>().sorted_frags) {
 					if (loaded_frags.contains(fid)) {
 						continue;
 					}

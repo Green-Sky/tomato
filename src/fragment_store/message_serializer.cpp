@@ -1,5 +1,6 @@
 #include "./message_serializer.hpp"
 
+#include <cstdint>
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/contact/components.hpp>
 
@@ -39,6 +40,7 @@ bool MessageSerializerCallbacks::component_get_json<Message::Components::Contact
 
 	return true;
 }
+
 template<>
 bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Components::ContactFrom>(MessageSerializerCallbacks& msc, Handle h, const nlohmann::json& j) {
 	if (j.is_null()) {
@@ -47,7 +49,12 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 		return true;
 	}
 
-	const std::vector<uint8_t> id = j.is_binary()?j:j["bytes"];
+	std::vector<uint8_t> id;
+	if (j.is_binary()) {
+		id = j.get_binary();
+	} else {
+		j["bytes"].get_to(id);
+	}
 
 	Contact3 other_c = findContactByID(msc.cr, id);
 	if (!msc.cr.valid(other_c)) {
@@ -83,6 +90,7 @@ bool MessageSerializerCallbacks::component_get_json<Message::Components::Contact
 
 	return true;
 }
+
 template<>
 bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Components::ContactTo>(MessageSerializerCallbacks& msc, Handle h, const nlohmann::json& j) {
 	if (j.is_null()) {
@@ -91,7 +99,12 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 		return true;
 	}
 
-	const std::vector<uint8_t> id = j.is_binary()?j:j["bytes"];
+	std::vector<uint8_t> id;
+	if (j.is_binary()) {
+		id = j.get_binary();
+	} else {
+		j["bytes"].get_to(id);
+	}
 
 	Contact3 other_c = findContactByID(msc.cr, id);
 	if (!msc.cr.valid(other_c)) {
@@ -105,3 +118,4 @@ bool MessageSerializerCallbacks::component_emplace_or_replace_json<Message::Comp
 	// TODO: should we return false if the contact is unknown??
 	return true;
 }
+

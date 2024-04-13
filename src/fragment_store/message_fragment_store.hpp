@@ -86,7 +86,7 @@ class MessageFragmentStore : public RegistryMessageModelEventI, public ObjectSto
 			ObjectHandle id;
 			Message3Registry* reg{nullptr};
 		};
-		std::deque<SaveQueueEntry> _fuid_save_queue;
+		std::deque<SaveQueueEntry> _frag_save_queue;
 
 		struct ECQueueEntry final {
 			ObjectHandle fid;

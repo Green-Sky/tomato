@@ -23,7 +23,7 @@ namespace Message::Contexts {
 			size_t i_b;
 			size_t i_e;
 		};
-		entt::dense_map<Object, InternalEntry> frags;
+		entt::dense_map<Object, InternalEntry> sorted_frags;
 
 		// add 2 sorted contact lists for both range begin and end
 		// TODO: adding and removing becomes expensive with enough frags, consider splitting or heap
