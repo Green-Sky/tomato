@@ -10,6 +10,8 @@ add_library(message_fragment_store
 	./fragment_store/message_serializer.cpp
 	./fragment_store/messages_meta_components.hpp
 	./fragment_store/messages_meta_components_id.inl
+	./fragment_store/internal_mfs_contexts.hpp
+	./fragment_store/internal_mfs_contexts.cpp
 	./fragment_store/message_fragment_store.hpp
 	./fragment_store/message_fragment_store.cpp
 

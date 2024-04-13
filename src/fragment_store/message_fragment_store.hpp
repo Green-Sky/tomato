@@ -25,6 +25,7 @@ namespace Message::Components {
 	//using FUID = FragComp::ID;
 
 	struct Obj {
+		// message fragment's object
 		Object o {entt::null};
 	};
 
