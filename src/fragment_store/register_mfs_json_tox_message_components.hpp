@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./message_serializer.hpp"
+#include <solanaceae/message3/message_serializer.hpp>
 
-void registerMFSJsonToxMessageComponents(MessageSerializerCallbacks& msc);
+void registerMFSJsonToxMessageComponents(MessageSerializerNJ& msnj);
 

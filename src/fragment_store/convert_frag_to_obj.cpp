@@ -2,7 +2,7 @@
 #include <solanaceae/object_store/backends/filesystem_storage.hpp>
 #include <solanaceae/object_store/meta_components.hpp>
 #include <solanaceae/object_store/serializer_json.hpp>
-#include "./message_fragment_store.hpp"
+#include <solanaceae/message_fragment_store/message_fragment_store.hpp>
 
 #include <solanaceae/util/utils.hpp>
 

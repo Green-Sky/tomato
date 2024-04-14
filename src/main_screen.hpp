@@ -3,12 +3,11 @@
 #include "./screen.hpp"
 
 #include <solanaceae/object_store/object_store.hpp>
-#include <solanaceae/object_store/backends/filesystem_storage.hpp>
 #include <solanaceae/util/simple_config_model.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/message3/message_time_sort.hpp>
-#include "./fragment_store/message_fragment_store.hpp"
+#include <solanaceae/message3/message_serializer.hpp>
 #include <solanaceae/plugin/plugin_manager.hpp>
 #include <solanaceae/toxcore/tox_event_logger.hpp>
 #include "./tox_private_impl.hpp"
@@ -51,9 +50,8 @@ struct MainScreen final : public Screen {
 	SimpleConfigModel conf;
 	Contact3Registry cr;
 	RegistryMessageModel rmm;
+	MessageSerializerNJ msnj;
 	MessageTimeSort mts;
-	backend::FilesystemStorage mfsb; // message fsb // TODO: make configurable
-	MessageFragmentStore mfs;
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;

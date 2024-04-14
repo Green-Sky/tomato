@@ -5,6 +5,7 @@ add_subdirectory(./entt)
 add_subdirectory(./solanaceae_util)
 add_subdirectory(./solanaceae_contact)
 add_subdirectory(./solanaceae_message3)
+add_subdirectory(./solanaceae_message_serializer)
 
 add_subdirectory(./solanaceae_plugin)
 

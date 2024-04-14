@@ -2,47 +2,27 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 ########################################
 
-add_library(message_fragment_store
-	./json/message_components.hpp # TODO: move
-	./json/tox_message_components.hpp # TODO: move
-
-	./fragment_store/message_serializer.hpp
-	./fragment_store/message_serializer.cpp
-	./fragment_store/messages_meta_components.hpp
-	./fragment_store/messages_meta_components_id.inl
-	./fragment_store/internal_mfs_contexts.hpp
-	./fragment_store/internal_mfs_contexts.cpp
-	./fragment_store/message_fragment_store.hpp
-	./fragment_store/message_fragment_store.cpp
-
-	./fragment_store/register_mfs_json_message_components.hpp
-	./fragment_store/register_mfs_json_message_components.cpp
-	./fragment_store/register_mfs_json_tox_message_components.hpp
-	./fragment_store/register_mfs_json_tox_message_components.cpp
-)
-target_compile_features(message_fragment_store PRIVATE cxx_std_20)
-target_link_libraries(message_fragment_store PUBLIC
-	solanaceae_object_store
-	solanaceae_message3
-	solanaceae_tox_messages # TODO: move
-)
-
-########################################
-
-add_executable(convert_message_object_store
+add_executable(convert_message_object_store EXCLUDE_FROM_ALL
 	fragment_store/convert_frag_to_obj.cpp
 )
 
 target_link_libraries(convert_message_object_store PUBLIC
 	solanaceae_object_store
 	solanaceae_object_store_backend_filesystem
-	message_fragment_store
+	solanaceae_message_fragment_store
 )
 
 ########################################
 add_executable(tomato
 	./main.cpp
 	./icon.rc
+
+
+	# TODO: mfs leftovers, need to move
+	./json/tox_message_components.hpp # TODO: move
+	./fragment_store/register_mfs_json_tox_message_components.hpp
+	./fragment_store/register_mfs_json_tox_message_components.cpp
+
 
 	./screen.hpp
 	./start_screen.hpp
@@ -115,6 +95,7 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_util
 	solanaceae_contact
 	solanaceae_message3
+	solanaceae_message_serializer
 
 	solanaceae_plugin
 
@@ -123,8 +104,6 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_tox_messages
 
 	solanaceae_object_store
-	solanaceae_object_store_backend_filesystem
-	message_fragment_store
 
 	SDL3::SDL3
 

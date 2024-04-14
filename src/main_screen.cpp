@@ -1,7 +1,8 @@
 #include "./main_screen.hpp"
 
-#include "./fragment_store/register_mfs_json_message_components.hpp"
+#include <solanaceae/message3/nj/message_components_serializer.hpp>
 #include "./fragment_store/register_mfs_json_tox_message_components.hpp"
+#include "solanaceae/message3/message_serializer.hpp"
 
 #include <solanaceae/contact/components.hpp>
 
@@ -15,9 +16,8 @@
 MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	rmm(cr),
+	msnj{cr, {}, {}},
 	mts(rmm),
-	mfsb(os, "test2_message_store/"),
-	mfs(cr, rmm, os, mfsb),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
@@ -38,8 +38,9 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tdch(tpi)
 {
 	tel.subscribeAll(tc);
-	registerMFSJsonMessageComponents(mfs.getMSC());
-	registerMFSJsonToxMessageComponents(mfs.getMSC());
+
+	registerMessageComponents(msnj);
+	registerMFSJsonToxMessageComponents(msnj);
 
 	conf.set("tox", "save_file_path", save_path);
 
@@ -61,6 +62,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
+		g_provideInstance<MessageSerializerNJ>("MessageSerializerNJ", "host", &msnj);
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
@@ -83,8 +85,6 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	}
 
 	conf.dump();
-
-	mfsb.scanAsync(); // HACK: after plugins and tox contacts got loaded
 }
 
 MainScreen::~MainScreen(void) {
@@ -426,7 +426,6 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	tdch.tick(time_delta); // compute
 
-	const float mfs_interval = mfs.tick(time_delta);
 	mts.iterate(); // compute (after mfs)
 
 	_min_tick_interval = std::min<float>(
@@ -438,10 +437,6 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	_min_tick_interval = std::min<float>(
 		_min_tick_interval,
 		fo_interval
-	);
-	_min_tick_interval = std::min<float>(
-		_min_tick_interval,
-		mfs_interval
 	);
 
 	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";
