@@ -6,13 +6,6 @@ add_executable(tomato
 	./main.cpp
 	./icon.rc
 
-
-	# TODO: mfs leftovers, need to move
-	./json/tox_message_components.hpp # TODO: move
-	./fragment_store/register_mfs_json_tox_message_components.hpp
-	./fragment_store/register_mfs_json_tox_message_components.cpp
-
-
 	./screen.hpp
 	./start_screen.hpp
 	./start_screen.cpp

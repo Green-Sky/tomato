@@ -1,8 +1,7 @@
 #include "./main_screen.hpp"
 
 #include <solanaceae/message3/nj/message_components_serializer.hpp>
-#include "./fragment_store/register_mfs_json_tox_message_components.hpp"
-#include "solanaceae/message3/message_serializer.hpp"
+#include <solanaceae/tox_messages/nj/tox_message_components_serializer.hpp>
 
 #include <solanaceae/contact/components.hpp>
 
@@ -40,7 +39,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tel.subscribeAll(tc);
 
 	registerMessageComponents(msnj);
-	registerMFSJsonToxMessageComponents(msnj);
+	registerToxMessageComponents(msnj);
 
 	conf.set("tox", "save_file_path", save_path);
 
