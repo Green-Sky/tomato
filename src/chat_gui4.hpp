@@ -10,9 +10,6 @@
 #include "./file_selector.hpp"
 #include "./send_image_popup.hpp"
 
-// HACK: move to public msg api?
-#include "./fragment_store/message_fragment_store.hpp"
-
 #include <entt/container/dense_map.hpp>
 
 #include <cstdint>

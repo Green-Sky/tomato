@@ -29,22 +29,6 @@ namespace Message::Components {
 		Object o {entt::null};
 	};
 
-	// points to the front/newer message
-	// together they define a range that is,
-	// eg the first(end) and last(begin) message being rendered
-	// MFS requires there to be atleast one other fragment after/before,
-	// if not loaded fragment with fitting tsrange(direction) available
-	// uses fragmentAfter/Before()
-	// they can exist standalone
-	// if they are a pair, the inside is filled first
-	// cursers require a timestamp ???
-	struct ViewCurserBegin {
-		Message3 curser_end{entt::null};
-	};
-	struct ViewCurserEnd {
-		Message3 curser_begin{entt::null};
-	};
-
 	// TODO: add adjacency range comp or inside curser
 
 	// TODO: unused
