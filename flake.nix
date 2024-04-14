@@ -68,6 +68,7 @@
           "-DFETCHCONTENT_SOURCE_DIR_JSON=${nlohmann-json}" # we care about the version
           # TODO: use package instead
           "-DFETCHCONTENT_SOURCE_DIR_ZSTD=${pkgs.zstd.src}" # we dont care about the version (we use 1.4.x features)
+          "-DFETCHCONTENT_SOURCE_DIR_LIBWEBP=${pkgs.libwebp.src}"
         ];
 
         # TODO: replace with install command
