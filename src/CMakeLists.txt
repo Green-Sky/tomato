@@ -2,17 +2,6 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 ########################################
 
-add_executable(convert_message_object_store EXCLUDE_FROM_ALL
-	fragment_store/convert_frag_to_obj.cpp
-)
-
-target_link_libraries(convert_message_object_store PUBLIC
-	solanaceae_object_store
-	solanaceae_object_store_backend_filesystem
-	solanaceae_message_fragment_store
-)
-
-########################################
 add_executable(tomato
 	./main.cpp
 	./icon.rc
