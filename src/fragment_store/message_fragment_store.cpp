@@ -607,7 +607,9 @@ float MessageFragmentStore::tick(float) {
 			// missing version, adding
 			fh.emplace<ObjComp::MessagesVersion>();
 		}
-		if (fh.get<ObjComp::MessagesVersion>().v != 1) {
+		const auto object_version = fh.get<ObjComp::MessagesVersion>().v;
+		// TODO: move this early version check somewhere else
+		if (object_version != 1 && object_version != 2) {
 			std::cerr << "MFS: object with version mismatch\n";
 			return 0.05f;
 		}

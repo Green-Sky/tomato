@@ -99,7 +99,7 @@ int main(int argc, const char** argv) {
 					// TODO: error handling
 					const auto j = nlohmann::json::parse(tmp_buffer);
 
-					if (false) {
+					if (true) {
 						e.e.replace<ObjComp::MessagesVersion>(uint16_t(2));
 
 						// overwrite og
