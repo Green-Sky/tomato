@@ -1,5 +1,8 @@
 #include "./main_screen.hpp"
 
+#include <solanaceae/message3/nj/message_components_serializer.hpp>
+#include <solanaceae/tox_messages/nj/tox_message_components_serializer.hpp>
+
 #include <solanaceae/contact/components.hpp>
 
 #include <imgui/imgui.h>
@@ -12,6 +15,7 @@
 MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	rmm(cr),
+	msnj{cr, {}, {}},
 	mts(rmm),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
@@ -34,6 +38,9 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 {
 	tel.subscribeAll(tc);
 
+	registerMessageComponents(msnj);
+	registerToxMessageComponents(msnj);
+
 	conf.set("tox", "save_file_path", save_path);
 
 	{ // name stuff
@@ -54,6 +61,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
+		g_provideInstance<MessageSerializerNJ>("MessageSerializerNJ", "host", &msnj);
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
@@ -417,7 +425,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	tdch.tick(time_delta); // compute
 
-	mts.iterate(); // compute
+	mts.iterate(); // compute (after mfs)
 
 	_min_tick_interval = std::min<float>(
 		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)

@@ -47,6 +47,18 @@ namespace Components {
 
 } // Components
 
+namespace Context {
+
+	// TODO: move back to chat log window and keep per window instead of per contact
+	struct CGView {
+		// set to the ts of the newest rendered msg
+		Message3Handle begin{};
+		// set to the ts of the oldest rendered msg
+		Message3Handle end{};
+	};
+
+} // Context
+
 static constexpr float lerp(float a, float b, float t) {
 	return a + t * (b - a);
 }
@@ -269,28 +281,6 @@ float ChatGui4::render(float time_delta) {
 
 					auto* msg_reg_ptr = _rmm.get(*_selected_contact);
 
-					if (msg_reg_ptr != nullptr) {
-						const auto& mm = *msg_reg_ptr;
-						//const auto& unread_storage = mm.storage<Message::Components::TagUnread>();
-						if (const auto* unread_storage = mm.storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
-							//assert(unread_storage->size() == 0);
-							//assert(unread_storage.cbegin() == unread_storage.cend());
-
-#if 0
-							std::cout << "UNREAD ";
-							Message3 prev_ent = entt::null;
-							for (const Message3 e : mm.view<Message::Components::TagUnread>()) {
-								std::cout << entt::to_integral(e) << " ";
-								if (prev_ent == e) {
-									assert(false && "dup");
-								}
-								prev_ent = e;
-							}
-							std::cout << "\n";
-#endif
-						}
-					}
-
 					constexpr ImGuiTableFlags table_flags =
 						ImGuiTableFlags_BordersInnerV |
 						ImGuiTableFlags_RowBg |
@@ -302,6 +292,9 @@ float ChatGui4::render(float time_delta) {
 						ImGui::TableSetupColumn("delivered/read");
 						ImGui::TableSetupColumn("timestamp");
 						ImGui::TableSetupColumn("extra_info", _show_chat_extra_info ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_Disabled);
+
+						Message3Handle message_view_oldest; // oldest visible message
+						Message3Handle message_view_newest; // last visible message
 
 						// very hacky, and we have variable hight entries
 						//ImGuiListClipper clipper;
@@ -389,12 +382,26 @@ float ChatGui4::render(float time_delta) {
 								}
 
 								// use username as visibility test
-								if (ImGui::IsItemVisible() && msg_reg.all_of<Message::Components::TagUnread>(e)) {
-									// get time now
-									const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-									msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
-									msg_reg.remove<Message::Components::TagUnread>(e);
-									msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
+								if (ImGui::IsItemVisible()) {
+									if (msg_reg.all_of<Message::Components::TagUnread>(e)) {
+										// get time now
+										const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+										msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
+										msg_reg.remove<Message::Components::TagUnread>(e);
+										msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
+
+										// we remove the unread tag here
+										_rmm.throwEventUpdate(msg_reg, e);
+									}
+
+									// track view
+									if (!static_cast<bool>(message_view_oldest)) {
+										message_view_oldest = {msg_reg, e};
+										message_view_newest = {msg_reg, e};
+									} else if (static_cast<bool>(message_view_newest)) {
+										// update to latest
+										message_view_newest = {msg_reg, e};
+									}
 								}
 
 								// highlight self
@@ -559,8 +566,89 @@ float ChatGui4::render(float time_delta) {
 						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
+						{ // update view cursers
+							if (!msg_reg.ctx().contains<Context::CGView>()) {
+								msg_reg.ctx().emplace<Context::CGView>();
+							}
+
+							auto& cg_view = msg_reg.ctx().get<Context::CGView>();
+
+							// any message in view
+							if (!static_cast<bool>(message_view_oldest)) {
+								// no message in view, we setup a view at current time, so the next frags are loaded
+								if (!static_cast<bool>(cg_view.begin) || !static_cast<bool>(cg_view.end)) {
+									// fix invalid state
+									if (static_cast<bool>(cg_view.begin)) {
+										cg_view.begin.destroy();
+										_rmm.throwEventDestroy(cg_view.begin);
+									}
+									if (static_cast<bool>(cg_view.end)) {
+										cg_view.end.destroy();
+										_rmm.throwEventDestroy(cg_view.end);
+									}
+
+									// create new
+									cg_view.begin = {msg_reg, msg_reg.create()};
+									cg_view.end = {msg_reg, msg_reg.create()};
+
+									cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
+									cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
+
+									cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
+									cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
+
+									std::cout << "CG: created view FRONT begin ts\n";
+									_rmm.throwEventConstruct(cg_view.begin);
+									std::cout << "CG: created view FRONT end ts\n";
+									_rmm.throwEventConstruct(cg_view.end);
+								} // else? we do nothing?
+							} else {
+								bool begin_created {false};
+								if (!static_cast<bool>(cg_view.begin)) {
+									cg_view.begin = {msg_reg, msg_reg.create()};
+									begin_created = true;
+								}
+								bool end_created {false};
+								if (!static_cast<bool>(cg_view.end)) {
+									cg_view.end = {msg_reg, msg_reg.create()};
+									end_created = true;
+								}
+								cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
+								cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
+
+								{
+									auto& old_begin_ts = cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts;
+									if (old_begin_ts != message_view_newest.get<Message::Components::Timestamp>().ts) {
+										old_begin_ts = message_view_newest.get<Message::Components::Timestamp>().ts;
+										if (begin_created) {
+											std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
+											_rmm.throwEventConstruct(cg_view.begin);
+										} else {
+											//std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
+											_rmm.throwEventUpdate(cg_view.begin);
+										}
+									}
+								}
+
+								{
+									auto& old_end_ts = cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts;
+									if (old_end_ts != message_view_oldest.get<Message::Components::Timestamp>().ts) {
+										old_end_ts = message_view_oldest.get<Message::Components::Timestamp>().ts;
+										if (end_created) {
+											std::cout << "CG: created view end ts with " << old_end_ts << "\n";
+											_rmm.throwEventConstruct(cg_view.end);
+										} else {
+											//std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
+											_rmm.throwEventUpdate(cg_view.end);
+										}
+									}
+								}
+							}
+						}
+
 						ImGui::EndTable();
 					}
+
 
 					if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
 						ImGui::SetScrollHereY(1.f);

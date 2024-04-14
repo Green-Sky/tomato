@@ -48,4 +48,3 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 		void saveToxProfile(void);
 };
 
-

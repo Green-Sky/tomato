@@ -34,10 +34,28 @@
         "type": "github"
       }
     },
+    "nlohmann-json": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1701207391,
+        "narHash": "sha256-7F0Jon+1oWL7uqet5i1IgHX0fUw/+z0QwEcA3zs5xHg=",
+        "owner": "nlohmann",
+        "repo": "json",
+        "rev": "9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nlohmann",
+        "ref": "v3.11.3",
+        "repo": "json",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "nlohmann-json": "nlohmann-json"
       }
     },
     "systems": {

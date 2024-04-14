@@ -23,3 +23,6 @@
 [submodule "external/solanaceae_object_store"]
 	path = external/solanaceae_object_store
 	url = https://github.com/Green-Sky/solanaceae_object_store.git
+[submodule "external/solanaceae_message_serializer"]
+	path = external/solanaceae_message_serializer
+	url = https://github.com/Green-Sky/solanaceae_message_serializer.git

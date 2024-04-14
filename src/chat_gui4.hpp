@@ -32,6 +32,7 @@ class ChatGui4 {
 	FileSelector _fss;
 	SendImagePopup _sip;
 
+	// TODO: refactor this to allow multiple open contacts
 	std::optional<Contact3> _selected_contact;
 
 	// TODO: per contact

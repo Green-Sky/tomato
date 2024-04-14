@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14...3.24 FATAL_ERROR)
 
 add_subdirectory(./entt)
 
 add_subdirectory(./solanaceae_util)
 add_subdirectory(./solanaceae_contact)
 add_subdirectory(./solanaceae_message3)
+add_subdirectory(./solanaceae_message_serializer)
 
 add_subdirectory(./solanaceae_plugin)
 
