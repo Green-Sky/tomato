@@ -55,7 +55,25 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
-        "nlohmann-json": "nlohmann-json"
+        "nlohmann-json": "nlohmann-json",
+        "sdl3": "sdl3"
+      }
+    },
+    "sdl3": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1713196978,
+        "narHash": "sha256-qn6YChphDi2p1GRwAEno6QI1rDNEmly+tElzDJnOcvg=",
+        "owner": "libsdl-org",
+        "repo": "SDL",
+        "rev": "0429f5d6a36fc35b551bcc2acd4a40c2db6dab82",
+        "type": "github"
+      },
+      "original": {
+        "owner": "libsdl-org",
+        "repo": "SDL",
+        "rev": "0429f5d6a36fc35b551bcc2acd4a40c2db6dab82",
+        "type": "github"
       }
     },
     "systems": {
