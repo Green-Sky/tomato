@@ -9,6 +9,7 @@ if (NOT TARGET SDL3_image::SDL3_image)
 	set(SDL3IMAGE_BACKEND_STB OFF CACHE BOOL "" FORCE) # important for security
 	set(SDL3IMAGE_BACKEND_IMAGEIO OFF CACHE BOOL "" FORCE) # some funky apple cmake bug
 	set(SDL3IMAGE_JXL ON CACHE BOOL "" FORCE)
+	set(SDL3IMAGE_QOI OFF CACHE BOOL "" FORCE) # we have our own
 
 	FetchContent_Declare(SDL3_image
 		GIT_REPOSITORY https://github.com/libsdl-org/SDL_image
