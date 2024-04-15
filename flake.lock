@@ -5,11 +5,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1694529238,
-        "narHash": "sha256-zsNZZGTGnMOf9YpHKJqMSsa0dXbfmxeoJ7xHlrt+xmY=",
+        "lastModified": 1710146030,
+        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "ff7b65b44d01cf9ba6a71320833626af21126384",
+        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
         "type": "github"
       },
       "original": {
@@ -20,11 +20,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1709953752,
-        "narHash": "sha256-LW84B4vM1cn7E6cDNQn2LndT9iJXI1dRE5fwbNFbQa8=",
+        "lastModified": 1713189761,
+        "narHash": "sha256-MPp1dBhlY066IeBo+EPGEUN+s+aSUA+LWkvnzKh+rts=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "fcaa81ed3c273237217330cf342ef1873b77c80a",
+        "rev": "ff44be4d8ff33f797ff3e3f87153d4f3b6a85ffb",
         "type": "github"
       },
       "original": {
@@ -56,7 +56,8 @@
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
         "nlohmann-json": "nlohmann-json",
-        "sdl3": "sdl3"
+        "sdl3": "sdl3",
+        "sdl3_image": "sdl3_image"
       }
     },
     "sdl3": {
@@ -73,6 +74,23 @@
         "owner": "libsdl-org",
         "repo": "SDL",
         "rev": "0429f5d6a36fc35b551bcc2acd4a40c2db6dab82",
+        "type": "github"
+      }
+    },
+    "sdl3_image": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1712700609,
+        "narHash": "sha256-PVPH1uJ6g65SzHUboeQE6ZkC+72doMz9t9SG2LBo+7I=",
+        "owner": "libsdl-org",
+        "repo": "SDL_image",
+        "rev": "a45d6e5b84ccc0f3faae6ba7d561709ed600eee7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "libsdl-org",
+        "repo": "SDL_image",
+        "rev": "a45d6e5b84ccc0f3faae6ba7d561709ed600eee7",
         "type": "github"
       }
     },

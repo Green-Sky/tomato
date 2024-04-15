@@ -14,9 +14,13 @@
       url = "github:libsdl-org/SDL/0429f5d6a36fc35b551bcc2acd4a40c2db6dab82"; # keep in sync this cmake
       flake = false;
     };
+    sdl3_image = {
+      url = "github:libsdl-org/SDL_image/a45d6e5b84ccc0f3faae6ba7d561709ed600eee7";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3 }:
+  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
@@ -57,6 +61,13 @@
           libGL
 
           pipewire
+
+          # sdl3_image:
+          libpng
+          libjpeg
+          libjxl
+          #libavif # currently used sdl_image commit fails
+          #libwebp # still using our own loader
         ];
 
         buildInputs = with pkgs; [
@@ -74,6 +85,7 @@
           "-DFETCHCONTENT_SOURCE_DIR_ZSTD=${pkgs.zstd.src}" # we dont care about the version (we use 1.4.x features)
           "-DFETCHCONTENT_SOURCE_DIR_LIBWEBP=${pkgs.libwebp.src}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
+          "-DFETCHCONTENT_SOURCE_DIR_SDL3_IMAGE=${sdl3_image}"
         ];
 
         # TODO: replace with install command
