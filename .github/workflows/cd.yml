@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: RelWithDebInfo
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -63,7 +63,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -75,8 +75,11 @@ jobs:
       with:
         arch: amd64
 
+    ## sdl_image vendored needs nasm for dav1d
+    #- uses: ilammy/setup-nasm@v1
+
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSDL3IMAGE_VENDORED=OFF
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSDL3IMAGE_VENDORED=ON -DSDL3IMAGE_DEPS_SHARED=ON -DSDL3IMAGE_JXL=OFF -DSDL3IMAGE_AVIF=OFF
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -114,7 +117,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -126,8 +129,11 @@ jobs:
       with:
         arch: amd64
 
+    ## sdl_image vendored needs nasm for dav1d
+    #- uses: ilammy/setup-nasm@v1
+
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DSDL3IMAGE_VENDORED=OFF
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DSDL3IMAGE_VENDORED=ON -DSDL3IMAGE_DEPS_SHARED=ON -DSDL3IMAGE_JXL=OFF -DSDL3IMAGE_AVIF=OFF
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
@@ -172,7 +178,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
