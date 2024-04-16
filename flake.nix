@@ -66,7 +66,7 @@
           libpng
           libjpeg
           libjxl
-          #libavif # currently used sdl_image commit fails
+          libavif
           #libwebp # still using our own loader
         ];
 
