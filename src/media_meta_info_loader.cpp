@@ -4,6 +4,7 @@
 #include "./image_loader_sdl_bmp.hpp"
 #include "./image_loader_qoi.hpp"
 #include "./image_loader_stb.hpp"
+#include "./image_loader_sdl_image.hpp"
 
 #include <solanaceae/message3/components.hpp>
 
@@ -79,6 +80,7 @@ MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModel& rmm) : _rmm(rmm) 
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 
 	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);

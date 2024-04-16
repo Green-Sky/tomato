@@ -4,6 +4,7 @@
 #include "./image_loader_qoi.hpp"
 #include "./image_loader_stb.hpp"
 #include "./image_loader_webp.hpp"
+#include "./image_loader_sdl_image.hpp"
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
@@ -24,6 +25,7 @@ ToxAvatarLoader::ToxAvatarLoader(Contact3Registry& cr) : _cr(cr) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 }
 
