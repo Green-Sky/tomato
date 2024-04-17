@@ -2,7 +2,6 @@
 
 #include "./image_loader_sdl_bmp.hpp"
 #include "./image_loader_qoi.hpp"
-#include "./image_loader_stb.hpp"
 #include "./image_loader_webp.hpp"
 #include "./image_loader_sdl_image.hpp"
 
@@ -26,7 +25,6 @@ ToxAvatarLoader::ToxAvatarLoader(Contact3Registry& cr) : _cr(cr) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
-	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 }
 
 static float getHue_6bytes(const uint8_t* data) {

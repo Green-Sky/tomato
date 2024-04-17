@@ -4,6 +4,7 @@
 #include "./image_loader_stb.hpp"
 #include "./image_loader_webp.hpp"
 #include "./image_loader_qoi.hpp"
+#include "./image_loader_sdl_image.hpp"
 
 #include <imgui/imgui.h>
 
@@ -16,7 +17,7 @@ SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
-	_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 }
 
 void SendImagePopup::reset(void) {
