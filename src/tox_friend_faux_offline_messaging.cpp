@@ -107,6 +107,12 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 
 	const uint64_t ts_now = Message::getTimeMS();
 
+	if (!_cr.all_of<Contact::Components::Self>(c)) {
+		return dfmc_Ret::NO_MSG; // error
+	}
+
+	const auto self_c = _cr.get<Contact::Components::Self>(c).self;
+
 	// filter for unconfirmed messages
 
 	// we assume sorted
@@ -127,9 +133,8 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 			continue; // skip
 		}
 
-		// exclude
-		if (mr->any_of<
-				Message::Components::Remote::TimestampReceived // this acts like a tag, which is wrong in groups
+		if (!mr->any_of<
+				Message::Components::Remote::TimestampReceived
 			>(msg)
 		) {
 			continue; // skip
@@ -137,6 +142,16 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 
 		if (mr->get<Message::Components::ContactTo>(msg).c != c) {
 			continue; // not outbound (in private)
+		}
+
+		const auto& ts_received = mr->get<Message::Components::Remote::TimestampReceived>(msg).ts;
+		// not target
+		if (ts_received.contains(c)) {
+			continue;
+		}
+		// needs to contain self
+		if (!ts_received.contains(self_c)) {
+			continue;
 		}
 
 		valid_unsent = true;

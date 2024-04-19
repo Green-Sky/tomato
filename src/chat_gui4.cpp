@@ -197,9 +197,10 @@ float ChatGui4::render(float time_delta) {
 				sub_contacts = &_cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
 			}
 
+			const bool highlight_private {!_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact)};
+
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, true)) {
-				//if (_cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
-				if (sub_contacts != nullptr) {
+				if (sub_contacts != nullptr && !_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && _cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
 					if (!sub_contacts->empty()) {
 						if (ImGui::BeginChild("subcontacts", {150, -100}, true)) {
 							ImGui::Text("subs: %zu", sub_contacts->size());
@@ -417,7 +418,7 @@ float ChatGui4::render(float time_delta) {
 								std::optional<ImVec4> row_bg;
 
 								// private group message
-								if (_cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
+								if (highlight_private && _cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
 									const ImVec4 priv_msg_hi_col = ImVec4(0.5f, 0.2f, 0.5f, 0.35f);
 									ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
 									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
@@ -456,7 +457,10 @@ float ChatGui4::render(float time_delta) {
 							if (ImGui::TableNextColumn()) {
 								// TODO: theming for hardcoded values
 
-								if (msg_reg.all_of<Message::Components::Remote::TimestampReceived>(e)) {
+								if (!msg_reg.all_of<Message::Components::Remote::TimestampReceived>(e)) {
+									// TODO: dedup?
+									ImGui::TextDisabled("_");
+								} else {
 									const auto list = msg_reg.get<Message::Components::Remote::TimestampReceived>(e).ts;
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
@@ -471,6 +475,7 @@ float ChatGui4::render(float time_delta) {
 										std::string synced_by_text {"delivery confirmed by:"};
 										const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
 
+										size_t other_contacts {0};
 										for (const auto& [c, syned_ts] : list) {
 											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 												//synced_by_text += "\n sself(!)"; // makes no sense
@@ -480,16 +485,19 @@ float ChatGui4::render(float time_delta) {
 											} else {
 												synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
 											}
+											other_contacts += 1;
 											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
 											synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
 										}
 
-										ImGui::Text("%s", synced_by_text.c_str());
+										if (other_contacts > 0) {
+											ImGui::Text("%s", synced_by_text.c_str());
+										} else {
+											ImGui::TextUnformatted("no delivery confirmation");
+										}
 
 										ImGui::EndTooltip();
 									}
-								} else {
-									ImGui::TextDisabled("_");
 								}
 
 								ImGui::SameLine();
@@ -1051,7 +1059,7 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 
 		for (const auto& [c, syned_ts] : reg.get<Message::Components::Remote::TimestampReceived>(e).ts) {
 			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
-				synced_by_text += "\n sself(!)"; // makes no sense
+				synced_by_text += "\n sself"; // required (except when synced externally)
 			} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
 				synced_by_text += "\n wself";
 			} else {
