@@ -1,10 +1,10 @@
 #include "./send_image_popup.hpp"
 
-#include "./image_loader_sdl_bmp.hpp"
-#include "./image_loader_stb.hpp"
-#include "./image_loader_webp.hpp"
-#include "./image_loader_qoi.hpp"
-#include "./image_loader_sdl_image.hpp"
+#include "../image_loader_sdl_bmp.hpp"
+#include "../image_loader_stb.hpp"
+#include "../image_loader_webp.hpp"
+#include "../image_loader_qoi.hpp"
+#include "../image_loader_sdl_image.hpp"
 
 #include <imgui/imgui.h>
 

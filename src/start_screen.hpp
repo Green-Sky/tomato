@@ -2,7 +2,7 @@
 
 #include "./screen.hpp"
 
-#include "./file_selector.hpp"
+#include "./chat_gui/file_selector.hpp"
 
 #include <vector>
 #include <string>

@@ -5,8 +5,8 @@
 #include <memory>
 #include <vector>
 
-#include "./image_loader.hpp"
-#include "./texture_cache.hpp"
+#include "../image_loader.hpp"
+#include "../texture_cache.hpp"
 
 struct SendImagePopup {
 	TextureUploaderI& _tu;

@@ -7,8 +7,8 @@
 #include "./texture_cache.hpp"
 #include "./tox_avatar_loader.hpp"
 #include "./message_image_loader.hpp"
-#include "./file_selector.hpp"
-#include "./send_image_popup.hpp"
+#include "./chat_gui/file_selector.hpp"
+#include "./chat_gui/send_image_popup.hpp"
 
 #include <entt/container/dense_map.hpp>
 

@@ -28,7 +28,7 @@
 #include "./message_image_loader.hpp"
 
 #include "./chat_gui4.hpp"
-#include "./settings_window.hpp"
+#include "./chat_gui/settings_window.hpp"
 #include "./tox_ui_utils.hpp"
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"

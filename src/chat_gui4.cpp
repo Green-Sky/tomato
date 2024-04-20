@@ -1,7 +1,5 @@
 #include "./chat_gui4.hpp"
 
-#include "./file_selector.hpp"
-
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
