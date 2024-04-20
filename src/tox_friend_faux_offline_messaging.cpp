@@ -134,7 +134,7 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 		}
 
 		if (!mr->any_of<
-				Message::Components::Remote::TimestampReceived
+				Message::Components::ReceivedBy
 			>(msg)
 		) {
 			continue; // skip
@@ -144,7 +144,7 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 			continue; // not outbound (in private)
 		}
 
-		const auto& ts_received = mr->get<Message::Components::Remote::TimestampReceived>(msg).ts;
+		const auto& ts_received = mr->get<Message::Components::ReceivedBy>(msg).ts;
 		// not target
 		if (ts_received.contains(c)) {
 			continue;

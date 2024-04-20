@@ -457,11 +457,11 @@ float ChatGui4::render(float time_delta) {
 							if (ImGui::TableNextColumn()) {
 								// TODO: theming for hardcoded values
 
-								if (!msg_reg.all_of<Message::Components::Remote::TimestampReceived>(e)) {
+								if (!msg_reg.all_of<Message::Components::ReceivedBy>(e)) {
 									// TODO: dedup?
 									ImGui::TextDisabled("_");
 								} else {
-									const auto list = msg_reg.get<Message::Components::Remote::TimestampReceived>(e).ts;
+									const auto list = msg_reg.get<Message::Components::ReceivedBy>(e).ts;
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partically delivered
@@ -503,8 +503,8 @@ float ChatGui4::render(float time_delta) {
 								ImGui::SameLine();
 
 								// TODO: dedup
-								if (msg_reg.all_of<Message::Components::Remote::TimestampRead>(e)) {
-									const auto list = msg_reg.get<Message::Components::Remote::TimestampRead>(e).ts;
+								if (msg_reg.all_of<Message::Components::ReadBy>(e)) {
+									const auto list = msg_reg.get<Message::Components::ReadBy>(e).ts;
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partially read
@@ -1053,11 +1053,11 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 	}
 
 	// TODO: remove?
-	if (reg.all_of<Message::Components::Remote::TimestampReceived>(e)) {
+	if (reg.all_of<Message::Components::ReceivedBy>(e)) {
 		std::string synced_by_text {"receivedBy:"};
 		const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
 
-		for (const auto& [c, syned_ts] : reg.get<Message::Components::Remote::TimestampReceived>(e).ts) {
+		for (const auto& [c, syned_ts] : reg.get<Message::Components::ReceivedBy>(e).ts) {
 			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 				synced_by_text += "\n sself"; // required (except when synced externally)
 			} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
