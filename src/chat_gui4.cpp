@@ -1086,7 +1086,6 @@ void ChatGui4::renderContactList(void) {
 bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected) {
 	// TODO:
 	// - unread message
-	// - avatar img
 	// - connection status
 	// - user status
 	// - status message
@@ -1115,10 +1114,27 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 	}
 
 	const bool got_selected = ImGui::Selectable(label.c_str(), show_selected, 0, {0,3*TEXT_BASE_HEIGHT});
-
 	if (request_incoming || request_outgoing) {
 		ImGui::PopStyleColor();
 	}
+
+	if (ImGui::BeginItemTooltip()) {
+		if (_cr.all_of<Contact::Components::ConnectionState>(c)) {
+			const auto cstate = _cr.get<Contact::Components::ConnectionState>(c).state;
+			ImGui::Text("Connection state: %s",
+				(cstate == Contact::Components::ConnectionState::disconnected)
+				? "offline"
+				: (cstate == Contact::Components::ConnectionState::direct)
+				? "online (direct)"
+				: "online (cloud)"
+			);
+		} else {
+			ImGui::TextUnformatted("Connection state: unknown");
+		}
+
+		ImGui::EndTooltip();
+	}
+
 	ImVec2 post_curser_pos = ImGui::GetCursorPos();
 
 	ImVec2 img_curser {
@@ -1187,14 +1203,16 @@ bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected
 			ImGui::TextUnformatted("Incoming request/invite");
 		} else if (request_outgoing) {
 			ImGui::TextUnformatted("Outgoing request/invite");
+		} else {
+			//ImGui::Text("status message...");
 		}
-		//ImGui::Text("status message...");
 		//ImGui::TextDisabled("hi");
 		//ImGui::RenderTextEllipsis
 	}
 	ImGui::EndGroup();
 
 	ImGui::SetCursorPos(post_curser_pos);
+
 	return got_selected;
 }
 
