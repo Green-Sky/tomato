@@ -12,7 +12,7 @@
 #include <memory>
 #include <cmath>
 
-MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::vector<std::string> plugins) :
+MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	rmm(cr),
 	msnj{cr, {}, {}},
@@ -44,9 +44,10 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	conf.set("tox", "save_file_path", save_path);
 
 	{ // name stuff
+		// a new profile will not have this set
 		auto name = tc.toxSelfGetName();
 		if (name.empty()) {
-			name = "tomato";
+			name = new_username;
 		}
 		conf.set("tox", "name", name);
 		tc.setSelfName(name); // TODO: this is ugly

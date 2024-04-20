@@ -17,11 +17,12 @@ struct StartScreen final : public Screen {
 	FileSelector _fss;
 
 	bool _new_save {false};
+	std::string _user_name {"unnamed-tomato"};
 
 	bool _show_password {false};
 	std::string _password;
 
-	std::string tox_profile_path {"tomato.tox"};
+	std::string _tox_profile_path {"unnamed-tomato.tox"};
 	std::vector<std::string> queued_plugin_paths;
 
 	StartScreen(void) = delete;

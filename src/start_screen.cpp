@@ -5,6 +5,7 @@
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
+#include <cctype>
 #include <memory>
 #include <filesystem>
 
@@ -33,13 +34,13 @@ Screen* StartScreen::render(float, bool&) {
 				_fss.requestFile(
 					[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
 					[this](const auto& path) {
-						tox_profile_path = path.string();
+						_tox_profile_path = path.string();
 					},
 					[](){}
 				);
 			}
 			ImGui::SameLine();
-			ImGui::TextUnformatted(tox_profile_path.c_str());
+			ImGui::TextUnformatted(_tox_profile_path.c_str());
 
 			ImGui::TextUnformatted("password:");
 			ImGui::SameLine();
@@ -56,8 +57,22 @@ Screen* StartScreen::render(float, bool&) {
 		if (ImGui::BeginTabItem("create profile")) {
 			_new_save = true;
 
-			ImGui::TextUnformatted("TODO: profile path");
-			ImGui::TextUnformatted("TODO: profile name");
+			ImGui::TextUnformatted("username:");
+			ImGui::SameLine();
+			if (ImGui::InputText("##user_name", &_user_name)) {
+				std::string tmp_copy = _user_name;
+				for (auto& c : tmp_copy) {
+					if (!std::isalnum(static_cast<unsigned char>(c)) && c != '-' && c != '.') {
+						c = '_';
+					}
+				}
+
+				if (tmp_copy.empty()) {
+					tmp_copy = "unnamed-tomato";
+				}
+
+				_tox_profile_path = tmp_copy + ".tox";
+			}
 
 			ImGui::TextUnformatted("password:");
 			ImGui::SameLine();
@@ -68,6 +83,8 @@ Screen* StartScreen::render(float, bool&) {
 			}
 			ImGui::SameLine();
 			ImGui::Checkbox("show password", &_show_password);
+
+			ImGui::TextUnformatted("TODO: profile path (current path for now)");
 
 			ImGui::EndTabItem();
 		}
@@ -81,7 +98,6 @@ Screen* StartScreen::render(float, bool&) {
 					continue;
 				}
 				ImGui::SameLine();
-
 				ImGui::TextUnformatted(it->c_str());
 
 				ImGui::PopID();
@@ -105,7 +121,7 @@ Screen* StartScreen::render(float, bool&) {
 
 	ImGui::Separator();
 
-	if (!_new_save && !std::filesystem::is_regular_file(tox_profile_path)) {
+	if (!_new_save && !std::filesystem::is_regular_file(_tox_profile_path)) {
 		// load but file missing
 
 		ImGui::BeginDisabled();
@@ -115,7 +131,7 @@ Screen* StartScreen::render(float, bool&) {
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_AllowWhenDisabled)) {
 			ImGui::SetTooltip("file does not exist");
 		}
-	} else if (_new_save && std::filesystem::exists(tox_profile_path)) {
+	} else if (_new_save && std::filesystem::exists(_tox_profile_path)) {
 		// new but file exists
 
 		ImGui::BeginDisabled();
@@ -127,7 +143,7 @@ Screen* StartScreen::render(float, bool&) {
 		}
 	} else {
 		if (ImGui::Button("load", {60, 25})) {
-			auto new_screen = std::make_unique<MainScreen>(_renderer, tox_profile_path, _password, queued_plugin_paths);
+			auto new_screen = std::make_unique<MainScreen>(_renderer, _tox_profile_path, _password, _user_name, queued_plugin_paths);
 			return new_screen.release();
 		}
 	}
