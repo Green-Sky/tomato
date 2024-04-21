@@ -26,6 +26,7 @@ bool renderContactBig(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
 	const Contact3Handle c,
+	int line_height = 3,
 	const bool unread = false,
 	const bool selectable = false,
 	const bool selected = false

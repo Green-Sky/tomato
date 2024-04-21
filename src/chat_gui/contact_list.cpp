@@ -5,14 +5,135 @@
 #include <imgui/imgui.h>
 //#include <imgui/imgui_internal.h>
 
+#include <array>
+
+static void drawIconDirectLines(
+	const ImVec2 p0,
+	const ImVec2 p1_o,
+	const ImU32 col,
+	const float thickness
+) {
+#define PLINE(x0, y0, x1, y1) \
+		ImGui::GetWindowDrawList()->AddLine( \
+			{p0.x + p1_o.x*(x0), p0.y + p1_o.y*(y0)}, \
+			{p0.x + p1_o.x*(x1), p0.y + p1_o.y*(y1)}, \
+			col, \
+			thickness \
+		);
+
+		// arrow 1
+		// (3,1) -> (9,7)
+		PLINE(0.3f, 0.1f, 0.9f, 0.7f)
+		// (9,7) -> (9,5)
+		PLINE(0.9f, 0.7f, 0.9f, 0.5f)
+		// (9,7) -> (7,7)
+		PLINE(0.9f, 0.7f, 0.7f, 0.7f)
+
+		// arrow 2
+		// (7,9) -> (1,3)
+		PLINE(0.7f, 0.9f, 0.1f, 0.3f)
+		// (1,3) -> (3,3)
+		PLINE(0.1f, 0.3f, 0.3f, 0.3f)
+		// (1,3) -> (1,5)
+		PLINE(0.1f, 0.3f, 0.1f, 0.5f)
+#undef PLINE
+}
+
+static void drawIconDirect(
+	const ImVec2 p0,
+	const ImVec2 p1_o,
+	const ImU32 col_main,
+	const ImU32 col_back
+) {
+	// dark background
+	drawIconDirectLines(p0, p1_o, col_back, 4.0f);
+	drawIconDirectLines(p0, p1_o, col_main, 1.5f);
+}
+
+static void drawIconCloud(
+	const ImVec2 p0,
+	const ImVec2 p1_o,
+	const ImU32 col_main,
+	const ImU32 col_back
+) {
+	std::array<ImVec2, 19> points {{
+		{0.2f, 0.9f},
+		{0.8f, 0.9f},
+		{0.9f, 0.8f},
+		{0.9f, 0.7f},
+		{0.7f, 0.7f},
+		{0.9f, 0.5f},
+		{0.9f, 0.4f},
+		{0.8f, 0.2f},
+		{0.6f, 0.2f},
+		{0.5f, 0.3f},
+		{0.5f, 0.5f},
+		{0.4f, 0.4f},
+		{0.3f, 0.4f},
+		{0.2f, 0.5f},
+		{0.2f, 0.6f},
+		{0.3f, 0.7f},
+		{0.1f, 0.7f},
+		{0.1f, 0.8f},
+		{0.2f, 0.9f},
+	}};
+	for (auto& v : points) {
+		v = {p0.x + p1_o.x*v.x, p0.y + p1_o.y*v.y};
+	}
+	ImGui::GetWindowDrawList()->AddPolyline(points.data(), points.size(), col_back, ImDrawFlags_None, 4.f);
+	ImGui::GetWindowDrawList()->AddPolyline(points.data(), points.size(), col_main, ImDrawFlags_None, 1.5f);
+}
+
+void renderAvatar(
+	const Theme& th,
+	ContactTextureCache& contact_tc,
+	const Contact3Handle c,
+	ImVec2 box
+) {
+	ImVec4 color_current = th.getColor<ThemeCol_Contact::avatar_offline>();
+	if (c.all_of<Contact::Components::ConnectionState>()) {
+		const auto c_state = c.get<Contact::Components::ConnectionState>().state;
+		if (c_state == Contact::Components::ConnectionState::State::direct) {
+			color_current = th.getColor<ThemeCol_Contact::avatar_online_direct>();
+		} else if (c_state == Contact::Components::ConnectionState::State::cloud) {
+			color_current = th.getColor<ThemeCol_Contact::avatar_online_cloud>();
+		}
+	}
+
+	// icon pos
+	auto p0 = ImGui::GetCursorScreenPos();
+	p0.x += box.x * 0.5f;
+	p0.y += box.y * 0.5f;
+	auto p1_o = box;
+	p1_o.x *= 0.5f;
+	p1_o.y *= 0.5f;
+
+	// avatar
+	const auto [id, width, height] = contact_tc.get(c);
+	ImGui::Image(
+		id,
+		box,
+		{0, 0},
+		{1, 1},
+		{1, 1, 1, 1},
+		color_current
+	);
+
+}
+
 bool renderContactBig(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
 	const Contact3Handle c,
+	int line_height,
 	const bool unread,
 	const bool selectable,
 	const bool selected
 ) {
+	if (line_height < 1) {
+		line_height = 1;
+	}
+
 	// we dont need ### bc there is no named prefix
 	auto label = "##" + std::to_string(entt::to_integral(c.entity()));
 
@@ -38,28 +159,30 @@ bool renderContactBig(
 
 	bool got_selected = false;
 	if (selectable) {
-		got_selected = ImGui::Selectable(label.c_str(), show_selected, ImGuiSelectableFlags_None, {0, 3*TEXT_BASE_HEIGHT});
+		got_selected = ImGui::Selectable(label.c_str(), show_selected, ImGuiSelectableFlags_None, {0, line_height*TEXT_BASE_HEIGHT});
 	} else {
-		got_selected = ImGui::InvisibleButton(label.c_str(), {-FLT_MIN, 3*TEXT_BASE_HEIGHT});
+		got_selected = ImGui::InvisibleButton(label.c_str(), {-FLT_MIN, line_height*TEXT_BASE_HEIGHT});
 	}
 
 	if (request_incoming || request_outgoing) {
 		ImGui::PopStyleColor();
 	}
 
+	const auto* cstate = c.try_get<Contact::Components::ConnectionState>();
 	if (ImGui::BeginItemTooltip()) {
-		if (c.all_of<Contact::Components::ConnectionState>()) {
-			const auto cstate = c.get<Contact::Components::ConnectionState>().state;
+		if (cstate != nullptr) {
 			ImGui::Text("Connection state: %s",
-				(cstate == Contact::Components::ConnectionState::disconnected)
+				(cstate->state == Contact::Components::ConnectionState::disconnected)
 				? "offline"
-				: (cstate == Contact::Components::ConnectionState::direct)
+				: (cstate->state == Contact::Components::ConnectionState::direct)
 				? "online (direct)"
 				: "online (cloud)"
 			);
 		} else {
 			ImGui::TextUnformatted("Connection state: unknown");
 		}
+
+		// TODO: add a whole bunch more info
 
 		ImGui::EndTooltip();
 	}
@@ -73,68 +196,60 @@ bool renderContactBig(
 
 	float img_y {
 		//(post_curser_pos.y - orig_curser_pos.y) - ImGui::GetStyle().FramePadding.y*2
-		TEXT_BASE_HEIGHT*3 - ImGui::GetStyle().FramePadding.y*2
+		TEXT_BASE_HEIGHT*line_height - ImGui::GetStyle().FramePadding.y*2
 	};
 
 	ImGui::SetCursorPos(img_curser);
 
-	// TODO: refactor out avatar (with online state overlay)
+	{ // avatar stuff
 
-	ImVec4 color_current = th.getColor<ThemeCol_Contact::avatar_offline>();
-	if (c.all_of<Contact::Components::ConnectionState>()) {
-		const auto c_state = c.get<Contact::Components::ConnectionState>().state;
-		if (c_state == Contact::Components::ConnectionState::State::direct) {
-			color_current = th.getColor<ThemeCol_Contact::avatar_online_direct>();
-		} else if (c_state == Contact::Components::ConnectionState::State::cloud) {
-			color_current = th.getColor<ThemeCol_Contact::avatar_online_cloud>();
+		// icon pos
+		auto p0 = ImGui::GetCursorScreenPos();
+		p0.x += img_y * 0.5f;
+		p0.y += img_y * 0.5f;
+		ImVec2 p1_o = {img_y, img_y};;
+		p1_o.x *= 0.5f;
+		p1_o.y *= 0.5f;
+
+		renderAvatar(th, contact_tc, c, {img_y, img_y});
+
+		if (cstate != nullptr) {
+			if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
+				const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.8f});
+				const ImU32 col_main = ImGui::GetColorU32({0.1f, 1.f, 0.1f, 1.0f});
+
+				drawIconDirect(p0, p1_o, col_main, col_back);
+			} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
+				const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.8f});
+				const ImU32 col_main = ImGui::GetColorU32({0.5f, 1.f, 0.1f, 1.0f});
+
+				drawIconCloud(p0, p1_o, col_main, col_back);
+			}
 		}
 	}
-
-	// avatar
-	const auto [id, width, height] = contact_tc.get(c);
-	ImGui::Image(
-		id,
-		ImVec2{img_y, img_y},
-		{0, 0},
-		{1, 1},
-		{1, 1, 1, 1},
-		color_current
-	);
 
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	{
-		// TODO: is there a better way?
-		// maybe cache mm?
-		//bool has_unread = false;
-#if 0
-		if (const auto* mm = _rmm.get(c); mm != nullptr) {
-			if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
-#if 0
-				assert(unread_storage.size() == 0);
-				assert(unread_storage.cbegin() == unread_storage.cend());
-				std::cout << "UNREAD ";
-				for (const auto e : mm->view<Message::Components::TagUnread>()) {
-					std::cout << entt::to_integral(e) << " ";
-				}
-				std::cout << "\n";
-#endif
-				has_unread = true;
-			}
-		}
-#endif
-
+		// line 1
 		ImGui::Text("%s%s", unread?"* ":"", (c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>"));
 
-		if (request_incoming) {
-			ImGui::TextUnformatted("Incoming request/invite");
-		} else if (request_outgoing) {
-			ImGui::TextUnformatted("Outgoing request/invite");
-		} else {
-			//ImGui::Text("status message...");
+		// line 2
+		if (line_height >= 2) {
+			if (request_incoming) {
+				ImGui::TextUnformatted("Incoming request/invite");
+			} else if (request_outgoing) {
+				ImGui::TextUnformatted("Outgoing request/invite");
+			} else {
+				ImGui::TextDisabled("status message...");
+			}
+
+			// line 3
+			//if (line_height >= 3) {
+			//	constexpr std::string_view test_text{"text"};
+			//	ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), ImVec2{}, ImVec2{}, 1.f, 1.f, test_text.data(), test_text.data()+test_text.size(), nullptr);
+			//}
 		}
-		//constexpr std::string_view test_text{"text"};
-		//ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), ImVec2{}, ImVec2{}, 1.f, 1.f, test_text.data(), test_text.data()+test_text.size(), nullptr);
 	}
 	ImGui::EndGroup();
 

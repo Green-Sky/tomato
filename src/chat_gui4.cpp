@@ -222,7 +222,7 @@ float ChatGui4::render(float time_delta) {
 					ImGui::EndMenuBar();
 				}
 
-				renderContactBig(_theme, _contact_tc, {_cr, *_selected_contact}, false, false, false);
+				renderContactBig(_theme, _contact_tc, {_cr, *_selected_contact}, 3, false, false, false);
 				ImGui::Separator();
 
 				if (sub_contacts != nullptr && !_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && _cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
@@ -1097,7 +1097,7 @@ void ChatGui4::renderContactList(void) {
 				}
 			}
 
-			if (renderContactBig(_theme, _contact_tc, {_cr, c}, has_unread, true, selected)) {
+			if (renderContactBig(_theme, _contact_tc, {_cr, c}, 2, has_unread, true, selected)) {
 				_selected_contact = c;
 			}
 		}
