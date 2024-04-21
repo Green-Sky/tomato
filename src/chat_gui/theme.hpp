@@ -35,7 +35,7 @@ struct Theme {
 
 	template<auto V>
 	void setColor(ImVec4 color) {
-		constexpr auto key = entt::type_hash<entt::tag<V>>::value();
+		constexpr auto key = entt::type_hash<entt::tag<static_cast<entt::id_type>(V)>>::value();
 		colors[key] = color;
 
 		if (!colors_name.contains(key)) {
@@ -47,7 +47,7 @@ struct Theme {
 	}
 	template<auto V>
 	ImVec4 getColor(void) const {
-		constexpr auto key = entt::type_hash<entt::tag<V>>::value();
+		constexpr auto key = entt::type_hash<entt::tag<static_cast<entt::id_type>(V)>>::value();
 		const auto it = colors.find(key);
 		if (it != colors.end()) {
 			return it->second;
@@ -58,7 +58,7 @@ struct Theme {
 
 	template<auto V>
 	std::string_view getColorName(void) const {
-		constexpr auto key = entt::type_hash<entt::tag<V>>::value();
+		constexpr auto key = entt::type_hash<entt::tag<static_cast<entt::id_type>(V)>>::value();
 		if (colors_name.contains(key)) {
 			return colors_name.at(key);
 		} else {
