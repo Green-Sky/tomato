@@ -3,6 +3,8 @@
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/util/config_model.hpp>
 
+#include "./chat_gui/theme.hpp"
+
 #include "./texture_uploader.hpp"
 #include "./texture_cache.hpp"
 #include "./tox_avatar_loader.hpp"
@@ -28,6 +30,8 @@ class ChatGui4 {
 
 	ContactTextureCache& _contact_tc;
 	MessageTextureCache& _msg_tc;
+
+	Theme& _theme;
 
 	FileSelector _fss;
 	SendImagePopup _sip;
@@ -57,7 +61,8 @@ class ChatGui4 {
 			Contact3Registry& cr,
 			TextureUploaderI& tu,
 			ContactTextureCache& contact_tc,
-			MessageTextureCache& msg_tc
+			MessageTextureCache& msg_tc,
+			Theme& theme
 		);
 		~ChatGui4(void);
 
@@ -65,8 +70,6 @@ class ChatGui4 {
 		float render(float time_delta);
 
 	public:
-		bool any_unread {false};
-
 		void sendFilePath(const char* file_path);
 
 	private:
@@ -75,7 +78,6 @@ class ChatGui4 {
 		void renderMessageExtra(Message3Registry& reg, const Message3 e);
 
 		void renderContactList(void);
-		bool renderContactListContactBig(const Contact3 c, const bool selected);
 		bool renderContactListContactSmall(const Contact3 c, const bool selected) const;
 		bool renderSubContactListContact(const Contact3 c, const bool selected) const;
 

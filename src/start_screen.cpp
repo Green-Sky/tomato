@@ -9,7 +9,7 @@
 #include <memory>
 #include <filesystem>
 
-StartScreen::StartScreen(SDL_Renderer* renderer) : _renderer(renderer) {
+StartScreen::StartScreen(SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
 }
 
 Screen* StartScreen::render(float, bool&) {
@@ -143,7 +143,7 @@ Screen* StartScreen::render(float, bool&) {
 		}
 	} else {
 		if (ImGui::Button("load", {60, 25})) {
-			auto new_screen = std::make_unique<MainScreen>(_renderer, _tox_profile_path, _password, _user_name, queued_plugin_paths);
+			auto new_screen = std::make_unique<MainScreen>(_renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
 			return new_screen.release();
 		}
 	}

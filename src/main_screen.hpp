@@ -62,6 +62,8 @@ struct MainScreen final : public Screen {
 	ToxTransferManager ttm;
 	ToxFriendFauxOfflineMessaging tffom;
 
+	Theme& theme;
+
 	MediaMetaInfoLoader mmil;
 	ToxAvatarManager tam;
 
@@ -89,7 +91,7 @@ struct MainScreen final : public Screen {
 	uint64_t _window_hidden_ts {0};
 	float _time_since_event {0.f};
 
-	MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins);
+	MainScreen(SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins);
 	~MainScreen(void);
 
 	bool handleEvent(SDL_Event& e) override;

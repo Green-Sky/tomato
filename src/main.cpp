@@ -6,6 +6,7 @@
 #include <imgui/backends/imgui_impl_sdlrenderer3.h>
 
 #include "./theme.hpp"
+#include "./chat_gui/theme.hpp"
 
 #include "./start_screen.hpp"
 
@@ -58,11 +59,14 @@ int main(int argc, char** argv) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
+	Theme theme;
 	if (SDL_GetSystemTheme() == SDL_SYSTEM_THEME_LIGHT) {
 		ImGui::StyleColorsLight();
+		theme = getDefaultThemeLight();
 	} else {
 		//ImGui::StyleColorsDark();
 		setThemeGreen();
+		theme = getDefaultThemeDark();
 	}
 
 	{
@@ -85,7 +89,7 @@ int main(int argc, char** argv) {
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
 
-	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(renderer.get());
+	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(renderer.get(), theme);
 
 
 	bool quit = false;

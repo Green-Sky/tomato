@@ -12,7 +12,7 @@
 #include <memory>
 #include <cmath>
 
-MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
+MainScreen::MainScreen(SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	rmm(cr),
 	msnj{cr, {}, {}},
@@ -24,6 +24,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
 	tffom(cr, rmm, tcm, tc, tc),
+	theme(theme_),
 	mmil(rmm),
 	tam(rmm, cr, conf),
 	sdlrtu(renderer_),
@@ -31,7 +32,7 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, std::string save_path, std::stri
 	contact_tc(tal, sdlrtu),
 	mil(),
 	msg_tc(mil, sdlrtu),
-	cg(conf, rmm, cr, sdlrtu, contact_tc, msg_tc),
+	cg(conf, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
 	tuiu(tc, conf),
 	tdch(tpi)

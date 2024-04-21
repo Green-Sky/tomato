@@ -2,6 +2,7 @@
 
 #include "./screen.hpp"
 
+#include "./chat_gui/theme.hpp"
 #include "./chat_gui/file_selector.hpp"
 
 #include <vector>
@@ -14,6 +15,7 @@ extern "C" {
 
 struct StartScreen final : public Screen {
 	SDL_Renderer* _renderer;
+	Theme& _theme;
 	FileSelector _fss;
 
 	bool _new_save {false};
@@ -26,7 +28,7 @@ struct StartScreen final : public Screen {
 	std::vector<std::string> queued_plugin_paths;
 
 	StartScreen(void) = delete;
-	StartScreen(SDL_Renderer* renderer);
+	StartScreen(SDL_Renderer* renderer, Theme& theme);
 	~StartScreen(void) = default;
 
 	// return nullptr if not next

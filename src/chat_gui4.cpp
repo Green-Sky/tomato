@@ -13,6 +13,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "./chat_gui/contact_list.hpp"
+
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
 
@@ -143,8 +145,9 @@ ChatGui4::ChatGui4(
 	Contact3Registry& cr,
 	TextureUploaderI& tu,
 	ContactTextureCache& contact_tc,
-	MessageTextureCache& msg_tc
-) : _conf(conf), _rmm(rmm), _cr(cr), _contact_tc(contact_tc), _msg_tc(msg_tc), _sip(tu) {
+	MessageTextureCache& msg_tc,
+	Theme& theme
+) : _conf(conf), _rmm(rmm), _cr(cr), _contact_tc(contact_tc), _msg_tc(msg_tc), _theme(theme), _sip(tu) {
 }
 
 ChatGui4::~ChatGui4(void) {
@@ -197,7 +200,31 @@ float ChatGui4::render(float time_delta) {
 
 			const bool highlight_private {!_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact)};
 
-			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, true)) {
+			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
+				if (ImGui::BeginMenuBar()) {
+					if (ImGui::BeginMenu("debug")) {
+						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
+						ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
+
+						ImGui::SeparatorText("tox");
+
+						// TODO: cheese it and rename to copy id?
+						if (_cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
+							if (ImGui::MenuItem("copy ngc chatid")) {
+								const auto& chat_id = _cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
+								const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
+								ImGui::SetClipboardText(chat_id_str.c_str());
+							}
+						}
+
+						ImGui::EndMenu();
+					}
+					ImGui::EndMenuBar();
+				}
+
+				renderContactBig(_theme, _contact_tc, {_cr, *_selected_contact}, false, false, false);
+				ImGui::Separator();
+
 				if (sub_contacts != nullptr && !_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && _cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
 					if (!sub_contacts->empty()) {
 						if (ImGui::BeginChild("subcontacts", {150, -100}, true)) {
@@ -256,27 +283,11 @@ float ChatGui4::render(float time_delta) {
 					ImGui::EndChild();
 				}
 
-				if (ImGui::BeginChild("message_log", {0, -100}, false, ImGuiWindowFlags_MenuBar)) {
-					if (ImGui::BeginMenuBar()) {
-						if (ImGui::BeginMenu("debug")) {
-							ImGui::Checkbox("show extra info", &_show_chat_extra_info);
-							ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
-
-							ImGui::SeparatorText("tox");
-
-							// TODO: cheese it and rename to copy id?
-							if (_cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
-								if (ImGui::MenuItem("copy ngc chatid")) {
-									const auto& chat_id = _cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
-									const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
-									ImGui::SetClipboardText(chat_id_str.c_str());
-								}
-							}
-
-							ImGui::EndMenu();
-						}
-						ImGui::EndMenuBar();
-					}
+				if (ImGui::BeginChild("message_log", {0, -100}, ImGuiChildFlags_None)) {
+					// TODO: background image?
+					//auto p_min = ImGui::GetCursorScreenPos();
+					//auto a_max = ImGui::GetContentRegionAvail();
+					//ImGui::GetWindowDrawList()->AddImage(0, p_min, {p_min.x+a_max.x, p_min.y+a_max.y});
 
 					auto* msg_reg_ptr = _rmm.get(*_selected_contact);
 
@@ -1075,145 +1086,23 @@ void ChatGui4::renderContactList(void) {
 	if (ImGui::BeginChild("contacts", {TEXT_BASE_WIDTH*35, 0})) {
 		//for (const auto& c : _cm.getBigContacts()) {
 		for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
-			if (renderContactListContactBig(c, _selected_contact.has_value() && *_selected_contact == c)) {
+			const bool selected = _selected_contact.has_value() && *_selected_contact == c;
+
+			// TODO: is there a better way?
+			// maybe cache mm?
+			bool has_unread = false;
+			if (const auto* mm = _rmm.get(c); mm != nullptr) {
+				if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
+					has_unread = true;
+				}
+			}
+
+			if (renderContactBig(_theme, _contact_tc, {_cr, c}, has_unread, true, selected)) {
 				_selected_contact = c;
 			}
 		}
 	}
 	ImGui::EndChild();
-}
-
-bool ChatGui4::renderContactListContactBig(const Contact3 c, const bool selected) {
-	// TODO:
-	// - unread message
-	// - connection status
-	// - user status
-	// - status message
-	// - context menu n shit?
-
-	// +------+
-	// |	  | *Name (Alias?)
-	// |Avatar| Satus Message
-	// |	  | user status (online/away/busy)-direct/relayed / offline
-	// +------+
-
-	auto label = "###" + std::to_string(entt::to_integral(c));
-
-	const bool request_incoming = _cr.all_of<Contact::Components::RequestIncoming>(c);
-	const bool request_outgoing = _cr.all_of<Contact::Components::TagRequestOutgoing>(c);
-
-	ImVec2 orig_curser_pos = ImGui::GetCursorPos();
-	// HACK: fake selected to make it draw a box for us
-	const bool show_selected = request_incoming || request_outgoing || selected;
-	if (request_incoming) {
-		// TODO: theming
-		ImGui::PushStyleColor(ImGuiCol_Header, {0.98f, 0.41f, 0.26f, 0.52f});
-	} else if (request_outgoing) {
-		// TODO: theming
-		ImGui::PushStyleColor(ImGuiCol_Header, {0.98f, 0.26f, 0.41f, 0.52f});
-	}
-
-	const bool got_selected = ImGui::Selectable(label.c_str(), show_selected, 0, {0,3*TEXT_BASE_HEIGHT});
-	if (request_incoming || request_outgoing) {
-		ImGui::PopStyleColor();
-	}
-
-	if (ImGui::BeginItemTooltip()) {
-		if (_cr.all_of<Contact::Components::ConnectionState>(c)) {
-			const auto cstate = _cr.get<Contact::Components::ConnectionState>(c).state;
-			ImGui::Text("Connection state: %s",
-				(cstate == Contact::Components::ConnectionState::disconnected)
-				? "offline"
-				: (cstate == Contact::Components::ConnectionState::direct)
-				? "online (direct)"
-				: "online (cloud)"
-			);
-		} else {
-			ImGui::TextUnformatted("Connection state: unknown");
-		}
-
-		ImGui::EndTooltip();
-	}
-
-	ImVec2 post_curser_pos = ImGui::GetCursorPos();
-
-	ImVec2 img_curser {
-		orig_curser_pos.x + ImGui::GetStyle().FramePadding.x,
-		orig_curser_pos.y + ImGui::GetStyle().FramePadding.y
-	};
-
-	float img_y {
-		//(post_curser_pos.y - orig_curser_pos.y) - ImGui::GetStyle().FramePadding.y*2
-		TEXT_BASE_HEIGHT*3 - ImGui::GetStyle().FramePadding.y*2
-	};
-
-	ImGui::SetCursorPos(img_curser);
-	const ImVec4 color_online_direct{0.3, 1, 0, 1};
-	const ImVec4 color_online_cloud{0, 1, 0.8, 1};
-	const ImVec4 color_offline{0.4, 0.4, 0.4, 1};
-
-	ImVec4 color_current = color_offline;
-	if (_cr.all_of<Contact::Components::ConnectionState>(c)) {
-		const auto c_state = _cr.get<Contact::Components::ConnectionState>(c).state;
-		if (c_state == Contact::Components::ConnectionState::State::direct) {
-			color_current = color_online_direct;
-		} else if (c_state == Contact::Components::ConnectionState::State::cloud) {
-			color_current = color_online_cloud;
-		}
-	}
-
-	// avatar
-	const auto [id, width, height] = _contact_tc.get(c);
-	ImGui::Image(
-		id,
-		ImVec2{img_y, img_y},
-		{0, 0},
-		{1, 1},
-		{1, 1, 1, 1},
-		color_current
-	);
-
-	// TODO: move this out of chat gui
-	any_unread = false;
-
-	ImGui::SameLine();
-	ImGui::BeginGroup();
-	{
-		// TODO: is there a better way?
-		// maybe cache mm?
-		bool has_unread = false;
-		if (const auto* mm = _rmm.get(c); mm != nullptr) {
-			if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
-#if 0
-				assert(unread_storage.size() == 0);
-				assert(unread_storage.cbegin() == unread_storage.cend());
-				std::cout << "UNREAD ";
-				for (const auto e : mm->view<Message::Components::TagUnread>()) {
-					std::cout << entt::to_integral(e) << " ";
-				}
-				std::cout << "\n";
-#endif
-				has_unread = true;
-				any_unread = true;
-			}
-		}
-
-		ImGui::Text("%s%s", has_unread?"* ":"", (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>"));
-		if (request_incoming) {
-			ImGui::TextUnformatted("Incoming request/invite");
-		} else if (request_outgoing) {
-			ImGui::TextUnformatted("Outgoing request/invite");
-		} else {
-			//ImGui::Text("status message...");
-		}
-		//ImGui::TextDisabled("hi");
-		//ImGui::RenderTextEllipsis
-	}
-	ImGui::EndGroup();
-
-	ImGui::SetCursorPos(post_curser_pos);
-
-	return got_selected;
 }
 
 bool ChatGui4::renderContactListContactSmall(const Contact3 c, const bool selected) const {

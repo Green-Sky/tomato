@@ -52,12 +52,14 @@ add_executable(tomato
 	./sdl_clipboard_utils.hpp
 	./sdl_clipboard_utils.cpp
 
+	./chat_gui/theme.hpp
+	./chat_gui/theme.cpp
+	./chat_gui/contact_list.hpp
+	./chat_gui/contact_list.cpp
 	./chat_gui/file_selector.hpp
 	./chat_gui/file_selector.cpp
-
 	./chat_gui/send_image_popup.hpp
 	./chat_gui/send_image_popup.cpp
-
 	./chat_gui/settings_window.hpp
 	./chat_gui/settings_window.cpp
 
