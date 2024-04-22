@@ -79,7 +79,7 @@ class ChatGui4 {
 
 		void renderContactList(void);
 		bool renderContactListContactSmall(const Contact3 c, const bool selected) const;
-		bool renderSubContactListContact(const Contact3 c, const bool selected) const;
+		//bool renderSubContactListContact(const Contact3 c, const bool selected) const;
 
 		void pasteFile(const char* mime_type);
 };

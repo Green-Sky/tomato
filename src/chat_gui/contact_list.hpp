@@ -13,6 +13,8 @@ enum class ThemeCol_Contact {
 	avatar_online_direct,
 	avatar_online_cloud,
 	avatar_offline,
+
+	icon_backdrop,
 };
 
 // returns true if clicked, if selectable, will highlight on hover and respect selected

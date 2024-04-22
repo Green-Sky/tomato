@@ -1116,6 +1116,7 @@ bool ChatGui4::renderContactListContactSmall(const Contact3 c, const bool select
 	return ImGui::Selectable(label.c_str(), selected);
 }
 
+#if 0
 bool ChatGui4::renderSubContactListContact(const Contact3 c, const bool selected) const {
 	std::string label;
 
@@ -1138,6 +1139,7 @@ bool ChatGui4::renderSubContactListContact(const Contact3 c, const bool selected
 
 	return ImGui::Selectable(label.c_str(), selected);
 }
+#endif
 
 void ChatGui4::pasteFile(const char* mime_type) {
 	size_t data_size = 0;
