@@ -227,12 +227,13 @@ float ChatGui4::render(float time_delta) {
 
 				if (sub_contacts != nullptr && !_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && _cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
 					if (!sub_contacts->empty()) {
-						if (ImGui::BeginChild("subcontacts", {150, -100}, true)) {
+						if (ImGui::BeginChild("subcontacts", {175, -100}, true)) {
 							ImGui::Text("subs: %zu", sub_contacts->size());
 							ImGui::Separator();
 							for (const auto& c : *sub_contacts) {
 								// TODO: can a sub be selected? no
-								if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
+								//if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
+								if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1)) {
 									_text_input_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 								}
 							}
@@ -325,7 +326,7 @@ float ChatGui4::render(float time_delta) {
 							msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
 								// TODO: configurable
 								const float fade_duration = 7.5f;
-								fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/10.f); // fps but not below 10 for smooth fade
+								fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/8.f); // fps but not below 8 for smooth-ish fade
 								if (fade.fade <= 0.f) {
 									to_remove.push_back(e);
 								}

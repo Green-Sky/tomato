@@ -46,6 +46,8 @@ static void drawIconDirect(
 	const ImU32 col_back
 ) {
 	// dark background
+	// the circle looks bad in light mode
+	//ImGui::GetWindowDrawList()->AddCircleFilled({p0.x + p1_o.x*0.5f, p0.y + p1_o.y*0.5f}, p1_o.x*0.5f, col_back);
 	drawIconDirectLines(p0, p1_o, col_back, 4.0f);
 	drawIconDirectLines(p0, p1_o, col_main, 1.5f);
 }
@@ -78,8 +80,11 @@ static void drawIconCloud(
 		{0.2f, 0.9f},
 	}};
 	for (auto& v : points) {
+		v.y -= 0.1f;
 		v = {p0.x + p1_o.x*v.x, p0.y + p1_o.y*v.y};
 	}
+	// the circle looks bad in light mode
+	//ImGui::GetWindowDrawList()->AddCircleFilled({p0.x + p1_o.x*0.5f, p0.y + p1_o.y*0.5f}, p1_o.x*0.5f, col_back);
 	ImGui::GetWindowDrawList()->AddPolyline(points.data(), points.size(), col_back, ImDrawFlags_None, 4.f);
 	ImGui::GetWindowDrawList()->AddPolyline(points.data(), points.size(), col_main, ImDrawFlags_None, 1.5f);
 }
@@ -194,45 +199,39 @@ bool renderContactBig(
 		orig_curser_pos.y + ImGui::GetStyle().FramePadding.y
 	};
 
-	float img_y {
-		//(post_curser_pos.y - orig_curser_pos.y) - ImGui::GetStyle().FramePadding.y*2
-		TEXT_BASE_HEIGHT*line_height - ImGui::GetStyle().FramePadding.y*2
-	};
+	float img_y {TEXT_BASE_HEIGHT*line_height - ImGui::GetStyle().FramePadding.y*2};
 
 	ImGui::SetCursorPos(img_curser);
 
-	{ // avatar stuff
-
-		// icon pos
-		auto p0 = ImGui::GetCursorScreenPos();
-		p0.x += img_y * 0.5f;
-		p0.y += img_y * 0.5f;
-		ImVec2 p1_o = {img_y, img_y};;
-		p1_o.x *= 0.5f;
-		p1_o.y *= 0.5f;
-
-		renderAvatar(th, contact_tc, c, {img_y, img_y});
-
-		if (cstate != nullptr) {
-			if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
-				const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.8f});
-				const ImU32 col_main = ImGui::GetColorU32({0.1f, 1.f, 0.1f, 1.0f});
-
-				drawIconDirect(p0, p1_o, col_main, col_back);
-			} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
-				const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.8f});
-				const ImU32 col_main = ImGui::GetColorU32({0.5f, 1.f, 0.1f, 1.0f});
-
-				drawIconCloud(p0, p1_o, col_main, col_back);
-			}
-		}
-	}
+	renderAvatar(th, contact_tc, c, {img_y, img_y});
 
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	{
-		// line 1
-		ImGui::Text("%s%s", unread?"* ":"", (c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>"));
+		{ // line 1
+			if (line_height == 1 && cstate != nullptr) {
+				// icon pos
+				auto p0 = ImGui::GetCursorScreenPos();
+				p0.y += ImGui::GetStyle().FramePadding.y;
+				ImVec2 p1_o = {img_y, img_y}; // img_y is 1 line_height in this case
+
+				if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
+					const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.4f});
+					const ImU32 col_main = ImGui::GetColorU32({0.0f, 1.f, 0.0f, 1.0f});
+
+					drawIconDirect(p0, p1_o, col_main, col_back);
+				} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
+					const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.4f});
+					const ImU32 col_main = ImGui::GetColorU32({0.0f, 1.f, 0.0f, 1.0f});
+
+					drawIconCloud(p0, p1_o, col_main, col_back);
+				}
+				ImGui::Dummy(p1_o);
+				ImGui::SameLine();
+			}
+
+			ImGui::Text("%s%s", unread?"* ":"", (c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>"));
+		}
 
 		// line 2
 		if (line_height >= 2) {
@@ -241,6 +240,28 @@ bool renderContactBig(
 			} else if (request_outgoing) {
 				ImGui::TextUnformatted("Outgoing request/invite");
 			} else {
+				if (cstate != nullptr) {
+					// icon pos
+					auto p0 = ImGui::GetCursorScreenPos();
+					p0.y += ImGui::GetStyle().FramePadding.y;
+					const float box_hight = TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2;
+					ImVec2 p1_o = {box_hight, box_hight};
+
+					if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
+						const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.4f});
+						const ImU32 col_main = ImGui::GetColorU32({0.0f, 1.f, 0.0f, 1.0f});
+
+						drawIconDirect(p0, p1_o, col_main, col_back);
+					} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
+						const ImU32 col_back = ImGui::GetColorU32({0.0f, 0.0f, 0.0f, 0.4f});
+						const ImU32 col_main = ImGui::GetColorU32({0.0f, 1.f, 0.0f, 1.0f});
+
+						drawIconCloud(p0, p1_o, col_main, col_back);
+					}
+					ImGui::Dummy(p1_o);
+					ImGui::SameLine();
+				}
+
 				ImGui::TextDisabled("status message...");
 			}
 
