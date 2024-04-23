@@ -203,7 +203,8 @@ bool renderContactBig(
 
 	renderAvatar(th, contact_tc, c, {img_y, img_y});
 
-	ImGui::SameLine();
+	const float same_line_spacing = ImGui::GetStyle().ItemSpacing.x*0.5f;
+	ImGui::SameLine(0.f, same_line_spacing);
 	ImGui::BeginGroup();
 	{
 		{ // line 1
@@ -230,7 +231,7 @@ bool renderContactBig(
 					);
 				}
 				ImGui::Dummy(p1_o);
-				ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
+				ImGui::SameLine(0.f, same_line_spacing);
 			}
 
 			ImGui::Text("%s%s", unread?"* ":"", (c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>"));
@@ -267,7 +268,7 @@ bool renderContactBig(
 						);
 					}
 					ImGui::Dummy(p1_o);
-					ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
+					ImGui::SameLine(0.f, same_line_spacing);
 				}
 
 				if (

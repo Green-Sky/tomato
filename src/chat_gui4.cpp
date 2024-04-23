@@ -227,7 +227,7 @@ float ChatGui4::render(float time_delta) {
 
 				if (sub_contacts != nullptr && !_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && _cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
 					if (!sub_contacts->empty()) {
-						if (ImGui::BeginChild("subcontacts", {175, -100}, true)) {
+						if (ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
 							ImGui::Text("subs: %zu", sub_contacts->size());
 							ImGui::Separator();
 							for (const auto& c : *sub_contacts) {
@@ -298,7 +298,7 @@ float ChatGui4::render(float time_delta) {
 						ImGuiTableFlags_SizingFixedFit
 					;
 					if (msg_reg_ptr != nullptr && ImGui::BeginTable("chat_table", 5, table_flags)) {
-						ImGui::TableSetupColumn("name", 0, TEXT_BASE_WIDTH * 15.f);
+						ImGui::TableSetupColumn("name", 0, TEXT_BASE_WIDTH * 16.f);
 						ImGui::TableSetupColumn("message", ImGuiTableColumnFlags_WidthStretch);
 						ImGui::TableSetupColumn("delivered/read");
 						ImGui::TableSetupColumn("timestamp");
@@ -388,7 +388,7 @@ float ChatGui4::render(float time_delta) {
 							if (ImGui::TableNextColumn()) {
 								const float img_y {TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2};
 								renderAvatar(_theme, _contact_tc, {_cr, c_from.c}, {img_y, img_y});
-								ImGui::SameLine();
+								ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
 
 								if (_cr.all_of<Contact::Components::Name>(c_from.c)) {
 									ImGui::TextUnformatted(_cr.get<Contact::Components::Name>(c_from.c).name.c_str());
