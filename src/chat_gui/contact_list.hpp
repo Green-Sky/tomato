@@ -17,6 +17,13 @@ enum class ThemeCol_Contact {
 	icon_backdrop,
 };
 
+void renderAvatar(
+	const Theme& th,
+	ContactTextureCache& contact_tc,
+	const Contact3Handle c,
+	ImVec2 box
+);
+
 // returns true if clicked, if selectable, will highlight on hover and respect selected
 // TODO: refine
 // +------+

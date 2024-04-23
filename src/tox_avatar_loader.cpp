@@ -187,7 +187,8 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 	if (!_cr.any_of<
 		Contact::Components::ToxFriendPersistent,
 		Contact::Components::ToxGroupPersistent,
-		Contact::Components::ToxGroupPeerPersistent
+		Contact::Components::ToxGroupPeerPersistent,
+		Contact::Components::ID
 	>(c)) {
 		return std::nullopt;
 	}
@@ -199,6 +200,12 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 		pixels = generateToxIdenticon(_cr.get<Contact::Components::ToxGroupPersistent>(c).chat_id);
 	} else if (_cr.all_of<Contact::Components::ToxGroupPeerPersistent>(c)) {
 		pixels = generateToxIdenticon(_cr.get<Contact::Components::ToxGroupPeerPersistent>(c).peer_key);
+	} else if (_cr.all_of<Contact::Components::ID>(c)) {
+		// TODO: should we really use toxidenticons for other protocols?
+		// (this is required for self)
+		auto id_copy = _cr.get<Contact::Components::ID>(c).data;
+		id_copy.resize(32);
+		pixels = generateToxIdenticon(id_copy);
 	}
 
 	TextureEntry new_entry;

@@ -386,6 +386,10 @@ float ChatGui4::render(float time_delta) {
 
 							// name
 							if (ImGui::TableNextColumn()) {
+								const float img_y {TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2};
+								renderAvatar(_theme, _contact_tc, {_cr, c_from.c}, {img_y, img_y});
+								ImGui::SameLine();
+
 								if (_cr.all_of<Contact::Components::Name>(c_from.c)) {
 									ImGui::TextUnformatted(_cr.get<Contact::Components::Name>(c_from.c).name.c_str());
 								} else {
