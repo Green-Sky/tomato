@@ -133,6 +133,7 @@ bool renderContactBig(
 	const bool selectable,
 	const bool selected
 ) {
+	ImGui::BeginGroup();
 	if (line_height < 1) {
 		line_height = 1;
 	}
@@ -185,8 +186,18 @@ bool renderContactBig(
 			ImGui::TextUnformatted("Connection state: unknown");
 		}
 
-		// TODO: add a whole bunch more info
+		if (
+			const auto* slt = c.try_get<Contact::Components::StatusText>();
+			slt != nullptr &&
+			!slt->text.empty()
+		) {
+			ImGui::SeparatorText("Status Text");
+			//ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+			ImGui::TextUnformatted(slt->text.c_str());
+			//ImGui::PopStyleColor();
+		}
 
+		// TODO: add a whole bunch more info
 		ImGui::EndTooltip();
 	}
 
@@ -297,6 +308,7 @@ bool renderContactBig(
 
 	ImGui::SetCursorPos(post_curser_pos);
 
+	ImGui::EndGroup();
 	return got_selected;
 }
 
