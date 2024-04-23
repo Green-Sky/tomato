@@ -95,35 +95,33 @@ void renderAvatar(
 	const Contact3Handle c,
 	ImVec2 box
 ) {
-	ImVec4 color_current = th.getColor<ThemeCol_Contact::avatar_offline>();
-	if (c.all_of<Contact::Components::ConnectionState>()) {
-		const auto c_state = c.get<Contact::Components::ConnectionState>().state;
-		if (c_state == Contact::Components::ConnectionState::State::direct) {
-			color_current = th.getColor<ThemeCol_Contact::avatar_online_direct>();
-		} else if (c_state == Contact::Components::ConnectionState::State::cloud) {
-			color_current = th.getColor<ThemeCol_Contact::avatar_online_cloud>();
+	// deploy dummy of same size and check visibility
+	const auto orig_curser_pos = ImGui::GetCursorPos();
+	ImGui::Dummy(box);
+	if (ImGui::IsItemVisible()) {
+		ImGui::SetCursorPos(orig_curser_pos); // reset for actual img
+
+		ImVec4 color_current = th.getColor<ThemeCol_Contact::avatar_offline>();
+		if (c.all_of<Contact::Components::ConnectionState>()) {
+			const auto c_state = c.get<Contact::Components::ConnectionState>().state;
+			if (c_state == Contact::Components::ConnectionState::State::direct) {
+				color_current = th.getColor<ThemeCol_Contact::avatar_online_direct>();
+			} else if (c_state == Contact::Components::ConnectionState::State::cloud) {
+				color_current = th.getColor<ThemeCol_Contact::avatar_online_cloud>();
+			}
 		}
+
+		// avatar
+		const auto [id, width, height] = contact_tc.get(c);
+		ImGui::Image(
+			id,
+			box,
+			{0, 0},
+			{1, 1},
+			{1, 1, 1, 1},
+			color_current
+		);
 	}
-
-	// icon pos
-	auto p0 = ImGui::GetCursorScreenPos();
-	p0.x += box.x * 0.5f;
-	p0.y += box.y * 0.5f;
-	auto p1_o = box;
-	p1_o.x *= 0.5f;
-	p1_o.y *= 0.5f;
-
-	// avatar
-	const auto [id, width, height] = contact_tc.get(c);
-	ImGui::Image(
-		id,
-		box,
-		{0, 0},
-		{1, 1},
-		{1, 1, 1, 1},
-		color_current
-	);
-
 }
 
 bool renderContactBig(
