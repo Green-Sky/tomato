@@ -102,6 +102,11 @@ target_sources(tomato PUBLIC
 
 	./chat_gui4.hpp
 	./chat_gui4.cpp
+
+	./content/content.hpp
+	./content/stream_reader.hpp
+	./content/stream_reader_sdl_audio.hpp
+	./content/stream_reader_sdl_audio.cpp
 )
 
 if (TOMATO_TOX_AV)
