@@ -153,7 +153,7 @@ jobs:
         git pull
 
     - name: Install Dependencies
-      run: vcpkg install libsodium:x64-windows-static pthreads:x64-windows-static pkgconf:x64-windows
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static
 
     # setup vs env
     - uses: ilammy/msvc-dev-cmd@v1
@@ -212,7 +212,7 @@ jobs:
         git pull
 
     - name: Install Dependencies
-      run: vcpkg install libsodium:x64-windows-static pthreads:x64-windows-static pkgconf:x64-windows
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static
 
     # setup vs env
     - uses: ilammy/msvc-dev-cmd@v1
