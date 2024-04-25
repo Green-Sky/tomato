@@ -3,7 +3,7 @@
 // meh, change this
 #include <exception>
 #include <system_error>
-#include <toxencryptsave/toxencryptsave.h>
+#include <tox/toxencryptsave.h>
 
 #include <sodium.h>
 
