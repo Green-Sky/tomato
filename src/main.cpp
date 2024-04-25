@@ -12,6 +12,8 @@
 
 #include "./start_screen.hpp"
 
+#include "./content/sdl_video_frame_stream2.hpp"
+
 #include <filesystem>
 #include <memory>
 #include <iostream>
@@ -71,6 +73,26 @@ int main(int argc, char** argv) {
 	SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_ADAPTIVE);
 
 	std::cout << "SDL Renderer: " << SDL_GetRendererName(renderer.get()) << "\n";
+
+	// optionally init audio and camera
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
+	}
+	if (SDL_Init(SDL_INIT_CAMERA) < 0) {
+		std::cerr << "SDL_Init CAMERA failed (" << SDL_GetError() << ")\n";
+	} else { // HACK
+		SDLVideoCameraContent vcc;
+		auto* reader = vcc.aquireReader();
+		for (size_t i = 0; i < 200; i++) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			auto new_frame_opt = reader->getNext();
+			if (new_frame_opt.has_value()) {
+				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns\n";
+			}
+		}
+		vcc.releaseReader(reader);
+	}
+	std::cout << "after sdl video stuffery\n";
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
