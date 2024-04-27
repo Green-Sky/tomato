@@ -15,10 +15,16 @@ using ContentHandle = entt::basic_handle<ContentRegistry>;
 
 namespace Content::Components {
 
+	// TODO: design it as a tree?
+
 	// or something
 	struct TagFile {};
 	struct TagAudioStream {};
 	struct TagVideoStream {};
+
+	struct TimingTiedTo {
+		entt::dense_set<ContentHandle> ties;
+	};
 
 	// the associated messages, if any
 	// useful if you want to update progress on the message
