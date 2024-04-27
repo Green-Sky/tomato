@@ -75,6 +75,8 @@
           #(libsodium.override { stdenv = pkgs.pkgsStatic.stdenv; })
           #pkgsStatic.libsodium
           libsodium
+          libopus
+          libvpx
         ] ++ self.packages.${system}.default.dlopenBuildInputs;
 
         cmakeFlags = [
