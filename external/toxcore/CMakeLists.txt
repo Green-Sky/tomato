@@ -12,7 +12,11 @@ add_subdirectory(./c-toxcore)
 # the sad case
 add_library(toxcore INTERFACE)
 
-target_link_libraries(toxcore INTERFACE toxcore_static)
+if (TARGET toxcore_static)
+	target_link_libraries(toxcore INTERFACE toxcore_static)
+else()
+	target_link_libraries(toxcore INTERFACE toxcore_shared)
+endif()
 
 # HACK: "install" api headers into binary dir
 configure_file(
