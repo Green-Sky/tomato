@@ -871,10 +871,15 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		}
 
 		if (ImGui::BeginPopup("forward to contact")) {
-			// TODO: make exclusion work
-			//for (const auto& c : _cr.view<entt::get_t<Contact::Components::TagBig>, entt::exclude_t<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>>()) {
 			for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
-				if (renderContactListContactSmall(c, false)) {
+				// filter
+				if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
+					continue;
+				}
+				// TODO: check for contact capability
+
+				if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
+				//if (renderContactListContactSmall(c, false)) {
 					//_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
 					const auto& fil = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 					for (const auto& path : fil.file_list) {
