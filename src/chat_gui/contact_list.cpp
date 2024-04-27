@@ -293,7 +293,7 @@ bool renderContactBig(
 					ImGui::TextUnformatted(slt->text.c_str(), slt->text.c_str() + slt->first_line_length);
 					ImGui::PopStyleColor();
 				} else {
-					ImGui::TextDisabled(""); // or dummy?
+					ImGui::TextDisabled(" "); // or dummy?
 				}
 			}
 
