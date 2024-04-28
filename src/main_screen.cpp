@@ -71,6 +71,8 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
 		g_provideInstance<MessageSerializerNJ>("MessageSerializerNJ", "host", &msnj);
 
+		g_provideInstance<ContentStore>("ContentStore", "host", &cs);
+
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
 		g_provideInstance<ToxEventProviderI>("ToxEventProviderI", "host", &tc);
