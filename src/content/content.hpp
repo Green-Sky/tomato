@@ -9,11 +9,21 @@
 
 #include <solanaceae/file/file2.hpp>
 
-enum class Content1 : uint32_t {};
-using ContentRegistry = entt::basic_registry<Content1>;
+enum class Content : uint32_t {};
+using ContentRegistry = entt::basic_registry<Content>;
 using ContentHandle = entt::basic_handle<ContentRegistry>;
 
-namespace Content::Components {
+struct ContentStore {
+	static constexpr const char* version {"1"};
+
+	ContentRegistry _reg;
+
+	ContentRegistry& registry(void);
+	ContentHandle objectHandle(const Content e);
+
+};
+
+namespace Content1::Components {
 
 	// TODO: design it as a tree?
 
