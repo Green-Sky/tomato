@@ -35,6 +35,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	msg_tc(mil, sdlrtu),
 	cg(conf, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
+	osui(os),
 	tuiu(tc, conf),
 	tdch(tpi)
 {
@@ -65,8 +66,6 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
 		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
 		g_provideInstance<MessageSerializerNJ>("MessageSerializerNJ", "host", &msnj);
-
-		g_provideInstance<ContentStore>("ContentStore", "host", &cs);
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
@@ -250,6 +249,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
+	osui.render();
 	tuiu.render(); // render
 	tdch.render(); // render
 

@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 	} else { // HACK
 		SDLVideoCameraContent vcc;
 		auto* reader = vcc.aquireReader();
-		for (size_t i = 0; i < 200; i++) {
+		for (size_t i = 0; i < 20; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			auto new_frame_opt = reader->getNext();
 			if (new_frame_opt.has_value()) {

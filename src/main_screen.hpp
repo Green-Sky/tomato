@@ -12,8 +12,6 @@
 #include <solanaceae/toxcore/tox_event_logger.hpp>
 #include "./tox_private_impl.hpp"
 
-#include "./content/content.hpp"
-
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 #include <solanaceae/tox_messages/tox_message_manager.hpp>
 #include <solanaceae/tox_messages/tox_transfer_manager.hpp>
@@ -31,6 +29,7 @@
 
 #include "./chat_gui4.hpp"
 #include "./chat_gui/settings_window.hpp"
+#include "./object_store_ui.hpp"
 #include "./tox_ui_utils.hpp"
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
@@ -54,8 +53,6 @@ struct MainScreen final : public Screen {
 	RegistryMessageModel rmm;
 	MessageSerializerNJ msnj;
 	MessageTimeSort mts;
-
-	ContentStore cs;
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;
@@ -81,6 +78,7 @@ struct MainScreen final : public Screen {
 
 	ChatGui4 cg;
 	SettingsWindow sw;
+	ObjectStoreUI osui;
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
 

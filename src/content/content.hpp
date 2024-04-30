@@ -1,27 +1,12 @@
 #pragma once
 
-#include <entt/entity/registry.hpp>
-#include <entt/entity/handle.hpp>
 #include <entt/container/dense_set.hpp>
 
+#include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 
 #include <solanaceae/file/file2.hpp>
-
-enum class Content : uint32_t {};
-using ContentRegistry = entt::basic_registry<Content>;
-using ContentHandle = entt::basic_handle<ContentRegistry>;
-
-struct ContentStore {
-	static constexpr const char* version {"1"};
-
-	ContentRegistry _reg;
-
-	ContentRegistry& registry(void);
-	ContentHandle objectHandle(const Content e);
-
-};
 
 namespace Content1::Components {
 
@@ -33,7 +18,7 @@ namespace Content1::Components {
 	struct TagVideoStream {};
 
 	struct TimingTiedTo {
-		entt::dense_set<ContentHandle> ties;
+		entt::dense_set<ObjectHandle> ties;
 	};
 
 	// the associated messages, if any
@@ -59,6 +44,6 @@ namespace Content1::Components {
 
 // TODO: i have no idea
 struct RawFile2ReadFromContentFactoryI {
-	virtual std::shared_ptr<File2I> open(ContentHandle h) = 0;
+	virtual std::shared_ptr<File2I> open(ObjectHandle h) = 0;
 };
 
