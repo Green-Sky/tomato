@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
 		auto* reader = vcc.aquireReader();
 		for (size_t i = 0; i < 20; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			auto new_frame_opt = reader->getNext();
+			auto new_frame_opt = reader->pop();
 			if (new_frame_opt.has_value()) {
 				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns\n";
 			}

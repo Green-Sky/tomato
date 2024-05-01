@@ -21,7 +21,6 @@ void ObjectStoreUI::render(void) {
 				ImGui::Separator();
 				if (ImGui::BeginMenu("ObjectStore")) {
 					if (ImGui::MenuItem("Inspector")) {
-						//_show_add_friend_window = true;
 						_ee.show_window = true;
 					}
 					ImGui::EndMenu();
