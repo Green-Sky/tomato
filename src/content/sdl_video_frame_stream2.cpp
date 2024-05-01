@@ -105,7 +105,7 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 				};
 
 				// creates surface copies
-				someone_listening = pushValue(new_frame_non_owning);
+				someone_listening = push(new_frame_non_owning);
 			}
 			SDL_ReleaseCameraFrame(_camera.get(), sdl_frame_next);
 
