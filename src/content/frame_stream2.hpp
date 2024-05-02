@@ -18,7 +18,7 @@
 //};
 
 template<typename FrameType>
-struct FrameStream2 {
+struct FrameStream2I {
 	// get number of available frames
 	[[nodiscard]] virtual int32_t size(void) = 0;
 
@@ -34,7 +34,7 @@ struct FrameStream2 {
 // needs count frames queue size
 // having ~1-2sec buffer size is often sufficent
 template<typename FrameType>
-struct QueuedFrameStream2 : public FrameStream2<FrameType> {
+struct QueuedFrameStream2 : public FrameStream2I<FrameType> {
 	using frame_type = FrameType;
 
 	rigtorp::SPSCQueue<FrameType> _queue;
@@ -74,9 +74,9 @@ struct QueuedFrameStream2 : public FrameStream2<FrameType> {
 	}
 };
 
-template<typename FrameType>
-struct QueuedFrameStream2Multiplexer : public FrameStream2<FrameType> {
-	using ReaderType = QueuedFrameStream2<FrameType>;
+template<typename FrameType, typename ReaderType = QueuedFrameStream2<FrameType>>
+struct QueuedFrameStream2Multiplexer : public FrameStream2I<FrameType> {
+	using reader_type_t = ReaderType;
 
 	// pointer stability
 	std::vector<std::unique_ptr<ReaderType>> _readers;
