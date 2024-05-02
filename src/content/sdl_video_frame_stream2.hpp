@@ -43,7 +43,7 @@ struct SDLVideoFrame {
 };
 
 using SDLVideoFrameStream2Multiplexer = QueuedFrameStream2Multiplexer<SDLVideoFrame>;
-using SDLVideoFrameStream2 = SDLVideoFrameStream2Multiplexer::ReaderType;
+using SDLVideoFrameStream2 = SDLVideoFrameStream2Multiplexer::reader_type_t; // just use the default for now
 
 struct SDLVideoCameraContent : protected SDLVideoFrameStream2Multiplexer {
 	// meh, empty default
