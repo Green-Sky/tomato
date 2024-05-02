@@ -77,7 +77,23 @@ int main(int argc, char** argv) {
 	// optionally init audio and camera
 	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
 		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
+	} else {
+		SDLAudioInputDevice aid;
+		auto* reader = aid.aquireReader();
+
+		for (size_t i = 0; i < 20; i++) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			auto new_frame_opt = reader->pop();
+			if (new_frame_opt.has_value()) {
+				std::cout << "audio frame was seq:" << new_frame_opt.value().seq << " sr:" << new_frame_opt.value().sample_rate << " " << (new_frame_opt.value().isS16()?"S16":"F32") << " l:" << (new_frame_opt.value().isS16()?new_frame_opt.value().getSpan<int16_t>().size:new_frame_opt.value().getSpan<float>().size) << "\n";
+			} else {
+				std::cout << "no audio frame\n";
+			}
+		}
+
+		aid.releaseReader(reader);
 	}
+
 	if (SDL_Init(SDL_INIT_CAMERA) < 0) {
 		std::cerr << "SDL_Init CAMERA failed (" << SDL_GetError() << ")\n";
 	} else { // HACK
