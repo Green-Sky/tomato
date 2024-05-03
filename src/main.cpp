@@ -78,27 +78,30 @@ int main(int argc, char** argv) {
 	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
 		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
 	} else {
-		SDLAudioInputDevice aid;
-		auto* reader = aid.aquireReader();
+		SDLAudioInputDeviceDefault aidd;
+		auto* reader = aidd.aquireSubStream();
 
-		for (size_t i = 0; i < 20; i++) {
+		auto writer = SDLAudioOutputDeviceDefaultFactory{}.create();
+
+		for (size_t i = 0; i < 2000; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			auto new_frame_opt = reader->pop();
 			if (new_frame_opt.has_value()) {
 				std::cout << "audio frame was seq:" << new_frame_opt.value().seq << " sr:" << new_frame_opt.value().sample_rate << " " << (new_frame_opt.value().isS16()?"S16":"F32") << " l:" << (new_frame_opt.value().isS16()?new_frame_opt.value().getSpan<int16_t>().size:new_frame_opt.value().getSpan<float>().size) << "\n";
+				writer.push(new_frame_opt.value());
 			} else {
 				std::cout << "no audio frame\n";
 			}
 		}
 
-		aid.releaseReader(reader);
+		aidd.releaseSubStream(reader);
 	}
 
 	if (SDL_Init(SDL_INIT_CAMERA) < 0) {
 		std::cerr << "SDL_Init CAMERA failed (" << SDL_GetError() << ")\n";
 	} else { // HACK
 		SDLVideoCameraContent vcc;
-		auto* reader = vcc.aquireReader();
+		auto* reader = vcc.aquireSubStream();
 		for (size_t i = 0; i < 20; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			auto new_frame_opt = reader->pop();
@@ -106,7 +109,7 @@ int main(int argc, char** argv) {
 				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns\n";
 			}
 		}
-		vcc.releaseReader(reader);
+		vcc.releaseSubStream(reader);
 	}
 	std::cout << "after sdl video stuffery\n";
 
