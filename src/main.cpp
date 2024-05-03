@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 
 		auto writer = SDLAudioOutputDeviceDefaultFactory{}.create();
 
-		for (size_t i = 0; i < 2000; i++) {
+		for (size_t i = 0; i < 20; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			auto new_frame_opt = reader->pop();
 			if (new_frame_opt.has_value()) {
