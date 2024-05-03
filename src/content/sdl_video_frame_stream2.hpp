@@ -42,10 +42,10 @@ struct SDLVideoFrame {
 	SDLVideoFrame& operator=(const SDLVideoFrame& other) = delete;
 };
 
-using SDLVideoFrameStream2Multiplexer = QueuedFrameStream2Multiplexer<SDLVideoFrame>;
-using SDLVideoFrameStream2 = SDLVideoFrameStream2Multiplexer::reader_type_t; // just use the default for now
+using SDLVideoFrameStream2MultiStream = FrameStream2MultiStream<SDLVideoFrame>;
+using SDLVideoFrameStream2 = SDLVideoFrameStream2MultiStream::sub_stream_type_t; // just use the default for now
 
-struct SDLVideoCameraContent : protected SDLVideoFrameStream2Multiplexer {
+struct SDLVideoCameraContent : protected SDLVideoFrameStream2MultiStream {
 	// meh, empty default
 	std::unique_ptr<SDL_Camera, decltype(&SDL_CloseCamera)> _camera {nullptr, &SDL_CloseCamera};
 	std::atomic<bool> _thread_should_quit {false};
@@ -59,7 +59,7 @@ struct SDLVideoCameraContent : protected SDLVideoFrameStream2Multiplexer {
 	~SDLVideoCameraContent(void);
 
 	// make only some of writer public
-	using SDLVideoFrameStream2Multiplexer::aquireReader;
-	using SDLVideoFrameStream2Multiplexer::releaseReader;
+	using SDLVideoFrameStream2MultiStream::aquireSubStream;
+	using SDLVideoFrameStream2MultiStream::releaseSubStream;
 };
 

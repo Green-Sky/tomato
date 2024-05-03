@@ -19,6 +19,8 @@
 
 template<typename FrameType>
 struct FrameStream2I {
+	virtual ~FrameStream2I(void) {}
+
 	// get number of available frames
 	[[nodiscard]] virtual int32_t size(void) = 0;
 
@@ -74,26 +76,30 @@ struct QueuedFrameStream2 : public FrameStream2I<FrameType> {
 	}
 };
 
-template<typename FrameType, typename ReaderType = QueuedFrameStream2<FrameType>>
-struct QueuedFrameStream2Multiplexer : public FrameStream2I<FrameType> {
-	using reader_type_t = ReaderType;
+// implements a stream that pops or pushes to all sub streams
+// you need to mind the direction you intend it to use
+// release all streams before destructing! // TODO: improve lifetime here, maybe some shared semaphore?
+template<typename FrameType, typename SubStreamType = QueuedFrameStream2<FrameType>>
+struct FrameStream2MultiStream : public FrameStream2I<FrameType> {
+	using sub_stream_type_t = SubStreamType;
 
 	// pointer stability
-	std::vector<std::unique_ptr<ReaderType>> _readers;
-	std::mutex _readers_lock; // accessing the _readers array needs to be exclusive
+	std::vector<std::unique_ptr<SubStreamType>> _sub_streams;
+	std::mutex _sub_stream_lock; // accessing the _sub_streams array needs to be exclusive
 	// a simple lock here is ok, since this tends to be a rare operation,
 	// except for the push, which is always on the same thread
 
-	ReaderType* aquireReader(size_t queue_size = 10, bool lossy = true) {
-		std::lock_guard lg{_readers_lock};
-		return _readers.emplace_back(std::make_unique<ReaderType>(queue_size, lossy)).get();
+	// TODO: forward args instead
+	SubStreamType* aquireSubStream(size_t queue_size = 10, bool lossy = true) {
+		std::lock_guard lg{_sub_stream_lock};
+		return _sub_streams.emplace_back(std::make_unique<SubStreamType>(queue_size, lossy)).get();
 	}
 
-	void releaseReader(ReaderType* reader) {
-		std::lock_guard lg{_readers_lock};
-		for (auto it = _readers.begin(); it != _readers.end(); it++) {
-			if (it->get() == reader) {
-				_readers.erase(it);
+	void releaseSubStream(SubStreamType* sub) {
+		std::lock_guard lg{_sub_stream_lock};
+		for (auto it = _sub_streams.begin(); it != _sub_streams.end(); it++) {
+			if (it->get() == sub) {
+				_sub_streams.erase(it);
 				break;
 			}
 		}
@@ -107,15 +113,15 @@ struct QueuedFrameStream2Multiplexer : public FrameStream2I<FrameType> {
 	}
 
 	std::optional<FrameType> pop(void) override {
-		assert(false && "tried to pop from a multiplexer");
+		assert(false && "this logic is very frame type specific, provide an impl");
 		return std::nullopt;
 	}
 
 	// returns true if there are readers
 	bool push(const FrameType& value) override {
-		std::lock_guard lg{_readers_lock};
+		std::lock_guard lg{_sub_stream_lock};
 		bool have_readers{false};
-		for (auto& it : _readers) {
+		for (auto& it : _sub_streams) {
 			[[maybe_unused]] auto _ = it->push(value);
 			have_readers = true; // even if queue full, we still continue believing in them
 			// maybe consider push return value?
