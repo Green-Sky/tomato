@@ -18,8 +18,8 @@ SDLAudioInputDeviceDefault::SDLAudioInputDeviceDefault(void) : _stream{nullptr, 
 	const auto audio_device_id = SDL_GetAudioStreamDevice(_stream.get());
 	SDL_ResumeAudioDevice(audio_device_id);
 
-	static constexpr size_t buffer_size {512}; // in samples
-	const auto interval_ms {buffer_size/(spec.freq * 1000)};
+	static constexpr size_t buffer_size {512*2}; // in samples
+	const auto interval_ms {(buffer_size * 1000) / spec.freq};
 
 	_thread = std::thread([this, interval_ms, spec](void) {
 		while (!_thread_should_quit) {
