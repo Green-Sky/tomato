@@ -15,7 +15,8 @@ if (NOT TARGET SDL3_image::SDL3_image)
 	FetchContent_Declare(SDL3_image
 		GIT_REPOSITORY https://github.com/libsdl-org/SDL_image
 		# waiting on the imgui pr to get merged so i can update sdl <.<
-		GIT_TAG a45d6e5b84ccc0f3faae6ba7d561709ed600eee7 # tip last check
+		#GIT_TAG a45d6e5b84ccc0f3faae6ba7d561709ed600eee7 # tip last check
+		GIT_TAG a34ccf16f961e6d5a480045eb650fc3dddb4bfaa # tip 14-05-2024
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(SDL3_image)
