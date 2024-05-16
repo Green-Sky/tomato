@@ -29,6 +29,9 @@ target_sources(tomato PUBLIC
 	./tox_client.cpp
 	./auto_dirty.hpp
 	./auto_dirty.cpp
+	./tox_private_impl.hpp
+	./tox_av.hpp
+	./tox_av.cpp
 
 	./theme.hpp
 

@@ -11,6 +11,7 @@
 #include <solanaceae/plugin/plugin_manager.hpp>
 #include <solanaceae/toxcore/tox_event_logger.hpp>
 #include "./tox_private_impl.hpp"
+#include "./tox_av.hpp"
 
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 #include <solanaceae/tox_messages/tox_message_manager.hpp>
@@ -58,6 +59,7 @@ struct MainScreen final : public Screen {
 	ToxClient tc;
 	ToxPrivateImpl tpi;
 	AutoDirty ad;
+	ToxAV tav;
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
 	ToxTransferManager ttm;
