@@ -9,6 +9,7 @@
 SDLVideoCameraContent::SDLVideoCameraContent(void) {
 	int devcount {0};
 	SDL_CameraDeviceID *devices = SDL_GetCameraDevices(&devcount);
+	std::cout << "SDL Camera Driver: " << SDL_GetCurrentCameraDriver() << "\n";
 
 	if (devices == nullptr || devcount < 1) {
 		throw int(1); // TODO: proper exception?

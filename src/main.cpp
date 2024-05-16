@@ -13,6 +13,7 @@
 #include "./start_screen.hpp"
 
 #include "./content/sdl_video_frame_stream2.hpp"
+#include "./content/sdl_audio_frame_stream2.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -77,7 +78,7 @@ int main(int argc, char** argv) {
 	// optionally init audio and camera
 	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
 		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
-	} else {
+	} else if (false) {
 		SDLAudioInputDeviceDefault aidd;
 		auto* reader = aidd.aquireSubStream();
 
@@ -99,7 +100,8 @@ int main(int argc, char** argv) {
 
 	if (SDL_Init(SDL_INIT_CAMERA) < 0) {
 		std::cerr << "SDL_Init CAMERA failed (" << SDL_GetError() << ")\n";
-	} else { // HACK
+	} else if (false) { // HACK
+		std::cerr << "CAMERA initialized\n";
 		SDLVideoCameraContent vcc;
 		auto* reader = vcc.aquireSubStream();
 		for (size_t i = 0; i < 20; i++) {
