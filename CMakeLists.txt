@@ -38,6 +38,10 @@ if (TOMATO_ASAN)
 	endif()
 endif()
 
+# uggly, but it needs to be defined for all of tomato.
+# but this also means that we can not compile tomato in the same cmake as plugins
+add_compile_definitions(ENTT_API_EXPORT)
+
 # external libs
 add_subdirectory(./external) # before increasing warn levels, sad :(
 

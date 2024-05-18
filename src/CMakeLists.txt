@@ -105,3 +105,8 @@ target_link_libraries(tomato PUBLIC
 	SDL3_image::SDL3_image
 )
 
+# probably not enough
+#target_compile_definitions(tomato PUBLIC ENTT_API_EXPORT)
+
+set_target_properties(tomato PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
