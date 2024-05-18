@@ -80,8 +80,35 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, Theme& theme_, std::string save_
 	for (const auto& ppath : plugins) {
 		if (!pm.add(ppath)) {
 			std::cerr << "MS error: loading plugin '" << ppath << "' failed!\n";
+
 			// thow?
-			assert(false && "failed to load plugin");
+			//assert(false && "failed to load plugin");
+			SDL_MessageBoxData mb;
+			mb.flags = SDL_MESSAGEBOX_ERROR;
+			mb.window = nullptr;
+			mb.title = "Tomato failed to load a plugin!";
+			std::string message {"Failed to load plugin '"};
+			message += ppath;
+			message += "' !";
+			mb.message = message.c_str();
+
+			mb.numbuttons = 2;
+			SDL_MessageBoxButtonData mb_buttons[2] {};
+			mb_buttons[0].buttonID = 1;
+			mb_buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+			mb_buttons[0].text = "Abort";
+			mb_buttons[1].buttonID = 2;
+			mb_buttons[1].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
+			mb_buttons[1].text = "Continue Anyway";
+			mb.buttons = mb_buttons;
+
+			mb.colorScheme = nullptr;
+
+			int button_id = 0;
+			SDL_ShowMessageBox(&mb, &button_id);
+			if (button_id == 1) {
+				exit(1);
+			}
 		}
 	}
 
