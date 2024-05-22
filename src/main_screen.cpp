@@ -83,7 +83,9 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, Theme& theme_, std::string save_
 			// function pointers are funky
 			g_provideInstance("ImGuiMemAllocFunc", ImGui::GetVersion(), "host", reinterpret_cast<void*>(alloc_func));
 			g_provideInstance("ImGuiMemFreeFunc", ImGui::GetVersion(), "host", reinterpret_cast<void*>(free_func));
-			g_provideInstance("ImGuiMemUserData", ImGui::GetVersion(), "host", user_data);
+			if (user_data != nullptr) { // dont register nullptrs (can be valid, we rely on the other 2 pointers to indicate)
+				g_provideInstance("ImGuiMemUserData", ImGui::GetVersion(), "host", user_data);
+			}
 		}
 
 		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
