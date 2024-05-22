@@ -73,7 +73,19 @@ MainScreen::MainScreen(SDL_Renderer* renderer_, Theme& theme_, std::string save_
 		// TODO: pm?
 
 		// graphics
-		g_provideInstance("ImGuiContext", ImGui::GetVersion(), "host", ImGui::GetCurrentContext());
+		g_provideInstance<ImGuiContext>("ImGuiContext", ImGui::GetVersion(), "host", ImGui::GetCurrentContext());
+		{
+			ImGuiMemAllocFunc alloc_func = nullptr;
+			ImGuiMemFreeFunc free_func = nullptr;
+			void* user_data = nullptr;
+			ImGui::GetAllocatorFunctions(&alloc_func, &free_func, &user_data);
+
+			// function pointers are funky
+			g_provideInstance("ImGuiMemAllocFunc", ImGui::GetVersion(), "host", reinterpret_cast<void*>(alloc_func));
+			g_provideInstance("ImGuiMemFreeFunc", ImGui::GetVersion(), "host", reinterpret_cast<void*>(free_func));
+			g_provideInstance("ImGuiMemUserData", ImGui::GetVersion(), "host", user_data);
+		}
+
 		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
 	}
 
