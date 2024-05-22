@@ -89,6 +89,52 @@ static void drawIconCloud(
 	ImGui::GetWindowDrawList()->AddPolyline(points.data(), points.size(), col_main, ImDrawFlags_None, 1.5f);
 }
 
+static void drawIconMailLines(
+	const ImVec2 p0,
+	const ImVec2 p1_o,
+	const ImU32 col,
+	const float thickness
+) {
+#define PLINE(x0, y0, x1, y1) \
+		ImGui::GetWindowDrawList()->AddLine( \
+			{p0.x + p1_o.x*(x0), p0.y + p1_o.y*(y0)}, \
+			{p0.x + p1_o.x*(x1), p0.y + p1_o.y*(y1)}, \
+			col, \
+			thickness \
+		);
+
+		// quad
+		// (1,2) -> (1,8)
+		PLINE(0.1f, 0.2f, 0.1f, 0.8f)
+		// (1,8) -> (9,8)
+		PLINE(0.1f, 0.8f, 0.9f, 0.8f)
+		// (9,8) -> (9,2)
+		PLINE(0.9f, 0.8f, 0.9f, 0.2f)
+		// (9,2) -> (1,2)
+		PLINE(0.9f, 0.2f, 0.1f, 0.2f)
+
+		// lip
+		// (1,2) -> (5,5)
+		PLINE(0.1f, 0.2f, 0.5f, 0.5f)
+		// (5,5) -> (9,2)
+		PLINE(0.5f, 0.5f, 0.9f, 0.2f)
+
+#undef PLINE
+}
+
+static void drawIconMail(
+	const ImVec2 p0,
+	const ImVec2 p1_o,
+	const ImU32 col_main,
+	const ImU32 col_back
+) {
+	// dark background
+	// the circle looks bad in light mode
+	//ImGui::GetWindowDrawList()->AddCircleFilled({p0.x + p1_o.x*0.5f, p0.y + p1_o.y*0.5f}, p1_o.x*0.5f, col_back);
+	drawIconMailLines(p0, p1_o, col_back, 4.0f);
+	drawIconMailLines(p0, p1_o, col_main, 1.5f);
+}
+
 void renderAvatar(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
@@ -245,7 +291,26 @@ bool renderContactBig(
 				ImGui::SameLine(0.f, same_line_spacing);
 			}
 
-			ImGui::Text("%s%s", unread?"* ":"", (c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>"));
+			//ImGui::Text("%s%s", unread?"* ":"", (c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>"));
+			ImGui::TextUnformatted(c.all_of<Contact::Components::Name>() ? c.get<Contact::Components::Name>().name.c_str() : "<unk>");
+			if (unread) {
+				ImGui::SameLine();
+				const float icon_size { TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2 };
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - icon_size);
+
+				// icon pos
+				auto p0 = ImGui::GetCursorScreenPos();
+				//p0.y += ImGui::GetStyle().FramePadding.y;
+				ImVec2 p1_o = {icon_size, icon_size};
+
+				drawIconMail(
+					p0,
+					p1_o,
+					ImGui::GetColorU32(th.getColor<ThemeCol_Contact::unread>()),
+					ImGui::GetColorU32(th.getColor<ThemeCol_Contact::icon_backdrop>())
+				);
+				ImGui::Dummy(p1_o);
+			}
 		}
 
 		// line 2

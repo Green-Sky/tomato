@@ -14,6 +14,9 @@ enum class ThemeCol_Contact {
 	avatar_online_cloud,
 	avatar_offline,
 
+	unread,
+	unread_muted,
+
 	icon_backdrop,
 };
 
@@ -27,7 +30,7 @@ void renderAvatar(
 // returns true if clicked, if selectable, will highlight on hover and respect selected
 // TODO: refine
 // +------+
-// |	  | *Name (Alias?)
+// |	  | *Name (Alias?)            [v]
 // |Avatar| Satus Message <-- richpresence interface?
 // |	  | user status (online/away/busy)-direct/relayed / offline <-- last text?
 // +------+
