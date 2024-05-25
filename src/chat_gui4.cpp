@@ -89,6 +89,30 @@ static std::string file_path_url_escape(const std::string&& value) {
 	return escaped.str();
 }
 
+static std::string file_path_to_file_url(const std::filesystem::path& path) {
+	const auto can_path = std::filesystem::canonical(path);
+	std::string url {"file://"};
+	// special windows detection <.<
+	// we detect a drive letter here
+	if (can_path.has_root_name() && can_path.root_name().generic_u8string().back() == ':') {
+		const std::string root_name = can_path.root_name().generic_u8string();
+		// drive letters have a colon, which needs skipping the url escaping
+		url += "/";
+		url += root_name;
+
+		//url += "/";
+		// bugged, does not work (but it should, open msvc stl issue?)
+		//url += file_path_url_escape(can_path.lexically_proximate(can_path.root_name()).generic_u8string());
+
+		// remove drive letter
+		url += file_path_url_escape(can_path.generic_u8string().substr(root_name.size()));
+	} else {
+		url += file_path_url_escape(can_path.generic_u8string());
+	}
+
+	return url;
+}
+
 const void* clipboard_callback(void* userdata, const char* mime_type, size_t* size) {
 	if (mime_type == nullptr) {
 		// cleared or new data is set
@@ -974,12 +998,12 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
 			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
 				if (ImGui::MenuItem("open")) {
-					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).generic_u8string())};
+					const std::string url {file_path_to_file_url(local_info.file_list.at(i))};
 					std::cout << "opening file '" << url << "'\n";
 					SDL_OpenURL(url.c_str());
 				}
 				if (ImGui::MenuItem("copy file")) {
-					const std::string url{"file://" + file_path_url_escape(std::filesystem::canonical(local_info.file_list.at(i)).generic_u8string())};
+					const std::string url {file_path_to_file_url(local_info.file_list.at(i))};
 					//ImGui::SetClipboardText(url.c_str());
 					setClipboardData({"text/uri-list", "text/x-moz-url"}, std::make_shared<std::vector<uint8_t>>(url.begin(), url.end()));
 				}
