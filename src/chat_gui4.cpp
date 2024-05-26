@@ -154,10 +154,14 @@ void ChatGui4::setClipboardData(std::vector<std::string> mime_types, std::shared
 
 	std::vector<const char*> tmp_mimetype_list;
 
-	std::lock_guard lg{_set_clipboard_data_mutex};
-	for (const auto& mime_type : mime_types) {
-		tmp_mimetype_list.push_back(mime_type.data());
-		_set_clipboard_data[mime_type] = data;
+	{
+		std::lock_guard lg{_set_clipboard_data_mutex};
+		for (const auto& mime_type : mime_types) {
+			tmp_mimetype_list.push_back(mime_type.data());
+			_set_clipboard_data[mime_type] = data;
+		}
+
+		// release lock, since on some platforms the callback is called immediatly
 	}
 
 	SDL_SetClipboardData(clipboard_callback, nullptr, this, tmp_mimetype_list.data(), tmp_mimetype_list.size());
