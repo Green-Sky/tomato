@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 			}
 
 			ImGui::Render();
-			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
+			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer.get());
 
 			SDL_RenderPresent(renderer.get());
 			// clearing after present is (should) more performant, but first frame is a mess
