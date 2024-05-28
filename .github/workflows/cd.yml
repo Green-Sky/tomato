@@ -67,6 +67,12 @@ jobs:
       with:
         submodules: recursive
 
+    - name: update vcpkg
+      shell: bash
+      run: |
+        cd C:/vcpkg
+        git pull
+
     - name: Install Dependencies
       run: vcpkg install libsodium:x64-windows-static pthreads:x64-windows-static pkgconf:x64-windows
 
@@ -120,6 +126,12 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+
+    - name: update vcpkg
+      shell: bash
+      run: |
+        cd C:/vcpkg
+        git pull
 
     - name: Install Dependencies
       run: vcpkg install libsodium:x64-windows-static pthreads:x64-windows-static pkgconf:x64-windows
