@@ -41,7 +41,7 @@ ImageLoaderQOI::ImageResult ImageLoaderQOI::loadFromMemoryRGBA(const uint8_t* da
 
 	auto& new_frame = res.frames.emplace_back();
 	new_frame.ms = 0;
-	new_frame.data.insert(new_frame.data.cbegin(), img_data, img_data+(desc.width*desc.height*4));
+	new_frame.data = {img_data, img_data+(desc.width*desc.height*4)};
 
 	free(img_data);
 	return res;

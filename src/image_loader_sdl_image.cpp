@@ -99,7 +99,7 @@ ImageLoaderSDLImage::ImageResult ImageLoaderSDLImage::loadFromMemoryRGBA(const u
 
 		auto& new_frame = res.frames.emplace_back();
 		new_frame.ms = anim->delays[i];
-		new_frame.data.insert(new_frame.data.cbegin(), (const uint8_t*)conv_surf->pixels, ((const uint8_t*)conv_surf->pixels) + (anim->w*anim->h*4));
+		new_frame.data = {(const uint8_t*)conv_surf->pixels, ((const uint8_t*)conv_surf->pixels) + (anim->w*anim->h*4)};
 
 		SDL_UnlockSurface(conv_surf);
 		SDL_DestroySurface(conv_surf);

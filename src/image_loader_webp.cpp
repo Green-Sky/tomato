@@ -78,7 +78,7 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 		auto& new_frame = res.frames.emplace_back();
 		new_frame.ms = timestamp-prev_timestamp;
 		prev_timestamp = timestamp;
-		new_frame.data.insert(new_frame.data.end(), buf, buf+(res.width*res.height*4));
+		new_frame.data = {buf, buf+(res.width*res.height*4)};
 	}
 
 	assert(anim_info.frame_count == res.frames.size());

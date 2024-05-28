@@ -151,8 +151,7 @@ void SendImagePopup::sendMemory(
 	}
 
 	// copy paste data to memory
-	original_data.clear();
-	original_data.insert(original_data.begin(), data, data+data_size);
+	original_data = {data, data+data_size};
 
 	if (!load()) {
 		std::cerr << "SIP: failed to load image from memory\n";

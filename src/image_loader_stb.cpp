@@ -41,7 +41,7 @@ ImageLoaderSTB::ImageResult ImageLoaderSTB::loadFromMemoryRGBA(const uint8_t* da
 			for (int i = 0; i < z; i++) {
 				auto& new_frame = res.frames.emplace_back();
 				new_frame.ms = delays[i];
-				new_frame.data.insert(new_frame.data.cbegin(), img_data + (i*stride), img_data + ((i+1)*stride));
+				new_frame.data = {img_data + (i*stride), img_data + ((i+1)*stride)};
 			}
 
 			stbi_image_free(delays); // hope this is right
@@ -62,7 +62,7 @@ ImageLoaderSTB::ImageResult ImageLoaderSTB::loadFromMemoryRGBA(const uint8_t* da
 
 	auto& new_frame = res.frames.emplace_back();
 	new_frame.ms = 0;
-	new_frame.data.insert(new_frame.data.cbegin(), img_data, img_data+(x*y*4));
+	new_frame.data = {img_data, img_data+(x*y*4)};
 
 	stbi_image_free(img_data);
 	return res;
