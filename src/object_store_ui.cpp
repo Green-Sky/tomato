@@ -4,6 +4,8 @@
 
 #include <imgui/imgui.h>
 
+#include <solanaceae/message3/components.hpp>
+
 ObjectStoreUI::ObjectStoreUI(
 	ObjectStore2& os
 ) : _os(os) {
@@ -11,6 +13,9 @@ ObjectStoreUI::ObjectStoreUI(
 
 	_ee.registerComponent<ObjectStore::Components::ID>("ID");
 	_ee.registerComponent<ObjectStore::Components::DataCompressionType>("DataCompressionType");
+
+	_ee.registerComponent<Message::Components::Transfer::FileInfo>("Transfer::FileInfo");
+	_ee.registerComponent<Message::Components::Transfer::FileInfoLocal>("Transfer::FileInfoLocal");
 }
 
 void ObjectStoreUI::render(void) {
