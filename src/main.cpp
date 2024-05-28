@@ -42,17 +42,19 @@ int main(int argc, char** argv) {
 	}
 
 	std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)> renderer {
-		SDL_CreateRenderer(window.get(), nullptr, SDL_RENDERER_PRESENTVSYNC),
+		SDL_CreateRenderer(window.get(), nullptr),
 		&SDL_DestroyRenderer
 	};
 	if (!renderer) {
 		std::cerr << "SDL_CreateRenderer failed (" << SDL_GetError() << ")\n";
 		return 1;
 	}
+	SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_ADAPTIVE);
+
 	{
 		SDL_RendererInfo ri;
 		if (SDL_GetRendererInfo(renderer.get(), &ri) == 0) {
-			std::cout << "SDL Renderer: " << ri.name << "(f:" << ri.flags << ")\n";
+			std::cout << "SDL Renderer: " << ri.name << "\n";
 		}
 	}
 
