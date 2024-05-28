@@ -1,5 +1,6 @@
 #include "./chat_gui4.hpp"
 
+#include <exception>
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
 #include <solanaceae/contact/components.hpp>
@@ -26,6 +27,8 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
+#include <system_error>
 #include <variant>
 
 namespace Components {
@@ -164,7 +167,20 @@ void ChatGui4::setClipboardData(std::vector<std::string> mime_types, std::shared
 		// release lock, since on some platforms the callback is called immediatly
 	}
 
-	SDL_SetClipboardData(clipboard_callback, nullptr, this, tmp_mimetype_list.data(), tmp_mimetype_list.size());
+	try {
+		SDL_SetClipboardData(clipboard_callback, nullptr, this, tmp_mimetype_list.data(), tmp_mimetype_list.size());
+	} catch (const std::runtime_error& e) {
+		std::cerr << "CG error: setting clipboard data threw runtime_error!\n";
+		std::cerr << "what: " << e.what() << "\n";
+	} catch (const std::system_error& e) {
+		std::cerr << "CG error: setting clipboard data threw system_error!\n";
+		std::cerr << "what: " << e.what() << "\n";
+	} catch (const std::exception& e) {
+		std::cerr << "CG error: setting clipboard data threw exception!\n";
+		std::cerr << "what: " << e.what() << "\n";
+	} catch (...) {
+		std::cerr << "CG error: setting clipboard data threw!\n";
+	}
 }
 
 ChatGui4::ChatGui4(
