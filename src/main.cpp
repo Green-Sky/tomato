@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 
 	// more RAII
 	std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window {
-		SDL_CreateWindow("tomato", 640, 480, SDL_WINDOW_RESIZABLE),
+		SDL_CreateWindow("tomato", 1280, 720, SDL_WINDOW_RESIZABLE),
 		&SDL_DestroyWindow
 	};
 
