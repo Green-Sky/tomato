@@ -13,6 +13,7 @@
 #include "./start_screen.hpp"
 
 #include "./content/sdl_video_frame_stream2.hpp"
+#include "./content/sdl_audio_frame_stream2.hpp"
 
 #include <filesystem>
 #include <memory>
