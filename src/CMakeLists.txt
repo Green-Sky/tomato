@@ -1,8 +1,15 @@
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.9...3.24 FATAL_ERROR)
 
 ########################################
 
-add_executable(tomato
+if (TOMATO_MAIN_SO)
+	add_library(tomato MODULE)
+	target_compile_definitions(tomato PUBLIC TOMATO_MAIN_SO)
+else()
+	add_executable(tomato)
+endif()
+
+target_sources(tomato PUBLIC
 	./main.cpp
 	./icon.rc
 
