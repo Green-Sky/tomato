@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14...3.24 FATAL_ERROR)
 
 add_subdirectory(./entt)
 
+add_subdirectory(./json)
+
 add_subdirectory(./solanaceae_util)
 add_subdirectory(./solanaceae_contact)
 add_subdirectory(./solanaceae_message3)
