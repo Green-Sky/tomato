@@ -43,7 +43,7 @@ jobs:
     - uses: nttld/setup-ndk@v1
       id: setup_ndk
       with:
-        local-cache: true
+        local-cache: false # https://github.com/nttld/setup-ndk/issues/518
         ndk-version: r26d
 
     - uses: actions/setup-java@v4
