@@ -12,8 +12,9 @@
 #include <memory>
 #include <cmath>
 
-MainScreen::MainScreen(SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
+MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
+	conf(std::move(conf_)),
 	rmm(cr),
 	msnj{cr, {}, {}},
 	mts(rmm),

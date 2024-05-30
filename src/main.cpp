@@ -12,10 +12,17 @@
 
 #include <memory>
 #include <iostream>
+#include <string_view>
 #include <thread>
 #include <chrono>
 
 int main(int argc, char** argv) {
+	// better args
+	std::vector<std::string_view> args;
+	for (int i = 0; i < argc; i++) {
+		args.push_back(argv[i]);
+	}
+
 	// setup hints
 	if (SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1") != SDL_TRUE) {
 		std::cerr << "Failed to set '" << SDL_HINT_VIDEO_ALLOW_SCREENSAVER << "' to 1\n";
@@ -91,7 +98,7 @@ int main(int argc, char** argv) {
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
 
-	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(renderer.get(), theme);
+	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(args, renderer.get(), theme);
 
 
 	bool quit = false;

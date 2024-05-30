@@ -2,14 +2,53 @@
 
 #include "./main_screen.hpp"
 
+#include "./json_to_config.hpp"
+
+#include <nlohmann/json.hpp>
+
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
 #include <cctype>
 #include <memory>
 #include <filesystem>
+#include <fstream>
 
-StartScreen::StartScreen(SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
+StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
+	for (size_t ai = 0; ai < args.size(); ai++) {
+		if (args.at(ai) == "--config" || args.at(ai) == "-c") {
+			if (args.size() == ai+1) {
+				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
+				break;
+			}
+			ai++;
+
+			const auto& config_path = args.at(ai);
+			auto config_file = std::ifstream(static_cast<std::string>(config_path));
+			if (!config_file.is_open()) {
+				std::cerr << "TOMATO error: failed to open config file '" << config_path << "'\n";
+				break;
+			}
+
+			auto config_json = nlohmann::ordered_json::parse(config_file);
+			if (!load_json_into_config(config_json, _conf)) {
+				std::cerr << "TOMATO error in config json, exiting...\n";
+				break;
+			}
+		} else if (args.at(ai) == "--plugin" || args.at(ai) == "-p") {
+			if (args.size() == ai+1) {
+				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
+				break;
+			}
+			ai++;
+
+			const auto& plugin_path = args.at(ai);
+			// TODO: check for dups
+			queued_plugin_paths.push_back(static_cast<std::string>(plugin_path));
+		} else {
+			std::cerr << "TOMATO error: unknown cli arg: '" << args.at(ai) << "'\n";
+		}
+	}
 }
 
 Screen* StartScreen::render(float, bool&) {
@@ -143,7 +182,7 @@ Screen* StartScreen::render(float, bool&) {
 		}
 	} else {
 		if (ImGui::Button("load", {60, 25})) {
-			auto new_screen = std::make_unique<MainScreen>(_renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
+			auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
 			return new_screen.release();
 		}
 	}
