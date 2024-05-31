@@ -15,7 +15,7 @@
 #include <fstream>
 
 StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
-	for (size_t ai = 0; ai < args.size(); ai++) {
+	for (size_t ai = 1; ai < args.size(); ai++) {
 		if (args.at(ai) == "--config" || args.at(ai) == "-c") {
 			if (args.size() == ai+1) {
 				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
