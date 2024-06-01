@@ -31,6 +31,11 @@ uint64_t SDLRendererTextureUploader::uploadRGBA(const uint8_t* data, uint32_t wi
 	// TODO: error reporting
 	SDL_UpdateTexture(tex, nullptr, surf->pixels, surf->pitch);
 
+	SDL_BlendMode surf_blend_mode = SDL_BLENDMODE_NONE;
+	if (SDL_GetSurfaceBlendMode(surf, &surf_blend_mode) == 0) {
+		SDL_SetTextureBlendMode(tex, surf_blend_mode);
+	}
+
 	if (filter == NEAREST) {
 		SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
 	} else if (filter == LINEAR) {
