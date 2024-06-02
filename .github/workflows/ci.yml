@@ -73,6 +73,19 @@ jobs:
     - name: Build (tomato)
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
 
+    - name: Build (SDL3-jar) (workaround)
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t SDL3-jar
+
+    - name: Build (apk)
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato-apk
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.event.repository.name }}-android-arm64
+        # TODO: do propper packing
+        path: |
+          ${{github.workspace}}/build/tomato.apk
+
   macos:
     timeout-minutes: 10
 

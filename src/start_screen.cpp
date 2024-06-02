@@ -49,6 +49,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 			std::cerr << "TOMATO error: unknown cli arg: '" << args.at(ai) << "'\n";
 		}
 	}
+
 }
 
 Screen* StartScreen::render(float, bool&) {
@@ -182,6 +183,7 @@ Screen* StartScreen::render(float, bool&) {
 		}
 	} else {
 		if (ImGui::Button("load", {60, 25})) {
+
 			auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
 			return new_screen.release();
 		}

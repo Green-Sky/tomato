@@ -10,6 +10,7 @@
 
 #include "./start_screen.hpp"
 
+#include <filesystem>
 #include <memory>
 #include <iostream>
 #include <string_view>
@@ -22,6 +23,11 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < argc; i++) {
 		args.push_back(argv[i]);
 	}
+
+#ifdef __ANDROID__
+	// change current working dir to internal storage
+	std::filesystem::current_path(SDL_AndroidGetInternalStoragePath());
+#endif
 
 	// setup hints
 	if (SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1") != SDL_TRUE) {

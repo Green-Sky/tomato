@@ -6,6 +6,7 @@ if (NOT TARGET SDL3::SDL3)
 	set(SDL_SHARED OFF CACHE INTERNAL "")
 	set(SDL_STATIC ON CACHE INTERNAL "")
 	#TODO: pic ?
+	set(SDL_DISABLE_ANDROID_JAR OFF CACHE INTERNAL "")
 
 	FetchContent_Declare(SDL3
 		GIT_REPOSITORY https://github.com/libsdl-org/SDL
@@ -16,6 +17,7 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG 1103294d33f47ab4c697bb22a9cf27c79c658630 # tip 15-05-2024
 		#GIT_TAG aacafd62336363077470f678b6217214b3b49473 # tip 28-05-2024
 		GIT_TAG 5fa9432b7d1c1722de93e1ab46e7a9569a47071e # tip 27-05-2024 - before changes made breaking sdl_image
+
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(SDL3)
