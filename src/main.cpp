@@ -30,9 +30,11 @@ int main(int argc, char** argv) {
 #endif
 
 	// setup hints
+#ifndef __ANDROID__
 	if (SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1") != SDL_TRUE) {
 		std::cerr << "Failed to set '" << SDL_HINT_VIDEO_ALLOW_SCREENSAVER << "' to 1\n";
 	}
+#endif
 
 	auto last_time_render = std::chrono::steady_clock::now();
 	auto last_time_tick = std::chrono::steady_clock::now();
