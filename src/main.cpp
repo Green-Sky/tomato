@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
 
 	std::unique_ptr<Screen> screen = std::make_unique<StartScreen>(args, renderer.get(), theme);
 
-
+	bool is_background = false;
 	bool quit = false;
 	while (!quit) {
 		auto new_time = std::chrono::steady_clock::now();
@@ -131,6 +131,10 @@ int main(int argc, char** argv) {
 			if (event.type == SDL_EVENT_QUIT) {
 				quit = true;
 				break;
+			} else if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND) {
+				is_background = true;
+			} else if (event.type == SDL_EVENT_DID_ENTER_FOREGROUND) {
+				is_background = false;
 			}
 
 			if (screen->handleEvent(event)) {
@@ -141,6 +145,10 @@ int main(int argc, char** argv) {
 		}
 		if (quit) {
 			break;
+		}
+
+		if (is_background) {
+			render = false;
 		}
 
 		// can do both in the same loop

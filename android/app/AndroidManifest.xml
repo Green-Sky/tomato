@@ -76,9 +76,8 @@
         android:theme="@style/AppTheme"
         android:hardwareAccelerated="true" >
 
-        <!-- Example of setting SDL hints from AndroidManifest.xml:
-        <meta-data android:name="SDL_ENV.SDL_ANDROID_TRAP_BACK_BUTTON" android:value="0"/>
-         -->
+		<!-- setting sdl hints. uses the string value -->
+		<meta-data android:name="SDL_ENV.SDL_ANDROID_BLOCK_ON_PAUSE" android:value="0"/>
 
         <activity android:name="TomatoActivity"
             android:label="@string/app_name"
