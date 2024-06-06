@@ -50,12 +50,91 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        # TODO: simpler name?
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu20.04-x86_64
         # TODO: do propper packing
         path: |
           ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu20.04-x86_64.tar.gz
 
+  android:
+    timeout-minutes: 30
+    # contains sections copied from sdl repo
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform:
+          - vcpkg_toolkit: arm64-android
+            ndk_abi: arm64-v8a
+          - vcpkg_toolkit: x64-android
+            ndk_abi: x86_64
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - uses: nttld/setup-ndk@v1
+      id: setup_ndk
+      with:
+        local-cache: false # https://github.com/nttld/setup-ndk/issues/518
+        ndk-version: r26d
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: update vcpkg
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+
+    - name: Install Dependencies (host)
+      run: sudo apt update && sudo apt -y install cmake pkg-config nasm
+
+    - name: Install Dependencies (target)
+      env:
+        ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
+      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
+
+    # vcpkg scripts root /usr/local/share/vcpkg/scripts
+    - name: Configure CMake
+      env:
+        ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{matrix.platform.vcpkg_toolkit}} -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=${{matrix.platform.ndk_abi}} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDL3IMAGE_JPG_SHARED=OFF -DSDL3IMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON
+
+    - name: Build (tomato)
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
+
+    - name: Build (SDL3-jar) (workaround)
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t SDL3-jar
+
+    - name: Build (apk)
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato-apk
+
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      # taken from llama.cpp
+      run: |
+        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
+          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        else
+          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
+          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: rename apk
+      id: rename_apk
+      shell: bash
+      run: mv "${{github.workspace}}/build/android/tomato.apk" "${{github.workspace}}/build/android/${{github.event.repository.name}}-${{steps.tag.outputs.name}}-android-${{matrix.platform.ndk_abi}}.apk"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.event.repository.name}}-${{steps.tag.outputs.name}}-${{runner.os}}-android-${{matrix.platform.ndk_abi}}
+        path: |
+          ${{github.workspace}}/build/android/${{github.event.repository.name}}-${{steps.tag.outputs.name}}-android-${{matrix.platform.ndk_abi}}.apk
 
   windows:
     timeout-minutes: 15
@@ -110,8 +189,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        # TODO: simpler name?
-        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64
+        name: ${{github.event.repository.name}}-${{steps.tag.outputs.name}}-${{runner.os}}-msvc-x86_64
         # TODO: do propper packing
         path: |
           ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64.zip
@@ -170,7 +248,6 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        # TODO: simpler name?
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64
         # TODO: do propper packing
         path: |
@@ -183,6 +260,7 @@ jobs:
 
     needs:
       - linux-ubuntu
+      - android
       - windows
       - windows-asan
 
