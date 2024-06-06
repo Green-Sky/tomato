@@ -192,7 +192,10 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 			e.type == SDL_EVENT_MOUSE_WHEEL ||
 			e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
 			e.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+			e.type == SDL_EVENT_FINGER_DOWN ||
+			e.type == SDL_EVENT_FINGER_UP ||
 			e.type == SDL_EVENT_TEXT_INPUT ||
+			e.type == SDL_EVENT_TEXT_EDITING ||
 			e.type == SDL_EVENT_KEY_DOWN ||
 			e.type == SDL_EVENT_KEY_UP ||
 			e.type == SDL_EVENT_WINDOW_MOUSE_ENTER ||
