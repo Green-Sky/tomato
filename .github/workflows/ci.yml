@@ -84,7 +84,7 @@ jobs:
         name: ${{ github.event.repository.name }}-android-arm64
         # TODO: do propper packing
         path: |
-          ${{github.workspace}}/build/tomato.apk
+          ${{github.workspace}}/build/android/tomato.apk
 
   macos:
     timeout-minutes: 10
