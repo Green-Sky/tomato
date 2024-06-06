@@ -35,6 +35,14 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        platform:
+          - vcpkg_toolkit: arm64-android
+            ndk_abi: arm64-v8a
+          - vcpkg_toolkit: x64-android
+            ndk_abi: x86_64
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -61,14 +69,14 @@ jobs:
     - name: Install Dependencies (target)
       env:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
-      run: vcpkg install --triplet arm64-android --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
+      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
 
     # vcpkg scripts root /usr/local/share/vcpkg/scripts
     - name: Configure CMake
       env:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
       #run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DANDROID_PLATFORM=23 -DANDROID_ABI=arm64-v8a
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-android -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=arm64-v8a -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDL3IMAGE_JPG_SHARED=OFF -DSDL3IMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{matrix.platform.vcpkg_toolkit}} -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=${{matrix.platform.ndk_abi}} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDL3IMAGE_JPG_SHARED=OFF -DSDL3IMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON
 
     - name: Build (tomato)
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
@@ -81,7 +89,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.repository.name }}-android-arm64
+        name: ${{ github.event.repository.name }}-${{matrix.platform.vcpkg_toolkit}}
         # TODO: do propper packing
         path: |
           ${{github.workspace}}/build/android/tomato.apk
