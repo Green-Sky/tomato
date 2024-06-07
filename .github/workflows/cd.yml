@@ -128,7 +128,7 @@ jobs:
     - name: rename apk
       id: rename_apk
       shell: bash
-      run: mv "${{github.workspace}}/build/android/tomato.apk" "${{github.workspace}}/build/android/${{github.event.repository.name}}-${{steps.tag.outputs.name}}-android-${{matrix.platform.ndk_abi}}.apk"
+      run: mv "${{github.workspace}}/build/android/tomato.apk" "${{github.workspace}}/build/android/${{github.event.repository.name}}-${{steps.tag.outputs.name}}-Android-${{matrix.platform.ndk_abi}}.apk"
 
     - uses: actions/upload-artifact@v4
       with:
