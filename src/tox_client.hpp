@@ -41,6 +41,8 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 		void setToxProfilePath(const std::string& new_path) { _tox_profile_path = new_path; }
 		void setSelfName(std::string_view new_name) { _self_name = new_name; toxSelfSetName(new_name); }
 
+		void runBootstrap(void);
+
 	public: // raw events
 		void subscribeRaw(std::function<void(const Tox_Events*)> fn);
 

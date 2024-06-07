@@ -1,18 +1,18 @@
 #pragma once
 
-struct ToxI;
+class ToxClient;
 struct ConfigModelI;
 
 class ToxUIUtils {
 	bool _show_add_friend_window {false};
 	bool _show_add_group_window {false};
 
-	ToxI& _t;
+	ToxClient& _tc;
 	ConfigModelI& _conf;
 
 	public:
 		ToxUIUtils(
-			ToxI& t,
+			ToxClient& tc,
 			ConfigModelI& conf
 		);
 

@@ -80,43 +80,7 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 	// no callbacks, use events
 	tox_events_init(_tox);
 
-	// dht bootstrap
-	{
-		struct DHT_node {
-			const char *ip;
-			uint16_t port;
-			const char key_hex[TOX_PUBLIC_KEY_SIZE*2 + 1]; // 1 for null terminator
-			unsigned char key_bin[TOX_PUBLIC_KEY_SIZE];
-		};
-
-		DHT_node nodes[] =
-		{
-			// TODO: more/diff nodes
-			// you can change or add your own bs and tcprelays here, ideally closer to you
-
-			//{"tox.plastiras.org",	33445,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
-			{"104.244.74.69",		443,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
-			{"104.244.74.69",		33445,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
-
-			//{"tox2.plastiras.org",	33445,	"B6626D386BE7E3ACA107B46F48A5C4D522D29281750D44A0CBA6A2721E79C951", {}}, // DE tha14
-
-			//{"tox4.plastiras.org",	33445,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
-			{"37.221.66.161",	443,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
-			{"37.221.66.161",	33445,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
-		};
-
-		for (size_t i = 0; i < sizeof(nodes)/sizeof(DHT_node); i ++) {
-			sodium_hex2bin(
-				nodes[i].key_bin, sizeof(nodes[i].key_bin),
-				nodes[i].key_hex, sizeof(nodes[i].key_hex)-1,
-				NULL, NULL, NULL
-			);
-			tox_bootstrap(_tox, nodes[i].ip, nodes[i].port, nodes[i].key_bin, NULL);
-			// TODO: use extra tcp option to avoid error msgs
-			// ... this is hardcore
-			tox_add_tcp_relay(_tox, nodes[i].ip, nodes[i].port, nodes[i].key_bin, NULL);
-		}
-	}
+	runBootstrap();
 }
 
 ToxClient::~ToxClient(void) {
@@ -144,6 +108,45 @@ bool ToxClient::iterate(float time_delta) {
 	}
 
 	return true;
+}
+
+void ToxClient::runBootstrap(void) {
+	// TODO: extend and read from json?
+	// TODO: seperate out relays
+	struct DHT_node {
+		const char *ip;
+		uint16_t port;
+		const char key_hex[TOX_PUBLIC_KEY_SIZE*2 + 1]; // 1 for null terminator
+		unsigned char key_bin[TOX_PUBLIC_KEY_SIZE];
+	};
+
+	DHT_node nodes[] =
+	{
+		// TODO: more/diff nodes
+		// you can change or add your own bs and tcprelays here, ideally closer to you
+
+		//{"tox.plastiras.org",	33445,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
+		{"104.244.74.69",		443,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
+		{"104.244.74.69",		33445,	"8E8B63299B3D520FB377FE5100E65E3322F7AE5B20A0ACED2981769FC5B43725", {}}, // LU tha14
+
+		//{"tox2.plastiras.org",	33445,	"B6626D386BE7E3ACA107B46F48A5C4D522D29281750D44A0CBA6A2721E79C951", {}}, // DE tha14
+
+		//{"tox4.plastiras.org",	33445,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
+		{"37.221.66.161",	443,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
+		{"37.221.66.161",	33445,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
+	};
+
+	for (size_t i = 0; i < sizeof(nodes)/sizeof(DHT_node); i ++) {
+		sodium_hex2bin(
+			nodes[i].key_bin, sizeof(nodes[i].key_bin),
+			nodes[i].key_hex, sizeof(nodes[i].key_hex)-1,
+			NULL, NULL, NULL
+		);
+		tox_bootstrap(_tox, nodes[i].ip, nodes[i].port, nodes[i].key_bin, NULL);
+		// TODO: use extra tcp option to avoid error msgs
+		// ... this is hardcore
+		tox_add_tcp_relay(_tox, nodes[i].ip, nodes[i].port, nodes[i].key_bin, NULL);
+	}
 }
 
 void ToxClient::subscribeRaw(std::function<void(const Tox_Events*)> fn) {
