@@ -13,6 +13,9 @@ target_sources(tomato PUBLIC
 	./main.cpp
 	./icon.rc
 
+	./sys_check.hpp
+	./sys_check.cpp
+
 	./json_to_config.hpp
 	./json_to_config.cpp
 

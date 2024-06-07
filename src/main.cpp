@@ -8,6 +8,8 @@
 #include "./theme.hpp"
 #include "./chat_gui/theme.hpp"
 
+#include "./sys_check.hpp"
+
 #include "./start_screen.hpp"
 
 #include <filesystem>
@@ -23,6 +25,8 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < argc; i++) {
 		args.push_back(argv[i]);
 	}
+
+	runSysCheck();
 
 #ifdef __ANDROID__
 	// change current working dir to internal storage
