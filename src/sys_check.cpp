@@ -20,18 +20,21 @@ void runSysCheck(void) {
 	NTSTATUS(WINAPI *RtlGetVersion)(LPOSVERSIONINFOEXW);
 	OSVERSIONINFOEXW osInfo;
 
-	*(FARPROC*)&RtlGetVersion = GetProcAddress(GetModuleHandleA("ntdll"), "RtlGetVersion");
+	HMODULE lib = GetModuleHandleW(L"ntdll.dll");
+	if (lib) {
+		*(FARPROC*)&RtlGetVersion = GetProcAddress(lib, "RtlGetVersion");
 
-	if (NULL != RtlGetVersion) {
-		osInfo.dwOSVersionInfoSize = sizeof(osInfo);
-		RtlGetVersion(&osInfo);
+		if (NULL != RtlGetVersion) {
+			osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+			RtlGetVersion(&osInfo);
 
-		// check
-		if (
-			osInfo.dwBuildNumber >= 26000 // canary versions of 11 24H2 included
-		) {
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unsupported System", "Your version of windows is too new and endangers the privacy of all involved.", nullptr);
-			exit(0);
+			// check
+			if (
+				osInfo.dwBuildNumber >= 26000 // canary versions of 11 24H2 included
+			) {
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unsupported System", "Your version of windows is too new and endangers the privacy of all involved.", nullptr);
+				exit(0);
+			}
 		}
 	}
 }
