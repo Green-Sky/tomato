@@ -5,6 +5,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
+    #nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
     flake-utils.url = "github:numtide/flake-utils";
     nlohmann-json = {
       url = "github:nlohmann/json/v3.11.3"; # TODO: read version from file
@@ -15,7 +16,7 @@
       flake = false;
     };
     sdl3_image = {
-      url = "github:libsdl-org/SDL_image/2fc5310a9a2700fc856663200f94edebeb5e554a";
+      url = "github:libsdl-org/SDL_image/8eff782fa33d795c9ea1ac42dbe7e17cc9874c78";
       flake = false;
     };
   };
@@ -25,6 +26,7 @@
     let
       pkgs = import nixpkgs { inherit system; };
       stdenv = (pkgs.stdenvAdapters.keepDebugInfo pkgs.stdenv);
+      #stdenv = (pkgs.stdenvAdapters.withCFlags [ "-march=x86-64-v3" ] (pkgs.stdenvAdapters.keepDebugInfo pkgs.stdenv));
     in {
       #packages.default = pkgs.stdenv.mkDerivation {
       packages.default = stdenv.mkDerivation {
