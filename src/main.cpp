@@ -70,12 +70,7 @@ int main(int argc, char** argv) {
 	}
 	SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_ADAPTIVE);
 
-	{
-		SDL_RendererInfo ri;
-		if (SDL_GetRendererInfo(renderer.get(), &ri) == 0) {
-			std::cout << "SDL Renderer: " << ri.name << "\n";
-		}
-	}
+	std::cout << "SDL Renderer: " << SDL_GetRendererName(renderer.get()) << "\n";
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
