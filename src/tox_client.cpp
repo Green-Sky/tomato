@@ -120,8 +120,7 @@ void ToxClient::runBootstrap(void) {
 		unsigned char key_bin[TOX_PUBLIC_KEY_SIZE];
 	};
 
-	DHT_node nodes[] =
-	{
+	DHT_node nodes[] {
 		// TODO: more/diff nodes
 		// you can change or add your own bs and tcprelays here, ideally closer to you
 
@@ -136,7 +135,7 @@ void ToxClient::runBootstrap(void) {
 		{"37.221.66.161",	33445,	"836D1DA2BE12FE0E669334E437BE3FB02806F1528C2B2782113E0910C7711409", {}}, // MD tha14
 	};
 
-	for (size_t i = 0; i < sizeof(nodes)/sizeof(DHT_node); i ++) {
+	for (size_t i = 0; i < sizeof(nodes)/sizeof(DHT_node); i++) {
 		sodium_hex2bin(
 			nodes[i].key_bin, sizeof(nodes[i].key_bin),
 			nodes[i].key_hex, sizeof(nodes[i].key_hex)-1,
