@@ -4,8 +4,7 @@
   # append '.?submodules=1' to the nix commands.
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
-    #nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
     flake-utils.url = "github:numtide/flake-utils";
     nlohmann-json = {
       url = "github:nlohmann/json/v3.11.3"; # TODO: read version from file
