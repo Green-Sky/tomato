@@ -75,6 +75,14 @@ int main(int argc, char** argv) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
+	// TODO: test android behaviour
+	float display_scale = SDL_GetWindowDisplayScale(window.get());
+	if (display_scale < 0.001f) {
+		// error?
+		display_scale = 1.f;
+	}
+	ImGui::GetStyle().ScaleAllSizes(display_scale);
+
 	Theme theme;
 	if (SDL_GetSystemTheme() == SDL_SYSTEM_THEME_LIGHT) {
 		ImGui::StyleColorsLight();
@@ -86,20 +94,60 @@ int main(int argc, char** argv) {
 	}
 
 	{
-		ImGui::GetIO().Fonts->ClearFonts();
-		ImFontConfig fontcfg;
+		auto* font_atlas = ImGui::GetIO().Fonts;
+		font_atlas->ClearFonts();
+		{
+			ImFontConfig fontcfg;
 
-		// upsampling to int looks almost ok
-		const float font_size_scale = 1.3f;
-		const float font_oversample = 4.f;
+			// upsampling to int looks almost ok
+			const float font_size_scale = 1.3f * display_scale;
+			const float font_oversample = 4.f;
 
-		// default font is pixel perfect at 13
-		fontcfg.SizePixels = 13.f * font_size_scale;
-		fontcfg.RasterizerDensity = font_oversample/font_size_scale;
-		// normally density would be set to dpi scale of the display
+			// default font is pixel perfect at 13
+			fontcfg.SizePixels = 13.f * font_size_scale;
+			fontcfg.RasterizerDensity = font_oversample/font_size_scale;
+			// normally density would be set to dpi scale of the display
 
-		ImGui::GetIO().Fonts->AddFontDefault(&fontcfg);
-		ImGui::GetIO().Fonts->Build();
+			font_atlas->AddFontDefault(&fontcfg);
+		}
+		if constexpr (false) {
+			ImFontConfig fontcfg;
+			//fontcfg.SizePixels = 16.f;
+			fontcfg.RasterizerDensity = 1.f;
+			fontcfg.OversampleH = 1;
+			fontcfg.OversampleV = 1;
+			fontcfg.PixelSnapH = true;
+
+			//ImFontGlyphRangesBuilder glyphbld;
+			//glyphbld.AddRanges(font_atlas->GetGlyphRangesDefault());
+			//glyphbld.AddRanges(font_atlas->GetGlyphRangesGreek());
+			//glyphbld.AddRanges(font_atlas->GetGlyphRangesCyrillic());
+			//glyphbld.AddRanges(font_atlas->GetGlyphRangesChineseSimplifiedCommon());
+
+			font_atlas->AddFontFromFileTTF(
+				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf",
+				20.f*display_scale,
+				&fontcfg,
+				font_atlas->GetGlyphRangesGreek()
+			);
+
+			fontcfg.MergeMode = true;
+
+			font_atlas->AddFontFromFileTTF(
+				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf",
+				20.f*display_scale,
+				&fontcfg,
+				font_atlas->GetGlyphRangesCyrillic()
+			);
+
+			font_atlas->AddFontFromFileTTF(
+				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf",
+				20.f*display_scale,
+				&fontcfg,
+				font_atlas->GetGlyphRangesChineseSimplifiedCommon()
+			);
+		}
+		font_atlas->Build();
 	}
 
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());

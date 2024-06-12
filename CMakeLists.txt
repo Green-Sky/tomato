@@ -44,7 +44,7 @@ endif()
 add_compile_definitions(ENTT_API_EXPORT)
 
 # external libs
-add_subdirectory(./external) # before increasing warn levels, sad :(
+add_subdirectory(./external EXCLUDE_FROM_ALL) # before increasing warn levels, sad :(
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 
