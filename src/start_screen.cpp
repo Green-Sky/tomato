@@ -50,6 +50,87 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		}
 	}
 
+	float display_scale = SDL_GetWindowDisplayScale(SDL_GetRenderWindow(renderer));
+	if (display_scale < 0.001f) {
+		// error?
+		display_scale = 1.f;
+	}
+
+	{
+		auto* font_atlas = ImGui::GetIO().Fonts;
+		font_atlas->ClearFonts();
+		// for now we also always merge
+		//bool has_font {false};
+
+		ImFontGlyphRangesBuilder glyphbld;
+		ImVector<ImWchar> glyph_ranges;
+		{ // build ranges
+			glyphbld.AddRanges(font_atlas->GetGlyphRangesDefault());
+			glyphbld.AddRanges(font_atlas->GetGlyphRangesGreek());
+			glyphbld.AddRanges(font_atlas->GetGlyphRangesCyrillic());
+			glyphbld.AddRanges(font_atlas->GetGlyphRangesChineseSimplifiedCommon()); // contains CJK
+			glyphbld.AddText("™"); // somehow missing
+			// popular emojies
+			glyphbld.AddText(u8"😂❤️🤣👍😭🙏😘🥰😍😊🎉😁💕🥺😅🔥☺️🤦♥️🤷🙄😆🤗😉🎂🤔👏🙂😳🥳😎👌💜😔💪✨💖👀😋😏😢👉💗😩💯🌹💞🎈💙😃😡💐😜🙈🤞😄🤤🙌🤪❣️😀💋💀👇💔😌💓🤩🙃😬😱😴🤭😐🌞😒😇🌸😈🎶✌️🎊🥵😞💚☀️🖤💰😚👑🎁💥🙋☹️😑🥴👈💩✅👋🤮😤🤢🌟❗😥🌈💛😝😫😲🖕‼️🔴🌻🤯💃👊🤬🏃😕👁️⚡☕🍀💦⭐🦋🤨🌺😹🤘🌷💝💤🤝🐰😓💘🍻😟😣🧐😠🤠😻🌙😛🤙🙊");
+
+			if (const auto sv_opt = _conf.get_string("ImGuiFonts", "atlas_extra_text"); sv_opt.has_value) {
+				glyphbld.AddText(sv_opt.s.start, sv_opt.s.start+sv_opt.s.extend);
+			}
+			glyphbld.BuildRanges(&glyph_ranges);
+		}
+
+		ImFontConfig fontcfg;
+		//fontcfg.SizePixels = 16.f*display_scale;
+		fontcfg.SizePixels = _conf.get_int("ImGuiFonts", "size").value_or(13) * display_scale;
+		fontcfg.RasterizerDensity = 1.f;
+		fontcfg.OversampleH = 2;
+		fontcfg.OversampleV = 1;
+		fontcfg.MergeMode = false;
+
+		for (const auto [font_path, should_load] : _conf.entries_bool("ImGuiFonts", "fonts")) {
+			if (!should_load) {
+				continue;
+			}
+
+			std::cout << "Font: loading '" << font_path << "'\n";
+			const auto* resulting_font = font_atlas->AddFontFromFileTTF(
+				font_path.c_str(),
+				_conf.get_int("ImGuiFonts", "size", font_path).value_or(0) * display_scale,
+				&fontcfg,
+				&(glyph_ranges[0])
+			);
+
+			if (resulting_font != nullptr) {
+				//has_font = true;
+				fontcfg.MergeMode = true;
+			} else {
+				std::cerr << "Font: failed to load '" << "path" << "' !\n";
+			}
+		}
+
+		// always append the default as a fallback (merge in)
+		{
+#if 0
+			ImFontConfig fontcfg;
+
+			// upsampling to int looks almost ok
+			//const float font_size_scale = 1.3f * display_scale;
+			const float font_size_scale = 1.0f * display_scale;
+			const float font_oversample = 4.f;
+
+			// default font is pixel perfect at 13
+			fontcfg.SizePixels = 13.f * font_size_scale;
+			fontcfg.RasterizerDensity = font_oversample/font_size_scale;
+			// normally density would be set to dpi scale of the display
+
+			fontcfg.MergeMode = has_font;
+#endif
+
+			font_atlas->AddFontDefault(&fontcfg);
+		}
+
+		font_atlas->Build();
+	}
 }
 
 Screen* StartScreen::render(float, bool&) {

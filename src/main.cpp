@@ -93,62 +93,6 @@ int main(int argc, char** argv) {
 		theme = getDefaultThemeDark();
 	}
 
-	{
-		auto* font_atlas = ImGui::GetIO().Fonts;
-		font_atlas->ClearFonts();
-		{
-			ImFontConfig fontcfg;
-
-			// upsampling to int looks almost ok
-			const float font_size_scale = 1.3f * display_scale;
-			const float font_oversample = 4.f;
-
-			// default font is pixel perfect at 13
-			fontcfg.SizePixels = 13.f * font_size_scale;
-			fontcfg.RasterizerDensity = font_oversample/font_size_scale;
-			// normally density would be set to dpi scale of the display
-
-			font_atlas->AddFontDefault(&fontcfg);
-		}
-		if constexpr (false) {
-			ImFontConfig fontcfg;
-			//fontcfg.SizePixels = 16.f;
-			fontcfg.RasterizerDensity = 1.f;
-			fontcfg.OversampleH = 1;
-			fontcfg.OversampleV = 1;
-			fontcfg.PixelSnapH = true;
-
-			//ImFontGlyphRangesBuilder glyphbld;
-			//glyphbld.AddRanges(font_atlas->GetGlyphRangesDefault());
-			//glyphbld.AddRanges(font_atlas->GetGlyphRangesGreek());
-			//glyphbld.AddRanges(font_atlas->GetGlyphRangesCyrillic());
-			//glyphbld.AddRanges(font_atlas->GetGlyphRangesChineseSimplifiedCommon());
-
-			font_atlas->AddFontFromFileTTF(
-				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf",
-				20.f*display_scale,
-				&fontcfg,
-				font_atlas->GetGlyphRangesGreek()
-			);
-
-			fontcfg.MergeMode = true;
-
-			font_atlas->AddFontFromFileTTF(
-				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf",
-				20.f*display_scale,
-				&fontcfg,
-				font_atlas->GetGlyphRangesCyrillic()
-			);
-
-			font_atlas->AddFontFromFileTTF(
-				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf",
-				20.f*display_scale,
-				&fontcfg,
-				font_atlas->GetGlyphRangesChineseSimplifiedCommon()
-			);
-		}
-		font_atlas->Build();
-	}
 
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());
 	ImGui_ImplSDLRenderer3_Init(renderer.get());

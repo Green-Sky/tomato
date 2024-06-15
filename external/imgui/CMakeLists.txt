@@ -18,6 +18,7 @@ add_library(imgui
 	imgui/misc/cpp/imgui_stdlib.cpp
 )
 
+target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)
 target_compile_features(imgui PUBLIC cxx_std_11)
 
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
