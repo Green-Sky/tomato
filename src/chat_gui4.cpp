@@ -817,6 +817,7 @@ void ChatGui4::sendFilePath(const char* file_path) {
 void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	const auto& msgtext = reg.get<Message::Components::MessageText>(e).text;
 
+#if 0
 	// TODO: set word wrap
 	ImVec2 text_size = ImGui::CalcTextSize(msgtext.c_str(), msgtext.c_str()+msgtext.size());
 	text_size.x = -FLT_MIN; // fill width (suppresses label)
@@ -849,11 +850,70 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 				}
 			}
 		}
+		if (ImGui::MenuItem("copy")) {
+			ImGui::SetClipboardText(msgtext.c_str());
+		}
 		ImGui::EndPopup();
 	}
 
 	ImGui::PopStyleColor();
 	ImGui::PopStyleVar();
+#else
+
+	ImGui::PushTextWrapPos(0.0f);
+	std::string_view msgtext_sv{msgtext};
+	size_t pos_prev {0};
+	size_t pos_next {msgtext_sv.find_first_of('\n')};
+	do {
+		const auto current_line = msgtext_sv.substr(pos_prev, pos_next - pos_prev);
+		if (current_line.front() == '>') {
+			// TODO: theming
+			ImGui::PushStyleColor(ImGuiCol_Text, {0.3f, 0.9f, 0.1f, 1.f});
+			ImGui::TextUnformatted(current_line.data(), current_line.data()+current_line.size());
+			ImGui::PopStyleColor();
+		} else {
+			ImGui::TextUnformatted(current_line.data(), current_line.data()+current_line.size());
+		}
+
+		if (pos_next != msgtext_sv.npos) {
+			pos_next += 1; // skip past
+			if (pos_next < msgtext_sv.size()) {
+				pos_prev = pos_next; // old end is new start
+				pos_next = msgtext_sv.find_first_of('\n', pos_next);
+			} else {
+				pos_prev = msgtext_sv.npos;
+				pos_next = msgtext_sv.npos;
+			}
+		} else {
+			pos_prev = msgtext_sv.npos;
+		}
+	} while (pos_prev != msgtext_sv.npos);
+
+	ImGui::PopTextWrapPos();
+
+	if (ImGui::BeginPopupContextItem("##text")) {
+		if (ImGui::MenuItem("quote")) {
+			//text_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+			if (!_text_input_buffer.empty()) {
+				_text_input_buffer += "\n";
+			}
+
+			_text_input_buffer += "> ";
+
+			for (const char c : msgtext) {
+				_text_input_buffer += c;
+
+				if (c == '\n') {
+					_text_input_buffer += "> ";
+				}
+			}
+		}
+		if (ImGui::MenuItem("copy")) {
+			ImGui::SetClipboardText(msgtext.c_str());
+		}
+		ImGui::EndPopup();
+	}
+#endif
 }
 
 void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
