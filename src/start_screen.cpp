@@ -50,6 +50,12 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		}
 	}
 
+	{ // seed tox save path
+		if (_conf.has_string("tox", "save_file_path")) {
+			_tox_profile_path = _conf.get_string("tox", "save_file_path").value();
+		}
+	}
+
 	float display_scale = SDL_GetWindowDisplayScale(SDL_GetRenderWindow(renderer));
 	if (display_scale < 0.001f) {
 		// error?
