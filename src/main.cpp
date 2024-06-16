@@ -11,7 +11,9 @@
 #include "./sys_check.hpp"
 
 #include "./start_screen.hpp"
-#include "SDL3/SDL_video.h"
+
+#include "./content/sdl_video_frame_stream2.hpp"
+#include "./content/sdl_audio_frame_stream2.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -72,6 +74,46 @@ int main(int argc, char** argv) {
 	SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_ADAPTIVE);
 
 	std::cout << "SDL Renderer: " << SDL_GetRendererName(renderer.get()) << "\n";
+
+	// optionally init audio and camera
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
+	} else if (false) {
+		SDLAudioInputDeviceDefault aidd;
+		auto* reader = aidd.aquireSubStream();
+
+		auto writer = SDLAudioOutputDeviceDefaultFactory{}.create();
+
+		for (size_t i = 0; i < 20; i++) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			auto new_frame_opt = reader->pop();
+			if (new_frame_opt.has_value()) {
+				std::cout << "audio frame was seq:" << new_frame_opt.value().seq << " sr:" << new_frame_opt.value().sample_rate << " " << (new_frame_opt.value().isS16()?"S16":"F32") << " l:" << (new_frame_opt.value().isS16()?new_frame_opt.value().getSpan<int16_t>().size:new_frame_opt.value().getSpan<float>().size) << "\n";
+				writer.push(new_frame_opt.value());
+			} else {
+				std::cout << "no audio frame\n";
+			}
+		}
+
+		aidd.releaseSubStream(reader);
+	}
+
+	if (SDL_Init(SDL_INIT_CAMERA) < 0) {
+		std::cerr << "SDL_Init CAMERA failed (" << SDL_GetError() << ")\n";
+	} else if (false) { // HACK
+		std::cerr << "CAMERA initialized\n";
+		SDLVideoCameraContent vcc;
+		auto* reader = vcc.aquireSubStream();
+		for (size_t i = 0; i < 20; i++) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			auto new_frame_opt = reader->pop();
+			if (new_frame_opt.has_value()) {
+				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns\n";
+			}
+		}
+		vcc.releaseSubStream(reader);
+	}
+	std::cout << "after sdl video stuffery\n";
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();

@@ -29,6 +29,9 @@ target_sources(tomato PUBLIC
 	./tox_client.cpp
 	./auto_dirty.hpp
 	./auto_dirty.cpp
+	./tox_private_impl.hpp
+	./tox_av.hpp
+	./tox_av.cpp
 
 	./theme.hpp
 
@@ -76,6 +79,10 @@ target_sources(tomato PUBLIC
 	./chat_gui/settings_window.hpp
 	./chat_gui/settings_window.cpp
 
+	./imgui_entt_entity_editor.hpp
+	./object_store_ui.hpp
+	./object_store_ui.cpp
+
 	./tox_ui_utils.hpp
 	./tox_ui_utils.cpp
 
@@ -87,6 +94,14 @@ target_sources(tomato PUBLIC
 
 	./chat_gui4.hpp
 	./chat_gui4.cpp
+
+	./content/content.hpp
+	./content/frame_stream2.hpp
+	./content/sdl_video_frame_stream2.hpp
+	./content/sdl_video_frame_stream2.cpp
+	./content/audio_stream.hpp
+	./content/sdl_audio_frame_stream2.hpp
+	./content/sdl_audio_frame_stream2.cpp
 )
 
 target_compile_features(tomato PUBLIC cxx_std_17)

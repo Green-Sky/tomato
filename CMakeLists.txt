@@ -24,10 +24,17 @@ option(TOMATO_ASAN "Build tomato with asan (gcc/clang/msvc)" OFF)
 if (TOMATO_ASAN)
 	if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 		if (NOT WIN32) # exclude mingw
-			#link_libraries(-fsanitize=address)
+			add_compile_options(-fsanitize=address,undefined)
 			link_libraries(-fsanitize=address,undefined)
-			#link_libraries(-fsanitize=undefined)
+
+			#add_compile_options(-fsanitize=thread)
+			#link_libraries(-fsanitize=thread)
+
 			message("II enabled ASAN")
+			if (OFF) # TODO: switch for minimal runtime in deployed scenarios
+				add_compile_options(-fsanitize-minimal-runtime)
+				link_libraries(-fsanitize-minimal-runtime)
+			endif()
 		else()
 			message("!! can not enable ASAN on this platform (gcc/clang + win)")
 		endif()

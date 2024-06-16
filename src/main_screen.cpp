@@ -21,6 +21,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
+	tav(tc.getTox()),
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
@@ -35,6 +36,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	msg_tc(mil, sdlrtu),
 	cg(conf, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
+	osui(os),
 	tuiu(tc, conf),
 	tdch(tpi)
 {
@@ -69,6 +71,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
 		g_provideInstance<ToxEventProviderI>("ToxEventProviderI", "host", &tc);
+		g_provideInstance<ToxAV>("ToxAV", "host", &tav);
 		g_provideInstance<ToxContactModel2>("ToxContactModel2", "host", &tcm);
 
 		// TODO: pm?
@@ -248,6 +251,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
+	osui.render();
 	tuiu.render(); // render
 	tdch.render(); // render
 
