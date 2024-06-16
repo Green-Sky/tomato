@@ -11,6 +11,7 @@
 #include "./sys_check.hpp"
 
 #include "./start_screen.hpp"
+#include "SDL3/SDL_video.h"
 
 #include <filesystem>
 #include <memory>
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
 
 	// more RAII
 	std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window {
-		SDL_CreateWindow("tomato", 1280, 720, SDL_WINDOW_RESIZABLE),
+		SDL_CreateWindow("tomato", 1280, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY),
 		&SDL_DestroyWindow
 	};
 
