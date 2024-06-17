@@ -11,7 +11,6 @@
 #include "./sys_check.hpp"
 
 #include "./start_screen.hpp"
-#include "SDL3/SDL_video.h"
 
 #include <filesystem>
 #include <memory>
