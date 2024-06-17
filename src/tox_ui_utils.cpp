@@ -29,6 +29,9 @@ void ToxUIUtils::render(void) {
 					if (ImGui::MenuItem("add Friend by ID")) {
 						_show_add_friend_window = true;
 					}
+					if (ImGui::MenuItem("copy own ToxID")) {
+						ImGui::SetClipboardText(_tc.toxSelfGetAddressStr().c_str());
+					}
 					if (ImGui::MenuItem("join Group by ID (ngc)")) {
 						_show_add_group_window = true;
 					}
