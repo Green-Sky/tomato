@@ -8,6 +8,8 @@
 #include "./icons/direct.hpp"
 #include "./icons/cloud.hpp"
 #include "./icons/mail.hpp"
+#include "./icons/person.hpp"
+#include "./icons/group.hpp"
 
 void renderAvatar(
 	const Theme& th,
@@ -138,6 +140,9 @@ bool renderContactBig(
 	ImGui::SameLine(0.f, same_line_spacing);
 	ImGui::BeginGroup();
 	{
+		const bool is_group = c.all_of<Contact::Components::TagGroup>();
+		const bool is_private = c.all_of<Contact::Components::TagPrivate>();
+
 		{ // line 1
 			if (line_height == 1 && cstate != nullptr) {
 				// icon pos
@@ -145,23 +150,52 @@ bool renderContactBig(
 				p0.y += ImGui::GetStyle().FramePadding.y;
 				ImVec2 p1_o = {img_y, img_y}; // img_y is 1 line_height in this case
 
-				const ImU32 col_back = ImGui::GetColorU32(th.getColor<ThemeCol_Contact::icon_backdrop>());
-				if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
-					drawIconDirect(
-						p0,
-						p1_o,
-						ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_direct>()),
-						col_back
-					);
-				} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
-					drawIconCloud(
-						p0,
-						p1_o,
-						ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_cloud>()),
-						col_back
-					);
-				}
 				ImGui::Dummy(p1_o);
+				if (ImGui::IsItemVisible()) {
+					const ImU32 col_back = ImGui::GetColorU32(th.getColor<ThemeCol_Contact::icon_backdrop>());
+					if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
+						drawIconDirect(
+							p0,
+							p1_o,
+							ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_direct>()),
+							col_back
+						);
+					} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
+						drawIconCloud(
+							p0,
+							p1_o,
+							ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_cloud>()),
+							col_back
+						);
+					}
+				}
+				ImGui::SameLine(0.f, same_line_spacing);
+			}
+
+			// we dont render group/private in 1lh mode
+			if (line_height != 1 && (is_private || is_group)) {
+				// icon pos
+				auto p0 = ImGui::GetCursorScreenPos();
+				p0.y += ImGui::GetStyle().FramePadding.y;
+				const float box_hight = TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2;
+				ImVec2 p1_o = {box_hight, box_hight};
+
+				ImGui::Dummy(p1_o);
+				if (ImGui::IsItemVisible()) {
+					if (is_private) {
+						drawIconPerson(
+							p0,
+							p1_o,
+							ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_Text))
+						);
+					} else if (is_group) {
+						drawIconGroup(
+							p0,
+							p1_o,
+							ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_Text))
+						);
+					}
+				}
 				ImGui::SameLine(0.f, same_line_spacing);
 			}
 
@@ -201,23 +235,25 @@ bool renderContactBig(
 					const float box_hight = TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2;
 					ImVec2 p1_o = {box_hight, box_hight};
 
-					const ImU32 col_back = ImGui::GetColorU32(th.getColor<ThemeCol_Contact::icon_backdrop>());
-					if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
-						drawIconDirect(
-							p0,
-							p1_o,
-							ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_direct>()),
-							col_back
-						);
-					} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
-						drawIconCloud(
-							p0,
-							p1_o,
-							ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_cloud>()),
-							col_back
-						);
-					}
 					ImGui::Dummy(p1_o);
+					if (ImGui::IsItemVisible()) {
+						const ImU32 col_back = ImGui::GetColorU32(th.getColor<ThemeCol_Contact::icon_backdrop>());
+						if (cstate->state == Contact::Components::ConnectionState::direct) { // direct icon
+							drawIconDirect(
+								p0,
+								p1_o,
+								ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_direct>()),
+								col_back
+							);
+						} else if (cstate->state == Contact::Components::ConnectionState::cloud) { // cloud icon
+							drawIconCloud(
+								p0,
+								p1_o,
+								ImGui::GetColorU32(th.getColor<ThemeCol_Contact::avatar_online_cloud>()),
+								col_back
+							);
+						}
+					}
 					ImGui::SameLine(0.f, same_line_spacing);
 				}
 

@@ -73,6 +73,10 @@ target_sources(tomato PUBLIC
 	./chat_gui/icons/cloud.cpp
 	./chat_gui/icons/mail.hpp
 	./chat_gui/icons/mail.cpp
+	./chat_gui/icons/person.hpp
+	./chat_gui/icons/person.cpp
+	./chat_gui/icons/group.hpp
+	./chat_gui/icons/group.cpp
 	./chat_gui/contact_list.hpp
 	./chat_gui/contact_list.cpp
 	./chat_gui/file_selector.hpp
