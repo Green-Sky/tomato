@@ -63,6 +63,28 @@ static constexpr float lerp(float a, float b, float t) {
 	return a + t * (b - a);
 }
 
+// returns divider and places static suffix string into suffix_out
+static int64_t sizeToHumanReadable(int64_t file_size, const char*& suffix_out) {
+	static const char* suffix_arr[] {
+		"bytes",
+		"KiB",
+		"MiB",
+		"GiB",
+		"TiB",
+		"PiB",
+		// TODO: fix upper bound behaviour
+	};
+	int64_t divider = 1024;
+	for (size_t ij = 0; ij < std::size(suffix_arr); ij++, divider *= 1024) {
+		if (file_size < divider) {
+			suffix_out = suffix_arr[ij];
+			break;
+		}
+	}
+
+	return (divider > 1024) ? (divider / 1024) : 1;
+}
+
 static std::string file_path_url_escape(const std::string&& value) {
 	std::ostringstream escaped;
 
@@ -1055,8 +1077,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	for (size_t i = 0; i < file_list.size(); i++) {
 		ImGui::PushID(i);
 
+		const char* byte_suffix = "???";
+		int64_t byte_divider = sizeToHumanReadable(file_list[i].file_size, byte_suffix);
+
 		// TODO: selectable text widget ?
-		ImGui::Bullet(); ImGui::Text("%s (%lu)", file_list[i].file_name.c_str(), file_list[i].file_size);
+		ImGui::Bullet(); ImGui::Text("%s (%.2lf %s)", file_list[i].file_name.c_str(), double(file_list[i].file_size)/byte_divider, byte_suffix);
+		if (ImGui::BeginItemTooltip()) {
+			ImGui::Text("TODO: file path?");
+			ImGui::Text("%lu bytes", file_list[i].file_size);
+			ImGui::EndTooltip();
+		}
 
 		if (reg.all_of<Message::Components::Transfer::FileInfoLocal>(e)) {
 			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
