@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 void FileSelector::reset(void) {
 	_is_valid = [](auto){ return true; };
