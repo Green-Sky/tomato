@@ -1,6 +1,7 @@
 #include "./contact_list.hpp"
 
 #include <solanaceae/contact/components.hpp>
+#include <solanaceae/util/utils.hpp>
 
 #include <imgui/imgui.h>
 //#include <imgui/imgui_internal.h>
@@ -96,6 +97,11 @@ bool renderContactBig(
 
 	const auto* cstate = c.try_get<Contact::Components::ConnectionState>();
 	if (ImGui::BeginItemTooltip()) {
+		if (c.all_of<Contact::Components::ID>()) {
+			const auto id_str = bin2hex(c.get<Contact::Components::ID>().data);
+			ImGui::Text("ID: %s", id_str.c_str());
+		}
+
 		if (cstate != nullptr) {
 			ImGui::Text("Connection state: %s",
 				(cstate->state == Contact::Components::ConnectionState::disconnected)
