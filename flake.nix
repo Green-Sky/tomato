@@ -80,6 +80,9 @@
         cmakeFlags = [
           "-DTOMATO_ASAN=OFF"
           "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+          #"-DCMAKE_BUILD_TYPE=Debug"
+          #"-DCMAKE_C_FLAGS:STRING=-Og"
+          #"-DCMAKE_CXX_FLAGS:STRING=-Og"
 
           "-DFETCHCONTENT_SOURCE_DIR_JSON=${nlohmann-json}" # we care about the version
           # TODO: use package instead
