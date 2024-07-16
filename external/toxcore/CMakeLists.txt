@@ -1,21 +1,27 @@
-cmake_minimum_required(VERSION 3.9...3.16 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.13...3.16 FATAL_ERROR)
 
 set(EXPERIMENTAL_API ON CACHE BOOL "" FORCE)
 set(UNITTEST OFF CACHE BOOL "" FORCE)
 set(BOOTSTRAP_DAEMON OFF CACHE BOOL "" FORCE)
+#set(BUILD_TOXAV ON CACHE BOOL "")
 
 add_subdirectory(./c-toxcore)
 
-# the ideal case
-#add_library(toxcore ALIAS toxcore_static)
+#message("II BUILD_TOXAV: ${BUILD_TOXAV}")
 
 # the sad case
 add_library(toxcore INTERFACE)
 
 if (TARGET toxcore_static)
 	target_link_libraries(toxcore INTERFACE toxcore_static)
+
+	# the ideal case
+	#add_library(toxcore ALIAS toxcore_static)
 else()
 	target_link_libraries(toxcore INTERFACE toxcore_shared)
+
+	# the ideal case
+	#add_library(toxcore ALIAS toxcore_shared)
 endif()
 
 # HACK: "install" api headers into binary dir
@@ -64,3 +70,8 @@ elseif(sodium_FOUND)
 else()
 	message(SEND_ERROR "missing libsodium")
 endif()
+
+#if(BUILD_TOXAV)
+#    set_target_properties(toxcore PROPERTIES TOX_HAS_TOXAV ON)
+#endif()
+

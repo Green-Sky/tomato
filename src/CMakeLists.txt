@@ -86,6 +86,10 @@ target_sources(tomato PUBLIC
 	./chat_gui/settings_window.hpp
 	./chat_gui/settings_window.cpp
 
+	./imgui_entt_entity_editor.hpp
+	./object_store_ui.hpp
+	./object_store_ui.cpp
+
 	./tox_ui_utils.hpp
 	./tox_ui_utils.cpp
 

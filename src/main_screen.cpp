@@ -35,6 +35,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	msg_tc(mil, sdlrtu),
 	cg(conf, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
+	osui(os),
 	tuiu(tc, conf),
 	tdch(tpi)
 {
@@ -248,6 +249,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
+	osui.render();
 	tuiu.render(); // render
 	tdch.render(); // render
 
