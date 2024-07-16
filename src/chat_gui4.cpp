@@ -886,6 +886,7 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	std::string_view msgtext_sv{msgtext};
 	size_t pos_prev {0};
 	size_t pos_next {msgtext_sv.find_first_of('\n')};
+	ImGui::BeginGroup();
 	do {
 		const auto current_line = msgtext_sv.substr(pos_prev, pos_next - pos_prev);
 		if (current_line.front() == '>') {
@@ -911,6 +912,7 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 		}
 	} while (pos_prev != msgtext_sv.npos);
 
+	ImGui::EndGroup();
 	ImGui::PopTextWrapPos();
 
 	if (ImGui::BeginPopupContextItem("##text")) {
