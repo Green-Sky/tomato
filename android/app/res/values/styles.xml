@@ -3,7 +3,7 @@
     <!-- Base application theme. -->
 	<!-- <style name="AppTheme" parent="android:Theme.Holo.Light.DarkActionBar"> -->
 	<!--<style name="AppTheme" parent="android:Theme.AppCompat">-->
-	<style name="AppTheme" parent="android:Theme">
+	<style name="AppTheme" parent="android:Theme.NoTitleBar">
         <!-- Customize your theme here. -->
     </style>
 
