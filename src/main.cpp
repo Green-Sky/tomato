@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
 #ifdef __ANDROID__
 	// change current working dir to internal storage
-	std::filesystem::current_path(SDL_AndroidGetInternalStoragePath());
+	std::filesystem::current_path(SDL_GetAndroidInternalStoragePath());
 #endif
 
 	// setup hints
