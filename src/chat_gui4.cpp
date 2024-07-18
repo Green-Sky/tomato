@@ -753,10 +753,9 @@ float ChatGui4::render(float time_delta) {
 						if (!ImGui::IsItemFocused()) {
 							ImGui::SetKeyboardFocusHere(-1);
 						}
-						char* primary_text = SDL_GetPrimarySelectionText();
+						const char* primary_text = SDL_GetPrimarySelectionText();
 						if (primary_text != nullptr) {
 							ImGui::GetIO().AddInputCharactersUTF8(primary_text);
-							SDL_free(primary_text);
 						}
 					}
 				}
