@@ -89,7 +89,7 @@ ImageLoaderSDLImage::ImageResult ImageLoaderSDLImage::loadFromMemoryRGBA(const u
 	}
 
 	for (int i = 0; i < anim->count; i++) {
-		SDL_Surface* conv_surf = SDL_ConvertSurfaceFormat(anim->frames[i], SDL_PIXELFORMAT_RGBA32);
+		SDL_Surface* conv_surf = SDL_ConvertSurface(anim->frames[i], SDL_PIXELFORMAT_RGBA32);
 		if (conv_surf == nullptr) {
 			return res;
 		}

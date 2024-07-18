@@ -14,16 +14,16 @@ SDLRendererTextureUploader::SDLRendererTextureUploader(SDL_Renderer* renderer_) 
 uint64_t SDLRendererTextureUploader::uploadRGBA(const uint8_t* data, uint32_t width, uint32_t height, Filter filter, Access access) {
 	// TODO: test if pitch is 4 or 4*width
 	SDL_Surface* surf = SDL_CreateSurfaceFrom(
-		(void*)data,
 		width, height,
-		4*width,
-		SDL_PIXELFORMAT_RGBA32 // auto big/little
+		SDL_PIXELFORMAT_RGBA32, // auto big/little
+		(void*)data,
+		4*width
 	);
 	assert(surf); // TODO: add error reporting
 
 	SDL_Texture* tex = SDL_CreateTexture(
 		renderer,
-		surf->format->format,
+		surf->format,
 		access == Access::STREAMING ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC,
 		surf->w, surf->h
 	);

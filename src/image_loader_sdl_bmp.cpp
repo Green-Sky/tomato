@@ -33,7 +33,7 @@ ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8
 		return res;
 	}
 
-	SDL_Surface* conv_surf = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32);
+	SDL_Surface* conv_surf = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGBA32);
 	SDL_DestroySurface(surf);
 	if (conv_surf == nullptr) {
 		return res;
