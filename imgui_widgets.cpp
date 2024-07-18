@@ -1,4 +1,4 @@
-// dear imgui, v1.90.8
+// dear imgui, v1.91.0 WIP
 // (widgets code)
 
 /*
@@ -422,6 +422,7 @@ void ImGui::BulletTextV(const char* fmt, va_list args)
 // - RadioButton()
 // - ProgressBar()
 // - Bullet()
+// - Hyperlink()
 //-------------------------------------------------------------------------
 
 // The ButtonBehavior() function is key to many interactions and used by many/most widgets.
@@ -834,17 +835,15 @@ bool ImGui::CloseButton(ImGuiID id, const ImVec2& pos)
         return pressed;
 
     // Render
-    // FIXME: Clarify this mess
-    ImU32 col = GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
-    ImVec2 center = bb.GetCenter();
+    ImU32 bg_col = GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
     if (hovered)
-        window->DrawList->AddCircleFilled(center, ImMax(2.0f, g.FontSize * 0.5f + 1.0f), col);
-
-    float cross_extent = g.FontSize * 0.5f * 0.7071f - 1.0f;
+        window->DrawList->AddRectFilled(bb.Min, bb.Max, bg_col);
+    RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_Compact);
     ImU32 cross_col = GetColorU32(ImGuiCol_Text);
-    center -= ImVec2(0.5f, 0.5f);
-    window->DrawList->AddLine(center + ImVec2(+cross_extent, +cross_extent), center + ImVec2(-cross_extent, -cross_extent), cross_col, 1.0f);
-    window->DrawList->AddLine(center + ImVec2(+cross_extent, -cross_extent), center + ImVec2(-cross_extent, +cross_extent), cross_col, 1.0f);
+    ImVec2 cross_center = bb.GetCenter() - ImVec2(0.5f, 0.5f);
+    float cross_extent = g.FontSize * 0.5f * 0.7071f - 1.0f;
+    window->DrawList->AddLine(cross_center + ImVec2(+cross_extent, +cross_extent), cross_center + ImVec2(-cross_extent, -cross_extent), cross_col, 1.0f);
+    window->DrawList->AddLine(cross_center + ImVec2(+cross_extent, -cross_extent), cross_center + ImVec2(-cross_extent, +cross_extent), cross_col, 1.0f);
 
     return pressed;
 }
@@ -865,7 +864,8 @@ bool ImGui::CollapseButton(ImGuiID id, const ImVec2& pos)
     ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
     ImU32 text_col = GetColorU32(ImGuiCol_Text);
     if (hovered || held)
-        window->DrawList->AddCircleFilled(bb.GetCenter() + ImVec2(0.0f, -0.5f), g.FontSize * 0.5f + 1.0f, bg_col);
+        window->DrawList->AddRectFilled(bb.Min, bb.Max, bg_col);
+    RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_Compact);
     RenderArrow(window->DrawList, bb.Min, text_col, window->Collapsed ? ImGuiDir_Right : ImGuiDir_Down, 1.0f);
 
     // Switch to moving the window after mouse is moved beyond the initial drag threshold
@@ -1132,7 +1132,8 @@ bool ImGui::Checkbox(const char* label, bool* v)
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect total_bb(pos, pos + ImVec2(square_sz + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f), label_size.y + style.FramePadding.y * 2.0f));
     ItemSize(total_bb, style.FramePadding.y);
-    if (!ItemAdd(total_bb, id))
+    const bool is_visible = ItemAdd(total_bb, id);
+    if (!is_visible)
     {
         IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | ImGuiItemStatusFlags_Checkable | (*v ? ImGuiItemStatusFlags_Checked : 0));
         return false;
@@ -1147,27 +1148,29 @@ bool ImGui::Checkbox(const char* label, bool* v)
     }
 
     const ImRect check_bb(pos, pos + ImVec2(square_sz, square_sz));
-    RenderNavHighlight(total_bb, id);
-    RenderFrame(check_bb.Min, check_bb.Max, GetColorU32((held && hovered) ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg), true, style.FrameRounding);
-    ImU32 check_col = GetColorU32(ImGuiCol_CheckMark);
-    bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
-    if (mixed_value)
+    const bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+    if (is_visible)
     {
-        // Undocumented tristate/mixed/indeterminate checkbox (#2644)
-        // This may seem awkwardly designed because the aim is to make ImGuiItemFlags_MixedValue supported by all widgets (not just checkbox)
-        ImVec2 pad(ImMax(1.0f, IM_TRUNC(square_sz / 3.6f)), ImMax(1.0f, IM_TRUNC(square_sz / 3.6f)));
-        window->DrawList->AddRectFilled(check_bb.Min + pad, check_bb.Max - pad, check_col, style.FrameRounding);
+        RenderNavHighlight(total_bb, id);
+        RenderFrame(check_bb.Min, check_bb.Max, GetColorU32((held && hovered) ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg), true, style.FrameRounding);
+        ImU32 check_col = GetColorU32(ImGuiCol_CheckMark);
+        if (mixed_value)
+        {
+            // Undocumented tristate/mixed/indeterminate checkbox (#2644)
+            // This may seem awkwardly designed because the aim is to make ImGuiItemFlags_MixedValue supported by all widgets (not just checkbox)
+            ImVec2 pad(ImMax(1.0f, IM_TRUNC(square_sz / 3.6f)), ImMax(1.0f, IM_TRUNC(square_sz / 3.6f)));
+            window->DrawList->AddRectFilled(check_bb.Min + pad, check_bb.Max - pad, check_col, style.FrameRounding);
+        }
+        else if (*v)
+        {
+            const float pad = ImMax(1.0f, IM_TRUNC(square_sz / 6.0f));
+            RenderCheckMark(window->DrawList, check_bb.Min + ImVec2(pad, pad), check_col, square_sz - pad * 2.0f);
+        }
     }
-    else if (*v)
-    {
-        const float pad = ImMax(1.0f, IM_TRUNC(square_sz / 6.0f));
-        RenderCheckMark(window->DrawList, check_bb.Min + ImVec2(pad, pad), check_col, square_sz - pad * 2.0f);
-    }
-
-    ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + style.FramePadding.y);
+    const ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + style.FramePadding.y);
     if (g.LogEnabled)
         LogRenderedText(&label_pos, mixed_value ? "[~]" : *v ? "[x]" : "[ ]");
-    if (label_size.x > 0.0f)
+    if (is_visible && label_size.x > 0.0f)
         RenderText(label_pos, label);
 
     IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | ImGuiItemStatusFlags_Checkable | (*v ? ImGuiItemStatusFlags_Checked : 0));
@@ -1365,6 +1368,76 @@ void ImGui::Bullet()
     ImU32 text_col = GetColorU32(ImGuiCol_Text);
     RenderBullet(window->DrawList, bb.Min + ImVec2(style.FramePadding.x + g.FontSize * 0.5f, line_height * 0.5f), text_col);
     SameLine(0, style.FramePadding.x * 2.0f);
+}
+
+// This is provided as a convenience for being an often requested feature.
+// FIXME-STYLE: we delayed adding as there is a larger plan to revamp the styling system.
+// Because of this we currently don't provide many styling options for this widget
+// (e.g. hovered/active colors are automatically inferred from a single color).
+bool ImGui::TextLink(const char* label)
+{
+    ImGuiWindow* window = GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    ImGuiContext& g = *GImGui;
+    const ImGuiID id = window->GetID(label);
+    const char* label_end = FindRenderedTextEnd(label);
+
+    ImVec2 pos = window->DC.CursorPos;
+    ImVec2 size = CalcTextSize(label, label_end, true);
+    ImRect bb(pos, pos + size);
+    ItemSize(size, 0.0f);
+    if (!ItemAdd(bb, id))
+        return false;
+
+    bool hovered, held;
+    bool pressed = ButtonBehavior(bb, id, &hovered, &held);
+    RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_None);
+
+    ImVec4 text_colf = g.Style.Colors[ImGuiCol_TextLink];
+    ImVec4 line_colf = text_colf;
+    {
+        // FIXME-STYLE: Read comments above. This widget is NOT written in the same style as some earlier widgets,
+        // as we are currently experimenting/planning a different styling system.
+        float h, s, v;
+        ColorConvertRGBtoHSV(text_colf.x, text_colf.y, text_colf.z, h, s, v);
+        if (held || hovered)
+        {
+            v = ImSaturate(v + (held ? 0.4f : 0.3f));
+            h = ImFmod(h + 0.02f, 1.0f);
+        }
+        ColorConvertHSVtoRGB(h, s, v, text_colf.x, text_colf.y, text_colf.z);
+        v = ImSaturate(v - 0.20f);
+        ColorConvertHSVtoRGB(h, s, v, line_colf.x, line_colf.y, line_colf.z);
+    }
+
+    float line_y = bb.Max.y + ImFloor(g.Font->Descent * g.FontScale * 0.20f);
+    window->DrawList->AddLine(ImVec2(bb.Min.x, line_y), ImVec2(bb.Max.x, line_y), GetColorU32(line_colf)); // FIXME-TEXT: Underline mode.
+
+    PushStyleColor(ImGuiCol_Text, GetColorU32(text_colf));
+    RenderText(bb.Min, label, label_end);
+    PopStyleColor();
+
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
+    return pressed;
+}
+
+void ImGui::TextLinkOpenURL(const char* label, const char* url)
+{
+    ImGuiContext& g = *GImGui;
+    if (url == NULL)
+        url = label;
+    if (TextLink(label))
+        if (g.IO.PlatformOpenInShellFn != NULL)
+            g.IO.PlatformOpenInShellFn(&g, url);
+    SetItemTooltip("%s", url); // It is more reassuring for user to _always_ display URL when we same as label
+    if (BeginPopupContextItem())
+    {
+        if (MenuItem(LocalizeGetMsg(ImGuiLocKey_CopyLink)))
+            SetClipboardText(url);
+        EndPopup();
+    }
 }
 
 //-------------------------------------------------------------------------
@@ -2057,6 +2130,7 @@ static const ImGuiDataTypeInfo GDataTypeInfo[] =
 #endif
     { sizeof(float),            "float", "%.3f","%f"    },  // ImGuiDataType_Float (float are promoted to double in va_arg)
     { sizeof(double),           "double","%f",  "%lf"   },  // ImGuiDataType_Double
+    { sizeof(bool),             "bool", "%d",   "%d"    },  // ImGuiDataType_Bool
 };
 IM_STATIC_ASSERT(IM_ARRAYSIZE(GDataTypeInfo) == ImGuiDataType_COUNT);
 
@@ -2305,12 +2379,13 @@ bool ImGui::DragBehaviorT(ImGuiDataType data_type, TYPE* v, float v_speed, const
 {
     ImGuiContext& g = *GImGui;
     const ImGuiAxis axis = (flags & ImGuiSliderFlags_Vertical) ? ImGuiAxis_Y : ImGuiAxis_X;
-    const bool is_clamped = (v_min < v_max);
+    const bool is_bounded = (v_min < v_max);
+    const bool is_wrapped = is_bounded && (flags & ImGuiSliderFlags_WrapAround);
     const bool is_logarithmic = (flags & ImGuiSliderFlags_Logarithmic) != 0;
     const bool is_floating_point = (data_type == ImGuiDataType_Float) || (data_type == ImGuiDataType_Double);
 
     // Default tweak speed
-    if (v_speed == 0.0f && is_clamped && (v_max - v_min < FLT_MAX))
+    if (v_speed == 0.0f && is_bounded && (v_max - v_min < FLT_MAX))
         v_speed = (float)((v_max - v_min) * g.DragSpeedDefaultRatio);
 
     // Inputs accumulates into g.DragCurrentAccum, which is flushed into the current value as soon as it makes a difference with our precision settings
@@ -2344,8 +2419,8 @@ bool ImGui::DragBehaviorT(ImGuiDataType data_type, TYPE* v, float v_speed, const
 
     // Clear current value on activation
     // Avoid altering values and clamping when we are _already_ past the limits and heading in the same direction, so e.g. if range is 0..255, current value is 300 and we are pushing to the right side, keep the 300.
-    bool is_just_activated = g.ActiveIdIsJustActivated;
-    bool is_already_past_limits_and_pushing_outward = is_clamped && ((*v >= v_max && adjust_delta > 0.0f) || (*v <= v_min && adjust_delta < 0.0f));
+    const bool is_just_activated = g.ActiveIdIsJustActivated;
+    const bool is_already_past_limits_and_pushing_outward = is_bounded && !is_wrapped && ((*v >= v_max && adjust_delta > 0.0f) || (*v <= v_min && adjust_delta < 0.0f));
     if (is_just_activated || is_already_past_limits_and_pushing_outward)
     {
         g.DragCurrentAccum = 0.0f;
@@ -2403,13 +2478,24 @@ bool ImGui::DragBehaviorT(ImGuiDataType data_type, TYPE* v, float v_speed, const
     if (v_cur == (TYPE)-0)
         v_cur = (TYPE)0;
 
-    // Clamp values (+ handle overflow/wrap-around for integer types)
-    if (*v != v_cur && is_clamped)
+    if (*v != v_cur && is_bounded)
     {
-        if (v_cur < v_min || (v_cur > *v && adjust_delta < 0.0f && !is_floating_point))
-            v_cur = v_min;
-        if (v_cur > v_max || (v_cur < *v && adjust_delta > 0.0f && !is_floating_point))
-            v_cur = v_max;
+        if (is_wrapped)
+        {
+            // Wrap values
+            if (v_cur < v_min)
+                v_cur += v_max - v_min + (is_floating_point ? 0 : 1);
+            if (v_cur > v_max)
+                v_cur -= v_max - v_min + (is_floating_point ? 0 : 1);
+        }
+        else
+        {
+            // Clamp values + handle overflow/wrap-around for integer types.
+            if (v_cur < v_min || (v_cur > *v && adjust_delta < 0.0f && !is_floating_point))
+                v_cur = v_min;
+            if (v_cur > v_max || (v_cur < *v && adjust_delta > 0.0f && !is_floating_point))
+                v_cur = v_max;
+        }
     }
 
     // Apply result
@@ -2422,7 +2508,7 @@ bool ImGui::DragBehaviorT(ImGuiDataType data_type, TYPE* v, float v_speed, const
 bool ImGui::DragBehavior(ImGuiID id, ImGuiDataType data_type, void* p_v, float v_speed, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags)
 {
     // Read imgui.cpp "API BREAKING CHANGES" section for 1.78 if you hit this assert.
-    IM_ASSERT((flags == 1 || (flags & ImGuiSliderFlags_InvalidMask_) == 0) && "Invalid ImGuiSliderFlags flags! Has the 'float power' argument been mistakenly cast to flags? Call function with ImGuiSliderFlags_Logarithmic flags instead.");
+    IM_ASSERT((flags == 1 || (flags & ImGuiSliderFlags_InvalidMask_) == 0) && "Invalid ImGuiSliderFlags flags! Has the legacy 'float power' argument been mistakenly cast to flags? Call function with ImGuiSliderFlags_Logarithmic flags instead.");
 
     ImGuiContext& g = *GImGui;
     if (g.ActiveId == id)
@@ -3015,7 +3101,8 @@ bool ImGui::SliderBehaviorT(const ImRect& bb, ImGuiID id, ImGuiDataType data_typ
 bool ImGui::SliderBehavior(const ImRect& bb, ImGuiID id, ImGuiDataType data_type, void* p_v, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags, ImRect* out_grab_bb)
 {
     // Read imgui.cpp "API BREAKING CHANGES" section for 1.78 if you hit this assert.
-    IM_ASSERT((flags == 1 || (flags & ImGuiSliderFlags_InvalidMask_) == 0) && "Invalid ImGuiSliderFlags flag!  Has the 'float power' argument been mistakenly cast to flags? Call function with ImGuiSliderFlags_Logarithmic flags instead.");
+    IM_ASSERT((flags == 1 || (flags & ImGuiSliderFlags_InvalidMask_) == 0) && "Invalid ImGuiSliderFlags flags! Has the legacy 'float power' argument been mistakenly cast to flags? Call function with ImGuiSliderFlags_Logarithmic flags instead.");
+    IM_ASSERT((flags & ImGuiSliderFlags_WrapAround) == 0); // Not supported by SliderXXX(), only by DragXXX()
 
     switch (data_type)
     {
@@ -3762,7 +3849,7 @@ namespace ImStb
 
 static int     STB_TEXTEDIT_STRINGLEN(const ImGuiInputTextState* obj)                             { return obj->CurLenW; }
 static ImWchar STB_TEXTEDIT_GETCHAR(const ImGuiInputTextState* obj, int idx)                      { IM_ASSERT(idx <= obj->CurLenW); return obj->TextW[idx]; }
-static float   STB_TEXTEDIT_GETWIDTH(ImGuiInputTextState* obj, int line_start_idx, int char_idx)  { ImWchar c = obj->TextW[line_start_idx + char_idx]; if (c == '\n') return IMSTB_TEXTEDIT_GETWIDTH_NEWLINE; ImGuiContext& g = *obj->Ctx; return g.Font->GetCharAdvance(c) * (g.FontSize / g.Font->FontSize); }
+static float   STB_TEXTEDIT_GETWIDTH(ImGuiInputTextState* obj, int line_start_idx, int char_idx)  { ImWchar c = obj->TextW[line_start_idx + char_idx]; if (c == '\n') return IMSTB_TEXTEDIT_GETWIDTH_NEWLINE; ImGuiContext& g = *obj->Ctx; return g.Font->GetCharAdvance(c) * g.FontScale; }
 static int     STB_TEXTEDIT_KEYTOTEXT(int key)                                                    { return key >= 0x200000 ? 0 : key; }
 static ImWchar STB_TEXTEDIT_NEWLINE = '\n';
 static void    STB_TEXTEDIT_LAYOUTROW(StbTexteditRow* r, ImGuiInputTextState* obj, int line_start_idx)
@@ -4196,7 +4283,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
         PushStyleVar(ImGuiStyleVar_ChildRounding, style.FrameRounding);
         PushStyleVar(ImGuiStyleVar_ChildBorderSize, style.FrameBorderSize);
         PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0)); // Ensure no clip rect so mouse hover can reach FramePadding edges
-        bool child_visible = BeginChildEx(label, id, frame_bb.GetSize(), true, ImGuiWindowFlags_NoMove);
+        bool child_visible = BeginChildEx(label, id, frame_bb.GetSize(), ImGuiChildFlags_Border, ImGuiWindowFlags_NoMove);
         g.NavActivateId = backup_activate_id;
         PopStyleVar(3);
         PopStyleColor();
@@ -6108,7 +6195,8 @@ bool ImGui::TreeNode(const char* label)
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
         return false;
-    return TreeNodeBehavior(window->GetID(label), 0, label, NULL);
+    ImGuiID id = window->GetID(label);
+    return TreeNodeBehavior(id, id, ImGuiTreeNodeFlags_None, label, NULL);
 }
 
 bool ImGui::TreeNodeV(const char* str_id, const char* fmt, va_list args)
@@ -6126,8 +6214,8 @@ bool ImGui::TreeNodeEx(const char* label, ImGuiTreeNodeFlags flags)
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
         return false;
-
-    return TreeNodeBehavior(window->GetID(label), flags, label, NULL);
+    ImGuiID id = window->GetID(label);
+    return TreeNodeBehavior(id, id, flags, label, NULL);
 }
 
 bool ImGui::TreeNodeEx(const char* str_id, ImGuiTreeNodeFlags flags, const char* fmt, ...)
@@ -6154,9 +6242,10 @@ bool ImGui::TreeNodeExV(const char* str_id, ImGuiTreeNodeFlags flags, const char
     if (window->SkipItems)
         return false;
 
+    ImGuiID id = window->GetID(str_id);
     const char* label, *label_end;
     ImFormatStringToTempBufferV(&label, &label_end, fmt, args);
-    return TreeNodeBehavior(window->GetID(str_id), flags, label, label_end);
+    return TreeNodeBehavior(id, id, flags, label, label_end);
 }
 
 bool ImGui::TreeNodeExV(const void* ptr_id, ImGuiTreeNodeFlags flags, const char* fmt, va_list args)
@@ -6165,24 +6254,32 @@ bool ImGui::TreeNodeExV(const void* ptr_id, ImGuiTreeNodeFlags flags, const char
     if (window->SkipItems)
         return false;
 
+    ImGuiID id = window->GetID(ptr_id);
     const char* label, *label_end;
     ImFormatStringToTempBufferV(&label, &label_end, fmt, args);
-    return TreeNodeBehavior(window->GetID(ptr_id), flags, label, label_end);
+    return TreeNodeBehavior(id, id, flags, label, label_end);
 }
 
-void ImGui::TreeNodeSetOpen(ImGuiID id, bool open)
+bool ImGui::TreeNodeGetOpen(ImGuiID storage_id)
 {
     ImGuiContext& g = *GImGui;
     ImGuiStorage* storage = g.CurrentWindow->DC.StateStorage;
-    storage->SetInt(id, open ? 1 : 0);
+    return storage->GetInt(storage_id, 0) != 0;
 }
 
-bool ImGui::TreeNodeUpdateNextOpen(ImGuiID id, ImGuiTreeNodeFlags flags)
+void ImGui::TreeNodeSetOpen(ImGuiID storage_id, bool open)
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiStorage* storage = g.CurrentWindow->DC.StateStorage;
+    storage->SetInt(storage_id, open ? 1 : 0);
+}
+
+bool ImGui::TreeNodeUpdateNextOpen(ImGuiID storage_id, ImGuiTreeNodeFlags flags)
 {
     if (flags & ImGuiTreeNodeFlags_Leaf)
         return true;
 
-    // We only write to the tree storage if the user clicks (or explicitly use the SetNextItemOpen function)
+    // We only write to the tree storage if the user clicks, or explicitly use the SetNextItemOpen function
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
     ImGuiStorage* storage = window->DC.StateStorage;
@@ -6193,16 +6290,16 @@ bool ImGui::TreeNodeUpdateNextOpen(ImGuiID id, ImGuiTreeNodeFlags flags)
         if (g.NextItemData.OpenCond & ImGuiCond_Always)
         {
             is_open = g.NextItemData.OpenVal;
-            TreeNodeSetOpen(id, is_open);
+            TreeNodeSetOpen(storage_id, is_open);
         }
         else
         {
             // We treat ImGuiCond_Once and ImGuiCond_FirstUseEver the same because tree node state are not saved persistently.
-            const int stored_value = storage->GetInt(id, -1);
+            const int stored_value = storage->GetInt(storage_id, -1);
             if (stored_value == -1)
             {
                 is_open = g.NextItemData.OpenVal;
-                TreeNodeSetOpen(id, is_open);
+                TreeNodeSetOpen(storage_id, is_open);
             }
             else
             {
@@ -6212,7 +6309,7 @@ bool ImGui::TreeNodeUpdateNextOpen(ImGuiID id, ImGuiTreeNodeFlags flags)
     }
     else
     {
-        is_open = storage->GetInt(id, (flags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
+        is_open = storage->GetInt(storage_id, (flags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
     }
 
     // When logging is enabled, we automatically expand tree nodes (but *NOT* collapsing headers.. seems like sensible behavior).
@@ -6223,7 +6320,24 @@ bool ImGui::TreeNodeUpdateNextOpen(ImGuiID id, ImGuiTreeNodeFlags flags)
     return is_open;
 }
 
-bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* label, const char* label_end)
+// Store ImGuiTreeNodeStackData for just submitted node.
+// Currently only supports 32 level deep and we are fine with (1 << Depth) overflowing into a zero, easy to increase.
+static void TreeNodeStoreStackData(ImGuiTreeNodeFlags flags)
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+
+    g.TreeNodeStack.resize(g.TreeNodeStack.Size + 1);
+    ImGuiTreeNodeStackData* tree_node_data = &g.TreeNodeStack.back();
+    tree_node_data->ID = g.LastItemData.ID;
+    tree_node_data->TreeFlags = flags;
+    tree_node_data->InFlags = g.LastItemData.InFlags;
+    tree_node_data->NavRect = g.LastItemData.NavRect;
+    window->DC.TreeHasStackDataDepthMask |= (1 << window->DC.TreeDepth);
+}
+
+// When using public API, currently 'id == storage_id' is always true, but we separate the values to facilitate advanced user code doing storage queries outside of UI loop.
+bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiID storage_id, ImGuiTreeNodeFlags flags, const char* label, const char* label_end)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -6276,7 +6390,7 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
     }
 
     // Compute open and multi-select states before ItemAdd() as it clear NextItem data.
-    bool is_open = TreeNodeUpdateNextOpen(id, flags);
+    bool is_open = TreeNodeUpdateNextOpen(storage_id, flags);
     bool item_add = ItemAdd(interact_bb, id);
     g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_HasDisplayRect;
     g.LastItemData.DisplayRect = frame_bb;
@@ -6291,21 +6405,19 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
     // Store data for the current depth to allow returning to this node from any child item.
     // For this purpose we essentially compare if g.NavIdIsAlive went from 0 to 1 between TreeNode() and TreePop().
     // It will become tempting to enable ImGuiTreeNodeFlags_NavLeftJumpsBackHere by default or move it to ImGuiStyle.
-    // Currently only supports 32 level deep and we are fine with (1 << Depth) overflowing into a zero, easy to increase.
-    if (is_open && !g.NavIdIsAlive && (flags & ImGuiTreeNodeFlags_NavLeftJumpsBackHere) && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
-        if (g.NavMoveDir == ImGuiDir_Left && g.NavWindow == window && NavMoveRequestButNoResultYet())
-        {
-            g.NavTreeNodeStack.resize(g.NavTreeNodeStack.Size + 1);
-            ImGuiNavTreeNodeData* nav_tree_node_data = &g.NavTreeNodeStack.back();
-            nav_tree_node_data->ID = id;
-            nav_tree_node_data->InFlags = g.LastItemData.InFlags;
-            nav_tree_node_data->NavRect = g.LastItemData.NavRect;
-            window->DC.TreeJumpToParentOnPopMask |= (1 << window->DC.TreeDepth);
-        }
+    bool store_tree_node_stack_data = false;
+    if (!(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
+    {
+        if ((flags & ImGuiTreeNodeFlags_NavLeftJumpsBackHere) && is_open && !g.NavIdIsAlive)
+            if (g.NavMoveDir == ImGuiDir_Left && g.NavWindow == window && NavMoveRequestButNoResultYet())
+                store_tree_node_stack_data = true;
+    }
 
     const bool is_leaf = (flags & ImGuiTreeNodeFlags_Leaf) != 0;
     if (!item_add)
     {
+        if (store_tree_node_stack_data && is_open)
+            TreeNodeStoreStackData(flags); // Call before TreePushOverrideID()
         if (is_open && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
             TreePushOverrideID(id);
         IMGUI_TEST_ENGINE_ITEM_INFO(g.LastItemData.ID, label, g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
@@ -6390,7 +6502,7 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
         if (toggled)
         {
             is_open = !is_open;
-            window->DC.StateStorage->SetInt(id, is_open);
+            window->DC.StateStorage->SetInt(storage_id, is_open);
             g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_ToggledOpen;
         }
     }
@@ -6416,7 +6528,6 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
             text_pos.x -= text_offset_x -padding.x;
         if (flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton)
             frame_bb.Max.x -= g.FontSize + style.FramePadding.x;
-
         if (g.LogEnabled)
             LogSetNextTextDecoration("###", "###");
     }
@@ -6446,8 +6557,11 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
     else
         RenderText(text_pos, label, label_end, false);
 
+    if (store_tree_node_stack_data && is_open)
+        TreeNodeStoreStackData(flags); // Call before TreePushOverrideID()
     if (is_open && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
-        TreePushOverrideID(id);
+        TreePushOverrideID(id); // Could use TreePush(label) but this avoid computing twice
+
     IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
     return is_open;
 }
@@ -6486,16 +6600,19 @@ void ImGui::TreePop()
     window->DC.TreeDepth--;
     ImU32 tree_depth_mask = (1 << window->DC.TreeDepth);
 
-    // Handle Left arrow to move to parent tree node (when ImGuiTreeNodeFlags_NavLeftJumpsBackHere is enabled)
-    if (window->DC.TreeJumpToParentOnPopMask & tree_depth_mask) // Only set during request
+    if (window->DC.TreeHasStackDataDepthMask & tree_depth_mask) // Only set during request
     {
-        ImGuiNavTreeNodeData* nav_tree_node_data = &g.NavTreeNodeStack.back();
-        IM_ASSERT(nav_tree_node_data->ID == window->IDStack.back());
-        if (g.NavIdIsAlive && g.NavMoveDir == ImGuiDir_Left && g.NavWindow == window && NavMoveRequestButNoResultYet())
-            NavMoveRequestResolveWithPastTreeNode(&g.NavMoveResultLocal, nav_tree_node_data);
-        g.NavTreeNodeStack.pop_back();
+        ImGuiTreeNodeStackData* data = &g.TreeNodeStack.back();
+        IM_ASSERT(data->ID == window->IDStack.back());
+        if (data->TreeFlags & ImGuiTreeNodeFlags_NavLeftJumpsBackHere)
+        {
+            // Handle Left arrow to move to parent tree node (when ImGuiTreeNodeFlags_NavLeftJumpsBackHere is enabled)
+            if (g.NavIdIsAlive && g.NavMoveDir == ImGuiDir_Left && g.NavWindow == window && NavMoveRequestButNoResultYet())
+                NavMoveRequestResolveWithPastTreeNode(&g.NavMoveResultLocal, data);
+        }
+        g.TreeNodeStack.pop_back();
+        window->DC.TreeHasStackDataDepthMask &= ~tree_depth_mask;
     }
-    window->DC.TreeJumpToParentOnPopMask &= tree_depth_mask - 1;
 
     IM_ASSERT(window->IDStack.Size > 1); // There should always be 1 element in the IDStack (pushed during window creation). If this triggers you called TreePop/PopID too much.
     PopID();
@@ -6526,8 +6643,8 @@ bool ImGui::CollapsingHeader(const char* label, ImGuiTreeNodeFlags flags)
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
         return false;
-
-    return TreeNodeBehavior(window->GetID(label), flags | ImGuiTreeNodeFlags_CollapsingHeader, label);
+    ImGuiID id = window->GetID(label);
+    return TreeNodeBehavior(id, id, flags | ImGuiTreeNodeFlags_CollapsingHeader, label);
 }
 
 // p_visible == NULL                        : regular collapsing header
@@ -6547,7 +6664,7 @@ bool ImGui::CollapsingHeader(const char* label, bool* p_visible, ImGuiTreeNodeFl
     flags |= ImGuiTreeNodeFlags_CollapsingHeader;
     if (p_visible)
         flags |= ImGuiTreeNodeFlags_AllowOverlap | (ImGuiTreeNodeFlags)ImGuiTreeNodeFlags_ClipLabelForTrailingButton;
-    bool is_open = TreeNodeBehavior(id, flags, label);
+    bool is_open = TreeNodeBehavior(id, id, flags, label);
     if (p_visible != NULL)
     {
         // Create a small overlapping close button
@@ -6631,7 +6748,7 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
     }
 
     const bool disabled_item = (flags & ImGuiSelectableFlags_Disabled) != 0;
-    const bool item_add = ItemAdd(bb, id, NULL, disabled_item ? ImGuiItemFlags_Disabled : ImGuiItemFlags_None);
+    const bool item_add = ItemAdd(bb, id, NULL, disabled_item ? (ImGuiItemFlags)ImGuiItemFlags_Disabled : ImGuiItemFlags_None);
     if (span_all_columns)
     {
         window->ClipRect.Min.x = backup_clip_rect_min_x;
@@ -6717,7 +6834,7 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
     RenderTextClipped(text_min, text_max, label, NULL, &label_size, style.SelectableTextAlign, &bb);
 
     // Automatically close popups
-    if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_DontClosePopups) && !(g.LastItemData.InFlags & ImGuiItemFlags_SelectableDontClosePopup))
+    if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_NoAutoClosePopups) && (g.LastItemData.InFlags & ImGuiItemFlags_AutoClosePopups))
         CloseCurrentPopup();
 
     if (disabled_item && !disabled_global)
@@ -7545,7 +7662,7 @@ bool ImGui::BeginMenuEx(const char* label, const char* icon, bool enabled)
     bool pressed;
 
     // We use ImGuiSelectableFlags_NoSetKeyOwner to allow down on one menu item, move, up on another.
-    const ImGuiSelectableFlags selectable_flags = ImGuiSelectableFlags_NoHoldingActiveID | ImGuiSelectableFlags_NoSetKeyOwner | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_DontClosePopups;
+    const ImGuiSelectableFlags selectable_flags = ImGuiSelectableFlags_NoHoldingActiveID | ImGuiSelectableFlags_NoSetKeyOwner | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_NoAutoClosePopups;
     if (window->DC.LayoutType == ImGuiLayoutType_Horizontal)
     {
         // Menu inside an horizontal menu bar
@@ -7921,7 +8038,9 @@ bool    ImGui::BeginTabBar(const char* str_id, ImGuiTabBarFlags flags)
     tab_bar->ID = id;
     tab_bar->SeparatorMinX = tab_bar->BarRect.Min.x - IM_TRUNC(window->WindowPadding.x * 0.5f);
     tab_bar->SeparatorMaxX = tab_bar->BarRect.Max.x + IM_TRUNC(window->WindowPadding.x * 0.5f);
-    return BeginTabBarEx(tab_bar, tab_bar_bb, flags | ImGuiTabBarFlags_IsFocused);
+    //if (g.NavWindow && IsWindowChildOf(g.NavWindow, window, false, false))
+    flags |= ImGuiTabBarFlags_IsFocused;
+    return BeginTabBarEx(tab_bar, tab_bar_bb, flags);
 }
 
 bool    ImGui::BeginTabBarEx(ImGuiTabBar* tab_bar, const ImRect& tab_bar_bb, ImGuiTabBarFlags flags)
@@ -7975,7 +8094,7 @@ bool    ImGui::BeginTabBarEx(ImGuiTabBar* tab_bar, const ImRect& tab_bar_bb, ImG
 
     // Draw separator
     // (it would be misleading to draw this in EndTabBar() suggesting that it may be drawn over tabs, as tab bar are appendable)
-    const ImU32 col = GetColorU32((flags & ImGuiTabBarFlags_IsFocused) ? ImGuiCol_TabActive : ImGuiCol_TabUnfocusedActive);
+    const ImU32 col = GetColorU32((flags & ImGuiTabBarFlags_IsFocused) ? ImGuiCol_TabSelected : ImGuiCol_TabDimmedSelected);
     if (g.Style.TabBarBorderSize > 0.0f)
     {
         const float y = tab_bar->BarRect.Max.y;
@@ -8835,8 +8954,16 @@ bool    ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open, 
 
     // Render tab shape
     ImDrawList* display_draw_list = window->DrawList;
-    const ImU32 tab_col = GetColorU32((held || hovered) ? ImGuiCol_TabHovered : tab_contents_visible ? (tab_bar_focused ? ImGuiCol_TabActive : ImGuiCol_TabUnfocusedActive) : (tab_bar_focused ? ImGuiCol_Tab : ImGuiCol_TabUnfocused));
+    const ImU32 tab_col = GetColorU32((held || hovered) ? ImGuiCol_TabHovered : tab_contents_visible ? (tab_bar_focused ? ImGuiCol_TabSelected : ImGuiCol_TabDimmedSelected) : (tab_bar_focused ? ImGuiCol_Tab : ImGuiCol_TabDimmed));
     TabItemBackground(display_draw_list, bb, flags, tab_col);
+    if (tab_contents_visible && (tab_bar->Flags & ImGuiTabBarFlags_DrawSelectedOverline))
+    {
+        float x_offset = IM_TRUNC(0.4f * style.TabRounding);
+        if (x_offset < 2.0f * g.CurrentDpiScale)
+            x_offset = 0.0f;
+        float y_offset = 1.0f * g.CurrentDpiScale;
+        display_draw_list->AddLine(bb.GetTL() + ImVec2(x_offset, y_offset), bb.GetTR() + ImVec2(-x_offset, y_offset), GetColorU32(tab_bar_focused ? ImGuiCol_TabSelectedOverline : ImGuiCol_TabDimmedSelectedOverline), 2.0f * g.CurrentDpiScale);
+    }
     RenderNavHighlight(bb, id);
 
     // Select with right mouse button. This is so the common idiom for context menu automatically highlight the current widget.
