@@ -20,6 +20,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(TOMATO_MAIN_SO "Build tomato as a shared object (for eg android apps)" ANDROID)
 option(TOMATO_ASAN "Build tomato with asan (gcc/clang/msvc)" OFF)
+option(TOMATO_TOX_AV "Build tomato with ToxAV" OFF)
+
+message("II TOMATO_TOX_AV: ${TOMATO_TOX_AV}")
 
 if (TOMATO_ASAN)
 	if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")

@@ -34,6 +34,10 @@
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
 
+#if TOMATO_TOX_AV
+#include "./tox_av.hpp"
+#endif
+
 #include <string>
 #include <iostream>
 #include <chrono>
@@ -58,6 +62,9 @@ struct MainScreen final : public Screen {
 	ToxClient tc;
 	ToxPrivateImpl tpi;
 	AutoDirty ad;
+#if TOMATO_TOX_AV
+	ToxAV tav;
+#endif
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
 	ToxTransferManager ttm;

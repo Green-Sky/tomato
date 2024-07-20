@@ -104,6 +104,15 @@ target_sources(tomato PUBLIC
 	./chat_gui4.cpp
 )
 
+if (TOMATO_TOX_AV)
+	target_sources(tomato PUBLIC
+		./tox_av.hpp
+		./tox_av.cpp
+	)
+
+	target_compile_definitions(tomato PUBLIC TOMATO_TOX_AV)
+endif()
+
 target_compile_features(tomato PUBLIC cxx_std_17)
 target_link_libraries(tomato PUBLIC
 	solanaceae_util

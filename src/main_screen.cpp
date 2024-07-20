@@ -21,6 +21,9 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
+#if TOMATO_TOX_AV
+	tav(tc.getTox()),
+#endif
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc),
@@ -70,6 +73,9 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 		g_provideInstance<ToxI>("ToxI", "host", &tc);
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
 		g_provideInstance<ToxEventProviderI>("ToxEventProviderI", "host", &tc);
+#if TOMATO_TOX_AV
+		g_provideInstance<ToxAV>("ToxAV", "host", &tav);
+#endif
 		g_provideInstance<ToxContactModel2>("ToxContactModel2", "host", &tcm);
 
 		// TODO: pm?
