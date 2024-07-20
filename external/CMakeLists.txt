@@ -5,6 +5,7 @@ add_subdirectory(./entt)
 add_subdirectory(./json)
 
 add_subdirectory(./solanaceae_util)
+add_subdirectory(./solanaceae_object_store)
 add_subdirectory(./solanaceae_contact)
 add_subdirectory(./solanaceae_message3)
 add_subdirectory(./solanaceae_message_serializer)
@@ -14,8 +15,6 @@ add_subdirectory(./solanaceae_plugin)
 add_subdirectory(./toxcore)
 add_subdirectory(./solanaceae_toxcore)
 add_subdirectory(./solanaceae_tox)
-
-add_subdirectory(./solanaceae_object_store)
 
 add_subdirectory(./sdl)
 add_subdirectory(./imgui)
