@@ -31,5 +31,9 @@ class MediaMetaInfoLoader : public RegistryMessageModelEventI {
 	protected: // rmm
 		bool onEvent(const Message::Events::MessageConstruct& e) override;
 		bool onEvent(const Message::Events::MessageUpdated& e) override;
+	
+	//protected: // os
+	//    bool onEvent(const ObjectStore::Events::ObjectConstruct& e) override;
+	//    bool onEvent(const ObjectStore::Events::ObjectUpdate& e) override;
 };
 
