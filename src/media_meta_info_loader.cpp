@@ -37,7 +37,7 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 	}
 
 	if (!o.all_of<ObjComp::Ephemeral::Backend, ObjComp::F::SingleInfo>()) {
-		std::cerr << "MMIL error: object missing backend (?)\n";
+		std::cerr << "MMIL error: object missing backend/file info (?)\n";
 		return;
 	}
 
@@ -72,13 +72,18 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
-	auto read_data = file2->read(file_size);
+	auto read_data = file2->read(file_size, 0);
+	if (read_data.ptr == nullptr) {
+		std::cerr << "MMIL error: reading from file2 returned nullptr\n";
+		return;
+	}
+
 	if (read_data.size != file_size) {
 		std::cerr << "MMIL error: reading from file2 size missmatch, should be " << file_size << ", is " << read_data.size << "\n";
 		return;
 	}
 
-	bool could_load {false};
+	//bool could_load {false};
 	// try all loaders after another
 	for (auto& il : _image_loaders) {
 		// TODO: impl callback based load
@@ -89,21 +94,21 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 
 		m.emplace<Message::Components::FrameDims>(res.width, res.height);
 
-		could_load = true;
+		//could_load = true;
 
 		std::cout << "MMIL: loaded image file o:" << /*file_path*/ entt::to_integral(o.entity()) << "\n";
 
 		_rmm.throwEventUpdate(m);
-		break;
+		return;
 	}
 
-	if (!could_load) {
+	//if (!could_load) {
 		m.emplace<Message::Components::TagNotImage>();
 
 		std::cout << "MMIL: loading failed image info o:" << /*file_path*/ entt::to_integral(o.entity()) << "\n";
 
 		_rmm.throwEventUpdate(m);
-	}
+	//}
 }
 
 MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModel& rmm) : _rmm(rmm) {

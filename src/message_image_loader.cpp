@@ -85,7 +85,12 @@ std::optional<TextureEntry> MessageImageLoader::load(TextureUploaderI& tu, Messa
 		return std::nullopt;
 	}
 
-	auto read_data = file2->read(file_size);
+	auto read_data = file2->read(file_size, 0);
+	if (read_data.ptr == nullptr) {
+		std::cerr << "MMIL error: reading from file2 returned nullptr\n";
+		return std::nullopt;
+	}
+
 	if (read_data.size != file_size) {
 		std::cerr << "MIL error: reading from file2 size missmatch, should be " << file_size << ", is " << read_data.size << "\n";
 		return std::nullopt;
