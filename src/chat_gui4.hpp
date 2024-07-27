@@ -1,5 +1,6 @@
 #pragma once
 
+#include <solanaceae/object_store/fwd.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/util/config_model.hpp>
 
@@ -25,6 +26,7 @@ using MessageTextureCache = TextureCache<void*, Message3Handle, MessageImageLoad
 
 class ChatGui4 {
 	ConfigModelI& _conf;
+	ObjectStore2& _os;
 	RegistryMessageModel& _rmm;
 	Contact3Registry& _cr;
 
@@ -57,6 +59,7 @@ class ChatGui4 {
 	public:
 		ChatGui4(
 			ConfigModelI& conf,
+			ObjectStore2& os,
 			RegistryMessageModel& rmm,
 			Contact3Registry& cr,
 			TextureUploaderI& tu,

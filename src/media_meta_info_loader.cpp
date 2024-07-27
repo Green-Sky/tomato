@@ -13,6 +13,7 @@
 
 #include <solanaceae/file/file2.hpp>
 
+#include <limits>
 #include <iostream>
 
 void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
@@ -21,7 +22,7 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 	}
 
 	// move to obj
-	if (m.any_of<Message::Components::TagNotImage, Message::Components::FrameDims>()) {
+	if (m.any_of<Message::Components::TagNotImage>()) {
 		return;
 	}
 
@@ -30,6 +31,10 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 	const auto& o = m.get<Message::Components::MessageFileObject>().o;
+
+	if (o.any_of<ObjComp::F::FrameDims>()) {
+		return;
+	}
 
 	if (!static_cast<bool>(o)) {
 		std::cerr << "MMIL error: invalid object in file message\n";
@@ -83,7 +88,6 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
-	//bool could_load {false};
 	// try all loaders after another
 	for (auto& il : _image_loaders) {
 		// TODO: impl callback based load
@@ -92,9 +96,10 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 			continue;
 		}
 
-		m.emplace<Message::Components::FrameDims>(res.width, res.height);
-
-		//could_load = true;
+		o.emplace<ObjComp::F::FrameDims>(
+			static_cast<uint16_t>(std::min<uint32_t>(res.width, std::numeric_limits<uint16_t>::max())),
+			static_cast<uint16_t>(std::min<uint32_t>(res.height, std::numeric_limits<uint16_t>::max()))
+		);
 
 		std::cout << "MMIL: loaded image file o:" << /*file_path*/ entt::to_integral(o.entity()) << "\n";
 
@@ -102,13 +107,13 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
-	//if (!could_load) {
-		m.emplace<Message::Components::TagNotImage>();
+	m.emplace<Message::Components::TagNotImage>();
 
-		std::cout << "MMIL: loading failed image info o:" << /*file_path*/ entt::to_integral(o.entity()) << "\n";
+	std::cout << "MMIL: loading failed image info o:" << /*file_path*/ entt::to_integral(o.entity()) << "\n";
 
-		_rmm.throwEventUpdate(m);
-	//}
+	// TODO: update object too
+	// recursion
+	_rmm.throwEventUpdate(m);
 }
 
 MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModel& rmm) : _rmm(rmm) {

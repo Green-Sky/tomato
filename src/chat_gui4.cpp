@@ -1,7 +1,10 @@
 #include "./chat_gui4.hpp"
 
+#include <solanaceae/object_store/object_store.hpp>
+
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/components.hpp>
+#include <solanaceae/object_store/meta_components_file.hpp>
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/util/utils.hpp>
 
@@ -191,13 +194,14 @@ void ChatGui4::setClipboardData(std::vector<std::string> mime_types, std::shared
 
 ChatGui4::ChatGui4(
 	ConfigModelI& conf,
+	ObjectStore2& os,
 	RegistryMessageModel& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu,
 	ContactTextureCache& contact_tc,
 	MessageTextureCache& msg_tc,
 	Theme& theme
-) : _conf(conf), _rmm(rmm), _cr(cr), _contact_tc(contact_tc), _msg_tc(msg_tc), _theme(theme), _sip(tu) {
+) : _conf(conf), _os(os), _rmm(rmm), _cr(cr), _contact_tc(contact_tc), _msg_tc(msg_tc), _theme(theme), _sip(tu) {
 }
 
 ChatGui4::~ChatGui4(void) {
@@ -511,7 +515,7 @@ float ChatGui4::render(float time_delta) {
 							ImGui::TableNextColumn();
 							if (msg_reg.all_of<Message::Components::MessageText>(e)) {
 								renderMessageBodyText(msg_reg, e);
-							} else if (msg_reg.any_of<Message::Components::Transfer::FileInfo>(e)) { // add more comps?
+							} else if (msg_reg.any_of<Message::Components::MessageFileObject>(e)) {
 								renderMessageBodyFile(msg_reg, e);
 							} else {
 								ImGui::TextDisabled("---");
@@ -952,6 +956,10 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		return;
 	}
 
+	auto o = reg.get<Message::Components::MessageFileObject>(e).o;
+
+	ImGui::BeginGroup();
+
 #if 0
 	if (msg_reg.all_of<Components::TransferState>(e)) {
 		switch (msg_reg.get<Components::TransferState>(e).state) {
@@ -965,16 +973,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	}
 #endif
 	// TODO: better way to display state
-	if (reg.all_of<Message::Components::Transfer::TagPaused>(e)) {
+	if (o.all_of<ObjComp::Ephemeral::File::TagTransferPaused>()) {
 		ImGui::TextUnformatted("paused");
-	} else if (reg.all_of<Message::Components::Transfer::TagReceiving, Message::Components::Transfer::TagHaveAll>(e)) {
-		ImGui::TextUnformatted("done");
+	//} else if (reg.all_of<Message::Components::Transfer::TagReceiving, Message::Components::Transfer::TagHaveAll>(e)) {
+	//    ImGui::TextUnformatted("done");
 	} else {
 		// TODO: missing other states
 		ImGui::TextUnformatted("running");
 	}
 
-	if (reg.all_of<Message::Components::Transfer::TagHaveAll, Message::Components::Transfer::FileInfoLocal>(e)) {
+	if (o.all_of<ObjComp::F::TagLocalHaveAll, ObjComp::F::SingleInfoLocal>()) {
 		// hack lul
 		ImGui::SameLine();
 		if (ImGui::SmallButton("forward")) {
@@ -990,12 +998,15 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				// TODO: check for contact capability
 
 				if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
-				//if (renderContactListContactSmall(c, false)) {
 					//_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
-					const auto& fil = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
-					for (const auto& path : fil.file_list) {
-						_rmm.sendFilePath(c, std::filesystem::path{path}.filename().generic_u8string(), path);
-					}
+					//const auto& fil = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
+					//for (const auto& path : fil.file_list) {
+						//_rmm.sendFilePath(c, std::filesystem::path{path}.filename().generic_u8string(), path);
+					//}
+
+					// TODO: use object interface instead
+					const auto& path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
+					_rmm.sendFilePath(c, std::filesystem::path{path}.filename().generic_u8string(), path);
 				}
 			}
 			ImGui::EndPopup();
@@ -1005,11 +1016,12 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// if in offered state
 	// paused, never started
 	if (
-		reg.all_of<Message::Components::Transfer::TagReceiving>(e) &&
-		reg.all_of<Message::Components::Transfer::TagPaused>(e) &&
+		!o.all_of<ObjComp::F::TagLocalHaveAll>() &&
+		//reg.all_of<Message::Components::Transfer::TagReceiving>(e) &&
+		o.all_of<ObjComp::Ephemeral::File::TagTransferPaused>() &&
 		// TODO: how does restarting a broken/incomplete transfer look like?
-		!reg.all_of<Message::Components::Transfer::FileInfoLocal>(e) &&
-		!reg.all_of<Message::Components::Transfer::ActionAccept>(e)
+		!o.all_of<ObjComp::F::SingleInfoLocal>() &&
+		!o.all_of<ObjComp::Ephemeral::File::ActionTransferAccept>()
 	) {
 		if (ImGui::Button("save to")) {
 			_fss.requestFile(
@@ -1018,11 +1030,13 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 					path.remove_filename();
 					return std::filesystem::is_directory(path);
 				},
-				[this, &reg, e](const auto& path) {
-					if (reg.valid(e)) { // still valid
+				[this, o](const auto& path) {
+					if (static_cast<bool>(o)) { // still valid
 						// TODO: trim file?
-						reg.emplace<Message::Components::Transfer::ActionAccept>(e, path.string());
-						_rmm.throwEventUpdate(reg, e);
+						o.emplace<ObjComp::Ephemeral::File::ActionTransferAccept>(path.generic_u8string());
+						//_rmm.throwEventUpdate(reg, e);
+						// TODO: block recursion
+						_os.throwEventUpdate(o);
 					}
 				},
 				[](){}
@@ -1030,97 +1044,75 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		}
 	}
 
-	// down progress
-	if (reg.all_of<Message::Components::Transfer::TagReceiving>(e)) {
-		ImGui::TextUnformatted("down");
-		if (reg.all_of<Message::Components::Transfer::BytesReceived>(e)) {
-			ImGui::SameLine();
+	// hacky
+	const auto* fts = o.try_get<ObjComp::Ephemeral::File::TransferStats>();
+	if (fts != nullptr && o.any_of<ObjComp::F::SingleInfo, ObjComp::F::CollectionInfo>()) {
+		const auto total_size =
+			o.all_of<ObjComp::F::SingleInfo>() ?
+				o.get<ObjComp::F::SingleInfo>().file_size :
+				o.get<ObjComp::F::CollectionInfo>().total_size
+			;
 
-			float fraction = float(reg.get<Message::Components::Transfer::BytesReceived>(e).total) / reg.get<Message::Components::Transfer::FileInfo>(e).total_size;
+		uint64_t total {0u};
+		float rate {0.f};
+		if (o.all_of<ObjComp::F::TagLocalHaveAll>() && fts->total_down <= 0) {
+			// if have all AND no dl -> show upload progress
+			ImGui::TextUnformatted("  up");
+			total = fts->total_up;
+			rate = fts->rate_up;
+		} else {
+			// else show download progress
+			ImGui::TextUnformatted("down");
+			total = fts->total_down;
+			rate = fts->rate_down;
+		}
+		ImGui::SameLine();
 
-			char overlay_buf[32];
+		float fraction = float(total) / total_size;
+
+		char overlay_buf[32];
+		if (rate > 0.000001f) {
+			const char* byte_suffix = "???";
+			int64_t byte_divider = sizeToHumanReadable(rate, byte_suffix);
+			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s", fraction * 100 + 0.01f, rate/byte_divider, byte_suffix);
+		} else {
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
-
-			ImGui::ProgressBar(
-				fraction,
-				{-FLT_MIN, TEXT_BASE_HEIGHT},
-				overlay_buf
-			);
-			// TODO: numbers
 		}
+
+		ImGui::ProgressBar(
+			fraction,
+			{-FLT_MIN, TEXT_BASE_HEIGHT},
+			overlay_buf
+		);
+	} else {
+		// infinite scrolling progressbar fallback
+		ImGui::TextUnformatted("  ??");
+		ImGui::SameLine();
+		ImGui::ProgressBar(
+			-0.333f * ImGui::GetTime(),
+			{-FLT_MIN, TEXT_BASE_HEIGHT},
+			"?%"
+		);
 	}
 
-	// (can be both)
-	// up progess
-	if (reg.all_of<Message::Components::Transfer::TagSending>(e)) {
-		ImGui::TextUnformatted("  up");
-		if (reg.all_of<Message::Components::Transfer::BytesSent>(e)) {
-			ImGui::SameLine();
+	if (!o.all_of<ObjComp::F::TagLocalHaveAll>() && o.all_of<ObjComp::F::LocalHaveBitset>()) {
+		// texture based on have bitset
+		// TODO: missing have chunks/chunksize to get the correct size
 
-			float fraction = float(reg.get<Message::Components::Transfer::BytesSent>(e).total) / reg.get<Message::Components::Transfer::FileInfo>(e).total_size;
-
-			char overlay_buf[32];
-			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
-
-			ImGui::ProgressBar(
-				fraction,
-				{-FLT_MIN, TEXT_BASE_HEIGHT},
-				overlay_buf
-			);
-			// TODO: numbers
-		}
+		//const auto& bitest = o.get<ObjComp::F::LocalHaveBitset>().have;
+		// generate 1bit sdlsurface zerocopy using bitset.data() and bitset.size_bytes()
+		// optionally scale down filtered (would copy)
+		// update texture? in cache?
 	}
 
-	const auto file_list = reg.get<Message::Components::Transfer::FileInfo>(e).file_list;
-
-	// if has local, display save base path?
-
-	for (size_t i = 0; i < file_list.size(); i++) {
-		ImGui::PushID(i);
-
-		const char* byte_suffix = "???";
-		int64_t byte_divider = sizeToHumanReadable(file_list[i].file_size, byte_suffix);
-
-		// TODO: selectable text widget ?
-		ImGui::Bullet(); ImGui::Text("%s (%.2lf %s)", file_list[i].file_name.c_str(), double(file_list[i].file_size)/byte_divider, byte_suffix);
-		if (ImGui::BeginItemTooltip()) {
-			ImGui::Text("TODO: file path?");
-			ImGui::Text("%lu bytes", file_list[i].file_size);
-			ImGui::EndTooltip();
-		}
-
-		if (reg.all_of<Message::Components::Transfer::FileInfoLocal>(e)) {
-			const auto& local_info = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
-			if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
-				if (ImGui::MenuItem("open")) {
-					const std::string url {file_path_to_file_url(local_info.file_list.at(i))};
-					std::cout << "opening file '" << url << "'\n";
-					SDL_OpenURL(url.c_str());
-				}
-				if (ImGui::MenuItem("copy file")) {
-					const std::string url {file_path_to_file_url(local_info.file_list.at(i))};
-					//ImGui::SetClipboardText(url.c_str());
-					setClipboardData({"text/uri-list", "text/x-moz-url"}, std::make_shared<std::vector<uint8_t>>(url.begin(), url.end()));
-				}
-				if (ImGui::MenuItem("copy filepath")) {
-					const auto file_path = std::filesystem::canonical(local_info.file_list.at(i)).u8string(); //TODO: use generic over native?
-					ImGui::SetClipboardText(file_path.c_str());
-				}
-				ImGui::EndPopup();
-			}
-		}
-
-		ImGui::PopID();
-	}
-
-	if (reg.all_of<Message::Components::FrameDims>(e)) {
-		const auto& frame_dims = reg.get<Message::Components::FrameDims>(e);
+	if (o.all_of<ObjComp::F::FrameDims>()) {
+		const auto& frame_dims = o.get<ObjComp::F::FrameDims>();
 
 		// TODO: config
 		const auto max_inline_height = 10*TEXT_BASE_HEIGHT;
 
-		float height = frame_dims.height;
-		float width = frame_dims.width;
+		float width = frame_dims.w;
+		float height = frame_dims.h;
 
 		if (height > max_inline_height) {
 			const float scale = max_inline_height / height;
@@ -1129,13 +1121,10 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		}
 
 		ImVec2 orig_curser_pos = ImGui::GetCursorPos();
-		ImGui::Dummy(ImVec2{width, height});
-
 		// deploy dummy of framedim size and check visibility
-		bool image_preview_visible = ImGui::IsItemVisible();
-
-
-		if (image_preview_visible && file_list.size() == 1 && reg.all_of<Message::Components::Transfer::FileInfoLocal>(e)) {
+		// +2 for border
+		ImGui::Dummy(ImVec2{width+2, height+2});
+		if (ImGui::IsItemVisible() && o.all_of<ObjComp::F::TagLocalHaveAll, ObjComp::F::SingleInfo, ObjComp::Ephemeral::Backend>()) {
 			ImGui::SetCursorPos(orig_curser_pos); // reset for actual img
 
 			auto [id, img_width, img_height] = _msg_tc.get(Message3Handle{reg, e});
@@ -1152,14 +1141,120 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				//width *= scale;
 			//}
 
-			ImGui::Image(id, ImVec2{width, height});
+			ImGui::Image(
+				id,
+				ImVec2{width, height},
+				{0.f, 0.f}, // default
+				{1.f, 1.f}, // default
+				{1.f, 1.f, 1.f, 1.f}, // default
+				{0.5f, 0.5f, 0.5f, 0.8f} // border
+			);
 
 			// TODO: clickable to open in internal image viewer
 		}
+	} else if (o.all_of<ObjComp::F::SingleInfo>()) { // only show info if not inlined image
+		// just filename
+		const auto& si = o.get<ObjComp::F::SingleInfo>();
+		const char* byte_suffix = "???";
+		int64_t byte_divider = sizeToHumanReadable(si.file_size, byte_suffix);
+		ImGui::Text("%s (%.2lf %s)", si.file_name.c_str(), double(si.file_size)/byte_divider, byte_suffix);
+	} else if (o.all_of<ObjComp::F::CollectionInfo>()) {
+		// same old bulletpoint list
+		const auto& file_list = o.get<ObjComp::F::CollectionInfo>().file_list;
+
+		// if has local, display save base path?, do we have base save path?
+
+		for (size_t i = 0; i < file_list.size(); i++) {
+			ImGui::PushID(i);
+
+			const char* byte_suffix = "???";
+			int64_t byte_divider = sizeToHumanReadable(file_list[i].file_size, byte_suffix);
+
+			// TODO: selectable text widget ?
+			ImGui::Bullet(); ImGui::Text("%s (%.2lf %s)", file_list[i].file_name.c_str(), double(file_list[i].file_size)/byte_divider, byte_suffix);
+
+			if (o.all_of<ObjComp::F::CollectionInfoLocal>()) {
+				const auto& local_info = o.get<ObjComp::F::CollectionInfoLocal>();
+				if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
+					if (ImGui::MenuItem("open")) {
+						const std::string url {file_path_to_file_url(local_info.file_list.at(i).file_path)};
+						std::cout << "opening file '" << url << "'\n";
+						SDL_OpenURL(url.c_str());
+					}
+					if (ImGui::MenuItem("copy file")) {
+						const std::string url {file_path_to_file_url(local_info.file_list.at(i).file_path)};
+						//ImGui::SetClipboardText(url.c_str());
+						setClipboardData({"text/uri-list", "text/x-moz-url"}, std::make_shared<std::vector<uint8_t>>(url.begin(), url.end()));
+					}
+					if (ImGui::MenuItem("copy filepath")) {
+						const auto file_path = std::filesystem::canonical(local_info.file_list.at(i).file_path).u8string(); //TODO: use generic over native?
+						ImGui::SetClipboardText(file_path.c_str());
+					}
+					ImGui::EndPopup();
+				}
+			}
+
+			ImGui::PopID();
+		}
+	} else {
+		ImGui::TextDisabled("neither info available");
+	}
+
+	ImGui::EndGroup();
+
+	if (o.all_of<ObjComp::F::SingleInfoLocal>()) {
+		const auto& local_info = o.get<ObjComp::F::SingleInfoLocal>();
+		if (!local_info.file_path.empty() && ImGui::BeginPopupContextItem("##file_c")) {
+			if (ImGui::MenuItem("open")) {
+				const std::string url {file_path_to_file_url(local_info.file_path)};
+				std::cout << "opening file '" << url << "'\n";
+				SDL_OpenURL(url.c_str());
+			}
+			if (ImGui::MenuItem("copy file")) {
+				const std::string url {file_path_to_file_url(local_info.file_path)};
+				//ImGui::SetClipboardText(url.c_str());
+				setClipboardData({"text/uri-list", "text/x-moz-url"}, std::make_shared<std::vector<uint8_t>>(url.begin(), url.end()));
+			}
+			if (ImGui::MenuItem("copy filepath")) {
+				const auto file_path = std::filesystem::canonical(local_info.file_path).u8string(); //TODO: use generic over native?
+				ImGui::SetClipboardText(file_path.c_str());
+			}
+			ImGui::EndPopup();
+		}
+	}
+	// TODO: how to collections?
+
+	if (ImGui::BeginItemTooltip()) {
+		if (o.all_of<ObjComp::F::SingleInfo>()) {
+			ImGui::SeparatorText("single info");
+			const auto& si = o.get<ObjComp::F::SingleInfo>();
+			ImGui::Text("file name: '%s'", si.file_name.c_str());
+			ImGui::Text("file size: %lu Bytes", si.file_size);
+			if (o.all_of<ObjComp::F::SingleInfoLocal>()) {
+				ImGui::Text("local path: '%s'", o.get<ObjComp::F::SingleInfoLocal>().file_path.c_str());
+			}
+		} else if (o.all_of<ObjComp::F::CollectionInfo>()) {
+			ImGui::SeparatorText("collection info");
+			const auto& ci = o.get<ObjComp::F::CollectionInfo>();
+			ImGui::Text("total size: %lu Bytes", ci.total_size);
+		}
+
+		if (fts != nullptr) {
+			ImGui::SeparatorText("transfer stats");
+			ImGui::Text("rate up   : %.1f Bytes/s", fts->rate_up);
+			ImGui::Text("rate down : %.1f Bytes/s", fts->rate_down);
+			ImGui::Text("total up  : %lu Bytes", fts->total_up);
+			ImGui::Text("total down: %lu Bytes", fts->total_down);
+		}
+
+		ImGui::EndTooltip();
 	}
 }
 
 void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
+	if (reg.all_of<Message::Components::MessageFileObject>(e)) {
+		ImGui::TextDisabled("o:%u", entt::to_integral(reg.get<Message::Components::MessageFileObject>(e).o.entity()));
+	}
 	if (reg.all_of<Message::Components::Transfer::FileKind>(e)) {
 		ImGui::TextDisabled("fk:%lu", reg.get<Message::Components::Transfer::FileKind>(e).kind);
 	}
@@ -1243,31 +1338,6 @@ bool ChatGui4::renderContactListContactSmall(const Contact3 c, const bool select
 
 	return ImGui::Selectable(label.c_str(), selected);
 }
-
-#if 0
-bool ChatGui4::renderSubContactListContact(const Contact3 c, const bool selected) const {
-	std::string label;
-
-	if (_cr.all_of<Contact::Components::ConnectionState>(c)) {
-		const auto c_state = _cr.get<Contact::Components::ConnectionState>(c).state;
-		if (c_state == Contact::Components::ConnectionState::State::direct) {
-			label += "[D] ";
-		} else if (c_state == Contact::Components::ConnectionState::State::cloud) {
-			label += "[C] ";
-		} else {
-			label += "[-] ";
-		}
-	} else {
-		label += "[?] ";
-	}
-
-	label += (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>");
-	label += "###";
-	label += std::to_string(entt::to_integral(c));
-
-	return ImGui::Selectable(label.c_str(), selected);
-}
-#endif
 
 void ChatGui4::pasteFile(const char* mime_type) {
 	size_t data_size = 0;
