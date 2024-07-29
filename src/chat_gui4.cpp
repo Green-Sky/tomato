@@ -3,7 +3,8 @@
 #include <solanaceae/object_store/object_store.hpp>
 
 #include <solanaceae/message3/components.hpp>
-#include <solanaceae/tox_messages/components.hpp>
+#include <solanaceae/tox_messages/msg_components.hpp>
+#include <solanaceae/tox_messages/obj_components.hpp>
 #include <solanaceae/object_store/meta_components_file.hpp>
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/util/utils.hpp>
@@ -833,8 +834,9 @@ float ChatGui4::render(float time_delta) {
 }
 
 void ChatGui4::sendFilePath(const char* file_path) {
-	if (_selected_contact && std::filesystem::is_regular_file(file_path)) {
-		_rmm.sendFilePath(*_selected_contact, std::filesystem::path(file_path).filename().generic_u8string(), file_path);
+	const auto path = std::filesystem::path(file_path);
+	if (_selected_contact && std::filesystem::is_regular_file(path)) {
+		_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
 	}
 }
 
@@ -944,19 +946,18 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 }
 
 void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
+	auto o = reg.get<Message::Components::MessageFileObject>(e).o;
 	if (
 		!_show_chat_avatar_tf
 		&& (
-			reg.all_of<Message::Components::Transfer::FileKind>(e)
-			&& reg.get<Message::Components::Transfer::FileKind>(e).kind == 1
+			o.all_of<ObjComp::Tox::FileKind>()
+			&& o.get<ObjComp::Tox::FileKind>().kind == 1
 		)
 	) {
 		// TODO: this looks ugly
 		ImGui::TextDisabled("set avatar");
 		return;
 	}
-
-	auto o = reg.get<Message::Components::MessageFileObject>(e).o;
 
 	ImGui::BeginGroup();
 
@@ -1253,13 +1254,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 
 void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 	if (reg.all_of<Message::Components::MessageFileObject>(e)) {
-		ImGui::TextDisabled("o:%u", entt::to_integral(reg.get<Message::Components::MessageFileObject>(e).o.entity()));
-	}
-	if (reg.all_of<Message::Components::Transfer::FileKind>(e)) {
-		ImGui::TextDisabled("fk:%lu", reg.get<Message::Components::Transfer::FileKind>(e).kind);
-	}
-	if (reg.all_of<Message::Components::Transfer::ToxTransferFriend>(e)) {
-		ImGui::TextDisabled("ttf:%u", reg.get<Message::Components::Transfer::ToxTransferFriend>(e).transfer_number);
+		const auto o = reg.get<Message::Components::MessageFileObject>(e).o;
+
+		ImGui::TextDisabled("o:%u", entt::to_integral(o.entity()));
+
+		if (o.all_of<ObjComp::Tox::FileKind>()) {
+			ImGui::TextDisabled("fk:%lu", o.get<ObjComp::Tox::FileKind>().kind);
+		}
+		if (o.all_of<ObjComp::Ephemeral::ToxTransferFriend>()) {
+			ImGui::TextDisabled("ttf:%u", o.get<ObjComp::Ephemeral::ToxTransferFriend>().transfer_number);
+		}
 	}
 
 	if (reg.all_of<Message::Components::ToxGroupMessageID>(e)) {

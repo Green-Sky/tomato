@@ -26,11 +26,11 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 #endif
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
-	ttm(rmm, cr, tcm, tc, tc),
+	ttm(rmm, cr, tcm, tc, tc, os),
 	tffom(cr, rmm, tcm, tc, tc),
 	theme(theme_),
 	mmil(rmm),
-	tam(rmm, cr, conf),
+	tam(/*rmm, */ os, cr, conf),
 	sdlrtu(renderer_),
 	tal(cr),
 	contact_tc(tal, sdlrtu),

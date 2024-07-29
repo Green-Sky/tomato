@@ -1,6 +1,6 @@
 #pragma once
 
-#include <solanaceae/message3/registry_message_model.hpp>
+#include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 
 #include <string>
@@ -12,20 +12,20 @@
 struct ConfigModelI;
 struct ToxKey;
 
-class ToxAvatarManager : public RegistryMessageModelEventI {
-	RegistryMessageModel& _rmm;
+class ToxAvatarManager : public ObjectStoreEventI {
+	ObjectStore2& _os;
 	Contact3Registry& _cr;
 	ConfigModelI& _conf;
 
 	struct AcceptEntry {
-		Message3Handle m;
+		ObjectHandle m;
 		std::string file_path;
 	};
 	std::vector<AcceptEntry> _accept_queue;
 
 	public:
 		ToxAvatarManager(
-			RegistryMessageModel& rmm,
+			ObjectStore2& os,
 			Contact3Registry& cr,
 			ConfigModelI& conf
 		);
@@ -33,13 +33,14 @@ class ToxAvatarManager : public RegistryMessageModelEventI {
 		void iterate(void);
 
 	protected:
+		// TODO: become backend and work in objects instead
 		std::string getAvatarPath(const ToxKey& key) const;
 		void addAvatarFileToContact(const Contact3 c, const ToxKey& key);
 		void clearAvatarFromContact(const Contact3 c);
-		void checkMsg(Message3Handle h);
+		void checkObj(ObjectHandle o);
 
-	protected: // mm
-		bool onEvent(const Message::Events::MessageConstruct& e) override;
-		bool onEvent(const Message::Events::MessageUpdated& e) override;
+	protected: // os
+		bool onEvent(const ObjectStore::Events::ObjectConstruct& e) override;
+		bool onEvent(const ObjectStore::Events::ObjectUpdate& e) override;
 };
 
