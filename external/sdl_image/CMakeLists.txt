@@ -19,7 +19,8 @@ if (NOT TARGET SDL3_image::SDL3_image)
 		#GIT_TAG a34ccf16f961e6d5a480045eb650fc3dddb4bfaa # tip 14-05-2024
 		#GIT_TAG 2fc5310a9a2700fc856663200f94edebeb5e554a # tip 28-05-2024
 		#GIT_TAG 8eff782fa33d795c9ea1ac42dbe7e17cc9874c78 # tip 09-06-2024
-		GIT_TAG 8abc07df88cc035997e797967ac2f479b0e50981 # tip 18-07-2024
+		#GIT_TAG 8abc07df88cc035997e797967ac2f479b0e50981 # tip 18-07-2024
+		GIT_TAG 2a27018eda394a4e005cd8ba6bb3bfd0298809c7 # tip 29-07-2024
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(SDL3_image)
