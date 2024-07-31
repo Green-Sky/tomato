@@ -6,11 +6,6 @@
 
 namespace Message::Components {
 
-	struct FrameDims {
-		uint32_t width {0};
-		uint32_t height {0};
-	};
-
 	struct TagNotImage {};
 
 } // Message::Components
@@ -31,5 +26,10 @@ class MediaMetaInfoLoader : public RegistryMessageModelEventI {
 	protected: // rmm
 		bool onEvent(const Message::Events::MessageConstruct& e) override;
 		bool onEvent(const Message::Events::MessageUpdated& e) override;
+
+	//protected: // os
+	//    bool onEvent(const ObjectStore::Events::ObjectConstruct& e) override;
+	// should listen on update
+	//    bool onEvent(const ObjectStore::Events::ObjectUpdate& e) override;
 };
 

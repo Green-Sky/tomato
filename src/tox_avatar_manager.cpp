@@ -1,10 +1,13 @@
 #include "./tox_avatar_manager.hpp"
 
+// TODO: this whole thing needs a rewrite and is currently disabled
+
 #include <solanaceae/util/config_model.hpp>
 
-#include <solanaceae/message3/components.hpp>
+//#include <solanaceae/message3/components.hpp>
+#include <solanaceae/object_store/meta_components_file.hpp>
 // for comp transfer tox filekind (TODO: generalize -> content system?)
-#include <solanaceae/tox_messages/components.hpp>
+#include <solanaceae/tox_messages/obj_components.hpp>
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
@@ -26,12 +29,13 @@ namespace Components {
 };
 
 ToxAvatarManager::ToxAvatarManager(
-	RegistryMessageModel& rmm,
+	//RegistryMessageModel& rmm,
+	ObjectStore2& os,
 	Contact3Registry& cr,
 	ConfigModelI& conf
-) : _rmm(rmm), _cr(cr), _conf(conf) {
-	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
-	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
+) : /*_rmm(rmm)*/ _os(os), _cr(cr), _conf(conf) {
+	_os.subscribe(this, ObjectStore_Event::object_construct);
+	_os.subscribe(this, ObjectStore_Event::object_update);
 
 	if (!_conf.has_string("ToxAvatarManager", "save_path")) {
 		// or on linux: $HOME/.config/tox/avatars/
@@ -64,15 +68,15 @@ void ToxAvatarManager::iterate(void) {
 	// cancel queue
 
 	// accept queue
-	for (auto& [m, path] : _accept_queue) {
-		if (m.all_of<Message::Components::Transfer::ActionAccept>()) {
-			continue; // already accepted
+	for (auto& [o, path] : _accept_queue) {
+		if (o.any_of<ObjComp::Ephemeral::File::ActionTransferAccept, ObjComp::F::TagLocalHaveAll>()) {
+			continue; // already accepted / done
 		}
 
-		m.emplace<Message::Components::Transfer::ActionAccept>(path, true);
+		o.emplace<ObjComp::Ephemeral::File::ActionTransferAccept>(path, true);
 		std::cout << "TAM: auto accepted transfer\n";
 
-		_rmm.throwEventUpdate(m);
+		_os.throwEventUpdate(o);
 	}
 	_accept_queue.clear();
 
@@ -87,9 +91,6 @@ std::string ToxAvatarManager::getAvatarPath(const ToxKey& key) const {
 }
 
 void ToxAvatarManager::addAvatarFileToContact(const Contact3 c, const ToxKey& key) {
-	//const std::string_view avatar_save_path {_conf.get_string("ToxAvatarManager", "save_path").value()};
-	//const auto pub_key_string = bin2hex({key.data.cbegin(), key.data.cend()});
-	//const auto file_path = std::filesystem::path(avatar_save_path) / (pub_key_string + ".png");
 	const auto file_path = getAvatarPath(key);
 	if (std::filesystem::is_regular_file(file_path)) {
 		// avatar file png file exists
@@ -106,58 +107,62 @@ void ToxAvatarManager::clearAvatarFromContact(const Contact3 c) {
 	}
 }
 
-void ToxAvatarManager::checkMsg(Message3Handle h) {
-	if (h.any_of<
-		Message::Components::Transfer::ActionAccept,
+void ToxAvatarManager::checkObj(ObjectHandle o) {
+	if (o.any_of<
+		ObjComp::Ephemeral::File::ActionTransferAccept,
 		Components::TagAvatarImageHandled
 	>()) {
 		return; // already accepted or handled
 	}
 
-	if (!h.any_of<
-		Message::Components::Transfer::TagPaused,
-		Message::Components::Transfer::TagHaveAll
+	if (!o.any_of<
+		ObjComp::Ephemeral::File::TagTransferPaused,
+		ObjComp::F::TagLocalHaveAll
 	>()) {
 		// we only handle unaccepted or finished
 		return;
 	}
 
-	if (!h.all_of<
-		Message::Components::Transfer::TagReceiving,
-		Message::Components::Transfer::FileInfo,
-		Message::Components::Transfer::FileKind,
-		Message::Components::ContactFrom // should always be there, just making sure
+	if (!o.all_of<
+		ObjComp::Tox::TagIncomming,
+		//ObjComp::Ephemeral::Backend,
+		ObjComp::F::SingleInfo,
+		ObjComp::Tox::FileKind
+		// TODO: mesage? how do we know where a file is from??
+		//Message::Components::ContactFrom // should always be there, just making sure
 	>()) {
 		return;
 	}
 
 	// TCS-2.2.11 (big list, should have been sub points ...)
 
-	if (h.get<Message::Components::Transfer::FileKind>().kind != 1) {
+	if (o.get<ObjComp::Tox::FileKind>().kind != 1) {
 		// not an avatar
 		return;
 	}
 
-	const auto& file_info = h.get<Message::Components::Transfer::FileInfo>();
+	const auto& file_info = o.get<ObjComp::F::SingleInfo>();
 
-	const auto contact = h.get<Message::Components::ContactFrom>().c;
+	//const auto contact = h.get<Message::Components::ContactFrom>().c;
 
 	// TCS-2.2.4
-	if (file_info.total_size > 65536ul) {
+	if (file_info.file_size > 65536ul) {
 		// TODO: mark handled?
 		return; // too large
 	}
 
+#if 0 // TODO: make avatars work again !!!!!
+
 	// TCS-2.2.10
-	if (file_info.file_list.empty() || file_info.file_list.front().file_name.empty() || file_info.total_size == 0) {
+	if (file_info.file_name.empty() || file_info.file_size == 0) {
 		// reset
 		clearAvatarFromContact(contact);
 		// TODO: cancel
 		return;
 	}
 
-	if (!h.all_of<
-		Message::Components::Transfer::FileID
+	if (!o.all_of<
+		ObjComp::Tox::FileID
 	>()) {
 		return;
 	}
@@ -173,7 +178,7 @@ void ToxAvatarManager::checkMsg(Message3Handle h) {
 		return;
 	}
 
-	if (h.all_of<Message::Components::Transfer::TagHaveAll>()) {
+	if (o.all_of<ObjComp::F::TagLocalHaveAll>()) {
 		std::cout << "TAM: full avatar received\n";
 
 		if (_cr.all_of<Contact::Components::ToxFriendPersistent>(contact)) {
@@ -184,7 +189,7 @@ void ToxAvatarManager::checkMsg(Message3Handle h) {
 			std::cerr << "TAM error: cant get toxkey for contact\n";
 		}
 
-		h.emplace_or_replace<Components::TagAvatarImageHandled>();
+		o.emplace_or_replace<Components::TagAvatarImageHandled>();
 	} else {
 		// check file id for existing hash
 		if (std::filesystem::is_regular_file(file_path)) {
@@ -199,17 +204,18 @@ void ToxAvatarManager::checkMsg(Message3Handle h) {
 		std::cout << "TAM: accepted avatar ft\n";
 
 		// if not already on disk
-		_accept_queue.push_back(AcceptEntry{h, file_path});
+		_accept_queue.push_back(AcceptEntry{o, file_path});
 	}
+#endif
 }
 
-bool ToxAvatarManager::onEvent(const Message::Events::MessageConstruct& e) {
-	checkMsg(e.e);
+bool ToxAvatarManager::onEvent(const ObjectStore::Events::ObjectConstruct& e) {
+	checkObj(e.e);
 	return false;
 }
 
-bool ToxAvatarManager::onEvent(const Message::Events::MessageUpdated& e) {
-	checkMsg(e.e);
+bool ToxAvatarManager::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
+	checkObj(e.e);
 	return false;
 }
 
