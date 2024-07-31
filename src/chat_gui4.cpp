@@ -1195,6 +1195,8 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 					}
 					ImGui::EndMenu();
 				}
+			} else {
+				ImGui::TextDisabled("forward");
 			}
 
 			ImGui::Separator();
