@@ -32,13 +32,17 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 	}
 	const auto& o = m.get<Message::Components::MessageFileObject>().o;
 
+	if (!static_cast<bool>(o)) {
+		std::cerr << "MMIL error: invalid object in file message\n";
+		return;
+	}
+
 	if (o.any_of<ObjComp::F::FrameDims>()) {
 		return;
 	}
 
-	if (!static_cast<bool>(o)) {
-		std::cerr << "MMIL error: invalid object in file message\n";
-		return;
+	if (!o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+		return; // we dont have all data
 	}
 
 	if (!o.all_of<ObjComp::Ephemeral::Backend, ObjComp::F::SingleInfo>()) {

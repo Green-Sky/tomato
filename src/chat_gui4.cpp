@@ -983,37 +983,6 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		ImGui::TextUnformatted("running");
 	}
 
-	if (o.all_of<ObjComp::F::TagLocalHaveAll, ObjComp::F::SingleInfoLocal>()) {
-		// hack lul
-		ImGui::SameLine();
-		if (ImGui::SmallButton("forward")) {
-			ImGui::OpenPopup("forward to contact");
-		}
-
-		if (ImGui::BeginPopup("forward to contact")) {
-			for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
-				// filter
-				if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
-					continue;
-				}
-				// TODO: check for contact capability
-
-				if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
-					//_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
-					//const auto& fil = reg.get<Message::Components::Transfer::FileInfoLocal>(e);
-					//for (const auto& path : fil.file_list) {
-						//_rmm.sendFilePath(c, std::filesystem::path{path}.filename().generic_u8string(), path);
-					//}
-
-					// TODO: use object interface instead
-					const auto& path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
-					_rmm.sendFilePath(c, std::filesystem::path{path}.filename().generic_u8string(), path);
-				}
-			}
-			ImGui::EndPopup();
-		}
-	}
-
 	// if in offered state
 	// paused, never started
 	if (
@@ -1177,6 +1146,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			if (o.all_of<ObjComp::F::CollectionInfoLocal>()) {
 				const auto& local_info = o.get<ObjComp::F::CollectionInfoLocal>();
 				if (local_info.file_list.size() > i && ImGui::BeginPopupContextItem("##file_c")) {
+
 					if (ImGui::MenuItem("open")) {
 						const std::string url {file_path_to_file_url(local_info.file_list.at(i).file_path)};
 						std::cout << "opening file '" << url << "'\n";
@@ -1206,6 +1176,29 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	if (o.all_of<ObjComp::F::SingleInfoLocal>()) {
 		const auto& local_info = o.get<ObjComp::F::SingleInfoLocal>();
 		if (!local_info.file_path.empty() && ImGui::BeginPopupContextItem("##file_c")) {
+			if (o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+				if (ImGui::BeginMenu("forward")) {
+					for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
+						// filter
+						if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
+							continue;
+						}
+						// TODO: check for contact capability
+						// or just error popup?/noti/toast
+
+						if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
+							// TODO: try object interface first instead, then fall back to send with SingleInfoLocal
+							//_rmm.sendFileObj(c, o);
+							std::filesystem::path path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
+							_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
+						}
+					}
+					ImGui::EndMenu();
+				}
+			}
+
+			ImGui::Separator();
+
 			if (ImGui::MenuItem("open")) {
 				const std::string url {file_path_to_file_url(local_info.file_path)};
 				std::cout << "opening file '" << url << "'\n";
