@@ -1206,6 +1206,9 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				std::cout << "opening file '" << url << "'\n";
 				SDL_OpenURL(url.c_str());
 			}
+
+			ImGui::Separator();
+
 			if (ImGui::MenuItem("copy file")) {
 				const std::string url {file_path_to_file_url(local_info.file_path)};
 				//ImGui::SetClipboardText(url.c_str());
