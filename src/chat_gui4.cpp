@@ -1176,35 +1176,31 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	if (o.all_of<ObjComp::F::SingleInfoLocal>()) {
 		const auto& local_info = o.get<ObjComp::F::SingleInfoLocal>();
 		if (!local_info.file_path.empty() && ImGui::BeginPopupContextItem("##file_c")) {
-			if (o.all_of<ObjComp::F::TagLocalHaveAll>()) {
-				if (ImGui::BeginMenu("forward")) {
-					for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
-						// filter
-						if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
-							continue;
-						}
-						// TODO: check for contact capability
-						// or just error popup?/noti/toast
-
-						if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
-							// TODO: try object interface first instead, then fall back to send with SingleInfoLocal
-							//_rmm.sendFileObj(c, o);
-							std::filesystem::path path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
-							_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
-						}
-					}
-					ImGui::EndMenu();
-				}
-			} else {
-				ImGui::TextDisabled("forward");
-			}
-
-			ImGui::Separator();
-
 			if (ImGui::MenuItem("open")) {
 				const std::string url {file_path_to_file_url(local_info.file_path)};
 				std::cout << "opening file '" << url << "'\n";
 				SDL_OpenURL(url.c_str());
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::BeginMenu("forward", o.all_of<ObjComp::F::TagLocalHaveAll>())) {
+				for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
+					// filter
+					if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
+						continue;
+					}
+					// TODO: check for contact capability
+					// or just error popup?/noti/toast
+
+					if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
+						// TODO: try object interface first instead, then fall back to send with SingleInfoLocal
+						//_rmm.sendFileObj(c, o);
+						std::filesystem::path path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
+						_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
+					}
+				}
+				ImGui::EndMenu();
 			}
 
 			ImGui::Separator();

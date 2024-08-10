@@ -139,7 +139,10 @@
           pkg-config
         ];
 
-        shellHook = "echo hello to tomato dev shell!";
+        shellHook = ''
+          echo hello to tomato dev shell!
+          export LD_LIBRARY_PATH=/run/opengl-driver/lib
+          '';
       };
 
       apps.default = {

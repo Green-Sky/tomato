@@ -30,6 +30,7 @@ if (TOMATO_ASAN)
 			#link_libraries(-fsanitize=address)
 			link_libraries(-fsanitize=address,undefined)
 			#link_libraries(-fsanitize=undefined)
+			link_libraries(-static-libasan) # make it "work" on nix
 			message("II enabled ASAN")
 		else()
 			message("!! can not enable ASAN on this platform (gcc/clang + win)")
