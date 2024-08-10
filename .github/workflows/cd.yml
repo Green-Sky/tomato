@@ -146,11 +146,11 @@ jobs:
       with:
         submodules: recursive
 
-    - name: update vcpkg
-      shell: bash
-      run: |
-        cd C:/vcpkg
-        git pull
+    #- name: update vcpkg
+    #  shell: bash
+    #  run: |
+    #    cd C:/vcpkg
+    #    git pull
 
     - name: Install Dependencies
       run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static
@@ -182,6 +182,12 @@ jobs:
           echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
 
+    - name: Clean temporary artifacts
+      # msvc sometimes produces .ilk files, which are used for linking only
+      shell: powershell
+      run: |
+        Remove-Item "${{github.workspace}}/build/bin/*.ilk"
+
     - name: Compress artifacts
       shell: powershell
       run: |
@@ -205,11 +211,11 @@ jobs:
       with:
         submodules: recursive
 
-    - name: update vcpkg
-      shell: bash
-      run: |
-        cd C:/vcpkg
-        git pull
+    #- name: update vcpkg
+    #  shell: bash
+    #  run: |
+    #    cd C:/vcpkg
+    #    git pull
 
     - name: Install Dependencies
       run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static
@@ -240,6 +246,12 @@ jobs:
           SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
           echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
+
+    - name: Clean temporary artifacts
+      # msvc sometimes produces .ilk files, which are used for linking only
+      shell: powershell
+      run: |
+        Remove-Item "${{github.workspace}}/build/bin/*.ilk"
 
     - name: Compress artifacts
       shell: powershell

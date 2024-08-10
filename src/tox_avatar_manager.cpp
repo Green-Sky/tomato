@@ -26,7 +26,7 @@
 
 namespace Components {
 	struct TagAvatarImageHandled {};
-};
+}
 
 ToxAvatarManager::ToxAvatarManager(
 	//RegistryMessageModel& rmm,

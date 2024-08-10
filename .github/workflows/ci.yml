@@ -122,11 +122,11 @@ jobs:
       with:
         submodules: recursive
 
-    - name: update vcpkg
-      shell: bash
-      run: |
-        cd C:/vcpkg
-        git pull
+    #- name: update vcpkg
+    #  shell: bash
+    #  run: |
+    #    cd C:/vcpkg
+    #    git pull
 
     - name: Install Dependencies
       run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static
