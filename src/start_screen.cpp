@@ -15,15 +15,21 @@
 #include <fstream>
 
 StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
+	bool config_loaded {false};
+	std::string config_path;
 	for (size_t ai = 1; ai < args.size(); ai++) {
 		if (args.at(ai) == "--config" || args.at(ai) == "-c") {
+			if (config_loaded) {
+				std::cerr << "TOMATO error: config specified more than once!\n";
+				break;
+			}
 			if (args.size() == ai+1) {
 				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
 				break;
 			}
 			ai++;
 
-			const auto& config_path = args.at(ai);
+			config_path = args.at(ai);
 			auto config_file = std::ifstream(static_cast<std::string>(config_path));
 			if (!config_file.is_open()) {
 				std::cerr << "TOMATO error: failed to open config file '" << config_path << "'\n";
@@ -35,6 +41,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 				std::cerr << "TOMATO error in config json, exiting...\n";
 				break;
 			}
+			config_loaded = true;
 		} else if (args.at(ai) == "--plugin" || args.at(ai) == "-p") {
 			if (args.size() == ai+1) {
 				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
@@ -50,10 +57,14 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		}
 	}
 
-	{ // seed tox save path
-		if (_conf.has_string("tox", "save_file_path")) {
-			_tox_profile_path = _conf.get_string("tox", "save_file_path").value();
+	// seed tox save path
+	if (_conf.has_string("tox", "save_file_path")) {
+		const auto config_path_base = std::filesystem::path{config_path}.parent_path();
+		std::filesystem::path real_tox_profile_path = static_cast<std::string>(_conf.get_string("tox", "save_file_path").value());
+		if (real_tox_profile_path.is_relative()) {
+			real_tox_profile_path = config_path_base / real_tox_profile_path;
 		}
+		_tox_profile_path = real_tox_profile_path.u8string();
 	}
 
 	float display_scale = SDL_GetWindowDisplayScale(SDL_GetRenderWindow(renderer));
@@ -136,6 +147,23 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		}
 
 		font_atlas->Build();
+	}
+
+	if (config_loaded) { // pull plugins from config
+		const auto config_path_base = std::filesystem::path{config_path}.parent_path();
+
+		for (const auto& [plugin_path, autoload] : _conf.entries_bool("PluginManager", "autoload")) {
+			if (!autoload) {
+				continue;
+			}
+
+			std::filesystem::path real_plugin_path = plugin_path;
+			if (real_plugin_path.is_relative()) {
+				real_plugin_path = config_path_base / real_plugin_path;
+			}
+
+			queued_plugin_paths.push_back(real_plugin_path.u8string());
+		}
 	}
 }
 
@@ -281,7 +309,14 @@ Screen* StartScreen::render(float, bool&) {
 
 	_fss.render();
 
-	return nullptr;
+	// TODO: dont check every frame
+	// do in tick instead?
+	if (_conf.get_bool("tomato", "skip_setup_and_load").value_or(false)) {
+		auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
+		return new_screen.release();
+	} else {
+		return nullptr;
+	}
 }
 
 Screen* StartScreen::tick(float, bool&) {
