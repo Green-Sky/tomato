@@ -1,0 +1,30 @@
+{
+	"tox": {
+		"save_file_path": "tomato.tox"
+	},
+	"tomato": {
+		"skip_setup_and_load": true
+	},
+	"PluginManager": {
+		"autoload": {
+			"entries": {
+				"../solanaceae_ecosystem/build/bin/libplugin_mfs_wip.so": true,
+				"../solanaceae_ecosystem/build/bin/libplugin_ngcft1.so": true,
+				"../solanaceae_ecosystem/build/bin/libplugin_zox_ngc.so": true,
+				"../solanaceae_ecosystem/build/bin/libplugin_zox_ngc_hs.so": true,
+				"../solanaceae_ecosystem/build/bin/libplugin_transfer_auto_accept.so": true
+			}
+		}
+	},
+	"ImGuiFonts": {
+		"atlas_extra_text": "🥰💀✌️🌴🐢🐐🍄⚽🍻👑📸😬👀🚨🏡🐦‍🔥🍋‍🟩🍄‍🟫🙂‍↕️🕊️🏆😻🌟🧿🍀🎨🍜",
+		"size": 20,
+		"fonts": {
+			"entries": {
+				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf": true,
+				"/nix/store/g4hlmhda2xmap333kqnzlsz01k8djnp6-noto-fonts-24.3.1/share/fonts/noto/NotoSans[wdth,wght].ttf": true,
+				"/nix/store/d7mgcvb59anvaz69cjghbb42616c7xfg-noto-fonts-monochrome-emoji-3.000/share/fonts/noto/NotoEmoji.ttf": true
+			}
+		}
+	}
+}
