@@ -1,4 +1,5 @@
 #include "./sdl_video_frame_stream2.hpp"
+#include "SDL3/SDL_pixels.h"
 
 #include <chrono>
 #include <cstdint>
@@ -8,7 +9,8 @@
 
 SDLVideoCameraContent::SDLVideoCameraContent(void) {
 	int devcount {0};
-	SDL_CameraDeviceID *devices = SDL_GetCameraDevices(&devcount);
+	//SDL_CameraDeviceID *devices = SDL_GetCameraDevices(&devcount);
+	SDL_CameraID *devices = SDL_GetCameras(&devcount);
 	std::cout << "SDL Camera Driver: " << SDL_GetCurrentCameraDriver() << "\n";
 
 	if (devices == nullptr || devcount < 1) {
@@ -17,22 +19,21 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 
 	std::cout << "### found cameras:\n";
 	for (int i = 0; i < devcount; i++) {
-		const SDL_CameraDeviceID device = devices[i];
+		const SDL_CameraID device = devices[i];
 
-		char *name = SDL_GetCameraDeviceName(device);
+		const char *name = SDL_GetCameraName(device);
 		std::cout << "  - Camera #" << i << ": " << name << "\n";
-		SDL_free(name);
 
 		int speccount {0};
-		SDL_CameraSpec* specs = SDL_GetCameraDeviceSupportedFormats(device, &speccount);
+		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
+		//SDL_CameraSpec* specs = SDL_GetCameraSupportedFormats(device, &speccount);
 		if (specs == nullptr) {
 			std::cout << "    - no supported spec\n";
 		} else {
 			for (int spec_i = 0; spec_i < speccount; spec_i++) {
-				std::cout << "    - " << specs[spec_i].width << "x" << specs[spec_i].height << "@" << float(specs[spec_i].interval_denominator)/specs[spec_i].interval_numerator << " " << SDL_GetPixelFormatName(specs[spec_i].format) << "\n";
+				std::cout << "    - " << specs[spec_i]->width << "x" << specs[spec_i]->height << "@" << float(specs[spec_i]->framerate_numerator)/specs[spec_i]->framerate_denominator << "fps " << SDL_GetPixelFormatName(specs[spec_i]->format) << "\n";
 
 			}
-
 			SDL_free(specs);
 		}
 	}
@@ -41,15 +42,17 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 		SDL_CameraSpec spec {
 			// FORCE a diffrent pixel format
 			SDL_PIXELFORMAT_RGBA8888,
+			SDL_COLORSPACE_SRGB,
 
 			//1280, 720,
 			//640, 360,
 			640, 480,
 
-			1, 30
+			//1, 30
+			30, 1
 		};
 		_camera = {
-			SDL_OpenCameraDevice(devices[0], &spec),
+			SDL_OpenCamera(devices[0], &spec),
 			&SDL_CloseCamera
 		};
 	}
@@ -59,18 +62,17 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 	}
 
 	SDL_CameraSpec spec;
-	float interval {0.1f};
+	float fps {0.1f};
 	if (SDL_GetCameraFormat(_camera.get(), &spec) < 0) {
 		// meh
 	} else {
-		// interval
-		interval = float(spec.interval_numerator)/float(spec.interval_denominator);
-		std::cout << "camera interval: " << interval*1000 << "ms\n";
+		fps = float(spec.framerate_numerator)/float(spec.framerate_denominator);
+		std::cout << "camera interval: " << fps << "fps\n";
 		auto* format_name = SDL_GetPixelFormatName(spec.format);
 		std::cout << "camera format: " << format_name << "\n";
 	}
 
-	_thread = std::thread([this, interval](void) {
+	_thread = std::thread([this, fps](void) {
 		while (!_thread_should_quit) {
 			Uint64 timestampNS = 0;
 			SDL_Surface* sdl_frame_next = SDL_AcquireCameraFrame(_camera.get(), &timestampNS);
@@ -78,7 +80,7 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 			// no new frame yet, or error
 			if (sdl_frame_next == nullptr) {
 				// only sleep 1/10, we expected a frame
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval*1000 / 10)));
+				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t((1000/fps) / 10)));
 				continue;
 			}
 
@@ -112,11 +114,11 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 
 			if (someone_listening) {
 				// double the interval on acquire
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval*1000*0.5)));
+				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t((1000/fps)*0.5)));
 			} else {
 				std::cerr << "i guess no one is listening\n";
 				// we just sleep 4x as long, bc no one is listening
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval*1000*4)));
+				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t((1000/fps)*4)));
 			}
 		}
 	});
