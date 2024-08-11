@@ -148,6 +148,8 @@ target_link_libraries(tomato PUBLIC
 	libwebpmux # the f why (needed for anim encode)
 	qoi
 	SDL3_image::SDL3_image
+
+	SPSCQueue
 )
 
 # probably not enough

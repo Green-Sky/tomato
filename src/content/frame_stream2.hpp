@@ -6,7 +6,7 @@
 #include <vector>
 #include <mutex>
 
-#include "./SPSCQueue.h"
+#include <SPSCQueue.h>
 
 // Frames ofen consist of:
 // - seq id // incremental sequential id, gaps in ids can be used to detect loss

@@ -24,3 +24,4 @@ add_subdirectory(./libwebp)
 add_subdirectory(./qoi)
 add_subdirectory(./sdl_image)
 
+add_subdirectory(./spscqueue)
