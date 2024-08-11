@@ -42,7 +42,8 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 		SDL_CameraSpec spec {
 			// FORCE a diffrent pixel format
 			SDL_PIXELFORMAT_RGBA8888,
-			SDL_COLORSPACE_SRGB,
+			//SDL_COLORSPACE_SRGB,
+			SDL_COLORSPACE_UNKNOWN,
 
 			//1280, 720,
 			//640, 360,
@@ -61,13 +62,23 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 		throw int(2);
 	}
 
+	while (SDL_GetCameraPermissionState(_camera.get()) == 0) {
+		std::cerr << "permission for camera not granted\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+
+	if (SDL_GetCameraPermissionState(_camera.get()) < 0) {
+		std::cerr << "user denied camera permission\n";
+		throw int(3);
+	}
+
 	SDL_CameraSpec spec;
-	float fps {0.1f};
-	if (SDL_GetCameraFormat(_camera.get(), &spec) < 0) {
+	float fps {1.f};
+	if (SDL_GetCameraFormat(_camera.get(), &spec) != 0) {
 		// meh
 	} else {
 		fps = float(spec.framerate_numerator)/float(spec.framerate_denominator);
-		std::cout << "camera interval: " << fps << "fps\n";
+		std::cout << "camera fps: " << fps << "fps (" << spec.framerate_numerator << "/" << spec.framerate_denominator << ")\n";
 		auto* format_name = SDL_GetPixelFormatName(spec.format);
 		std::cout << "camera format: " << format_name << "\n";
 	}
