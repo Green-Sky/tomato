@@ -7,7 +7,7 @@ SDLAudioInputDeviceDefault::SDLAudioInputDeviceDefault(void) : _stream{nullptr, 
 	constexpr SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 48000 };
 
 	_stream = {
-		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_CAPTURE, &spec, nullptr, nullptr),
+		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_RECORDING, &spec, nullptr, nullptr),
 		&SDL_DestroyAudioStream
 	};
 
@@ -151,7 +151,7 @@ SDLAudioOutputDeviceDefaultInstance SDLAudioOutputDeviceDefaultFactory::create(v
 	constexpr SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 48000 };
 
 	new_instance._stream = {
-		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_OUTPUT, &spec, nullptr, nullptr),
+		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr),
 		&SDL_DestroyAudioStream
 	};
 	new_instance._last_sample_rate = spec.freq;

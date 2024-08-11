@@ -40,7 +40,7 @@ struct SDLAudioOutputDeviceDefaultInstance : protected AudioFrameStream2I {
 
 	uint32_t _last_sample_rate {48'000};
 	size_t _last_channels {0};
-	SDL_AudioFormat _last_format {0};
+	SDL_AudioFormat _last_format {SDL_AUDIO_S16};
 
 	SDLAudioOutputDeviceDefaultInstance(void);
 	SDLAudioOutputDeviceDefaultInstance(SDLAudioOutputDeviceDefaultInstance&& other);
