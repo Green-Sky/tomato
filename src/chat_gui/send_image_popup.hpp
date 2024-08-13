@@ -68,7 +68,12 @@ struct SendImagePopup {
 			std::function<void(void)>&& on_cancel
 		);
 		// from memory_raw
-		// from file_path
+
+		bool sendFilePath( // file2 instead?
+			std::string_view file_path,
+			std::function<void(const std::vector<uint8_t>&, std::string_view)>&& on_send,
+			std::function<void(void)>&& on_cancel
+		);
 
 		// call this each frame
 		void render(float time_delta);

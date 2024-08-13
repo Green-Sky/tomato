@@ -73,7 +73,8 @@ class ChatGui4 {
 		float render(float time_delta);
 
 	public:
-		void sendFilePath(const char* file_path);
+		void sendFilePath(std::string_view file_path);
+		void sendFileList(const std::vector<std::string_view>& list);
 
 	private:
 		void renderMessageBodyText(Message3Registry& reg, const Message3 e);

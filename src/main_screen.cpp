@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <cmath>
+#include <string_view>
 
 MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
@@ -143,10 +144,11 @@ MainScreen::~MainScreen(void) {
 bool MainScreen::handleEvent(SDL_Event& e) {
 	if (e.type == SDL_EVENT_DROP_FILE) {
 		std::cout << "DROP FILE: " << e.drop.data << "\n";
-		cg.sendFilePath(e.drop.data);
+		_dopped_files.emplace_back(e.drop.data);
+		//cg.sendFilePath(e.drop.data);
 		_render_interval = 1.f/60.f; // TODO: magic
 		_time_since_event = 0.f;
-		return true; // TODO: forward return succ from sendFilePath()
+		return true;
 	}
 
 	if (
@@ -481,6 +483,17 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	tdch.tick(time_delta); // compute
 
 	mts.iterate(); // compute (after mfs)
+
+	if (!_dopped_files.empty()) {
+		std::vector<std::string_view> tmp_view;
+		for (const std::string& it : _dopped_files) {
+			tmp_view.push_back(std::string_view{it});
+		}
+
+		cg.sendFileList(tmp_view);
+
+		_dopped_files.clear();
+	}
 
 	_min_tick_interval = std::min<float>(
 		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)

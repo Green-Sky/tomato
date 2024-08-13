@@ -784,12 +784,14 @@ float ChatGui4::render(float time_delta) {
 						//const auto* mime_type = clipboardHasImage();
 						//ImGui::BeginDisabled(mime_type == nullptr);
 						if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
-							const auto* mime_type = clipboardHasImage();
-							if (mime_type != nullptr) { // making sure
-								pasteFile(mime_type);
+							if (const auto* imt = clipboardHasImage(); imt != nullptr) { // making sure
+								pasteFile(imt);
+							} else if (const auto* fpmt = clipboardHasFileList(); fpmt != nullptr) {
+								pasteFile(fpmt);
 							}
 						//} else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 						} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
+							// TODO: use list instead
 							const static std::vector<const char*> image_mime_types {
 								// add apng?
 								"image/png",
@@ -833,7 +835,7 @@ float ChatGui4::render(float time_delta) {
 	return 1000.f; // TODO: higher min fps?
 }
 
-void ChatGui4::sendFilePath(const char* file_path) {
+void ChatGui4::sendFilePath(std::string_view file_path) {
 	const auto path = std::filesystem::path(file_path);
 	if (_selected_contact && std::filesystem::is_regular_file(path)) {
 		_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
@@ -1338,44 +1340,163 @@ bool ChatGui4::renderContactListContactSmall(const Contact3 c, const bool select
 }
 
 void ChatGui4::pasteFile(const char* mime_type) {
-	size_t data_size = 0;
-	void* data = SDL_GetClipboardData(mime_type, &data_size);
+	if (!_selected_contact.has_value()) {
+		return;
+	}
 
-	// if image
+	if (mimeIsImage(mime_type)) {
+		size_t data_size = 0;
+		void* data = SDL_GetClipboardData(mime_type, &data_size);
 
-	std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
+		std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
 
-	_sip.sendMemory(
-		static_cast<const uint8_t*>(data), data_size,
-		[this](const auto& img_data, const auto file_ext) {
-			// create file name
-			// TODO: move this into sip
-			std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
-			{
-				const auto now = std::chrono::system_clock::now();
-				const auto ctime = std::chrono::system_clock::to_time_t(now);
-				tmp_file_name
-					<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
-					<< "."
-					<< std::setfill('0') << std::setw(3)
-					<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
-					<< file_ext
-				;
+		_sip.sendMemory(
+			static_cast<const uint8_t*>(data), data_size,
+			[this](const auto& img_data, const auto file_ext) {
+				// create file name
+				// TODO: move this into sip
+				std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
+				{
+					const auto now = std::chrono::system_clock::now();
+					const auto ctime = std::chrono::system_clock::to_time_t(now);
+					tmp_file_name
+						<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
+						<< "."
+						<< std::setfill('0') << std::setw(3)
+						<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
+						<< file_ext
+					;
+				}
+
+				std::cout << "tmp image path " << tmp_file_name.str() << "\n";
+
+				const std::filesystem::path tmp_send_file_path = "tmp_send_files";
+				std::filesystem::create_directories(tmp_send_file_path);
+				const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
+
+				std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
+					.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
+
+				_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.generic_u8string());
+			},
+			[](){}
+		);
+		SDL_free(data); // free data
+	} else if (mimeIsFileList(mime_type)) {
+		size_t data_size = 0;
+		void* data = SDL_GetClipboardData(mime_type, &data_size);
+
+		std::cout << "CG: pasted file list of size " << data_size << " mime " << mime_type << "\n";
+
+		std::vector<std::string_view> list;
+		if (mime_type == std::string_view{"text/uri-list"}) {
+			// lines starting with # are comments
+			// every line is a link
+			// line sep is CRLF
+			std::string_view list_body{reinterpret_cast<const char*>(data), data_size};
+			size_t start {0};
+			bool comment {false};
+			for (size_t i = 0; i < data_size; i++) {
+				if (list_body[i] == '\r' || list_body[i] == '\n') {
+					if (!comment && i - start > 0) {
+						list.push_back(list_body.substr(start, i - start));
+					}
+					start = i+1;
+					comment = false;
+				} else if (i == start && list_body[i] == '#') {
+					comment = true;
+				}
+			}
+			if (!comment && start+1 < data_size) {
+				list.push_back(list_body.substr(start));
+			}
+		} else if (mime_type == std::string_view{"text/x-moz-url"}) {
+			assert(false && "implement me");
+			// every link line is followed by link-title line (for the prev link)
+			// line sep unclear ("text/*" should always be CRLF, but its not explicitly specified)
+			// (does not matter, we can account for both)
+		}
+
+		// TODO: remove debug log
+		std::cout << "preprocessing:\n";
+		for (const auto it : list) {
+			std::cout << "  >" << it << "\n";
+		}
+
+		// now we need to potentially convert file uris to file paths
+
+		for (auto it = list.begin(); it != list.end();) {
+			constexpr auto size_of_file_uri_prefix = std::string_view{"file://"}.size();
+			if (it->size() > size_of_file_uri_prefix && it->substr(0, size_of_file_uri_prefix) == std::string_view{"file://"}) {
+				it->remove_prefix(size_of_file_uri_prefix);
 			}
 
-			std::cout << "tmp image path " << tmp_file_name.str() << "\n";
+			std::filesystem::path path(*it);
+			if (!std::filesystem::is_regular_file(path)) {
+				it = list.erase(it);
+			} else {
+				it++;
+			}
+		}
 
-			const std::filesystem::path tmp_send_file_path = "tmp_send_files";
-			std::filesystem::create_directories(tmp_send_file_path);
-			const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
+		std::cout << "postprocessing:\n";
+		for (const auto it : list) {
+			std::cout << "  >" << it << "\n";
+		}
 
-			std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
-				.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
+		sendFileList(list);
 
-			_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.generic_u8string());
-		},
-		[](){}
-	);
-	SDL_free(data); // free data
+		SDL_free(data); // free data
+	}
+}
+
+void ChatGui4::sendFileList(const std::vector<std::string_view>& list) {
+	// TODO: file collection sip
+	if (list.size() > 1) {
+		for (const auto it : list) {
+			sendFilePath(it);
+		}
+	} else if (list.size() == 1) {
+		const auto path = std::filesystem::path(list.front());
+		if (std::filesystem::is_regular_file(path)) {
+			if (!_sip.sendFilePath(
+				list.front(),
+				[this](const auto& img_data, const auto file_ext) {
+					// create file name
+					// TODO: only create file if changed or from memory
+					// TODO: move this into sip
+					std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
+					{
+						const auto now = std::chrono::system_clock::now();
+						const auto ctime = std::chrono::system_clock::to_time_t(now);
+						tmp_file_name
+							<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
+							<< "."
+							<< std::setfill('0') << std::setw(3)
+							<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
+							<< file_ext
+						;
+					}
+
+					std::cout << "tmp image path " << tmp_file_name.str() << "\n";
+
+					const std::filesystem::path tmp_send_file_path = "tmp_send_files";
+					std::filesystem::create_directories(tmp_send_file_path);
+					const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
+
+					std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
+						.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
+
+					_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.generic_u8string());
+				},
+				[](){}
+			)) {
+				// if sip fails to open the file
+				sendFilePath(list.front());
+			}
+		} else {
+			// if not file (???)
+		}
+	}
 }
 

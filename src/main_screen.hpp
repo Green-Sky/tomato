@@ -100,6 +100,8 @@ struct MainScreen final : public Screen {
 	uint64_t _window_hidden_ts {0};
 	float _time_since_event {0.f};
 
+	std::vector<std::string> _dopped_files;
+
 	MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins);
 	~MainScreen(void);
 

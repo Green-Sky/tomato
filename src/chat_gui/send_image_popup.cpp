@@ -6,6 +6,9 @@
 #include "../image_loader_qoi.hpp"
 #include "../image_loader_sdl_image.hpp"
 
+#include <filesystem>
+#include <solanaceae/file/file2_std.hpp>
+
 #include <imgui/imgui.h>
 
 // fwd
@@ -163,7 +166,51 @@ void SendImagePopup::sendMemory(
 
 	_on_send = std::move(on_send);
 	_on_cancel = std::move(on_cancel);
+}
 
+bool SendImagePopup::sendFilePath( // file2 instead?
+	std::string_view file_path,
+	std::function<void(const std::vector<uint8_t>&, std::string_view)>&& on_send,
+	std::function<void(void)>&& on_cancel
+) {
+	original_raw = false;
+	if (file_path.empty() || !std::filesystem::exists(file_path)) {
+		return false; // error
+	}
+
+	std::filesystem::path path_o{file_path};
+
+	const auto file_size = std::filesystem::file_size(path_o);
+	if (file_size <= 0 || file_size > 100*1024*1024) { // limit to 100mib for now
+		return false; // error
+	}
+
+	File2RFile file2{file_path};
+	if (!file2.isGood() || !file2.can_read) {
+		std::cerr << "filed to read file '" << file_path << "'\n";
+	}
+
+	{ // copy paste data to memory
+		// inefficent
+		const auto data = file2.read(file_size, 0);
+		original_data = {data.ptr, data.ptr+data.size};
+	}
+
+	if (path_o.has_extension()) {
+		original_file_ext = path_o.extension().u8string();
+	}
+
+	if (!load()) {
+		std::cerr << "SIP: failed to load image from file '" << file_path << "'\n";
+		reset();
+		return false;
+	}
+
+	_open_popup = true;
+
+	_on_send = std::move(on_send);
+	_on_cancel = std::move(on_cancel);
+	return true;
 }
 
 void SendImagePopup::render(float time_delta) {
