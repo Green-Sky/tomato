@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 
 		auto writer = SDLAudioOutputDeviceDefaultFactory{}.create();
 
-		for (size_t i = 0; i < 20; i++) {
+		for (size_t i = 0; i < 100; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			auto new_frame_opt = reader->pop();
 			if (new_frame_opt.has_value()) {
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			auto new_frame_opt = reader->pop();
 			if (new_frame_opt.has_value()) {
-				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns\n";
+				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns " << new_frame_opt.value().surface->format << "sf\n";
 			}
 		}
 		vcc.releaseSubStream(reader);
@@ -119,6 +119,7 @@ int main(int argc, char** argv) {
 	ImGui::CreateContext();
 
 	// TODO: test android behaviour
+	// -> its too big, dpi does not take eye-screen-distance into account
 	float display_scale = SDL_GetWindowDisplayScale(window.get());
 	if (display_scale < 0.001f) {
 		// error?

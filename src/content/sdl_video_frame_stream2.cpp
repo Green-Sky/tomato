@@ -1,5 +1,4 @@
 #include "./sdl_video_frame_stream2.hpp"
-#include "SDL3/SDL_pixels.h"
 
 #include <chrono>
 #include <cstdint>
@@ -41,9 +40,12 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 	{
 		SDL_CameraSpec spec {
 			// FORCE a diffrent pixel format
-			SDL_PIXELFORMAT_RGBA8888,
-			//SDL_COLORSPACE_SRGB,
-			SDL_COLORSPACE_UNKNOWN,
+			//SDL_PIXELFORMAT_RGBA8888,
+			//SDL_PIXELFORMAT_UNKNOWN,
+			SDL_PIXELFORMAT_IYUV,
+
+			SDL_COLORSPACE_SRGB,
+			//SDL_COLORSPACE_UNKNOWN,
 
 			//1280, 720,
 			//640, 360,

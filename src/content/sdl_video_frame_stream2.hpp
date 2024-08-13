@@ -28,11 +28,12 @@ struct SDLVideoFrame {
 	SDLVideoFrame(const SDLVideoFrame& other) {
 		timestampNS = other.timestampNS;
 		if (static_cast<bool>(other.surface)) {
+			// TODO: use SDL_DuplicateSurface()
 			surface = {
 				SDL_CreateSurface(
 					other.surface->w,
 					other.surface->h,
-					SDL_PIXELFORMAT_RGBA8888 // meh
+					other.surface->format
 				),
 				&SDL_DestroySurface
 			};
