@@ -199,33 +199,38 @@ void FileSelector::render(void) {
 			}
 
 			// files
-			for (auto const& dir_entry : files) {
-				if (ImGui::TableNextColumn()) {
-					ImGui::PushID(tmp_id++);
-					if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
-						_current_file_path = dir_entry.path();
+			ImGuiListClipper files_clipper;
+			files_clipper.Begin(files.size());
+			while (files_clipper.Step()) {
+				for (int row = files_clipper.DisplayStart; row < files_clipper.DisplayEnd; row++) {
+					const auto& dir_entry = files.at(row);
+					if (ImGui::TableNextColumn()) {
+						ImGui::PushID(tmp_id++);
+						if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
+							_current_file_path = dir_entry.path();
+						}
+						ImGui::PopID();
 					}
-					ImGui::PopID();
-				}
 
-				if (ImGui::TableNextColumn()) {
-					ImGui::TextUnformatted(dir_entry.path().filename().generic_u8string().c_str());
-				}
+					if (ImGui::TableNextColumn()) {
+						ImGui::TextUnformatted(dir_entry.path().filename().generic_u8string().c_str());
+					}
 
-				if (ImGui::TableNextColumn()) {
-					ImGui::TextDisabled("%s", std::to_string(dir_entry.file_size()).c_str());
-				}
+					if (ImGui::TableNextColumn()) {
+						ImGui::TextDisabled("%s", std::to_string(dir_entry.file_size()).c_str());
+					}
 
-				if (ImGui::TableNextColumn()) {
-					const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-						dir_entry.last_write_time()
-						- decltype(dir_entry.last_write_time())::clock::now()
-						+ std::chrono::system_clock::now()
-					);
-					const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+					if (ImGui::TableNextColumn()) {
+						const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+							dir_entry.last_write_time()
+							- decltype(dir_entry.last_write_time())::clock::now()
+							+ std::chrono::system_clock::now()
+						);
+						const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
 
-					const auto ltime = std::localtime(&ctime);
-					ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+						const auto ltime = std::localtime(&ctime);
+						ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+					}
 				}
 			}
 
