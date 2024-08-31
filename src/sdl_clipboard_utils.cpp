@@ -19,11 +19,11 @@ static const char* clipboardHas(const std::vector<std::string_view>& filter_mime
 
 const static std::vector<std::string_view> image_mime_types {
 	"image/svg+xml",
-	"image/jxl",
-	"image/avif",
 	"image/apng",
 	"image/webp",
 	"image/png",
+	"image/avif",
+	"image/jxl",
 	"image/gif",
 	"image/jpeg",
 	"image/qoi",
