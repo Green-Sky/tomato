@@ -70,7 +70,7 @@ static constexpr float lerp(float a, float b, float t) {
 // returns divider and places static suffix string into suffix_out
 static int64_t sizeToHumanReadable(int64_t file_size, const char*& suffix_out) {
 	static const char* suffix_arr[] {
-		"bytes",
+		"Bytes",
 		"KiB",
 		"MiB",
 		"GiB",
@@ -1226,14 +1226,19 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			ImGui::SeparatorText("single info");
 			const auto& si = o.get<ObjComp::F::SingleInfo>();
 			ImGui::Text("file name: '%s'", si.file_name.c_str());
-			ImGui::Text("file size: %lu Bytes", si.file_size);
+
+			const char* byte_suffix = "???";
+			int64_t byte_divider = sizeToHumanReadable(si.file_size, byte_suffix);
+			ImGui::Text("file size: %.2lf %s (%lu Bytes)", double(si.file_size)/byte_divider, byte_suffix, si.file_size);
 			if (o.all_of<ObjComp::F::SingleInfoLocal>()) {
 				ImGui::Text("local path: '%s'", o.get<ObjComp::F::SingleInfoLocal>().file_path.c_str());
 			}
 		} else if (o.all_of<ObjComp::F::CollectionInfo>()) {
 			ImGui::SeparatorText("collection info");
 			const auto& ci = o.get<ObjComp::F::CollectionInfo>();
-			ImGui::Text("total size: %lu Bytes", ci.total_size);
+			const char* byte_suffix = "???";
+			int64_t byte_divider = sizeToHumanReadable(ci.total_size, byte_suffix);
+			ImGui::Text("total size: %.2lf %s (%lu Bytes)", double(ci.total_size)/byte_divider, byte_suffix, ci.total_size);
 		}
 
 		if (fts != nullptr) {
