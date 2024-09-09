@@ -21,7 +21,8 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG 657c0135b1ff1685afa1bad63b0417d92f4bcb46 # tip 09-06-2024
 		#GIT_TAG d65a8146b950abe31b4fbf779f3e2fea731af9bd # tip 16-07-2024 - before string policy changes breaking imgui
 		#GIT_TAG e949f12f63cdfcef4bdf456936ee676e0a3f9de6 # tip 18-07-2024 - broke bmp surface (before too)
-		GIT_TAG 67b973b5fad633b3be76d4daf4fd9fece292c25f # tip 29-07-2024
+		#GIT_TAG 67b973b5fad633b3be76d4daf4fd9fece292c25f # tip 29-07-2024
+		GIT_TAG 6e885d96193a4b0096fe7fed6d4e6c3e5f247283 # tip 09-09-2024
 
 		FIND_PACKAGE_ARGS # for the future
 	)

@@ -5,12 +5,12 @@ include(FetchContent)
 if (NOT TARGET SDL3_image::SDL3_image)
 	set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 	# TODO: make pr to make this an option
-	set(SDL3IMAGE_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-	set(SDL3IMAGE_BACKEND_STB OFF CACHE BOOL "" FORCE) # important for security
-	set(SDL3IMAGE_BACKEND_IMAGEIO OFF CACHE BOOL "" FORCE) # some funky apple cmake bug
-	#set(SDL3IMAGE_JXL ON CACHE BOOL "" FORCE) # default to off
-	set(SDL3IMAGE_QOI OFF CACHE BOOL "" FORCE) # we have our own
-	set(SDL3IMAGE_WEBP OFF CACHE BOOL "" FORCE) # we have our own
+	set(SDLIMAGE_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+	set(SDLIMAGE_BACKEND_STB OFF CACHE BOOL "" FORCE) # important for security
+	set(SDLIMAGE_BACKEND_IMAGEIO OFF CACHE BOOL "" FORCE) # some funky apple cmake bug
+	#set(SDLIMAGE_JXL ON CACHE BOOL "" FORCE) # default to off
+	set(SDLIMAGE_QOI OFF CACHE BOOL "" FORCE) # we have our own
+	set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE) # we have our own
 
 	FetchContent_Declare(SDL3_image
 		GIT_REPOSITORY https://github.com/libsdl-org/SDL_image
@@ -20,7 +20,8 @@ if (NOT TARGET SDL3_image::SDL3_image)
 		#GIT_TAG 2fc5310a9a2700fc856663200f94edebeb5e554a # tip 28-05-2024
 		#GIT_TAG 8eff782fa33d795c9ea1ac42dbe7e17cc9874c78 # tip 09-06-2024
 		#GIT_TAG 8abc07df88cc035997e797967ac2f479b0e50981 # tip 18-07-2024
-		GIT_TAG 2a27018eda394a4e005cd8ba6bb3bfd0298809c7 # tip 29-07-2024
+		#GIT_TAG 2a27018eda394a4e005cd8ba6bb3bfd0298809c7 # tip 29-07-2024
+		GIT_TAG c1b272450d306db3845086cc231acae736b92f4f # tip 09-09-2024
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(SDL3_image)

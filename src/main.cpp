@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 	auto last_time_tick = std::chrono::steady_clock::now();
 
 	// actual setup
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		std::cerr << "SDL_Init failed (" << SDL_GetError() << ")\n";
 		return 1;
 	}

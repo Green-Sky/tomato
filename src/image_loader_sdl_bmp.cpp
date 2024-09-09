@@ -52,7 +52,7 @@ ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8
 
 	ImageResult res;
 	if (SDL_MUSTLOCK(conv_surf)) {
-		if (SDL_LockSurface(conv_surf) < 0) {
+		if (!SDL_LockSurface(conv_surf)) {
 			std::cerr << "IL_SDLBMP error: " << SDL_GetError() << "\n";
 			SDL_DestroySurface(conv_surf);
 			return {};
