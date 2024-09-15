@@ -68,7 +68,7 @@ enum class ToxAV_Event : uint32_t {
 	MAX
 };
 
-struct ToxAVEventI  {
+struct ToxAVEventI {
 	using enumType = ToxAV_Event;
 
 	virtual ~ToxAVEventI(void) {}

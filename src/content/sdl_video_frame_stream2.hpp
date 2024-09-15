@@ -28,25 +28,28 @@ struct SDLVideoFrame {
 	SDLVideoFrame(const SDLVideoFrame& other) {
 		timestampNS = other.timestampNS;
 		if (static_cast<bool>(other.surface)) {
-			// TODO: use SDL_DuplicateSurface()
+			//surface = {
+			//    SDL_CreateSurface(
+			//        other.surface->w,
+			//        other.surface->h,
+			//        other.surface->format
+			//    ),
+			//    &SDL_DestroySurface
+			//};
+			//SDL_BlitSurface(other.surface.get(), nullptr, surface.get(), nullptr);
 			surface = {
-				SDL_CreateSurface(
-					other.surface->w,
-					other.surface->h,
-					other.surface->format
-				),
-				&SDL_DestroySurface
+				SDL_DuplicateSurface(other.surface.get()),
+			    &SDL_DestroySurface
 			};
-			SDL_BlitSurface(other.surface.get(), nullptr, surface.get(), nullptr);
 		}
 	}
 	SDLVideoFrame& operator=(const SDLVideoFrame& other) = delete;
 };
 
-using SDLVideoFrameStream2MultiStream = FrameStream2MultiStream<SDLVideoFrame>;
-using SDLVideoFrameStream2 = SDLVideoFrameStream2MultiStream::sub_stream_type_t; // just use the default for now
+using SDLVideoFrameStream2MultiSource = FrameStream2MultiSource<SDLVideoFrame>;
+using SDLVideoFrameStream2 = SDLVideoFrameStream2MultiSource::sub_stream_type_t; // just use the default for now
 
-struct SDLVideoCameraContent : protected SDLVideoFrameStream2MultiStream {
+struct SDLVideoCameraContent : public SDLVideoFrameStream2MultiSource {
 	// meh, empty default
 	std::unique_ptr<SDL_Camera, decltype(&SDL_CloseCamera)> _camera {nullptr, &SDL_CloseCamera};
 	std::atomic<bool> _thread_should_quit {false};
@@ -60,7 +63,7 @@ struct SDLVideoCameraContent : protected SDLVideoFrameStream2MultiStream {
 	~SDLVideoCameraContent(void);
 
 	// make only some of writer public
-	using SDLVideoFrameStream2MultiStream::aquireSubStream;
-	using SDLVideoFrameStream2MultiStream::releaseSubStream;
+	using SDLVideoFrameStream2MultiSource::subscribe;
+	using SDLVideoFrameStream2MultiSource::unsubscribe;
 };
 

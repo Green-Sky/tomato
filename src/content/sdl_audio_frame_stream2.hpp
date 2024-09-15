@@ -11,13 +11,13 @@
 #include <thread>
 
 // we dont have to multicast ourself, because sdl streams and virtual devices already do this, but we do it anyway
-using AudioFrameStream2MultiStream = FrameStream2MultiStream<AudioFrame>;
-using AudioFrameStream2 = AudioFrameStream2MultiStream::sub_stream_type_t; // just use the default for now
+using AudioFrameStream2MultiSource = FrameStream2MultiSource<AudioFrame>;
+using AudioFrameStream2 = AudioFrameStream2MultiSource::sub_stream_type_t; // just use the default for now
 
 // object components?
 
 // source
-struct SDLAudioInputDeviceDefault : protected AudioFrameStream2MultiStream {
+struct SDLAudioInputDeviceDefault : protected AudioFrameStream2MultiSource {
 	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> _stream;
 
 	std::atomic<bool> _thread_should_quit {false};
@@ -30,12 +30,12 @@ struct SDLAudioInputDeviceDefault : protected AudioFrameStream2MultiStream {
 	// stops the thread and closes the device?
 	~SDLAudioInputDeviceDefault(void);
 
-	using AudioFrameStream2MultiStream::aquireSubStream;
-	using AudioFrameStream2MultiStream::releaseSubStream;
+	using AudioFrameStream2MultiSource::subscribe;
+	using AudioFrameStream2MultiSource::unsubscribe;
 };
 
 // sink
-struct SDLAudioOutputDeviceDefaultInstance : protected AudioFrameStream2I {
+struct SDLAudioOutputDeviceDefaultInstance : public AudioFrameStream2I {
 	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> _stream;
 
 	uint32_t _last_sample_rate {48'000};
@@ -53,9 +53,12 @@ struct SDLAudioOutputDeviceDefaultInstance : protected AudioFrameStream2I {
 };
 
 // constructs entirely new streams, since sdl handles sync and mixing for us (or should)
-struct SDLAudioOutputDeviceDefaultFactory {
+struct SDLAudioOutputDeviceDefaultSink : public FrameStream2SinkI<AudioFrame> {
 	// TODO: pause device?
 
-	SDLAudioOutputDeviceDefaultInstance create(void);
+	~SDLAudioOutputDeviceDefaultSink(void);
+
+	std::shared_ptr<FrameStream2I<AudioFrame>> subscribe(void) override;
+	bool unsubscribe(const std::shared_ptr<FrameStream2I<AudioFrame>>& sub) override;
 };
 

@@ -153,11 +153,11 @@ Toxav_Err_Bit_Rate_Set ToxAV::toxavVideoSetBitRate(uint32_t friend_number, uint3
 
 void ToxAV::cb_call(uint32_t friend_number, bool audio_enabled, bool video_enabled) {
 	std::cerr << "TOXAV: receiving call f:" << friend_number << " a:" << audio_enabled << " v:" << video_enabled << "\n";
-	Toxav_Err_Answer err_answer { TOXAV_ERR_ANSWER_OK };
-	toxav_answer(_tox_av, friend_number, 0, 0, &err_answer);
-	if (err_answer != TOXAV_ERR_ANSWER_OK) {
-		std::cerr << "!!!!!!!! answer failed " << err_answer << "\n";
-	}
+	//Toxav_Err_Answer err_answer { TOXAV_ERR_ANSWER_OK };
+	//toxav_answer(_tox_av, friend_number, 0, 0, &err_answer);
+	//if (err_answer != TOXAV_ERR_ANSWER_OK) {
+	//    std::cerr << "!!!!!!!! answer failed " << err_answer << "\n";
+	//}
 
 	dispatch(
 		ToxAV_Event::friend_call,

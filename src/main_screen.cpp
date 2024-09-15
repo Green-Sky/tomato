@@ -9,6 +9,11 @@
 
 #include <SDL3/SDL.h>
 
+#include "./content/sdl_video_frame_stream2.hpp"
+#include "content/audio_stream.hpp"
+#include "content/sdl_audio_frame_stream2.hpp"
+#include "stream_manager.hpp"
+
 #include <memory>
 #include <cmath>
 #include <string_view>
@@ -19,11 +24,13 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	rmm(cr),
 	msnj{cr, {}, {}},
 	mts(rmm),
+	sm(os),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
 #if TOMATO_TOX_AV
 	tav(tc.getTox()),
+	dtc(os, tav, sdlrtu),
 #endif
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
@@ -40,6 +47,8 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	cg(conf, os, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
 	osui(os),
+	smui(os, sm),
+	dvt(os, sm, sdlrtu),
 	tuiu(tc, conf),
 	tdch(tpi)
 {
@@ -136,6 +145,43 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	}
 
 	conf.dump();
+
+	{ // add system av devices
+		{
+			ObjectHandle vsrc {os.registry(), os.registry().create()};
+			try {
+				vsrc.emplace<Components::FrameStream2Source<SDLVideoFrame>>(
+					std::make_unique<SDLVideoCameraContent>()
+				);
+
+				vsrc.emplace<Components::StreamSource>("WebCam", std::string{entt::type_name<SDLVideoFrame>::value()});
+			} catch (...) {
+				os.registry().destroy(vsrc);
+			}
+		}
+
+		{ // audio in
+			ObjectHandle asrc {os.registry(), os.registry().create()};
+			try {
+				throw int(2);
+			} catch (...) {
+				os.registry().destroy(asrc);
+			}
+		}
+
+		{ // audio out
+			ObjectHandle asink {os.registry(), os.registry().create()};
+			try {
+				asink.emplace<Components::FrameStream2Sink<AudioFrame>>(
+					std::make_unique<SDLAudioOutputDeviceDefaultSink>()
+				);
+
+				asink.emplace<Components::StreamSink>("LoudSpeaker", std::string{entt::type_name<AudioFrame>::value()});
+			} catch (...) {
+				os.registry().destroy(asink);
+			}
+		}
+	}
 }
 
 MainScreen::~MainScreen(void) {
@@ -252,14 +298,19 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	}
 	// ACTUALLY NOT IF RENDERED, MOVED LOGIC TO ABOVE
 	// it might unload textures, so it needs to be done before rendering
-	const float ctc_interval = contact_tc.update();
-	const float msgtc_interval = msg_tc.update();
+	float animation_interval = contact_tc.update();
+	animation_interval = std::min<float>(animation_interval, msg_tc.update());
 
 	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
 	osui.render();
+	smui.render();
+	animation_interval = std::min<float>(animation_interval, dvt.render());
 	tuiu.render(); // render
 	tdch.render(); // render
+#if TOMATO_TOX_AV
+	animation_interval = std::min<float>(animation_interval, dtc.render());
+#endif
 
 	{ // main window menubar injection
 		if (ImGui::Begin("tomato")) {
@@ -440,8 +491,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	// low delay time window
 	if (!_window_hidden && _time_since_event < curr_profile.low_delay_window) {
-		_render_interval = std::min<float>(_render_interval, ctc_interval);
-		_render_interval = std::min<float>(_render_interval, msgtc_interval);
+		_render_interval = std::min<float>(_render_interval, animation_interval);
 
 		_render_interval = std::clamp(
 			_render_interval,
@@ -450,8 +500,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		);
 	// mid delay time window
 	} else if (!_window_hidden && _time_since_event < curr_profile.mid_delay_window) {
-		_render_interval = std::min<float>(_render_interval, ctc_interval);
-		_render_interval = std::min<float>(_render_interval, msgtc_interval);
+		_render_interval = std::min<float>(_render_interval, animation_interval);
 
 		_render_interval = std::clamp(
 			_render_interval,
@@ -479,9 +528,12 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 #if TOMATO_TOX_AV
 	tav.toxavIterate();
 	const float av_interval = tav.toxavIterationInterval()/1000.f;
+	dtc.tick(time_delta);
 #endif
 
 	tcm.iterate(time_delta); // compute
+
+	const float sm_interval = sm.tick(time_delta);
 
 	const float fo_interval = tffom.tick(time_delta);
 
@@ -521,6 +573,11 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 		av_interval
 	);
 #endif
+
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		sm_interval
+	);
 
 	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";
 

@@ -103,6 +103,13 @@ target_sources(tomato PUBLIC
 	./chat_gui4.hpp
 	./chat_gui4.cpp
 
+	./stream_manager.hpp
+	./stream_manager_ui.hpp
+	./stream_manager_ui.cpp
+
+	./debug_video_tap.hpp
+	./debug_video_tap.cpp
+
 	./content/content.hpp
 	./content/frame_stream2.hpp
 	./content/sdl_video_frame_stream2.hpp
@@ -116,6 +123,9 @@ if (TOMATO_TOX_AV)
 	target_sources(tomato PUBLIC
 		./tox_av.hpp
 		./tox_av.cpp
+
+		./debug_tox_call.hpp
+		./debug_tox_call.cpp
 	)
 
 	target_compile_definitions(tomato PUBLIC TOMATO_TOX_AV)

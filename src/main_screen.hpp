@@ -16,6 +16,8 @@
 #include <solanaceae/tox_messages/tox_message_manager.hpp>
 #include <solanaceae/tox_messages/tox_transfer_manager.hpp>
 
+#include "./stream_manager.hpp"
+
 #include "./tox_client.hpp"
 #include "./auto_dirty.hpp"
 
@@ -30,12 +32,15 @@
 #include "./chat_gui4.hpp"
 #include "./chat_gui/settings_window.hpp"
 #include "./object_store_ui.hpp"
+#include "./stream_manager_ui.hpp"
+#include "./debug_video_tap.hpp"
 #include "./tox_ui_utils.hpp"
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
 
 #if TOMATO_TOX_AV
 #include "./tox_av.hpp"
+#include "./debug_tox_call.hpp"
 #endif
 
 #include <string>
@@ -58,12 +63,15 @@ struct MainScreen final : public Screen {
 	MessageSerializerNJ msnj;
 	MessageTimeSort mts;
 
+	StreamManager sm;
+
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;
 	ToxPrivateImpl tpi;
 	AutoDirty ad;
 #if TOMATO_TOX_AV
 	ToxAV tav;
+	DebugToxCall dtc;
 #endif
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
@@ -86,6 +94,8 @@ struct MainScreen final : public Screen {
 	ChatGui4 cg;
 	SettingsWindow sw;
 	ObjectStoreUI osui;
+	StreamManagerUI smui;
+	DebugVideoTap dvt;
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
 

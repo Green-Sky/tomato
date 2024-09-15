@@ -1,4 +1,6 @@
 #include "./sdl_video_frame_stream2.hpp"
+#include "SDL3/SDL_camera.h"
+#include "SDL3/SDL_pixels.h"
 
 #include <chrono>
 #include <cstdint>
@@ -6,6 +8,7 @@
 #include <memory>
 #include <thread>
 
+// TODO: move out and create lazy cam for each device
 SDLVideoCameraContent::SDLVideoCameraContent(void) {
 	int devcount {0};
 	//SDL_CameraDeviceID *devices = SDL_GetCameraDevices(&devcount);
@@ -25,7 +28,6 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 
 		int speccount {0};
 		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
-		//SDL_CameraSpec* specs = SDL_GetCameraSupportedFormats(device, &speccount);
 		if (specs == nullptr) {
 			std::cout << "    - no supported spec\n";
 		} else {
@@ -42,22 +44,29 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 			// FORCE a diffrent pixel format
 			//SDL_PIXELFORMAT_RGBA8888,
 			//SDL_PIXELFORMAT_UNKNOWN,
-			SDL_PIXELFORMAT_IYUV,
+			//SDL_PIXELFORMAT_IYUV,
+			SDL_PIXELFORMAT_YUY2,
 
-			SDL_COLORSPACE_SRGB,
 			//SDL_COLORSPACE_UNKNOWN,
+			//SDL_COLORSPACE_SRGB,
+			//SDL_COLORSPACE_SRGB_LINEAR,
+			SDL_COLORSPACE_YUV_DEFAULT,
 
 			//1280, 720,
 			//640, 360,
-			640, 480,
+			//640, 480,
+			696, 392,
 
 			//1, 30
 			30, 1
 		};
 		_camera = {
-			SDL_OpenCamera(devices[0], &spec),
+			//SDL_OpenCamera(devices[devcount-1], &spec),
+			SDL_OpenCamera(devices[0], nullptr),
+			//SDL_OpenCamera(devices[0], &spec),
 			&SDL_CloseCamera
 		};
+		SDL_GetCameraFormat(_camera.get(), &spec);
 	}
 	SDL_free(devices);
 	if (!static_cast<bool>(_camera)) {
@@ -76,8 +85,9 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 
 	SDL_CameraSpec spec;
 	float fps {1.f};
-	if (SDL_GetCameraFormat(_camera.get(), &spec) != 0) {
+	if (!SDL_GetCameraFormat(_camera.get(), &spec)) {
 		// meh
+		throw int(5);
 	} else {
 		fps = float(spec.framerate_numerator)/float(spec.framerate_denominator);
 		std::cout << "camera fps: " << fps << "fps (" << spec.framerate_numerator << "/" << spec.framerate_denominator << ")\n";

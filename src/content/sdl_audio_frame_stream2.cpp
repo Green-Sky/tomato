@@ -124,7 +124,7 @@ bool SDLAudioOutputDeviceDefaultInstance::push(const AudioFrame& value) {
 		std::cerr << "empty audio frame??\n";
 	}
 
-	if (SDL_PutAudioStreamData(_stream.get(), data.ptr, data.size * sizeof(int16_t)) < 0) {
+	if (!SDL_PutAudioStreamData(_stream.get(), data.ptr, data.size * sizeof(int16_t))) {
 		std::cerr << "put data error\n";
 		return false; // return true?
 	}
@@ -145,26 +145,40 @@ SDLAudioOutputDeviceDefaultInstance::SDLAudioOutputDeviceDefaultInstance(SDLAudi
 SDLAudioOutputDeviceDefaultInstance::~SDLAudioOutputDeviceDefaultInstance(void) {
 }
 
-SDLAudioOutputDeviceDefaultInstance SDLAudioOutputDeviceDefaultFactory::create(void) {
-	SDLAudioOutputDeviceDefaultInstance new_instance;
+
+SDLAudioOutputDeviceDefaultSink::~SDLAudioOutputDeviceDefaultSink(void) {
+	// TODO: pause and close device?
+}
+
+std::shared_ptr<FrameStream2I<AudioFrame>> SDLAudioOutputDeviceDefaultSink::subscribe(void) {
+	auto new_instance = std::make_shared<SDLAudioOutputDeviceDefaultInstance>();
 
 	constexpr SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 48000 };
 
-	new_instance._stream = {
+	new_instance->_stream = {
 		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr),
 		&SDL_DestroyAudioStream
 	};
-	new_instance._last_sample_rate = spec.freq;
-	new_instance._last_channels = spec.channels;
-	new_instance._last_format = spec.format;
+	new_instance->_last_sample_rate = spec.freq;
+	new_instance->_last_channels = spec.channels;
+	new_instance->_last_format = spec.format;
 
-	if (!static_cast<bool>(new_instance._stream)) {
+	if (!static_cast<bool>(new_instance->_stream)) {
 		std::cerr << "SDL open audio device failed!\n";
+		return nullptr;
 	}
 
-	const auto audio_device_id = SDL_GetAudioStreamDevice(new_instance._stream.get());
+	const auto audio_device_id = SDL_GetAudioStreamDevice(new_instance->_stream.get());
 	SDL_ResumeAudioDevice(audio_device_id);
 
 	return new_instance;
+}
+
+bool SDLAudioOutputDeviceDefaultSink::unsubscribe(const std::shared_ptr<FrameStream2I<AudioFrame>>& sub) {
+	if (!sub) {
+		return false;
+	}
+
+	return true;
 }
 

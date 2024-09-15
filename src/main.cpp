@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
 	// setup hints
 #ifndef __ANDROID__
-	if (SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1") != SDL_TRUE) {
+	if (!SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1")) {
 		std::cerr << "Failed to set '" << SDL_HINT_VIDEO_ALLOW_SCREENSAVER << "' to 1\n";
 	}
 #endif
@@ -76,34 +76,34 @@ int main(int argc, char** argv) {
 	std::cout << "SDL Renderer: " << SDL_GetRendererName(renderer.get()) << "\n";
 
 	// optionally init audio and camera
-	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+	if (!SDL_Init(SDL_INIT_AUDIO)) {
 		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
 	} else if (false) {
 		SDLAudioInputDeviceDefault aidd;
-		auto* reader = aidd.aquireSubStream();
+		auto reader = aidd.subscribe();
 
-		auto writer = SDLAudioOutputDeviceDefaultFactory{}.create();
+		auto writer = SDLAudioOutputDeviceDefaultSink{}.subscribe();
 
-		for (size_t i = 0; i < 100; i++) {
+		for (size_t i = 0; i < 200; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			auto new_frame_opt = reader->pop();
 			if (new_frame_opt.has_value()) {
 				std::cout << "audio frame was seq:" << new_frame_opt.value().seq << " sr:" << new_frame_opt.value().sample_rate << " " << (new_frame_opt.value().isS16()?"S16":"F32") << " l:" << (new_frame_opt.value().isS16()?new_frame_opt.value().getSpan<int16_t>().size:new_frame_opt.value().getSpan<float>().size) << "\n";
-				writer.push(new_frame_opt.value());
+				writer->push(new_frame_opt.value());
 			} else {
 				std::cout << "no audio frame\n";
 			}
 		}
 
-		aidd.releaseSubStream(reader);
+		aidd.unsubscribe(reader);
 	}
 
-	if (SDL_Init(SDL_INIT_CAMERA) < 0) {
+	if (!SDL_Init(SDL_INIT_CAMERA)) {
 		std::cerr << "SDL_Init CAMERA failed (" << SDL_GetError() << ")\n";
 	} else if (false) { // HACK
 		std::cerr << "CAMERA initialized\n";
 		SDLVideoCameraContent vcc;
-		auto* reader = vcc.aquireSubStream();
+		auto reader = vcc.subscribe();
 		for (size_t i = 0; i < 20; i++) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			auto new_frame_opt = reader->pop();
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
 				std::cout << "video frame was " << new_frame_opt.value().surface->w << "x" << new_frame_opt.value().surface->h << " " << new_frame_opt.value().timestampNS << "ns " << new_frame_opt.value().surface->format << "sf\n";
 			}
 		}
-		vcc.releaseSubStream(reader);
+		vcc.unsubscribe(reader);
 	}
 	std::cout << "after sdl video stuffery\n";
 
