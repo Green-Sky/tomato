@@ -72,30 +72,6 @@ DebugVideoTap::~DebugVideoTap(void) {
 
 float DebugVideoTap::render(void) {
 	if (ImGui::Begin("DebugVideoTap")) {
-		// list sources dropdown to connect too
-		std::string preview_label {"none"};
-		if (static_cast<bool>(_selected_src)) {
-			preview_label = std::to_string(entt::to_integral(_selected_src.entity())) + " (" + _selected_src.get<Components::StreamSource>().name + ")";
-		}
-
-		if (ImGui::BeginCombo("selected source", preview_label.c_str())) {
-			if (ImGui::Selectable("none")) {
-				switchTo({});
-			}
-
-			for (const auto& [oc, ss] : _os.registry().view<Components::StreamSource>().each()) {
-				if (ss.frame_type_name != entt::type_name<SDLVideoFrame>::value()) {
-					continue;
-				}
-				std::string label = std::to_string(entt::to_integral(oc)) + " (" + ss.name + ")";
-				if (ImGui::Selectable(label.c_str())) {
-					switchTo({_os.registry(), oc});
-				}
-			}
-
-			ImGui::EndCombo();
-		}
-
 		{ // first pull the latest img from sink and update the texture
 			assert(static_cast<bool>(_tap));
 
@@ -106,18 +82,18 @@ float DebugVideoTap::render(void) {
 					if (new_frame_opt.has_value()) {
 						// timing
 						if (_v_last_ts == 0) {
-							_v_last_ts = new_frame_opt.value().timestampNS;
+							_v_last_ts = new_frame_opt.value().timestampUS;
 						} else {
-							auto delta = int64_t(new_frame_opt.value().timestampNS) - int64_t(_v_last_ts);
-							_v_last_ts = new_frame_opt.value().timestampNS;
+							auto delta = int64_t(new_frame_opt.value().timestampUS) - int64_t(_v_last_ts);
+							_v_last_ts = new_frame_opt.value().timestampUS;
 
 							//delta = std::min<int64_t>(delta, 10*1000*1000);
 
 							if (_v_interval_avg == 0) {
-								_v_interval_avg = delta/1'000'000'000.f;
+								_v_interval_avg = delta/1'000'000.f;
 							} else {
 								const float r = 0.2f;
-								_v_interval_avg = _v_interval_avg * (1-r) + (delta/1'000'000'000.f) * r;
+								_v_interval_avg = _v_interval_avg * (1.f-r) + (delta/1'000'000.f) * r;
 							}
 						}
 
@@ -158,6 +134,30 @@ float DebugVideoTap::render(void) {
 					}
 				}
 			}
+		}
+
+		// list sources dropdown to connect too
+		std::string preview_label {"none"};
+		if (static_cast<bool>(_selected_src)) {
+			preview_label = std::to_string(entt::to_integral(_selected_src.entity())) + " (" + _selected_src.get<Components::StreamSource>().name + ")";
+		}
+
+		if (ImGui::BeginCombo("selected source", preview_label.c_str())) {
+			if (ImGui::Selectable("none")) {
+				switchTo({});
+			}
+
+			for (const auto& [oc, ss] : _os.registry().view<Components::StreamSource>().each()) {
+				if (ss.frame_type_name != entt::type_name<SDLVideoFrame>::value()) {
+					continue;
+				}
+				std::string label = std::to_string(entt::to_integral(oc)) + " (" + ss.name + ")";
+				if (ImGui::Selectable(label.c_str())) {
+					switchTo({_os.registry(), oc});
+				}
+			}
+
+			ImGui::EndCombo();
 		}
 
 		// img here

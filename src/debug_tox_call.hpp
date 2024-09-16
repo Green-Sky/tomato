@@ -1,6 +1,7 @@
 #pragma once
 
-#include <solanaceae/object_store/fwd.hpp>
+//#include <solanaceae/object_store/fwd.hpp>
+#include <solanaceae/object_store/object_store.hpp>
 #include "./tox_av.hpp"
 #include "./texture_uploader.hpp"
 
@@ -19,19 +20,17 @@ class DebugToxCall : public ToxAVEventI {
 
 		uint32_t state {0}; // ? just last state ?
 
-		uint32_t abr {0};
-		uint32_t vbr {0};
+		uint32_t incomming_abr {0};
+		uint32_t incomming_vbr {0};
 
 		size_t num_a_frames {0};
 		size_t num_v_frames {0};
 
-		// fps moving interval
-		uint64_t last_v_frame_timepoint {0};
-		float v_frame_interval_avg {0.f};
+		ObjectHandle incoming_vsrc;
+		ObjectHandle incoming_asrc;
 
-		uint64_t last_v_frame_tex {0};
-		uint64_t last_v_frame_width {0};
-		uint64_t last_v_frame_height {0};
+		ObjectHandle outgoing_vsink;
+		ObjectHandle outgoing_asink;
 	};
 	// tox friend id -> call
 	std::map<uint32_t, Call> _calls;

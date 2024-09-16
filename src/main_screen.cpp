@@ -147,7 +147,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	conf.dump();
 
 	{ // add system av devices
-		{
+		if (false) {
 			ObjectHandle vsrc {os.registry(), os.registry().create()};
 			try {
 				vsrc.emplace<Components::FrameStream2Source<SDLVideoFrame>>(

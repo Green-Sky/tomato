@@ -126,7 +126,7 @@ SDLVideoCameraContent::SDLVideoCameraContent(void) {
 			bool someone_listening {false};
 			{
 				SDLVideoFrame new_frame_non_owning {
-					timestampNS,
+					timestampNS/1000,
 					sdl_frame_next
 				};
 

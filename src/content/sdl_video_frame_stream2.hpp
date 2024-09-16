@@ -12,7 +12,8 @@ inline void nopSurfaceDestructor(SDL_Surface*) {}
 // this is very sdl specific
 struct SDLVideoFrame {
 	// TODO: sequence numbering?
-	uint64_t timestampNS {0};
+	// micro seconds (nano is way too much)
+	uint64_t timestampUS {0};
 
 	std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)> surface {nullptr, &SDL_DestroySurface};
 
@@ -21,12 +22,12 @@ struct SDLVideoFrame {
 		uint64_t ts,
 		SDL_Surface* surf
 	) {
-		timestampNS = ts;
+		timestampUS = ts;
 		surface = {surf, &nopSurfaceDestructor};
 	}
 	// copy
 	SDLVideoFrame(const SDLVideoFrame& other) {
-		timestampNS = other.timestampNS;
+		timestampUS = other.timestampUS;
 		if (static_cast<bool>(other.surface)) {
 			//surface = {
 			//    SDL_CreateSurface(
@@ -39,7 +40,7 @@ struct SDLVideoFrame {
 			//SDL_BlitSurface(other.surface.get(), nullptr, surface.get(), nullptr);
 			surface = {
 				SDL_DuplicateSurface(other.surface.get()),
-			    &SDL_DestroySurface
+				&SDL_DestroySurface
 			};
 		}
 	}
