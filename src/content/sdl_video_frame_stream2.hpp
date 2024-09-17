@@ -25,6 +25,7 @@ struct SDLVideoFrame {
 		timestampUS = ts;
 		surface = {surf, &nopSurfaceDestructor};
 	}
+	SDLVideoFrame(SDLVideoFrame&& other) = default;
 	// copy
 	SDLVideoFrame(const SDLVideoFrame& other) {
 		timestampUS = other.timestampUS;

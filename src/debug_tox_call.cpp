@@ -50,6 +50,7 @@ static SDL_Surface* convertYUY2_IYUV(SDL_Surface* surf) {
 		return nullptr;
 	}
 	if ((surf->w % 2) != 0) {
+		SDL_SetError("YUY2->IYUV does not support odd widths");
 		// hmmm, we dont handle odd widths
 		return nullptr;
 	}
@@ -108,9 +109,9 @@ struct PushConversionQueuedVideoStream : public QueuedFrameStream2<SDLVideoFrame
 
 	bool push(const SDLVideoFrame& value) override {
 		SDL_Surface* converted_surf = value.surface.get();
-		if (converted_surf->format != SDL_PIXELFORMAT_IYUV) {
+		if (converted_surf->format != _forced_format) {
 			//std::cerr << "DTC: need to convert from " << SDL_GetPixelFormatName(converted_surf->format) << " to SDL_PIXELFORMAT_IYUV\n";
-			if (converted_surf->format == SDL_PIXELFORMAT_YUY2) {
+			if (converted_surf->format == SDL_PIXELFORMAT_YUY2 && _forced_format == SDL_PIXELFORMAT_IYUV) {
 				// optimized custom impl
 
 				//auto start = Message::getTimeMS();
@@ -155,7 +156,7 @@ struct PushConversionQueuedVideoStream : public QueuedFrameStream2<SDLVideoFrame
 				&SDL_DestroySurface
 			};
 
-			return QueuedFrameStream2<SDLVideoFrame>::push(new_value);
+			return QueuedFrameStream2<SDLVideoFrame>::push(std::move(new_value));
 		} else {
 			return QueuedFrameStream2<SDLVideoFrame>::push(value);
 		}
@@ -229,50 +230,19 @@ void DebugToxCall::tick(float) {
 			continue;
 		}
 
+		// conversion is done in the sinks stream
 		SDL_Surface* surf = new_frame_opt.value().surface.get();
+		assert(surf != nullptr);
 
-		SDL_Surface* converted_surf = surf;
-		if (converted_surf->format != SDL_PIXELFORMAT_IYUV) {
-			std::cerr << "DTC: need to convert from " << SDL_GetPixelFormatName(converted_surf->format) << " to SDL_PIXELFORMAT_IYUV\n";
-			if (isFormatPlanar(converted_surf->format)) {
-				// meh, need to convert to rgb as a stopgap
-				//SDL_Surface* tmp_conv_surf = SDL_ConvertSurfaceAndColorspace(converted_surf, SDL_PIXELFORMAT_RGBA32, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
-				auto start = Message::getTimeMS();
-				SDL_Surface* tmp_conv_surf = SDL_ConvertSurfaceAndColorspace(converted_surf, SDL_PIXELFORMAT_RGB24, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
-				auto end = Message::getTimeMS();
-				std::cerr << "DTC: timing " << SDL_GetPixelFormatName(converted_surf->format) << "->SDL_PIXELFORMAT_RGB24: " << end-start << "ms\n";
-
-				// TODO: fix sdl rgb->yuv conversion resulting in too dark (colorspace) issues
-				start = Message::getTimeMS();
-				converted_surf = SDL_ConvertSurfaceAndColorspace(tmp_conv_surf, SDL_PIXELFORMAT_IYUV, nullptr, SDL_COLORSPACE_YUV_DEFAULT, 0);
-				end = Message::getTimeMS();
-				std::cerr << "DTC: timing SDL_PIXELFORMAT_RGB24->SDL_PIXELFORMAT_IYUV: " << end-start << "ms\n";
-				SDL_DestroySurface(tmp_conv_surf);
-			} else {
-				converted_surf = SDL_ConvertSurface(converted_surf, SDL_PIXELFORMAT_IYUV);
-			}
-
-			if (converted_surf == nullptr) {
-				// oh god
-				std::cerr << "DTC error: failed to convert surface to IYUV: " << SDL_GetError() << "\n";
-				continue;
-			}
-		}
-		assert(converted_surf != nullptr);
-
-		SDL_LockSurface(converted_surf);
+		SDL_LockSurface(surf);
 		_toxav.toxavVideoSendFrame(
 			vsink->_fid,
-			converted_surf->w, converted_surf->h,
-			static_cast<const uint8_t*>(converted_surf->pixels),
-			static_cast<const uint8_t*>(converted_surf->pixels) + converted_surf->w * converted_surf->h,
-			static_cast<const uint8_t*>(converted_surf->pixels) + converted_surf->w * converted_surf->h + (converted_surf->w/2) * (converted_surf->h/2)
+			surf->w, surf->h,
+			static_cast<const uint8_t*>(surf->pixels),
+			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
+			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h + (surf->w/2) * (surf->h/2)
 		);
-		SDL_UnlockSurface(converted_surf);
-
-		if (converted_surf != surf) {
-			SDL_DestroySurface(converted_surf);
-		}
+		SDL_UnlockSurface(surf);
 	}
 }
 
