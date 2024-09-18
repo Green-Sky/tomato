@@ -2,6 +2,7 @@
 
 #include "./stream_manager.hpp"
 #include "./content/sdl_video_frame_stream2.hpp"
+#include "./content/sdl_audio_frame_stream2.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -16,20 +17,6 @@
 // fwd
 namespace Message {
 	uint64_t getTimeMS();
-}
-
-namespace Components {
-	struct ToxAVFriendAudioSource {
-	};
-
-	struct ToxAVFriendAudioSink {
-	};
-
-	struct ToxAVFriendVideoSource {
-	};
-
-	struct ToxAVFriendVideoSink {
-	};
 }
 
 static bool isFormatPlanar(SDL_PixelFormat f) {
@@ -166,20 +153,34 @@ struct PushConversionQueuedVideoStream : public QueuedFrameStream2<SDLVideoFrame
 // exlusive
 // TODO: replace with something better than a queue
 struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
+	ToxAV& _toxav;
+
+	// bitrate for enabled state
+	uint32_t _video_bitrate {2};
+
 	uint32_t _fid;
 	std::shared_ptr<PushConversionQueuedVideoStream> _writer;
 
-	ToxAVCallVideoSink(uint32_t fid) : _fid(fid) {}
-	~ToxAVCallVideoSink(void) {}
+	ToxAVCallVideoSink(ToxAV& toxav, uint32_t fid) : _toxav(toxav), _fid(fid) {}
+	~ToxAVCallVideoSink(void) {
+		if (_writer) {
+			_writer = nullptr;
+			_toxav.toxavVideoSetBitRate(_fid, 0);
+		}
+	}
 
 	// sink
 	std::shared_ptr<FrameStream2I<SDLVideoFrame>> subscribe(void) override {
 		if (_writer) {
-			// max 1 (exclusive)
+			// max 1 (exclusive, composite video somewhere else)
 			return nullptr;
 		}
 
-		// TODO: enable video here
+		auto err = _toxav.toxavVideoSetBitRate(_fid, _video_bitrate);
+		if (err != TOXAV_ERR_BIT_RATE_SET_OK) {
+			return nullptr;
+		}
+
 		_writer = std::make_shared<PushConversionQueuedVideoStream>(10, true);
 
 		return _writer;
@@ -192,8 +193,11 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 		}
 
 		if (sub == _writer) {
-			// TODO: disable video here
 			_writer = nullptr;
+
+			/*auto err = */_toxav.toxavVideoSetBitRate(_fid, 0);
+			// print warning? on error?
+
 			return true;
 		}
 
@@ -211,9 +215,28 @@ DebugToxCall::DebugToxCall(ObjectStore2& os, ToxAV& toxav, TextureUploaderI& tu)
 	_toxav.subscribe(this, ToxAV_Event::friend_video_frame);
 }
 
+DebugToxCall::~DebugToxCall(void) {
+	// destroy all calls/connections/sources/sinks here
+
+	for (auto& [fid, call] : _calls) {
+		if (static_cast<bool>(call.incoming_vsrc)) {
+			call.incoming_vsrc.destroy();
+		}
+		if (static_cast<bool>(call.incoming_asrc)) {
+			call.incoming_asrc.destroy();
+		}
+		if (static_cast<bool>(call.outgoing_vsink)) {
+			call.outgoing_vsink.destroy();
+		}
+		if (static_cast<bool>(call.outgoing_asink)) {
+			call.outgoing_asink.destroy();
+		}
+	}
+}
+
 void DebugToxCall::tick(float) {
-	// pump sink to tox
-	// TODO: own thread or direct on push
+	// pump sinks to tox
+	// TODO: own thread or direct on push (requires thread save toxcore)
 	// TODO: pump at double the frame rate
 	for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
 		if (!vsink->_writer) {
@@ -258,8 +281,9 @@ float DebugToxCall::render(void) {
 			if (call.incoming) {
 				ImGui::SameLine();
 				if (ImGui::SmallButton("answer")) {
+					const auto ret = _toxav.toxavAnswer(fid, 0, 0);
 					//const auto ret = _toxav.toxavAnswer(fid, 0, 1); // 1mbit/s
-					const auto ret = _toxav.toxavAnswer(fid, 0, 2); // 2mbit/s
+					//const auto ret = _toxav.toxavAnswer(fid, 0, 2); // 2mbit/s
 					//const auto ret = _toxav.toxavAnswer(fid, 0, 100); // 100mbit/s
 					//const auto ret = _toxav.toxavAnswer(fid, 0, 2500); // 2500mbit/s
 					if (ret == TOXAV_ERR_ANSWER_OK) {
@@ -268,7 +292,7 @@ float DebugToxCall::render(void) {
 						// create sinks
 						call.outgoing_vsink = {_os.registry(), _os.registry().create()};
 						{
-							auto new_vsink = std::make_unique<ToxAVCallVideoSink>(fid);
+							auto new_vsink = std::make_unique<ToxAVCallVideoSink>(_toxav, fid);
 							call.outgoing_vsink.emplace<ToxAVCallVideoSink*>(new_vsink.get());
 							call.outgoing_vsink.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
 							call.outgoing_vsink.emplace<Components::StreamSink>("ToxAV friend call video", std::string{entt::type_name<SDLVideoFrame>::value()});
@@ -284,6 +308,15 @@ float DebugToxCall::render(void) {
 								call.incoming_vsrc.emplace<Components::StreamSource>("ToxAV friend call video", std::string{entt::type_name<SDLVideoFrame>::value()});
 							}
 						}
+						if (call.incoming_a) {
+							call.incoming_asrc = {_os.registry(), _os.registry().create()};
+							{
+								auto new_asrc = std::make_unique<AudioFrameStream2MultiSource>();
+								call.incoming_asrc.emplace<AudioFrameStream2MultiSource*>(new_asrc.get());
+								call.incoming_asrc.emplace<Components::FrameStream2Source<AudioFrame>>(std::move(new_asrc));
+								call.incoming_asrc.emplace<Components::StreamSource>("ToxAV friend call audio", std::string{entt::type_name<AudioFrame>::value()});
+							}
+						}
 					}
 				}
 			} else if (call.state != TOXAV_FRIEND_CALL_STATE_FINISHED) {
@@ -297,11 +330,17 @@ float DebugToxCall::render(void) {
 						call.state = TOXAV_FRIEND_CALL_STATE_FINISHED;
 
 						// TODO: stream manager disconnectAll()
+						if (static_cast<bool>(call.incoming_vsrc)) {
+							call.incoming_vsrc.destroy();
+						}
+						if (static_cast<bool>(call.incoming_asrc)) {
+							call.incoming_asrc.destroy();
+						}
 						if (static_cast<bool>(call.outgoing_vsink)) {
 							call.outgoing_vsink.destroy();
 						}
-						if (static_cast<bool>(call.incoming_vsrc)) {
-							call.incoming_vsrc.destroy();
+						if (static_cast<bool>(call.outgoing_asink)) {
+							call.outgoing_asink.destroy();
 						}
 					}
 				}
@@ -341,11 +380,17 @@ bool DebugToxCall::onEvent(const Events::FriendCallState& e)  {
 		(call.state & TOXAV_FRIEND_CALL_STATE_FINISHED) != 0 ||
 		(call.state & TOXAV_FRIEND_CALL_STATE_ERROR) != 0
 	) {
+		if (static_cast<bool>(call.incoming_vsrc)) {
+			call.incoming_vsrc.destroy();
+		}
+		if (static_cast<bool>(call.incoming_asrc)) {
+			call.incoming_asrc.destroy();
+		}
 		if (static_cast<bool>(call.outgoing_vsink)) {
 			call.outgoing_vsink.destroy();
 		}
-		if (static_cast<bool>(call.incoming_vsrc)) {
-			call.incoming_vsrc.destroy();
+		if (static_cast<bool>(call.outgoing_asink)) {
+			call.outgoing_asink.destroy();
 		}
 	}
 
@@ -362,8 +407,25 @@ bool DebugToxCall::onEvent(const Events::FriendVideoBitrate&)  {
 
 bool DebugToxCall::onEvent(const Events::FriendAudioFrame& e)  {
 	auto& call = _calls[e.friend_number];
+
+	if (!static_cast<bool>(call.incoming_asrc)) {
+		// missing src to put frame into ??
+		return false;
+	}
+
+	assert(call.incoming_asrc.all_of<AudioFrameStream2MultiSource*>());
+	assert(call.incoming_asrc.all_of<Components::FrameStream2Source<AudioFrame>>());
+
 	call.num_a_frames++;
-	return false;
+
+	call.incoming_asrc.get<AudioFrameStream2MultiSource*>()->push(AudioFrame{
+		0, //seq
+		e.sampling_rate,
+		e.channels,
+		std::vector<int16_t>(e.pcm.begin(), e.pcm.end()) // copy
+	});
+
+	return true;
 }
 
 bool DebugToxCall::onEvent(const Events::FriendVideoFrame& e)  {

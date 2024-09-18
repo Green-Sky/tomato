@@ -37,7 +37,7 @@ class DebugToxCall : public ToxAVEventI {
 
 	public:
 		DebugToxCall(ObjectStore2& os, ToxAV& toxav, TextureUploaderI& tu);
-		~DebugToxCall(void) {}
+		~DebugToxCall(void);
 
 		void tick(float time_delta);
 		float render(void);

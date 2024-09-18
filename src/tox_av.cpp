@@ -216,7 +216,7 @@ void ToxAV::cb_audio_receive_frame(uint32_t friend_number, const int16_t pcm[], 
 		ToxAV_Event::friend_audio_frame,
 		Events::FriendAudioFrame{
 			friend_number,
-			Span<int16_t>(pcm, sample_count), // TODO: is sample count *ch or /ch?
+			Span<int16_t>(pcm, sample_count*channels), // TODO: is sample count *ch or /ch?
 			channels,
 			sampling_rate,
 		}

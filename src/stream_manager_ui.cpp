@@ -1,6 +1,7 @@
 #include "./stream_manager_ui.hpp"
 
 #include "./content/sdl_video_frame_stream2.hpp"
+#include "./content/audio_stream.hpp"
 
 #include <solanaceae/object_store/object_store.hpp>
 
@@ -51,6 +52,31 @@ void StreamManagerUI::render(void) {
 						source_label += "]";
 						if (ImGui::MenuItem(source_label.c_str())) {
 							_sm.connect<SDLVideoFrame>(oc_src, oc);
+						}
+
+						ImGui::PopID();
+					}
+
+					ImGui::EndMenu();
+				}
+
+				if (ImGui::BeginMenu("connect audio", ss.frame_type_name == entt::type_name<AudioFrame>::value())) {
+					for (const auto& [oc_src, s_src] : _os.registry().view<Components::StreamSource>().each()) {
+						if (s_src.frame_type_name != ss.frame_type_name) {
+							continue;
+						}
+
+						ImGui::PushID(entt::to_integral(oc_src));
+
+						std::string source_label {"src "};
+						source_label += std::to_string(entt::to_integral(entt::to_entity(oc_src)));
+						source_label += " (";
+						source_label += s_src.name;
+						source_label += ")[";
+						source_label += s_src.frame_type_name;
+						source_label += "]";
+						if (ImGui::MenuItem(source_label.c_str())) {
+							_sm.connect<AudioFrame>(oc_src, oc);
 						}
 
 						ImGui::PopID();

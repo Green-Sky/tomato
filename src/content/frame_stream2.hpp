@@ -104,11 +104,7 @@ struct FrameStream2MultiSource : public FrameStream2SourceI<FrameType>, public F
 
 	virtual ~FrameStream2MultiSource(void) {}
 
-	//// TODO: forward args instead
-	//SubStreamType* aquireSubStream(size_t queue_size = 10, bool lossy = true) {
-	//    std::lock_guard lg{_sub_stream_lock};
-	//    return _sub_streams.emplace_back(std::make_unique<SubStreamType>(queue_size, lossy)).get();
-	//}
+	// TODO: forward args instead
 	std::shared_ptr<FrameStream2I<FrameType>> subscribe(void) override {
 		// TODO: args???
 		size_t queue_size = 10;
@@ -118,15 +114,6 @@ struct FrameStream2MultiSource : public FrameStream2SourceI<FrameType>, public F
 		return _sub_streams.emplace_back(std::make_unique<SubStreamType>(queue_size, lossy));
 	}
 
-	//void releaseSubStream(SubStreamType* sub) {
-	//    std::lock_guard lg{_sub_stream_lock};
-	//    for (auto it = _sub_streams.begin(); it != _sub_streams.end(); it++) {
-	//        if (it->get() == sub) {
-	//            _sub_streams.erase(it);
-	//            break;
-	//        }
-	//    }
-	//}
 	bool unsubscribe(const std::shared_ptr<FrameStream2I<FrameType>>& sub) override {
 		std::lock_guard lg{_sub_stream_lock};
 		for (auto it = _sub_streams.begin(); it != _sub_streams.end(); it++) {

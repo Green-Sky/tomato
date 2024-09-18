@@ -100,33 +100,39 @@ bool SDLAudioOutputDeviceDefaultInstance::push(const AudioFrame& value) {
 		(value.isF32() && _last_format != SDL_AUDIO_F32) ||
 		(value.isS16() && _last_format != SDL_AUDIO_S16)
 	) {
-		const auto device_id = SDL_GetAudioStreamDevice(_stream.get());
-		SDL_FlushAudioStream(_stream.get());
-
 		const SDL_AudioSpec spec = {
 			static_cast<SDL_AudioFormat>((value.isF32() ? SDL_AUDIO_F32 :  SDL_AUDIO_S16)),
 			static_cast<int>(value.channels),
 			static_cast<int>(value.sample_rate)
 		};
 
-		_stream = {
-			SDL_OpenAudioDeviceStream(device_id, &spec, nullptr, nullptr),
-			&SDL_DestroyAudioStream
-		};
+		SDL_SetAudioStreamFormat(_stream.get(), &spec, nullptr);
+
+		std::cerr << "SDLAOD: audio format changed\n";
 	}
 
-	// HACK
-	assert(value.isS16());
+	if (value.isS16()) {
+		auto data = value.getSpan<int16_t>();
 
-	auto data = value.getSpan<int16_t>();
+		if (data.size == 0) {
+			std::cerr << "empty audio frame??\n";
+		}
 
-	if (data.size == 0) {
-		std::cerr << "empty audio frame??\n";
-	}
+		if (!SDL_PutAudioStreamData(_stream.get(), data.ptr, data.size * sizeof(int16_t))) {
+			std::cerr << "put data error\n";
+			return false; // return true?
+		}
+	} else if (value.isF32()) {
+		auto data = value.getSpan<float>();
 
-	if (!SDL_PutAudioStreamData(_stream.get(), data.ptr, data.size * sizeof(int16_t))) {
-		std::cerr << "put data error\n";
-		return false; // return true?
+		if (data.size == 0) {
+			std::cerr << "empty audio frame??\n";
+		}
+
+		if (!SDL_PutAudioStreamData(_stream.get(), data.ptr, data.size * sizeof(float))) {
+			std::cerr << "put data error\n";
+			return false; // return true?
+		}
 	}
 
 	_last_sample_rate = value.sample_rate;
