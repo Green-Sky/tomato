@@ -180,7 +180,7 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 		}
 
 		// TODO: enable video here
-		_writer = std::make_shared<PushConversionQueuedVideoStream>(1, true);
+		_writer = std::make_shared<PushConversionQueuedVideoStream>(10, true);
 
 		return _writer;
 	}
