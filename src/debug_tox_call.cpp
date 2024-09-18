@@ -206,6 +206,60 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 	}
 };
 
+struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame> {
+	ToxAV& _toxav;
+
+	// bitrate for enabled state
+	uint32_t _audio_bitrate {32};
+
+	uint32_t _fid;
+	std::shared_ptr<QueuedFrameStream2<AudioFrame>> _writer;
+
+	ToxAVCallAudioSink(ToxAV& toxav, uint32_t fid) : _toxav(toxav), _fid(fid) {}
+	~ToxAVCallAudioSink(void) {
+		if (_writer) {
+			_writer = nullptr;
+			_toxav.toxavAudioSetBitRate(_fid, 0);
+		}
+	}
+
+	// sink
+	std::shared_ptr<FrameStream2I<AudioFrame>> subscribe(void) override {
+		if (_writer) {
+			// max 1 (exclusive for now)
+			return nullptr;
+		}
+
+		auto err = _toxav.toxavAudioSetBitRate(_fid, _audio_bitrate);
+		if (err != TOXAV_ERR_BIT_RATE_SET_OK) {
+			return nullptr;
+		}
+
+		_writer = std::make_shared<QueuedFrameStream2<AudioFrame>>(10, false);
+
+		return _writer;
+	}
+
+	bool unsubscribe(const std::shared_ptr<FrameStream2I<AudioFrame>>& sub) override {
+		if (!sub || !_writer) {
+			// nah
+			return false;
+		}
+
+		if (sub == _writer) {
+			_writer = nullptr;
+
+			/*auto err = */_toxav.toxavAudioSetBitRate(_fid, 0);
+			// print warning? on error?
+
+			return true;
+		}
+
+		// what
+		return false;
+	}
+};
+
 DebugToxCall::DebugToxCall(ObjectStore2& os, ToxAV& toxav, TextureUploaderI& tu) : _os(os), _toxav(toxav), _tu(tu) {
 	_toxav.subscribe(this, ToxAV_Event::friend_call);
 	_toxav.subscribe(this, ToxAV_Event::friend_call_state);
@@ -243,29 +297,55 @@ void DebugToxCall::tick(float) {
 			continue;
 		}
 
-		auto new_frame_opt = vsink->_writer->pop();
-		if (!new_frame_opt.has_value()) {
+		for (size_t i = 0; i < 10; i++) {
+			auto new_frame_opt = vsink->_writer->pop();
+			if (!new_frame_opt.has_value()) {
+				break;
+			}
+
+			if (!new_frame_opt.value().surface) {
+				// wtf?
+				continue;
+			}
+
+			// conversion is done in the sinks stream
+			SDL_Surface* surf = new_frame_opt.value().surface.get();
+			assert(surf != nullptr);
+
+			SDL_LockSurface(surf);
+			_toxav.toxavVideoSendFrame(
+				vsink->_fid,
+				surf->w, surf->h,
+				static_cast<const uint8_t*>(surf->pixels),
+				static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
+				static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h + (surf->w/2) * (surf->h/2)
+			);
+			SDL_UnlockSurface(surf);
+		}
+	}
+
+	for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
+		if (!asink->_writer) {
 			continue;
 		}
 
-		if (!new_frame_opt.value().surface) {
-			// wtf?
-			continue;
+		for (size_t i = 0; i < 10; i++) {
+			auto new_frame_opt = asink->_writer->pop();
+			if (!new_frame_opt.has_value()) {
+				break;
+			}
+			const auto& new_frame = new_frame_opt.value();
+			assert(new_frame.isS16());
+
+			// TODO: error code
+			_toxav.toxavAudioSendFrame(
+				asink->_fid,
+				new_frame.getSpan<int16_t>().ptr,
+				new_frame.getSpan<int16_t>().size / new_frame.channels,
+				new_frame.channels,
+				new_frame.sample_rate
+			);
 		}
-
-		// conversion is done in the sinks stream
-		SDL_Surface* surf = new_frame_opt.value().surface.get();
-		assert(surf != nullptr);
-
-		SDL_LockSurface(surf);
-		_toxav.toxavVideoSendFrame(
-			vsink->_fid,
-			surf->w, surf->h,
-			static_cast<const uint8_t*>(surf->pixels),
-			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
-			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h + (surf->w/2) * (surf->h/2)
-		);
-		SDL_UnlockSurface(surf);
 	}
 }
 
@@ -296,6 +376,13 @@ float DebugToxCall::render(void) {
 							call.outgoing_vsink.emplace<ToxAVCallVideoSink*>(new_vsink.get());
 							call.outgoing_vsink.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
 							call.outgoing_vsink.emplace<Components::StreamSink>("ToxAV friend call video", std::string{entt::type_name<SDLVideoFrame>::value()});
+						}
+						call.outgoing_asink = {_os.registry(), _os.registry().create()};
+						{
+							auto new_asink = std::make_unique<ToxAVCallAudioSink>(_toxav, fid);
+							call.outgoing_asink.emplace<ToxAVCallAudioSink*>(new_asink.get());
+							call.outgoing_asink.emplace<Components::FrameStream2Sink<AudioFrame>>(std::move(new_asink));
+							call.outgoing_asink.emplace<Components::StreamSink>("ToxAV friend call audio", std::string{entt::type_name<AudioFrame>::value()});
 						}
 
 						// create sources
@@ -483,6 +570,8 @@ bool DebugToxCall::onEvent(const Events::FriendVideoFrame& e)  {
 		Message::getTimeMS() * 1000, // TODO: make more precise
 		new_surf
 	});
+
+	SDL_DestroySurface(new_surf);
 
 	return true;
 }

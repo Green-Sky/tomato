@@ -210,7 +210,7 @@ void ToxAV::cb_video_bit_rate(uint32_t friend_number, uint32_t video_bit_rate) {
 }
 
 void ToxAV::cb_audio_receive_frame(uint32_t friend_number, const int16_t pcm[], size_t sample_count, uint8_t channels, uint32_t sampling_rate) {
-	std::cerr << "TOXAV: audio frame f:" <<  friend_number << " sc:" << sample_count << " ch:" << (int)channels << " sr:" << sampling_rate << "\n";
+	//std::cerr << "TOXAV: audio frame f:" <<  friend_number << " sc:" << sample_count << " ch:" << (int)channels << " sr:" << sampling_rate << "\n";
 
 	dispatch(
 		ToxAV_Event::friend_audio_frame,
@@ -231,7 +231,7 @@ void ToxAV::cb_video_receive_frame(
 	const uint8_t v[/*! max(width/2, abs(vstride)) * (height/2) */],
 	int32_t ystride, int32_t ustride, int32_t vstride
 ) {
-	std::cerr << "TOXAV: video frame f:" <<  friend_number << " w:" << width << " h:" << height << "\n";
+	//std::cerr << "TOXAV: video frame f:" <<  friend_number << " w:" << width << " h:" << height << "\n";
 
 	dispatch(
 		ToxAV_Event::friend_video_frame,
