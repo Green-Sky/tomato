@@ -139,7 +139,7 @@ float DebugVideoTap::render(void) {
 		// list sources dropdown to connect too
 		std::string preview_label {"none"};
 		if (static_cast<bool>(_selected_src)) {
-			preview_label = std::to_string(entt::to_integral(_selected_src.entity())) + " (" + _selected_src.get<Components::StreamSource>().name + ")";
+			preview_label = std::to_string(entt::to_integral(entt::to_entity(_selected_src.entity()))) + " (" + _selected_src.get<Components::StreamSource>().name + ")";
 		}
 
 		if (ImGui::BeginCombo("selected source", preview_label.c_str())) {
@@ -151,7 +151,7 @@ float DebugVideoTap::render(void) {
 				if (ss.frame_type_name != entt::type_name<SDLVideoFrame>::value()) {
 					continue;
 				}
-				std::string label = std::to_string(entt::to_integral(oc)) + " (" + ss.name + ")";
+				std::string label = std::to_string(entt::to_integral(entt::to_entity(oc))) + " (" + ss.name + ")";
 				if (ImGui::Selectable(label.c_str())) {
 					switchTo({_os.registry(), oc});
 				}
