@@ -63,34 +63,34 @@
     "sdl3": {
       "flake": false,
       "locked": {
-        "lastModified": 1725865005,
-        "narHash": "sha256-4vauaoxf+2LhGYLKRJOugZWKKMqa0bHTJCuR2F01DeM=",
+        "lastModified": 1726672741,
+        "narHash": "sha256-+L1khIk2nHI7V8o/RVk2MEHv+baoQvISNHNclOWPxQM=",
         "owner": "libsdl-org",
         "repo": "SDL",
-        "rev": "6e885d96193a4b0096fe7fed6d4e6c3e5f247283",
+        "rev": "9dd8859240703d886941733ad32c1dc6f50d64f0",
         "type": "github"
       },
       "original": {
         "owner": "libsdl-org",
         "repo": "SDL",
-        "rev": "6e885d96193a4b0096fe7fed6d4e6c3e5f247283",
+        "rev": "9dd8859240703d886941733ad32c1dc6f50d64f0",
         "type": "github"
       }
     },
     "sdl3_image": {
       "flake": false,
       "locked": {
-        "lastModified": 1725662120,
+        "lastModified": 1726603202,
         "narHash": "sha256-jLKf3xSqjIL7L6iarQAiwcrmIQlM4R1zC2gXGXcdwPA=",
         "owner": "libsdl-org",
         "repo": "SDL_image",
-        "rev": "c1b272450d306db3845086cc231acae736b92f4f",
+        "rev": "b56e6c4d1a1c03b3904a8ad21f1fa73c651ffbfc",
         "type": "github"
       },
       "original": {
         "owner": "libsdl-org",
         "repo": "SDL_image",
-        "rev": "c1b272450d306db3845086cc231acae736b92f4f",
+        "rev": "b56e6c4d1a1c03b3904a8ad21f1fa73c651ffbfc",
         "type": "github"
       }
     },

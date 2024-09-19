@@ -56,7 +56,7 @@ bool SDLRendererTextureUploader::updateRGBA(uint64_t tex_id, const uint8_t* data
 	uint8_t* pixels = nullptr;
 	int pitch = 0;
 
-	if (SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch) != 0) {
+	if (!SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch)) {
 		std::cerr << "SDLRTU error: failed locking texture '" << SDL_GetError() << "'\n";
 		return false;
 	}
