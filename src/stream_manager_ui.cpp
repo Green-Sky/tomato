@@ -31,6 +31,7 @@ void StreamManagerUI::render(void) {
 
 			for (const auto& [oc, ss] : _os.registry().view<Components::StreamSource>().each()) {
 				//ImGui::Text("src  %d (%s)[%s]", entt::to_integral(entt::to_entity(oc)), ss.name.c_str(), ss.frame_type_name.c_str());
+				ImGui::PushID(entt::to_integral(oc));
 
 				ImGui::TableNextColumn();
 				ImGui::Text("%d", entt::to_integral(entt::to_entity(oc)));
@@ -46,6 +47,8 @@ void StreamManagerUI::render(void) {
 
 				ImGui::TableNextColumn();
 				ImGui::TextUnformatted(ssrc!=nullptr?ssrc->frame_type_name.c_str():"???");
+
+				ImGui::PopID();
 			}
 
 			ImGui::EndTable();
@@ -65,7 +68,7 @@ void StreamManagerUI::render(void) {
 			for (const auto& [oc, ss] : _os.registry().view<Components::StreamSink>().each()) {
 				//ImGui::Text("sink %d (%s)[%s]", entt::to_integral(entt::to_entity(oc)), ss.name.c_str(), ss.frame_type_name.c_str());
 
-				//ImGui::PushID(entt::to_integral(oc));
+				ImGui::PushID(entt::to_integral(oc));
 
 				ImGui::TableNextColumn();
 				ImGui::Text("%d", entt::to_integral(entt::to_entity(oc)));
@@ -134,7 +137,7 @@ void StreamManagerUI::render(void) {
 				ImGui::TableNextColumn();
 				ImGui::TextUnformatted(ssink!=nullptr?ssink->frame_type_name.c_str():"???");
 
-				//ImGui::PopID();
+				ImGui::PopID();
 			}
 
 			ImGui::EndTable();
@@ -153,11 +156,15 @@ void StreamManagerUI::render(void) {
 
 			ImGui::TableHeadersRow();
 
-			for (const auto& con : _sm._connections) {
+			//for (const auto& con : _sm._connections) {
+			for (size_t i = 0; i < _sm._connections.size(); i++) {
+				const auto& con = _sm._connections[i];
 				//ImGui::Text("con %d->%d", entt::to_integral(entt::to_entity(con->src.entity())), entt::to_integral(entt::to_entity(con->sink.entity())));
 
+				ImGui::PushID(i);
+
 				ImGui::TableNextColumn();
-				ImGui::Text("%d", -1); // do connections have ids?
+				ImGui::Text("%zu", i); // do connections have ids?
 
 				ImGui::TableNextColumn();
 				if (ImGui::SmallButton("X")) {
@@ -183,6 +190,8 @@ void StreamManagerUI::render(void) {
 							ssink->frame_type_name.c_str()
 							:"???"
 				);
+
+				ImGui::PopID();
 			}
 			ImGui::EndTable();
 		}
