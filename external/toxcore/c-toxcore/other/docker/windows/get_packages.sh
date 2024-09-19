@@ -52,7 +52,7 @@ if [ "$SUPPORT_TEST" = "true" ]; then
     https://dl.winehq.org/wine-builds/debian/dists/bookworm/winehq-bookworm.sources
 
   . ./check_sha256.sh
-  check_sha256 "78b185fabdb323971d13bd329fefc8038e08559aa51c4996de18db0639a51df6" \
+  check_sha256 "d965d646defe94b3dfba6d5b4406900ac6c81065428bf9d9303ad7a72ee8d1b8" \
     "/etc/apt/keyrings/winehq-archive.key"
   check_sha256 "8dd8ef66c749d56e798646674c1c185a99b3ed6727ca0fbb5e493951e66c0f9e" \
     "/etc/apt/sources.list.d/winehq-bookworm.sources"

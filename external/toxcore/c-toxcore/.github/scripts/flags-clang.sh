@@ -39,12 +39,17 @@ add_flag -Wno-reserved-id-macro
 # TODO(iphydf): Clean these up. They are likely not bugs, but still
 # potential issues and probably confusing.
 add_flag -Wno-sign-compare
+# We don't want to have default cases, we want to explicitly define all cases
+add_flag -Wno-switch-default
 # __attribute__((nonnull)) causes this warning on defensive null checks.
 add_flag -Wno-tautological-pointer-compare
 # Our use of mutexes results in a false positive, see 1bbe446.
 add_flag -Wno-thread-safety-analysis
 # File transfer code has this.
 add_flag -Wno-type-limits
+# Generates false positives in toxcore similar to
+# https://github.com/llvm/llvm-project/issues/64646
+add_flag -Wno-unsafe-buffer-usage
 # Callbacks often don't use all their parameters.
 add_flag -Wno-unused-parameter
 # cimple does this better

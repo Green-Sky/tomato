@@ -200,6 +200,8 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     *keys_file_path = (char *)malloc(keys_file_path_len);
     if (*keys_file_path == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Allocation failure.\n");
+        free(*pid_file_path);
+        *pid_file_path = nullptr;
         return false;
     }
     memcpy(*keys_file_path, tmp_keys_file, keys_file_path_len);
