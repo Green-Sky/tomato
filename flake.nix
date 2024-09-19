@@ -92,7 +92,7 @@
           "-DFETCHCONTENT_SOURCE_DIR_LIBWEBP=${pkgs.libwebp.src}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3_IMAGE=${sdl3_image}"
-          "-DSDL3IMAGE_JXL=ON"
+          "-DSDLIMAGE_JXL=ON"
         ];
 
         # TODO: replace with install command
