@@ -32,7 +32,7 @@ TEST(BinPack, PackedUint64CanBeUnpacked)
         },
         &orig, nullptr, buf.data(), buf.size()));
 
-    uint64_t unpacked;
+    uint64_t unpacked = 0;
     EXPECT_TRUE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) {
             return bin_unpack_u64_b(bu, static_cast<uint64_t *>(obj));
@@ -51,7 +51,7 @@ TEST(BinPack, MsgPackedUint8CanBeUnpackedAsUint32)
         },
         &orig, nullptr, buf.data(), buf.size()));
 
-    uint32_t unpacked;
+    uint32_t unpacked = 0;
     EXPECT_TRUE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) { return bin_unpack_u32(bu, static_cast<uint32_t *>(obj)); },
         &unpacked, buf.data(), buf.size()));
@@ -68,7 +68,7 @@ TEST(BinPack, MsgPackedUint32CanBeUnpackedAsUint8IfSmallEnough)
         },
         &orig, nullptr, buf.data(), buf.size()));
 
-    uint8_t unpacked;
+    uint8_t unpacked = 0;
     EXPECT_TRUE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) { return bin_unpack_u08(bu, static_cast<uint8_t *>(obj)); },
         &unpacked, buf.data(), buf.size()));
@@ -86,7 +86,7 @@ TEST(BinPack, LargeMsgPackedUint32CannotBeUnpackedAsUint8)
         },
         &orig, nullptr, buf.data(), buf.size()));
 
-    uint8_t unpacked;
+    uint8_t unpacked = 0;
     EXPECT_FALSE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) { return bin_unpack_u08(bu, static_cast<uint8_t *>(obj)); },
         &unpacked, buf.data(), buf.size()));

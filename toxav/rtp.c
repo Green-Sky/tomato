@@ -805,7 +805,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         header.flags |= RTP_KEY_FRAME;
     }
 
-    const uint16_t rdata_size = length + RTP_HEADER_SIZE + 1;
+    const uint16_t rdata_size = min_u32(length + RTP_HEADER_SIZE + 1, MAX_CRYPTO_DATA_SIZE);
     VLA(uint8_t, rdata, rdata_size);
     memset(rdata, 0, rdata_size);
     rdata[0] = session->payload_type;  // packet id == payload_type

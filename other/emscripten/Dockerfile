@@ -34,6 +34,7 @@ RUN . "/work/emsdk/emsdk_env.sh" \
  && emconfigure ./configure --disable-shared \
   --without-pthreads \
   --disable-ssp --disable-asm --disable-pie \
+  --host x86_64-linux-gnu \
  && emmake make install -j8
 
 # Build an unused libsodium binding first so emcc caches all the system
