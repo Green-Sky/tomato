@@ -160,13 +160,19 @@ float DebugVideoTap::render(void) {
 			ImGui::EndCombo();
 		}
 
+		//ImGui::SetNextItemWidth(0);
+		ImGui::Checkbox("mirror", &_mirror);
+
 		// img here
 		if (_tex != 0) {
+			ImGui::SameLine();
 			ImGui::Text("moving avg interval: %f", _v_interval_avg);
 			const float img_w = ImGui::GetContentRegionAvail().x;
 			ImGui::Image(
 				reinterpret_cast<ImTextureID>(_tex),
-				ImVec2{img_w, img_w * float(_tex_h)/_tex_w}
+				ImVec2{img_w, img_w * float(_tex_h)/_tex_w},
+				ImVec2{_mirror?1.f:0.f, 0},
+				ImVec2{_mirror?0.f:1.f, 1}
 			);
 		}
 	}

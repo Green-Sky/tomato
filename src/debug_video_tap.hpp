@@ -18,6 +18,8 @@ class DebugVideoTap {
 	uint32_t _tex_w {0};
 	uint32_t _tex_h {0};
 
+	bool _mirror {false}; // flip horizontally
+
 	uint64_t _v_last_ts {0}; // us
 	float _v_interval_avg {0.f}; // s
 
