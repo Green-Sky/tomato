@@ -168,7 +168,7 @@ void StreamManagerUI::render(void) {
 
 				ImGui::TableNextColumn();
 				if (ImGui::SmallButton("X")) {
-					// TODO: disconnect
+					con->stop = true;
 				}
 
 				ImGui::TableNextColumn();

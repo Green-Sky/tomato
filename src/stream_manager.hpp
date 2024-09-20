@@ -36,7 +36,7 @@ namespace Components {
 
 
 class StreamManager {
-	friend class StreamManagerUI;
+	friend class StreamManagerUI; // TODO: make this go away
 	ObjectStore2& _os;
 
 	struct Connection {
