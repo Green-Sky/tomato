@@ -90,7 +90,7 @@ template<> void ComponentEditorWidget<ObjComp::Ephemeral::File::TransferStats>(e
 ObjectStoreUI::ObjectStoreUI(
 	ObjectStore2& os
 ) : _os(os) {
-	_ee.show_window = true;
+	_ee.show_window = false;
 
 	_ee.registerComponent<ObjectStore::Components::ID>("ID");
 	_ee.registerComponent<ObjectStore::Components::DataCompressionType>("DataCompressionType");
