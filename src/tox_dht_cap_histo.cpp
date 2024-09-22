@@ -38,8 +38,8 @@ void ToxDHTCapHisto::render(void) {
 
 					ImGui::Checkbox("enabled", &_enabled);
 
-					if (ImGui::MenuItem("show DHT announce capability histogram")) {
-						_show_window = true;
+					if (ImGui::MenuItem("announce capability histogram", nullptr, _show_window)) {
+						_show_window = !_show_window;
 					}
 
 					ImGui::EndMenu();

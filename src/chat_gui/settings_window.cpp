@@ -109,8 +109,8 @@ void SettingsWindow::render(void) {
 			if (ImGui::BeginMenuBar()) {
 				ImGui::Separator();
 				if (ImGui::BeginMenu("Settings")) {
-					if (ImGui::MenuItem("settings window")) {
-						_show_window = true;
+					if (ImGui::MenuItem("settings window", nullptr, _show_window)) {
+						_show_window = !_show_window;
 					}
 					ImGui::EndMenu();
 				}

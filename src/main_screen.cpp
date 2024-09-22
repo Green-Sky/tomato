@@ -284,20 +284,24 @@ Screen* MainScreen::render(float time_delta, bool&) {
 				if (ImGui::BeginMenu("Settings")) {
 					ImGui::SeparatorText("ImGui");
 
-					if (ImGui::MenuItem("Style Editor")) {
-						_show_tool_style_editor = true;
+					if (ImGui::MenuItem("Style Editor", nullptr, _show_tool_style_editor)) {
+						_show_tool_style_editor = !_show_tool_style_editor;
 					}
 
-					if (ImGui::MenuItem("Metrics")) {
-						_show_tool_metrics = true;
+					if (ImGui::MenuItem("Metrics", nullptr, _show_tool_metrics)) {
+						_show_tool_metrics = !_show_tool_metrics;
 					}
 
-					if (ImGui::MenuItem("Debug Log")) {
-						_show_tool_debug_log = true;
+					if (ImGui::MenuItem("Debug Log", nullptr, _show_tool_debug_log)) {
+						_show_tool_debug_log = !_show_tool_debug_log;
 					}
 
-					if (ImGui::MenuItem("ID Stack Tool")) {
-						_show_tool_id_stack = true;
+					if (ImGui::MenuItem("ID Stack Tool", nullptr, _show_tool_id_stack)) {
+						_show_tool_id_stack = !_show_tool_id_stack;
+					}
+
+					if (ImGui::MenuItem("Demo", nullptr, _show_tool_demo)) {
+						_show_tool_demo = !_show_tool_demo;
 					}
 
 					ImGui::EndMenu();
@@ -328,8 +332,8 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		ImGui::ShowIDStackToolWindow(&_show_tool_id_stack);
 	}
 
-	if constexpr (false) {
-		ImGui::ShowDemoWindow();
+	if (_show_tool_demo) {
+		ImGui::ShowDemoWindow(&_show_tool_demo);
 	}
 
 	float tc_unfinished_queue_interval;

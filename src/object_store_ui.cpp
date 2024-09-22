@@ -118,8 +118,8 @@ void ObjectStoreUI::render(void) {
 			if (ImGui::BeginMenuBar()) {
 				ImGui::Separator();
 				if (ImGui::BeginMenu("ObjectStore")) {
-					if (ImGui::MenuItem("Inspector")) {
-						_ee.show_window = true;
+					if (ImGui::MenuItem("Inspector", nullptr, _ee.show_window)) {
+						_ee.show_window = !_ee.show_window;
 					}
 					ImGui::EndMenu();
 				}
