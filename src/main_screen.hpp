@@ -32,6 +32,7 @@
 #include "./object_store_ui.hpp"
 #include "./tox_ui_utils.hpp"
 #include "./tox_dht_cap_histo.hpp"
+#include "./tox_netprof_ui.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
 
 #if TOMATO_TOX_AV
@@ -88,6 +89,7 @@ struct MainScreen final : public Screen {
 	ObjectStoreUI osui;
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
+	ToxNetprofUI tnui;
 
 	PluginManager pm; // last, so it gets destroyed first
 
