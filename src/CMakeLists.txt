@@ -105,6 +105,9 @@ target_sources(tomato PUBLIC
 	./tox_dht_cap_histo.hpp
 	./tox_dht_cap_histo.cpp
 
+	./tox_netprof_ui.hpp
+	./tox_netprof_ui.cpp
+
 	./tox_friend_faux_offline_messaging.hpp
 	./tox_friend_faux_offline_messaging.cpp
 

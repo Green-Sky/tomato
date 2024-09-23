@@ -32,4 +32,22 @@ struct ToxPrivateImpl : public ToxPrivateI {
 			return {std::nullopt, err};
 		}
 	}
+
+	// TODO: add to interface
+	uint64_t toxNetprofGetPacketIdCount(Tox_Netprof_Packet_Type type, uint8_t id, Tox_Netprof_Direction direction) {
+		return tox_netprof_get_packet_id_count(_tox, type, id, direction);
+	}
+
+	uint64_t toxNetprofGetPacketTotalCount(Tox_Netprof_Packet_Type type, Tox_Netprof_Direction direction) {
+		return tox_netprof_get_packet_total_count(_tox, type, direction);
+	}
+
+	uint64_t toxNetprofGetPacketIdBytes(Tox_Netprof_Packet_Type type, uint8_t id, Tox_Netprof_Direction direction) {
+		return tox_netprof_get_packet_id_bytes(_tox, type, id, direction);
+	}
+
+	uint64_t toxNetprofGetPacketTotalBytes(Tox_Netprof_Packet_Type type, Tox_Netprof_Direction direction) {
+		return tox_netprof_get_packet_total_bytes(_tox, type, direction);
+	}
+
 };
