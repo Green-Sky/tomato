@@ -1042,11 +1042,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 
 		float fraction = float(total) / total_size;
 
-		char overlay_buf[32];
+		char overlay_buf[64];
 		if (rate > 0.000001f) {
 			const char* byte_suffix = "???";
 			int64_t byte_divider = sizeToHumanReadable(rate, byte_suffix);
-			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s", fraction * 100 + 0.01f, rate/byte_divider, byte_suffix);
+			int64_t seconds_remaining = (total_size - total) / rate;
+			if (seconds_remaining > 0) {
+				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s %lds ", fraction * 100 + 0.01f, rate/byte_divider, byte_suffix, seconds_remaining);
+			} else {
+				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s", fraction * 100 + 0.01f, rate/byte_divider, byte_suffix);
+			}
 		} else {
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
 		}
