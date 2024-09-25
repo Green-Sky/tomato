@@ -1,8 +1,8 @@
 #include "./debug_tox_call.hpp"
 
 #include "./stream_manager.hpp"
+#include "./content/audio_stream.hpp"
 #include "./content/sdl_video_frame_stream2.hpp"
-#include "./content/sdl_audio_frame_stream2.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -341,14 +341,25 @@ void DebugToxCall::tick(float) {
 			const auto& new_frame = new_frame_opt.value();
 			assert(new_frame.isS16());
 
-			// TODO: error code
-			_toxav.toxavAudioSendFrame(
+//* @param sample_count Number of samples in this frame. Valid numbers here are
+//*   `((sample rate) * (audio length) / 1000)`, where audio length can be
+//*   2.5, 5, 10, 20, 40 or 60 milliseconds.
+
+			// we likely needs to subdivide/repackage
+			// frame size should be an option exposed to the user
+			// with 10ms as a default ?
+			// the larger the frame size, the less overhead but the more delay
+
+			auto err = _toxav.toxavAudioSendFrame(
 				asink->_fid,
 				new_frame.getSpan<int16_t>().ptr,
 				new_frame.getSpan<int16_t>().size / new_frame.channels,
 				new_frame.channels,
 				new_frame.sample_rate
 			);
+			if (err != TOXAV_ERR_SEND_FRAME_OK) {
+				std::cerr << "DTC: failed to send audio frame " << err << "\n";
+			}
 		}
 	}
 }

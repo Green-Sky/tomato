@@ -162,11 +162,11 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 			}
 		}
 
-		if (false) { // audio in
+		if (true) { // audio in
 			ObjectHandle asrc {os.registry(), os.registry().create()};
 			try {
 				asrc.emplace<Components::FrameStream2Source<AudioFrame>>(
-					std::make_unique<SDLAudioInputDeviceDefault>()
+					std::make_unique<SDLAudioInputDevice>()
 				);
 
 				asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame>("SDL Audio Default Recording Device"));

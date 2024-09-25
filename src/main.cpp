@@ -79,8 +79,8 @@ int main(int argc, char** argv) {
 	if (!SDL_Init(SDL_INIT_AUDIO)) {
 		std::cerr << "SDL_Init AUDIO failed (" << SDL_GetError() << ")\n";
 	} else if (false) {
-		SDLAudioInputDeviceDefault aidd;
-		auto reader = aidd.subscribe();
+		SDLAudioInputDevice aid;
+		auto reader = aid.subscribe();
 
 		auto writer = SDLAudioOutputDeviceDefaultSink{}.subscribe();
 
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		aidd.unsubscribe(reader);
+		aid.unsubscribe(reader);
 	}
 
 	if (!SDL_Init(SDL_INIT_CAMERA)) {

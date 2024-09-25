@@ -1,83 +1,171 @@
 #include "./sdl_audio_frame_stream2.hpp"
 
 #include <iostream>
-#include <vector>
 
-SDLAudioInputDeviceDefault::SDLAudioInputDeviceDefault(void) : _stream{nullptr, &SDL_DestroyAudioStream} {
-	constexpr SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 48000 };
+// "thin" wrapper around sdl audio streams
+// we dont needs to get fance, as they already provide everything we need
+struct SDLAudioStreamReader : public AudioFrameStream2I {
+	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> _stream;
 
-	_stream = {
-		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_RECORDING, &spec, nullptr, nullptr),
-		&SDL_DestroyAudioStream
-	};
+	uint32_t _seq_counter {0};
 
-	if (!static_cast<bool>(_stream)) {
-		std::cerr << "SDL open audio device failed!\n";
+	uint32_t _sample_rate {48'000};
+	size_t _channels {0};
+	SDL_AudioFormat _format {SDL_AUDIO_S16};
+
+	std::vector<int16_t> _buffer;
+
+	SDLAudioStreamReader(void) : _stream(nullptr, nullptr) {}
+	SDLAudioStreamReader(SDLAudioStreamReader&& other) :
+		_stream(std::move(other._stream)),
+		_sample_rate(other._sample_rate),
+		_channels(other._channels),
+		_format(other._format)
+	{
+		static const size_t buffer_size {960*_channels};
+		_buffer.resize(buffer_size);
 	}
 
-	const auto audio_device_id = SDL_GetAudioStreamDevice(_stream.get());
-	SDL_ResumeAudioDevice(audio_device_id);
-
-	static constexpr size_t buffer_size {512*2}; // in samples
-	const auto interval_ms {(buffer_size * 1000) / spec.freq};
-
-	_thread = std::thread([this, interval_ms, spec](void) {
-		while (!_thread_should_quit) {
-			//static std::vector<int16_t> buffer(buffer_size);
-			static AudioFrame tmp_frame {
-				0, // TODO: seq
-				spec.freq, spec.channels,
-				std::vector<int16_t>(buffer_size)
-			};
-
-			auto& buffer = std::get<std::vector<int16_t>>(tmp_frame.buffer);
-			buffer.resize(buffer_size);
-
-			const auto read_bytes = SDL_GetAudioStreamData(
-				_stream.get(),
-				buffer.data(),
-				buffer.size()*sizeof(int16_t)
-			);
-			//if (read_bytes != 0) {
-				//std::cerr << "read " << read_bytes << "/" << buffer.size()*sizeof(int16_t) << " audio bytes\n";
-			//}
-
-			// no new frame yet, or error
-			if (read_bytes <= 0) {
-				// only sleep 1/5, we expected a frame
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval_ms/5)));
-				continue;
-			}
-
-			buffer.resize(read_bytes/sizeof(int16_t)); // this might be costly?
-
-			bool someone_listening {false};
-			someone_listening = push(tmp_frame);
-
-			if (someone_listening) {
-				// double the interval on acquire
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval_ms/2)));
-			} else {
-				std::cerr << "i guess no one is listening\n";
-				std::cerr << "first value: " << buffer.front() << "\n";
-				// we just sleep 32x as long, bc no one is listening
-				// with the hardcoded settings, this is ~320ms
-				// TODO: just hardcode something like 500ms?
-				// TODO: suspend
-				// TODO: this is not gonna cut it, since playback slows down dramatically and will be very behind
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval_ms*32)));
-			}
+	~SDLAudioStreamReader(void) {
+		if (_stream) {
+			SDL_UnbindAudioStream(_stream.get());
 		}
-	});
+	}
+
+	int32_t size(void) override {
+		//assert(_stream);
+		// returns bytes
+		//SDL_GetAudioStreamAvailable(_stream.get());
+		return -1;
+	}
+
+	std::optional<AudioFrame> pop(void) override {
+		assert(_stream);
+		assert(_format == SDL_AUDIO_S16);
+
+		static const size_t buffer_size {960*_channels};
+		_buffer.resize(buffer_size); // noop?
+
+		const auto read_bytes = SDL_GetAudioStreamData(
+			_stream.get(),
+			_buffer.data(),
+			_buffer.size()*sizeof(int16_t)
+		);
+
+		// no new frame yet, or error
+		if (read_bytes <= 0) {
+			return std::nullopt;
+		}
+
+		return AudioFrame {
+			_seq_counter++,
+			_sample_rate, _channels,
+			Span<int16_t>(_buffer.data(), read_bytes/sizeof(int16_t)),
+		};
+	}
+
+	bool push(const AudioFrame&) override {
+		// TODO: make universal sdl stream wrapper (combine with SDLAudioOutputDeviceDefaultInstance)
+		assert(false && "read only");
+		return false;
+	}
+};
+
+SDLAudioInputDevice::SDLAudioInputDevice(void) : SDLAudioInputDevice(SDL_AUDIO_DEVICE_DEFAULT_RECORDING) {
 }
 
-SDLAudioInputDeviceDefault::~SDLAudioInputDeviceDefault(void) {
-	// TODO: pause audio device?
-	_thread_should_quit = true;
-	_thread.join();
-	// TODO: what to do if readers are still present?
+SDLAudioInputDevice::SDLAudioInputDevice(SDL_AudioDeviceID device_id) {
+	// this spec is more like a hint to the hardware
+	SDL_AudioSpec spec {
+		SDL_AUDIO_S16,
+		1, // configurable?
+		48'000,
+	};
+	_device_id = SDL_OpenAudioDevice(device_id, &spec);
+
+	if (_device_id == 0) {
+		// TODO: proper error handling
+		throw int(1);
+	}
 }
 
+SDLAudioInputDevice::~SDLAudioInputDevice(void) {
+	_streams.clear();
+
+	SDL_CloseAudioDevice(_device_id);
+}
+
+std::shared_ptr<FrameStream2I<AudioFrame>> SDLAudioInputDevice::subscribe(void) {
+	SDL_AudioSpec spec {
+		SDL_AUDIO_S16,
+		1,
+		48'000,
+	};
+
+	SDL_AudioSpec device_spec {
+		SDL_AUDIO_S16,
+		1,
+		48'000,
+	};
+	// TODO: error check
+	SDL_GetAudioDeviceFormat(_device_id, &device_spec, nullptr);
+
+	// error check
+	auto* sdl_stream = SDL_CreateAudioStream(&device_spec, &spec);
+
+	// error check
+	SDL_BindAudioStream(_device_id, sdl_stream);
+
+	auto new_stream = std::make_shared<SDLAudioStreamReader>();
+	// TODO: move to ctr
+	new_stream->_stream = {sdl_stream, &SDL_DestroyAudioStream};
+	new_stream->_sample_rate = spec.freq;
+	new_stream->_channels = spec.channels;
+	new_stream->_format = spec.format;
+
+	_streams.emplace_back(new_stream);
+
+	return new_stream;
+}
+
+bool SDLAudioInputDevice::unsubscribe(const std::shared_ptr<FrameStream2I<AudioFrame>>& sub) {
+	for (auto it = _streams.cbegin(); it != _streams.cend(); it++) {
+		if (*it == sub) {
+			_streams.erase(it);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// does not need to be visible in the header
+struct SDLAudioOutputDeviceDefaultInstance : public AudioFrameStream2I {
+	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> _stream;
+
+	uint32_t _last_sample_rate {48'000};
+	size_t _last_channels {0};
+	SDL_AudioFormat _last_format {SDL_AUDIO_S16};
+
+	// TODO: audio device
+	SDLAudioOutputDeviceDefaultInstance(void);
+	SDLAudioOutputDeviceDefaultInstance(SDLAudioOutputDeviceDefaultInstance&& other);
+
+	~SDLAudioOutputDeviceDefaultInstance(void);
+
+	int32_t size(void) override;
+	std::optional<AudioFrame> pop(void) override;
+	bool push(const AudioFrame& value) override;
+};
+
+SDLAudioOutputDeviceDefaultInstance::SDLAudioOutputDeviceDefaultInstance(void) : _stream(nullptr, nullptr) {
+}
+
+SDLAudioOutputDeviceDefaultInstance::SDLAudioOutputDeviceDefaultInstance(SDLAudioOutputDeviceDefaultInstance&& other) : _stream(std::move(other._stream)) {
+}
+
+SDLAudioOutputDeviceDefaultInstance::~SDLAudioOutputDeviceDefaultInstance(void) {
+}
 int32_t SDLAudioOutputDeviceDefaultInstance::size(void) {
 	return -1;
 }
@@ -142,15 +230,6 @@ bool SDLAudioOutputDeviceDefaultInstance::push(const AudioFrame& value) {
 	_last_format = value.isF32() ? SDL_AUDIO_F32 :  SDL_AUDIO_S16;
 
 	return true;
-}
-
-SDLAudioOutputDeviceDefaultInstance::SDLAudioOutputDeviceDefaultInstance(void) : _stream(nullptr, nullptr) {
-}
-
-SDLAudioOutputDeviceDefaultInstance::SDLAudioOutputDeviceDefaultInstance(SDLAudioOutputDeviceDefaultInstance&& other) : _stream(std::move(other._stream)) {
-}
-
-SDLAudioOutputDeviceDefaultInstance::~SDLAudioOutputDeviceDefaultInstance(void) {
 }
 
 

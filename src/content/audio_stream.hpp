@@ -67,3 +67,6 @@ struct AudioFrame {
 
 using AudioFrameStream2I = FrameStream2I<AudioFrame>;
 
+using AudioFrameStream2MultiSource = FrameStream2MultiSource<AudioFrame>;
+using AudioFrameStream2 = AudioFrameStream2MultiSource::sub_stream_type_t; // just use the default for now
+
