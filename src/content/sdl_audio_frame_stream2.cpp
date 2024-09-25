@@ -59,10 +59,12 @@ SDLAudioInputDeviceDefault::SDLAudioInputDeviceDefault(void) : _stream{nullptr, 
 				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval_ms/2)));
 			} else {
 				std::cerr << "i guess no one is listening\n";
+				std::cerr << "first value: " << buffer.front() << "\n";
 				// we just sleep 32x as long, bc no one is listening
 				// with the hardcoded settings, this is ~320ms
 				// TODO: just hardcode something like 500ms?
 				// TODO: suspend
+				// TODO: this is not gonna cut it, since playback slows down dramatically and will be very behind
 				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(interval_ms*32)));
 			}
 		}

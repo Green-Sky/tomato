@@ -17,7 +17,7 @@ using AudioFrameStream2 = AudioFrameStream2MultiSource::sub_stream_type_t; // ju
 // object components?
 
 // source
-struct SDLAudioInputDeviceDefault : protected AudioFrameStream2MultiSource {
+struct SDLAudioInputDeviceDefault : public AudioFrameStream2MultiSource {
 	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> _stream;
 
 	std::atomic<bool> _thread_should_quit {false};

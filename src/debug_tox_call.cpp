@@ -379,7 +379,7 @@ float DebugToxCall::render(void) {
 							auto new_vsink = std::make_unique<ToxAVCallVideoSink>(_toxav, fid);
 							call.outgoing_vsink.emplace<ToxAVCallVideoSink*>(new_vsink.get());
 							call.outgoing_vsink.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
-							call.outgoing_vsink.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("ToxAV friend call video"));
+							call.outgoing_vsink.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("ToxAV Friend Call Outgoing Video"));
 							_os.throwEventConstruct(call.outgoing_vsink);
 						}
 						call.outgoing_asink = {_os.registry(), _os.registry().create()};
@@ -387,7 +387,7 @@ float DebugToxCall::render(void) {
 							auto new_asink = std::make_unique<ToxAVCallAudioSink>(_toxav, fid);
 							call.outgoing_asink.emplace<ToxAVCallAudioSink*>(new_asink.get());
 							call.outgoing_asink.emplace<Components::FrameStream2Sink<AudioFrame>>(std::move(new_asink));
-							call.outgoing_asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("ToxAV friend call audio"));
+							call.outgoing_asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("ToxAV Friend Call Outgoing Audio"));
 							_os.throwEventConstruct(call.outgoing_asink);
 						}
 
@@ -398,7 +398,7 @@ float DebugToxCall::render(void) {
 								auto new_vsrc = std::make_unique<SDLVideoFrameStream2MultiSource>();
 								call.incoming_vsrc.emplace<SDLVideoFrameStream2MultiSource*>(new_vsrc.get());
 								call.incoming_vsrc.emplace<Components::FrameStream2Source<SDLVideoFrame>>(std::move(new_vsrc));
-								call.incoming_vsrc.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("ToxAV friend call video"));
+								call.incoming_vsrc.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("ToxAV Friend Call Incoming Video"));
 								_os.throwEventConstruct(call.incoming_vsrc);
 							}
 						}
@@ -408,7 +408,7 @@ float DebugToxCall::render(void) {
 								auto new_asrc = std::make_unique<AudioFrameStream2MultiSource>();
 								call.incoming_asrc.emplace<AudioFrameStream2MultiSource*>(new_asrc.get());
 								call.incoming_asrc.emplace<Components::FrameStream2Source<AudioFrame>>(std::move(new_asrc));
-								call.incoming_asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame>("ToxAV friend call audio"));
+								call.incoming_asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame>("ToxAV Friend Call Incoming Audio"));
 								_os.throwEventConstruct(call.incoming_asrc);
 							}
 						}

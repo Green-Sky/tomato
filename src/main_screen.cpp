@@ -162,10 +162,16 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 			}
 		}
 
-		{ // audio in
+		if (false) { // audio in
 			ObjectHandle asrc {os.registry(), os.registry().create()};
 			try {
-				throw int(2);
+				asrc.emplace<Components::FrameStream2Source<AudioFrame>>(
+					std::make_unique<SDLAudioInputDeviceDefault>()
+				);
+
+				asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame>("SDL Audio Default Recording Device"));
+
+				os.throwEventConstruct(asrc);
 			} catch (...) {
 				os.registry().destroy(asrc);
 			}
@@ -178,7 +184,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 					std::make_unique<SDLAudioOutputDeviceDefaultSink>()
 				);
 
-				asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("LoudSpeaker"));
+				asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("SDL Audio Default Playback Device"));
 
 				os.throwEventConstruct(asink);
 			} catch (...) {

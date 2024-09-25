@@ -107,7 +107,7 @@ struct FrameStream2MultiSource : public FrameStream2SourceI<FrameType>, public F
 	// TODO: forward args instead
 	std::shared_ptr<FrameStream2I<FrameType>> subscribe(void) override {
 		// TODO: args???
-		size_t queue_size = 10;
+		size_t queue_size = 8;
 		bool lossy = true;
 
 		std::lock_guard lg{_sub_stream_lock};
