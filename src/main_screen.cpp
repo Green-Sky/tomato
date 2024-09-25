@@ -154,7 +154,9 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 					std::make_unique<SDLVideoCameraContent>()
 				);
 
-				vsrc.emplace<Components::StreamSource>("WebCam", std::string{entt::type_name<SDLVideoFrame>::value()});
+				vsrc.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("WebCam"));
+
+				os.throwEventConstruct(vsrc);
 			} catch (...) {
 				os.registry().destroy(vsrc);
 			}
@@ -176,7 +178,9 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 					std::make_unique<SDLAudioOutputDeviceDefaultSink>()
 				);
 
-				asink.emplace<Components::StreamSink>("LoudSpeaker", std::string{entt::type_name<AudioFrame>::value()});
+				asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("LoudSpeaker"));
+
+				os.throwEventConstruct(asink);
 			} catch (...) {
 				os.registry().destroy(asink);
 			}

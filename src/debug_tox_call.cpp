@@ -274,15 +274,19 @@ DebugToxCall::~DebugToxCall(void) {
 
 	for (auto& [fid, call] : _calls) {
 		if (static_cast<bool>(call.incoming_vsrc)) {
+			_os.throwEventDestroy(call.incoming_vsrc);
 			call.incoming_vsrc.destroy();
 		}
 		if (static_cast<bool>(call.incoming_asrc)) {
+			_os.throwEventDestroy(call.incoming_asrc);
 			call.incoming_asrc.destroy();
 		}
 		if (static_cast<bool>(call.outgoing_vsink)) {
+			_os.throwEventDestroy(call.outgoing_vsink);
 			call.outgoing_vsink.destroy();
 		}
 		if (static_cast<bool>(call.outgoing_asink)) {
+			_os.throwEventDestroy(call.outgoing_asink);
 			call.outgoing_asink.destroy();
 		}
 	}
@@ -375,14 +379,16 @@ float DebugToxCall::render(void) {
 							auto new_vsink = std::make_unique<ToxAVCallVideoSink>(_toxav, fid);
 							call.outgoing_vsink.emplace<ToxAVCallVideoSink*>(new_vsink.get());
 							call.outgoing_vsink.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
-							call.outgoing_vsink.emplace<Components::StreamSink>("ToxAV friend call video", std::string{entt::type_name<SDLVideoFrame>::value()});
+							call.outgoing_vsink.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("ToxAV friend call video"));
+							_os.throwEventConstruct(call.outgoing_vsink);
 						}
 						call.outgoing_asink = {_os.registry(), _os.registry().create()};
 						{
 							auto new_asink = std::make_unique<ToxAVCallAudioSink>(_toxav, fid);
 							call.outgoing_asink.emplace<ToxAVCallAudioSink*>(new_asink.get());
 							call.outgoing_asink.emplace<Components::FrameStream2Sink<AudioFrame>>(std::move(new_asink));
-							call.outgoing_asink.emplace<Components::StreamSink>("ToxAV friend call audio", std::string{entt::type_name<AudioFrame>::value()});
+							call.outgoing_asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("ToxAV friend call audio"));
+							_os.throwEventConstruct(call.outgoing_asink);
 						}
 
 						// create sources
@@ -392,7 +398,8 @@ float DebugToxCall::render(void) {
 								auto new_vsrc = std::make_unique<SDLVideoFrameStream2MultiSource>();
 								call.incoming_vsrc.emplace<SDLVideoFrameStream2MultiSource*>(new_vsrc.get());
 								call.incoming_vsrc.emplace<Components::FrameStream2Source<SDLVideoFrame>>(std::move(new_vsrc));
-								call.incoming_vsrc.emplace<Components::StreamSource>("ToxAV friend call video", std::string{entt::type_name<SDLVideoFrame>::value()});
+								call.incoming_vsrc.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("ToxAV friend call video"));
+								_os.throwEventConstruct(call.incoming_vsrc);
 							}
 						}
 						if (call.incoming_a) {
@@ -401,7 +408,8 @@ float DebugToxCall::render(void) {
 								auto new_asrc = std::make_unique<AudioFrameStream2MultiSource>();
 								call.incoming_asrc.emplace<AudioFrameStream2MultiSource*>(new_asrc.get());
 								call.incoming_asrc.emplace<Components::FrameStream2Source<AudioFrame>>(std::move(new_asrc));
-								call.incoming_asrc.emplace<Components::StreamSource>("ToxAV friend call audio", std::string{entt::type_name<AudioFrame>::value()});
+								call.incoming_asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame>("ToxAV friend call audio"));
+								_os.throwEventConstruct(call.incoming_asrc);
 							}
 						}
 					}
@@ -418,15 +426,19 @@ float DebugToxCall::render(void) {
 
 						// TODO: stream manager disconnectAll()
 						if (static_cast<bool>(call.incoming_vsrc)) {
+							_os.throwEventDestroy(call.incoming_vsrc);
 							call.incoming_vsrc.destroy();
 						}
 						if (static_cast<bool>(call.incoming_asrc)) {
+							_os.throwEventDestroy(call.incoming_asrc);
 							call.incoming_asrc.destroy();
 						}
 						if (static_cast<bool>(call.outgoing_vsink)) {
+							_os.throwEventDestroy(call.outgoing_vsink);
 							call.outgoing_vsink.destroy();
 						}
 						if (static_cast<bool>(call.outgoing_asink)) {
+							_os.throwEventDestroy(call.outgoing_asink);
 							call.outgoing_asink.destroy();
 						}
 					}
@@ -468,15 +480,19 @@ bool DebugToxCall::onEvent(const Events::FriendCallState& e)  {
 		(call.state & TOXAV_FRIEND_CALL_STATE_ERROR) != 0
 	) {
 		if (static_cast<bool>(call.incoming_vsrc)) {
+			_os.throwEventDestroy(call.incoming_vsrc);
 			call.incoming_vsrc.destroy();
 		}
 		if (static_cast<bool>(call.incoming_asrc)) {
+			_os.throwEventDestroy(call.incoming_asrc);
 			call.incoming_asrc.destroy();
 		}
 		if (static_cast<bool>(call.outgoing_vsink)) {
+			_os.throwEventDestroy(call.outgoing_vsink);
 			call.outgoing_vsink.destroy();
 		}
 		if (static_cast<bool>(call.outgoing_asink)) {
+			_os.throwEventDestroy(call.outgoing_asink);
 			call.outgoing_asink.destroy();
 		}
 	}

@@ -58,7 +58,7 @@ DebugVideoTap::DebugVideoTap(ObjectStore2& os, StreamManager& sm, TextureUploade
 			std::move(dvts)
 		);
 
-		_tap.emplace<Components::StreamSink>("DebugVideoTap", std::string{entt::type_name<SDLVideoFrame>::value()});
+		_tap.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("DebugVideoTap"));
 	} catch (...) {
 		_os.registry().destroy(_tap);
 	}

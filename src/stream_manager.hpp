@@ -13,17 +13,26 @@
 #include <thread>
 #include <chrono>
 
+// fwd
+class StreamManager;
+
 namespace Components {
 	struct StreamSource {
 		std::string name;
 		std::string frame_type_name;
-		// TODO: connect fn
+
+		std::function<bool(StreamManager&, Object, Object, bool)> connect_fn;
+
+		template<typename FrameType>
+		static StreamSource create(const std::string& name);
 	};
 
 	struct StreamSink {
 		std::string name;
 		std::string frame_type_name;
-		// TODO: connect fn
+
+		template<typename FrameType>
+		static StreamSink create(const std::string& name);
 	};
 
 	template<typename FrameType>
@@ -102,8 +111,6 @@ class StreamManager {
 			}
 		}
 
-		// TODO: default typed sources and sinks
-
 		// stream type is FrameStream2I<FrameType>
 		// TODO: improve this design
 		// src and sink need to be a FrameStream2MultiStream<FrameType>
@@ -133,14 +140,6 @@ class StreamManager {
 			if (!h_sink.all_of<Components::FrameStream2Sink<FrameType>>()) {
 				// sink not stream sink
 				return false;
-			}
-
-			// HACK:
-			if (!h_src.all_of<Components::StreamSource>()) {
-				h_src.emplace<Components::StreamSource>("", std::string{entt::type_name<FrameType>::value()});
-			}
-			if (!h_sink.all_of<Components::StreamSink>()) {
-				h_sink.emplace<Components::StreamSink>("", std::string{entt::type_name<FrameType>::value()});
 			}
 
 			auto& src_stream = h_src.get<Components::FrameStream2Source<FrameType>>();
@@ -193,6 +192,43 @@ class StreamManager {
 			));
 
 			return true;
+		}
+
+		bool connect(Object src, Object sink, bool threaded = true) {
+			auto h_src = _os.objectHandle(src);
+			auto h_sink = _os.objectHandle(sink);
+			if (!static_cast<bool>(h_src) || !static_cast<bool>(h_sink)) {
+				// an object does not exist
+				return false;
+			}
+
+			// get src and sink comps
+			if (!h_src.all_of<Components::StreamSource>()) {
+				// src not stream source
+				return false;
+			}
+
+			if (!h_sink.all_of<Components::StreamSink>()) {
+				// sink not stream sink
+				return false;
+			}
+
+			const auto& ssrc = h_src.get<Components::StreamSource>();
+			const auto& ssink = h_sink.get<Components::StreamSink>();
+
+			// compare type
+			if (ssrc.frame_type_name != ssink.frame_type_name) {
+				return false;
+			}
+
+			// always fail in debug mode
+			assert(static_cast<bool>(ssrc.connect_fn));
+			if (!static_cast<bool>(ssrc.connect_fn)) {
+				return false;
+			}
+
+			// use connect fn from src
+			return ssrc.connect_fn(*this, src, sink, threaded);
 		}
 
 		template<typename StreamType>
@@ -257,4 +293,28 @@ class StreamManager {
 			return 0.01f;
 		}
 };
+
+namespace Components {
+
+	// we require the complete sm type here
+	template<typename FrameType>
+	StreamSource StreamSource::create(const std::string& name) {
+		return StreamSource{
+			name,
+			std::string{entt::type_name<FrameType>::value()},
+			+[](StreamManager& sm, Object src, Object sink, bool threaded) {
+				return sm.connect<FrameType>(src, sink, threaded);
+			},
+		};
+	}
+
+	template<typename FrameType>
+	StreamSink StreamSink::create(const std::string& name) {
+		return StreamSink{
+			name,
+			std::string{entt::type_name<FrameType>::value()},
+		};
+	}
+
+} // Components
 

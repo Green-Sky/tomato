@@ -32,18 +32,5 @@ namespace Content1::Components {
 		entt::dense_set<Contact3> participants;
 	};
 
-	struct ReadHeadHint {
-		// points to the first byte we want
-		// this is just a hint, that can be set from outside
-		// to guide the sequential "piece picker" strategy
-		// the strategy *should* set this to the first byte we dont yet have
-		uint64_t offset_into_file {0u};
-	};
-
 } // Content::Components
-
-// TODO: i have no idea
-struct RawFile2ReadFromContentFactoryI {
-	virtual std::shared_ptr<File2I> open(ObjectHandle h) = 0;
-};
 

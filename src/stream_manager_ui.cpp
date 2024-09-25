@@ -1,8 +1,5 @@
 #include "./stream_manager_ui.hpp"
 
-#include "./content/sdl_video_frame_stream2.hpp"
-#include "./content/audio_stream.hpp"
-
 #include <solanaceae/object_store/object_store.hpp>
 
 #include <imgui/imgui.h>
@@ -42,7 +39,7 @@ void StreamManagerUI::render(void) {
 
 		// by fametype ??
 
-		if (ImGui::CollapsingHeader("Sources")) {
+		if (ImGui::CollapsingHeader("Sources", ImGuiTreeNodeFlags_DefaultOpen)) {
 			// list sources
 			if (ImGui::BeginTable("sources_and_sinks", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV)) {
 				ImGui::TableSetupColumn("id");
@@ -65,7 +62,34 @@ void StreamManagerUI::render(void) {
 
 					ImGui::TableNextColumn();
 					if (ImGui::SmallButton("->")) {
-						// TODO: list type sinks
+						ImGui::OpenPopup("src_connect");
+					}
+					if (ImGui::BeginPopup("src_connect")) {
+						if (ImGui::BeginMenu("connect to")) {
+							for (const auto& [oc_sink, s_sink] : _os.registry().view<Components::StreamSink>().each()) {
+								if (s_sink.frame_type_name != ss.frame_type_name) {
+									continue;
+								}
+
+								ImGui::PushID(entt::to_integral(oc_sink));
+
+								std::string sink_label {"src "};
+								sink_label += std::to_string(entt::to_integral(entt::to_entity(oc_sink)));
+								sink_label += " (";
+								sink_label += s_sink.name;
+								sink_label += ")[";
+								sink_label += s_sink.frame_type_name;
+								sink_label += "]";
+								if (ImGui::MenuItem(sink_label.c_str())) {
+									_sm.connect(oc, oc_sink);
+								}
+
+								ImGui::PopID();
+							}
+
+							ImGui::EndMenu();
+						}
+						ImGui::EndPopup();
 					}
 
 					ImGui::TableNextColumn();
@@ -78,7 +102,7 @@ void StreamManagerUI::render(void) {
 			}
 		} // sources header
 
-		if (ImGui::CollapsingHeader("Sinks")) {
+		if (ImGui::CollapsingHeader("Sinks", ImGuiTreeNodeFlags_DefaultOpen)) {
 			// list sinks
 			if (ImGui::BeginTable("sources_and_sinks", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV)) {
 				ImGui::TableSetupColumn("id");
@@ -89,8 +113,6 @@ void StreamManagerUI::render(void) {
 				ImGui::TableHeadersRow();
 
 				for (const auto& [oc, ss] : _os.registry().view<Components::StreamSink>().each()) {
-					//ImGui::Text("sink %d (%s)[%s]", entt::to_integral(entt::to_entity(oc)), ss.name.c_str(), ss.frame_type_name.c_str());
-
 					ImGui::PushID(entt::to_integral(oc));
 
 					ImGui::TableNextColumn();
@@ -102,10 +124,11 @@ void StreamManagerUI::render(void) {
 
 					ImGui::TableNextColumn();
 					if (ImGui::SmallButton("->")) {
-						// TODO: list type sinks
+						ImGui::OpenPopup("sink_connect");
 					}
-					if (ImGui::BeginPopupContextItem("sink_connect")) {
-						if (ImGui::BeginMenu("connect video", ss.frame_type_name == entt::type_name<SDLVideoFrame>::value())) {
+					// ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings
+					if (ImGui::BeginPopup("sink_connect")) {
+						if (ImGui::BeginMenu("connect to")) {
 							for (const auto& [oc_src, s_src] : _os.registry().view<Components::StreamSource>().each()) {
 								if (s_src.frame_type_name != ss.frame_type_name) {
 									continue;
@@ -121,32 +144,7 @@ void StreamManagerUI::render(void) {
 								source_label += s_src.frame_type_name;
 								source_label += "]";
 								if (ImGui::MenuItem(source_label.c_str())) {
-									_sm.connect<SDLVideoFrame>(oc_src, oc);
-								}
-
-								ImGui::PopID();
-							}
-
-							ImGui::EndMenu();
-						}
-
-						if (ImGui::BeginMenu("connect audio", ss.frame_type_name == entt::type_name<AudioFrame>::value())) {
-							for (const auto& [oc_src, s_src] : _os.registry().view<Components::StreamSource>().each()) {
-								if (s_src.frame_type_name != ss.frame_type_name) {
-									continue;
-								}
-
-								ImGui::PushID(entt::to_integral(oc_src));
-
-								std::string source_label {"src "};
-								source_label += std::to_string(entt::to_integral(entt::to_entity(oc_src)));
-								source_label += " (";
-								source_label += s_src.name;
-								source_label += ")[";
-								source_label += s_src.frame_type_name;
-								source_label += "]";
-								if (ImGui::MenuItem(source_label.c_str())) {
-									_sm.connect<AudioFrame>(oc_src, oc);
+									_sm.connect(oc_src, oc);
 								}
 
 								ImGui::PopID();
