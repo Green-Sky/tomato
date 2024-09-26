@@ -41,7 +41,8 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	sw(conf),
 	osui(os),
 	tuiu(tc, conf),
-	tdch(tpi)
+	tdch(tpi),
+	tnui(tpi)
 {
 	tel.subscribeAll(tc);
 
@@ -260,6 +261,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	osui.render();
 	tuiu.render(); // render
 	tdch.render(); // render
+	const float tnui_interval = tnui.render(time_delta);
 
 	{ // main window menubar injection
 		if (ImGui::Begin("tomato")) {
@@ -442,6 +444,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	if (!_window_hidden && _time_since_event < curr_profile.low_delay_window) {
 		_render_interval = std::min<float>(_render_interval, ctc_interval);
 		_render_interval = std::min<float>(_render_interval, msgtc_interval);
+		_render_interval = std::min<float>(_render_interval, tnui_interval);
 
 		_render_interval = std::clamp(
 			_render_interval,
@@ -452,6 +455,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	} else if (!_window_hidden && _time_since_event < curr_profile.mid_delay_window) {
 		_render_interval = std::min<float>(_render_interval, ctc_interval);
 		_render_interval = std::min<float>(_render_interval, msgtc_interval);
+		_render_interval = std::min<float>(_render_interval, tnui_interval);
 
 		_render_interval = std::clamp(
 			_render_interval,
@@ -485,6 +489,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	const float pm_interval = pm.tick(time_delta); // compute
 
 	tdch.tick(time_delta); // compute
+	tnui.tick(time_delta); // compute
 
 	mts.iterate(); // compute (after mfs)
 
