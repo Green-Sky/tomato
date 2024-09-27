@@ -17,12 +17,13 @@ struct SDLAudioInputDevice : public FrameStream2SourceI<AudioFrame> {
 	// held by instances
 	using sdl_stream_type = std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)>;
 
-	SDL_AudioDeviceID _device_id {0};
+	SDL_AudioDeviceID _configured_device_id {0};
+	SDL_AudioDeviceID _virtual_device_id {0};
 
 	std::vector<std::shared_ptr<FrameStream2I<AudioFrame>>> _streams;
 
 	SDLAudioInputDevice(void);
-	SDLAudioInputDevice(SDL_AudioDeviceID device_id);
+	SDLAudioInputDevice(SDL_AudioDeviceID conf_device_id);
 	~SDLAudioInputDevice(void);
 
 	std::shared_ptr<FrameStream2I<AudioFrame>> subscribe(void) override;

@@ -74,16 +74,8 @@ struct SDLAudioStreamReader : public AudioFrameStream2I {
 SDLAudioInputDevice::SDLAudioInputDevice(void) : SDLAudioInputDevice(SDL_AUDIO_DEVICE_DEFAULT_RECORDING) {
 }
 
-SDLAudioInputDevice::SDLAudioInputDevice(SDL_AudioDeviceID device_id) {
-	// this spec is more like a hint to the hardware
-	SDL_AudioSpec spec {
-		SDL_AUDIO_S16,
-		1, // configurable?
-		48'000,
-	};
-	_device_id = SDL_OpenAudioDevice(device_id, &spec);
-
-	if (_device_id == 0) {
+SDLAudioInputDevice::SDLAudioInputDevice(SDL_AudioDeviceID conf_device_id) : _configured_device_id(conf_device_id) {
+	if (_configured_device_id == 0) {
 		// TODO: proper error handling
 		throw int(1);
 	}
@@ -92,29 +84,48 @@ SDLAudioInputDevice::SDLAudioInputDevice(SDL_AudioDeviceID device_id) {
 SDLAudioInputDevice::~SDLAudioInputDevice(void) {
 	_streams.clear();
 
-	SDL_CloseAudioDevice(_device_id);
+	if (_virtual_device_id != 0) {
+		SDL_CloseAudioDevice(_virtual_device_id);
+		_virtual_device_id = 0;
+	}
 }
 
 std::shared_ptr<FrameStream2I<AudioFrame>> SDLAudioInputDevice::subscribe(void) {
+	if (_virtual_device_id == 0) {
+		// first stream, open device
+		// this spec is more like a hint to the hardware
+		SDL_AudioSpec spec {
+			SDL_AUDIO_S16,
+			1, // TODO: conf
+			48'000,
+		};
+		_virtual_device_id = SDL_OpenAudioDevice(_configured_device_id, &spec);
+	}
+
+	if (_virtual_device_id == 0) {
+		std::cerr << "SDLAID error: failed opening device " << _configured_device_id << "\n";
+		return nullptr;
+	}
+
 	SDL_AudioSpec spec {
 		SDL_AUDIO_S16,
-		1,
+		1, // TODO: conf
 		48'000,
 	};
 
 	SDL_AudioSpec device_spec {
 		SDL_AUDIO_S16,
-		1,
+		1, // TODO: conf
 		48'000,
 	};
 	// TODO: error check
-	SDL_GetAudioDeviceFormat(_device_id, &device_spec, nullptr);
+	SDL_GetAudioDeviceFormat(_virtual_device_id, &device_spec, nullptr);
 
 	// error check
 	auto* sdl_stream = SDL_CreateAudioStream(&device_spec, &spec);
 
 	// error check
-	SDL_BindAudioStream(_device_id, sdl_stream);
+	SDL_BindAudioStream(_virtual_device_id, sdl_stream);
 
 	auto new_stream = std::make_shared<SDLAudioStreamReader>();
 	// TODO: move to ctr
@@ -132,6 +143,13 @@ bool SDLAudioInputDevice::unsubscribe(const std::shared_ptr<FrameStream2I<AudioF
 	for (auto it = _streams.cbegin(); it != _streams.cend(); it++) {
 		if (*it == sub) {
 			_streams.erase(it);
+			if (_streams.empty()) {
+				// last stream, close
+				// TODO: make sure no shared ptr still exists???
+				SDL_CloseAudioDevice(_virtual_device_id);
+				std::cout << "SDLAID: closing device " << _virtual_device_id << " (" << _configured_device_id << ")\n";
+				_virtual_device_id = 0;
+			}
 			return true;
 		}
 	}
