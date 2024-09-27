@@ -11,6 +11,7 @@
 #include <solanaceae/plugin/plugin_manager.hpp>
 #include <solanaceae/toxcore/tox_event_logger.hpp>
 #include "./tox_private_impl.hpp"
+#include "./frame_streams/stream_manager.hpp"
 
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 #include <solanaceae/tox_messages/tox_message_manager.hpp>
@@ -57,6 +58,8 @@ struct MainScreen final : public Screen {
 	RegistryMessageModel rmm;
 	MessageSerializerNJ msnj;
 	MessageTimeSort mts;
+
+	StreamManager sm;
 
 	ToxEventLogger tel{std::cout};
 	ToxClient tc;

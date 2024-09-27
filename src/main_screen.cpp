@@ -19,6 +19,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	rmm(cr),
 	msnj{cr, {}, {}},
 	mts(rmm),
+	sm(os),
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
@@ -474,6 +475,8 @@ Screen* MainScreen::render(float time_delta, bool&) {
 }
 
 Screen* MainScreen::tick(float time_delta, bool& quit) {
+	const float sm_interval = sm.tick(time_delta);
+
 	quit = !tc.iterate(time_delta); // compute
 
 	tcm.iterate(time_delta); // compute
@@ -504,6 +507,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 		// and it does not change 1
 		std::pow(tc.toxIterationInterval(), 1.6f)/1000.f,
 		pm_interval
+	);
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		sm_interval
 	);
 	_min_tick_interval = std::min<float>(
 		_min_tick_interval,
