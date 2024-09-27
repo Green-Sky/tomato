@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 
 // fwd
 namespace Message {
@@ -206,6 +207,114 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 	}
 };
 
+// TODO: make proper adapter
+struct AudioStreamReFramer {
+	FrameStream2I<AudioFrame>* _stream {nullptr};
+	uint32_t frame_length_ms {10};
+
+	uint32_t own_seq_counter {0};
+
+	std::vector<int16_t> buffer;
+	size_t samples_in_buffer {0}; // absolute, so divide by ch for actual length
+
+	uint32_t seq {0};
+	uint32_t sample_rate {48'000};
+	size_t channels {0};
+
+
+	std::optional<AudioFrame> pop(void) {
+		assert(_stream != nullptr);
+
+		auto new_in = _stream->pop();
+		if (new_in.has_value()) {
+			auto& new_value = new_in.value();
+			assert(new_value.isS16());
+			if (!new_value.isS16()) {
+				return std::nullopt;
+			}
+
+			if (
+				(buffer.empty()) || // buffer not yet inited
+				(sample_rate != new_value.sample_rate || channels != new_value.channels) // not the same
+			) {
+				seq = 0;
+				sample_rate = new_value.sample_rate;
+				channels = new_value.channels;
+
+				// buffer does not exist or config changed and we discard
+				// preallocate to 2x desired buffer size
+				buffer = std::vector<int16_t>(2 * (channels*sample_rate*frame_length_ms)/1000);
+				samples_in_buffer = 0;
+			}
+
+			// TODO: this will be very important in the future
+			// replace seq with timestapsUS like video??
+#if 0
+			// some time / seq comparison shit
+			if (seq != 0 && new_value.seq != 0) {
+				if (seq+1 != new_value.seq) {
+					// we skipped shit
+					// TODO: insert silence to pad?
+
+					// drop existing
+					samples_in_buffer = 0;
+				}
+			}
+#endif
+
+			// update to latest
+			seq = new_value.seq;
+
+
+			auto new_span = new_value.getSpan<int16_t>();
+
+			//std::cout << "new incoming frame is " << new_value.getSpan<int16_t>().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
+
+			// now append
+			// buffer too small
+			if (buffer.size() - samples_in_buffer < new_value.getSpan<int16_t>().size) {
+				buffer.resize(buffer.size() + new_value.getSpan<int16_t>().size - (buffer.size() - samples_in_buffer));
+			}
+
+			// TODO: memcpy
+			for (size_t i = 0; i < new_span.size; i++) {
+				buffer.at(samples_in_buffer+i) = new_span[i];
+			}
+			samples_in_buffer += new_span.size;
+		} else if (buffer.empty() || samples_in_buffer == 0) {
+			// first pop might result in invalid state
+			return std::nullopt;
+		}
+
+		const size_t desired_size {frame_length_ms * sample_rate * channels / 1000};
+
+		// > threshold?
+		if (samples_in_buffer < desired_size) {
+			return std::nullopt;
+		}
+
+		std::vector<int16_t> return_buffer(desired_size);
+		// copy data
+		for (size_t i = 0; i < return_buffer.size(); i++) {
+			return_buffer.at(i) = buffer.at(i);
+		}
+
+		// now crop buffer (meh)
+		// move data from back to front
+		for (size_t i = 0; i < samples_in_buffer-return_buffer.size(); i++) {
+			buffer.at(i) = buffer.at(desired_size + i);
+		}
+		samples_in_buffer -= return_buffer.size();
+
+		return AudioFrame{
+			own_seq_counter++,
+			sample_rate,
+			channels,
+			std::move(return_buffer),
+		};
+	}
+};
+
 struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame> {
 	ToxAV& _toxav;
 
@@ -235,7 +344,7 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame> {
 			return nullptr;
 		}
 
-		_writer = std::make_shared<QueuedFrameStream2<AudioFrame>>(10, false);
+		_writer = std::make_shared<QueuedFrameStream2<AudioFrame>>(16, false);
 
 		return _writer;
 	}
@@ -328,13 +437,16 @@ void DebugToxCall::tick(float) {
 		}
 	}
 
-	for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
+	for (const auto& [oc, asink, asrf] : _os.registry().view<ToxAVCallAudioSink*, AudioStreamReFramer>().each()) {
 		if (!asink->_writer) {
 			continue;
 		}
 
+		asrf._stream = asink->_writer.get();
+
 		for (size_t i = 0; i < 10; i++) {
-			auto new_frame_opt = asink->_writer->pop();
+			//auto new_frame_opt = asink->_writer->pop();
+			auto new_frame_opt = asrf.pop();
 			if (!new_frame_opt.has_value()) {
 				break;
 			}
@@ -397,6 +509,7 @@ float DebugToxCall::render(void) {
 						{
 							auto new_asink = std::make_unique<ToxAVCallAudioSink>(_toxav, fid);
 							call.outgoing_asink.emplace<ToxAVCallAudioSink*>(new_asink.get());
+							call.outgoing_asink.emplace<AudioStreamReFramer>().frame_length_ms = 10;
 							call.outgoing_asink.emplace<Components::FrameStream2Sink<AudioFrame>>(std::move(new_asink));
 							call.outgoing_asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame>("ToxAV Friend Call Outgoing Audio"));
 							_os.throwEventConstruct(call.outgoing_asink);
