@@ -1,15 +1,98 @@
 #pragma once
 
+#include <solanaceae/util/span.hpp>
+#include <solanaceae/util/event_provider.hpp>
+
 #include <tox/toxav.h>
 
-struct ToxAV {
+namespace /*toxav*/ Events {
+
+	struct FriendCall {
+		uint32_t friend_number;
+		bool audio_enabled;
+		bool video_enabled;
+	};
+
+	struct FriendCallState {
+		uint32_t friend_number;
+		uint32_t state;
+	};
+
+	struct FriendAudioBitrate {
+		uint32_t friend_number;
+		uint32_t audio_bit_rate;
+	};
+
+	struct FriendVideoBitrate {
+		uint32_t friend_number;
+		uint32_t video_bit_rate;
+	};
+
+	struct FriendAudioFrame {
+		uint32_t friend_number;
+
+		Span<int16_t> pcm;
+		//size_t sample_count;
+		uint8_t channels;
+		uint32_t sampling_rate;
+	};
+
+	struct FriendVideoFrame {
+		uint32_t friend_number;
+
+		uint16_t width;
+		uint16_t height;
+		//const uint8_t y[[>! max(width, abs(ystride)) * height <]];
+		//const uint8_t u[[>! max(width/2, abs(ustride)) * (height/2) <]];
+		//const uint8_t v[[>! max(width/2, abs(vstride)) * (height/2) <]];
+		// mdspan would be nice here
+		// bc of the stride, span might be larger than the actual data it contains
+		Span<uint8_t> y;
+		Span<uint8_t> u;
+		Span<uint8_t> v;
+		int32_t ystride;
+		int32_t ustride;
+		int32_t vstride;
+	};
+
+} // Event
+
+enum class ToxAV_Event : uint32_t {
+	friend_call,
+	friend_call_state,
+	friend_audio_bitrate,
+	friend_video_bitrate,
+	friend_audio_frame,
+	friend_video_frame,
+
+	MAX
+};
+
+struct ToxAVEventI {
+	using enumType = ToxAV_Event;
+
+	virtual ~ToxAVEventI(void) {}
+
+	virtual bool onEvent(const Events::FriendCall&) { return false; }
+	virtual bool onEvent(const Events::FriendCallState&) { return false; }
+	virtual bool onEvent(const Events::FriendAudioBitrate&) { return false; }
+	virtual bool onEvent(const Events::FriendVideoBitrate&) { return false; }
+	virtual bool onEvent(const Events::FriendAudioFrame&) { return false; }
+	virtual bool onEvent(const Events::FriendVideoFrame&) { return false; }
+};
+using ToxAVEventProviderI = EventProviderI<ToxAVEventI>;
+
+struct ToxAV : public ToxAVEventProviderI{
 	Tox* _tox = nullptr;
 	ToxAV* _tox_av = nullptr;
+
+	static constexpr const char* version {"0"};
 
 	ToxAV(Tox* tox);
 	virtual ~ToxAV(void);
 
 	// interface
+	// if iterate is called on a different thread, it will fire events there
 	uint32_t toxavIterationInterval(void) const;
 	void toxavIterate(void);
 
@@ -33,5 +116,21 @@ struct ToxAV {
 //int32_t toxav_groupchat_disable_av(Tox *tox, uint32_t groupnumber);
 //bool toxav_groupchat_av_enabled(Tox *tox, uint32_t groupnumber);
 
+
+
+	// toxav callbacks
+	void cb_call(uint32_t friend_number, bool audio_enabled, bool video_enabled);
+	void cb_call_state(uint32_t friend_number, uint32_t state);
+	void cb_audio_bit_rate(uint32_t friend_number, uint32_t audio_bit_rate);
+	void cb_video_bit_rate(uint32_t friend_number, uint32_t video_bit_rate);
+	void cb_audio_receive_frame(uint32_t friend_number, const int16_t pcm[], size_t sample_count, uint8_t channels, uint32_t sampling_rate);
+	void cb_video_receive_frame(
+		uint32_t friend_number,
+		uint16_t width, uint16_t height,
+		const uint8_t y[/*! max(width, abs(ystride)) * height */],
+		const uint8_t u[/*! max(width/2, abs(ustride)) * (height/2) */],
+		const uint8_t v[/*! max(width/2, abs(vstride)) * (height/2) */],
+		int32_t ystride, int32_t ustride, int32_t vstride
+	);
 };
 

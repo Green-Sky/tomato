@@ -518,6 +518,12 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	quit = !tc.iterate(time_delta); // compute
 
+#if TOMATO_TOX_AV
+	tav.toxavIterate();
+	// HACK: pow by 1.18 to increase 200 -> ~500
+	const float av_interval = std::pow(tav.toxavIterationInterval(), 1.18)/1000.f;
+#endif
+
 	tcm.iterate(time_delta); // compute
 
 	const float fo_interval = tffom.tick(time_delta);
@@ -555,6 +561,13 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 		_min_tick_interval,
 		fo_interval
 	);
+
+#if TOMATO_TOX_AV
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		av_interval
+	);
+#endif
 
 	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";
 
