@@ -42,7 +42,8 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	sw(conf),
 	osui(os),
 	tuiu(tc, conf),
-	tdch(tpi)
+	tdch(tpi),
+	smui(os, sm)
 {
 	tel.subscribeAll(tc);
 
@@ -261,6 +262,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	osui.render();
 	tuiu.render(); // render
 	tdch.render(); // render
+	smui.render();
 
 	{ // main window menubar injection
 		if (ImGui::Begin("tomato")) {

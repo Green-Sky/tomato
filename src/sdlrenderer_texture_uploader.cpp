@@ -32,7 +32,7 @@ uint64_t SDLRendererTextureUploader::uploadRGBA(const uint8_t* data, uint32_t wi
 	SDL_UpdateTexture(tex, nullptr, surf->pixels, surf->pitch);
 
 	SDL_BlendMode surf_blend_mode = SDL_BLENDMODE_NONE;
-	if (SDL_GetSurfaceBlendMode(surf, &surf_blend_mode) == 0) {
+	if (SDL_GetSurfaceBlendMode(surf, &surf_blend_mode)) {
 		SDL_SetTextureBlendMode(tex, surf_blend_mode);
 	}
 

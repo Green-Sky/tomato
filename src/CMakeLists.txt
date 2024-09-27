@@ -107,6 +107,9 @@ target_sources(tomato PUBLIC
 	./frame_streams/audio_stream2.hpp
 	./frame_streams/stream_manager.hpp
 	./frame_streams/stream_manager.cpp
+
+	./stream_manager_ui.hpp
+	./stream_manager_ui.cpp
 )
 
 if (TOMATO_TOX_AV)
