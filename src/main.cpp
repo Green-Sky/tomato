@@ -28,6 +28,8 @@ int main(int argc, char** argv) {
 
 	runSysCheck();
 
+	SDL_SetAppMetadata("tomato", "0.0.0-wip", nullptr);
+
 #ifdef __ANDROID__
 	// change current working dir to internal storage
 	std::filesystem::current_path(SDL_GetAndroidInternalStoragePath());

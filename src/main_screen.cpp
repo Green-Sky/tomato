@@ -5,6 +5,8 @@
 
 #include <solanaceae/contact/components.hpp>
 
+#include "./frame_streams/sdl/sdl_audio2_frame_stream2.hpp"
+
 #include <imgui/imgui.h>
 
 #include <SDL3/SDL.h>
@@ -138,9 +140,44 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	}
 
 	conf.dump();
+
+	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+		// add system audio devices
+		{ // audio in
+			ObjectHandle asrc {os.registry(), os.registry().create()};
+			try {
+				asrc.emplace<Components::FrameStream2Source<AudioFrame2>>(
+					std::make_unique<SDLAudio2InputDevice>()
+				);
+
+				asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame2>("SDL Audio Default Recording Device"));
+
+				os.throwEventConstruct(asrc);
+			} catch (...) {
+				os.registry().destroy(asrc);
+			}
+		}
+		{ // audio out
+			ObjectHandle asink {os.registry(), os.registry().create()};
+			try {
+				asink.emplace<Components::FrameStream2Sink<AudioFrame2>>(
+					std::make_unique<SDLAudio2OutputDeviceDefaultSink>()
+				);
+
+				asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("SDL Audio Default Playback Device"));
+
+				os.throwEventConstruct(asink);
+			} catch (...) {
+				os.registry().destroy(asink);
+			}
+		}
+	} else {
+		std::cerr << "MS warning: no sdl audio: " << SDL_GetError() << "\n";
+	}
 }
 
 MainScreen::~MainScreen(void) {
+	// TODO: quit sdl audio
 }
 
 bool MainScreen::handleEvent(SDL_Event& e) {

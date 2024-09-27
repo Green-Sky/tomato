@@ -108,6 +108,9 @@ target_sources(tomato PUBLIC
 	./frame_streams/stream_manager.hpp
 	./frame_streams/stream_manager.cpp
 
+	./frame_streams/sdl/sdl_audio2_frame_stream2.hpp
+	./frame_streams/sdl/sdl_audio2_frame_stream2.cpp
+
 	./stream_manager_ui.hpp
 	./stream_manager_ui.cpp
 )
