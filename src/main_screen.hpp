@@ -35,6 +35,7 @@
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
 #include "./stream_manager_ui.hpp"
+#include "./debug_video_tap.hpp"
 
 #if TOMATO_TOX_AV
 #include "./tox_av.hpp"
@@ -93,6 +94,7 @@ struct MainScreen final : public Screen {
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
 	StreamManagerUI smui;
+	DebugVideoTap dvt;
 
 	PluginManager pm; // last, so it gets destroyed first
 
