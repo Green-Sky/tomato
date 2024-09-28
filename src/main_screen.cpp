@@ -152,6 +152,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 				);
 
 				asrc.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame2>("SDL Audio Default Recording Device"));
+				asrc.emplace<Components::TagDefaultTarget>();
 
 				os.throwEventConstruct(asrc);
 			} catch (...) {
@@ -166,6 +167,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 				);
 
 				asink.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("SDL Audio Default Playback Device"));
+				asink.emplace<Components::TagDefaultTarget>();
 
 				os.throwEventConstruct(asink);
 			} catch (...) {

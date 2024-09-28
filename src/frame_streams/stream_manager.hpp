@@ -7,6 +7,7 @@
 
 #include "./frame_stream2.hpp"
 
+#include <unordered_map>
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -18,6 +19,14 @@
 class StreamManager;
 
 namespace Components {
+
+	// mark a source or sink as the(a) default
+	struct TagDefaultTarget {};
+
+	// mark a source/sink as to be connected to a default sink/source
+	// of the same type
+	struct TagConnectToDefault {};
+
 	struct StreamSource {
 		std::string name;
 		std::string frame_type_name;
@@ -45,7 +54,7 @@ namespace Components {
 } // Components
 
 
-class StreamManager {
+class StreamManager : protected ObjectStoreEventI {
 	friend class StreamManagerUI; // TODO: make this go away
 	ObjectStore2& _os;
 
@@ -82,6 +91,9 @@ class StreamManager {
 	};
 	std::vector<std::unique_ptr<Connection>> _connections;
 
+	std::unordered_map<std::string, Object> _default_sources;
+	std::unordered_map<std::string, Object> _default_sinks;
+
 	public:
 		StreamManager(ObjectStore2& os);
 		virtual ~StreamManager(void);
@@ -95,6 +107,11 @@ class StreamManager {
 
 		// do we need the time delta?
 		float tick(float);
+
+	protected:
+		bool onEvent(const ObjectStore::Events::ObjectConstruct&) override;
+		bool onEvent(const ObjectStore::Events::ObjectUpdate&) override;
+		bool onEvent(const ObjectStore::Events::ObjectDestory&) override;
 };
 
 // template impls

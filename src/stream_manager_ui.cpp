@@ -56,6 +56,12 @@ void StreamManagerUI::render(void) {
 					ImGui::TableNextColumn();
 					ImGui::Text("%d", entt::to_integral(entt::to_entity(oc)));
 
+					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));
+					} else if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.6f, 0.f, 0.25f}));
+					}
+
 					const auto *ssrc = _os.registry().try_get<Components::StreamSource>(oc);
 					ImGui::TableNextColumn();
 					ImGui::TextUnformatted(ssrc!=nullptr?ssrc->name.c_str():"none");
@@ -117,6 +123,12 @@ void StreamManagerUI::render(void) {
 
 					ImGui::TableNextColumn();
 					ImGui::Text("%d", entt::to_integral(entt::to_entity(oc)));
+
+					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));
+					} else if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.6f, 0.f, 0.25f}));
+					}
 
 					const auto *ssink = _os.registry().try_get<Components::StreamSink>(oc);
 					ImGui::TableNextColumn();
