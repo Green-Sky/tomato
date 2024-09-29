@@ -20,7 +20,7 @@ struct ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	void tick(void);
 
 	public: // voip model
-		ObjectHandle enter(const Contact3 c, const DefaultConfig& defaults) override;
+		ObjectHandle enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults) override;
 		bool accept(ObjectHandle session) override;
 		bool leave(ObjectHandle session) override;
 

@@ -28,6 +28,73 @@ namespace Components {
 	};
 } // Components
 
+// TODO: make proper adapter
+struct AudioStreamReFramer {
+	FrameStream2I<AudioFrame2>* _stream {nullptr};
+	uint32_t frame_length_ms {10};
+
+	// dequeue?
+	std::vector<int16_t> buffer;
+
+	uint32_t sample_rate {48'000};
+	size_t channels {0};
+
+	std::optional<AudioFrame2> pop(void) {
+		assert(_stream != nullptr);
+
+		auto new_in = _stream->pop();
+		if (new_in.has_value()) {
+			auto& new_value = new_in.value();
+
+			// changed
+			if (sample_rate != new_value.sample_rate || channels != new_value.channels) {
+				if (channels != 0) {
+					std::cerr << "ReFramer warning: reconfiguring, dropping buffer\n";
+				}
+				sample_rate = new_value.sample_rate;
+				channels = new_value.channels;
+
+				// buffer does not exist or config changed and we discard
+				buffer = {};
+			}
+
+
+			std::cout << "new incoming frame is " << new_value.getSpan().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
+
+			auto new_span = new_value.getSpan();
+
+			if (buffer.empty()) {
+				buffer = {new_span.cbegin(), new_span.cend()};
+			} else {
+				buffer.insert(buffer.cend(), new_span.cbegin(), new_span.cend());
+			}
+		} else if (buffer.empty()) {
+			// first pop might result in invalid state
+			return std::nullopt;
+		}
+
+		const size_t desired_size {frame_length_ms * sample_rate * channels / 1000};
+
+		// > threshold?
+		if (buffer.size() < desired_size) {
+			return std::nullopt;
+		}
+
+		// copy data
+		std::vector<int16_t> return_buffer(buffer.cbegin(), buffer.cbegin()+desired_size);
+
+		// now crop buffer (meh)
+		// move data from back to front
+		buffer.erase(buffer.cbegin(), buffer.cbegin() + desired_size);
+
+		return AudioFrame2{
+			sample_rate,
+			channels,
+			std::move(return_buffer),
+		};
+	}
+};
+
 struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 	ToxAVI& _toxav;
 
@@ -137,17 +204,17 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 }
 
 void ToxAVVoIPModel::tick(void) {
-	//for (const auto& [oc, asink, asrf] : _os.registry().view<ToxAVCallAudioSink*, AudioStreamReFramer>().each()) {
-	for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
+	for (const auto& [oc, asink, asrf] : _os.registry().view<ToxAVCallAudioSink*, AudioStreamReFramer>().each()) {
+	//for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
 		if (!asink->_writer) {
 			continue;
 		}
 
-		//asrf._stream = asink->_writer.get();
+		asrf._stream = asink->_writer.get();
 
-		for (size_t i = 0; i < 10; i++) {
-			auto new_frame_opt = asink->_writer->pop();
-			//auto new_frame_opt = asrf.pop();
+		for (size_t i = 0; i < 100; i++) {
+			//auto new_frame_opt = asink->_writer->pop();
+			auto new_frame_opt = asrf.pop();
 			if (!new_frame_opt.has_value()) {
 				break;
 			}
@@ -176,7 +243,7 @@ void ToxAVVoIPModel::tick(void) {
 	}
 }
 
-ObjectHandle ToxAVVoIPModel::enter(const Contact3 c, const DefaultConfig& defaults) {
+ObjectHandle ToxAVVoIPModel::enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults) {
 	if (!_cr.all_of<Contact::Components::ToxFriendEphemeral>(c)) {
 		return {};
 	}
@@ -196,6 +263,7 @@ ObjectHandle ToxAVVoIPModel::enter(const Contact3 c, const DefaultConfig& defaul
 	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
 	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
 	new_session.emplace<VoIPModelI*>(this);
+	new_session.emplace<Components::VoIP::DefaultConfig>(defaults);
 
 	_os.throwEventConstruct(new_session);
 	return new_session;
@@ -281,7 +349,7 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 				destroySession(o);
 			} else {
 				// remote accepted our call, or av send/recv conditions changed?
-				o.get<Components::VoIP::SessionState>().state; // set to in call
+				o.get<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::CONNECTED; // set to in call ??
 
 				auto& stream_sinks = o.get_or_emplace<Components::VoIP::StreamSinks>().streams;
 				if (s.is_accepting_a() && !o.all_of<Components::ToxAVAudioSink>()) {
@@ -289,10 +357,16 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 
 					auto new_asink = std::make_unique<ToxAVCallAudioSink>(_av, e.friend_number);
 					outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink.get());
-					//outgoing_audio.emplace<AudioStreamReFramer>().frame_length_ms = 10;
+					outgoing_audio.emplace<AudioStreamReFramer>();
 					outgoing_audio.emplace<Components::FrameStream2Sink<AudioFrame2>>(std::move(new_asink));
 					outgoing_audio.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("ToxAV Friend Call Outgoing Audio"));
-					outgoing_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
+
+					if (
+						const auto* defaults = o.try_get<Components::VoIP::DefaultConfig>();
+						defaults != nullptr && defaults->outgoing_audio
+					) {
+						outgoing_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
+					}
 
 					stream_sinks.push_back(outgoing_audio);
 					o.emplace<Components::ToxAVAudioSink>(outgoing_audio);
