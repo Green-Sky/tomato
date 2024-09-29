@@ -126,7 +126,7 @@ void StreamManagerUI::render(void) {
 
 					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));
-					} else if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+					} else if (_os.registry().all_of<Components::TagConnectToDefault>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.6f, 0.f, 0.25f}));
 					}
 

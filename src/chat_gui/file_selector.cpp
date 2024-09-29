@@ -111,56 +111,60 @@ void FileSelector::render(void) {
 				}
 			}
 
-			// do sorting here
-			// TODO: cache the result (lol)
-			if (ImGuiTableSortSpecs* sorts_specs = ImGui::TableGetSortSpecs(); sorts_specs != nullptr && sorts_specs->SpecsCount >= 1) {
-				switch (static_cast<SortID>(sorts_specs->Specs->ColumnUserID)) {
-					break; case SortID::name:
-						if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
-							std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-								return a.path() < b.path();
-							});
-							std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-								return a.path().filename() < b.path().filename();
-							});
-						} else {
-							std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-								return a.path() > b.path();
-							});
-							std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-								return a.path().filename() > b.path().filename();
-							});
-						}
-					break; case SortID::size:
-						if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
-							// TODO: sort dirs?
-							std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-								return a.file_size() < b.file_size();
-							});
-						} else {
-							// TODO: sort dirs?
-							std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-								return a.file_size() > b.file_size();
-							});
-						}
-					break; case SortID::date:
-						if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
-							std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-								return a.last_write_time() < b.last_write_time();
-							});
-							std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-								return a.last_write_time() < b.last_write_time();
-							});
-						} else {
-							std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-								return a.last_write_time() > b.last_write_time();
-							});
-							std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-								return a.last_write_time() > b.last_write_time();
-							});
-						}
-					break; default: ;
+			try {
+				// do sorting here
+				// TODO: cache the result (lol)
+				if (ImGuiTableSortSpecs* sorts_specs = ImGui::TableGetSortSpecs(); sorts_specs != nullptr && sorts_specs->SpecsCount >= 1) {
+					switch (static_cast<SortID>(sorts_specs->Specs->ColumnUserID)) {
+						break; case SortID::name:
+							if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
+								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+									return a.path() < b.path();
+								});
+								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+									return a.path().filename() < b.path().filename();
+								});
+							} else {
+								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+									return a.path() > b.path();
+								});
+								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+									return a.path().filename() > b.path().filename();
+								});
+							}
+						break; case SortID::size:
+							if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
+								// TODO: sort dirs?
+								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+									return a.file_size() < b.file_size();
+								});
+							} else {
+								// TODO: sort dirs?
+								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+									return a.file_size() > b.file_size();
+								});
+							}
+						break; case SortID::date:
+							if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
+								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+									return a.last_write_time() < b.last_write_time();
+								});
+								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+									return a.last_write_time() < b.last_write_time();
+								});
+							} else {
+								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+									return a.last_write_time() > b.last_write_time();
+								});
+								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+									return a.last_write_time() > b.last_write_time();
+								});
+							}
+						break; default: ;
+					}
 				}
+			} catch (...) {
+				// we likely saw a file disapear
 			}
 
 			for (auto const& dir_entry : dirs) {

@@ -168,7 +168,7 @@ bool StreamManager::onEvent(const ObjectStore::Events::ObjectConstruct& e) {
 			auto it_d_src = _default_sources.find(e.e.get<Components::StreamSink>().frame_type_name);
 			if (it_d_src != _default_sources.cend()) {
 				// TODO: threaded
-				connect(e.e, it_d_src->second);
+				connect(it_d_src->second, e.e);
 			}
 		}
 	}
