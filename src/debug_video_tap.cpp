@@ -182,6 +182,7 @@ DebugVideoTap::DebugVideoTap(ObjectStore2& os, StreamManager& sm, TextureUploade
 		);
 
 		_tap.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("DebugVideoTap"));
+		_tap.emplace<Components::TagDefaultTarget>();
 
 		_os.throwEventConstruct(_tap);
 	} catch (...) {
