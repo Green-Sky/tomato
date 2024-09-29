@@ -34,6 +34,10 @@ struct LockedFrameStream2 : public FrameStream2I<FrameType> {
 	bool push(const FrameType& value) {
 		std::lock_guard lg{_lock};
 
+		if (_frames.size() > 1024) {
+			return false; // hard limit
+		}
+
 		_frames.push_back(value);
 
 		return true;

@@ -108,6 +108,7 @@ target_sources(tomato PUBLIC
 	./frame_streams/stream_manager.hpp
 	./frame_streams/stream_manager.cpp
 	./frame_streams/locked_frame_stream.hpp
+	./frame_streams/multi_source.hpp
 
 	./frame_streams/voip_model.hpp
 

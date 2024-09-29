@@ -6,6 +6,7 @@
 #include "./frame_streams/stream_manager.hpp"
 #include "./frame_streams/audio_stream2.hpp"
 #include "./frame_streams/locked_frame_stream.hpp"
+#include "./frame_streams/multi_source.hpp"
 
 #include <iostream>
 
@@ -31,7 +32,7 @@ namespace Components {
 // TODO: make proper adapter
 struct AudioStreamReFramer {
 	FrameStream2I<AudioFrame2>* _stream {nullptr};
-	uint32_t frame_length_ms {10};
+	uint32_t frame_length_ms {20};
 
 	// dequeue?
 	std::vector<int16_t> buffer;
@@ -59,7 +60,7 @@ struct AudioStreamReFramer {
 			}
 
 
-			std::cout << "new incoming frame is " << new_value.getSpan().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
+			//std::cout << "new incoming frame is " << new_value.getSpan().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
 
 			auto new_span = new_value.getSpan();
 
@@ -380,9 +381,36 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 				// video
 
 				// add/update sources
-				// audio
-				// video
+				auto& stream_source = o.get_or_emplace<Components::VoIP::StreamSources>().streams;
 
+				// audio
+				if (s.is_sending_a() && !o.all_of<Components::ToxAVAudioSource>()) {
+					ObjectHandle incoming_audio {_os.registry(), _os.registry().create()};
+
+					auto new_asrc = std::make_unique<FrameStream2MultiSource<AudioFrame2>>();
+					incoming_audio.emplace<FrameStream2MultiSource<AudioFrame2>*>(new_asrc.get());
+					incoming_audio.emplace<Components::FrameStream2Source<AudioFrame2>>(std::move(new_asrc));
+					incoming_audio.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame2>("ToxAV Friend Call Incoming Audio"));
+
+					std::cout << "new incoming audio\n";
+					if (
+						const auto* defaults = o.try_get<Components::VoIP::DefaultConfig>();
+						defaults != nullptr && defaults->incoming_audio
+					) {
+						incoming_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
+						std::cout << "with default\n";
+					}
+
+					stream_source.push_back(incoming_audio);
+					o.emplace<Components::ToxAVAudioSource>(incoming_audio);
+					// TODO: tie session to stream
+
+					_os.throwEventConstruct(incoming_audio);
+				} else if (!s.is_sending_a() && o.all_of<Components::ToxAVAudioSource>()) {
+					// remove asrc?
+				}
+
+				// video
 			}
 		}
 	}
@@ -398,8 +426,56 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoBitrate&) {
 	return false;
 }
 
-bool ToxAVVoIPModel::onEvent(const Events::FriendAudioFrame&) {
-	return false;
+bool ToxAVVoIPModel::onEvent(const Events::FriendAudioFrame& e) {
+	//auto& call = _calls[e.friend_number];
+
+	// get session?
+	// get asrc (directly instead?) this is pretty hot
+	const auto session_contact = _tcm.getContactFriend(e.friend_number);
+	if (!_cr.valid(session_contact)) {
+		return false;
+	}
+
+	// jesus this is bad
+	ObjectHandle asrc;
+	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
+		if (voipmodel != this) {
+			continue;
+		}
+
+		auto o = _os.objectHandle(ov);
+
+		if (!o.all_of<Components::VoIP::SessionContact>()) {
+			continue;
+		}
+		if (session_contact != o.get<Components::VoIP::SessionContact>().c) {
+			continue;
+		}
+
+		if (!o.all_of<Components::ToxAVAudioSource>()) {
+			continue;
+		}
+		asrc = o.get<Components::ToxAVAudioSource>().o;
+		break;
+	}
+
+	if (!static_cast<bool>(asrc)) {
+		// missing src to put frame into ??
+		return false;
+	}
+
+	//assert(call.incoming_asrc.all_of<AudioFrameStream2MultiSource*>());
+	assert(asrc.all_of<FrameStream2MultiSource<AudioFrame2>*>());
+	//assert(call.incoming_asrc.all_of<Components::FrameStream2Source<AudioFrame>>());
+	assert(asrc.all_of<Components::FrameStream2Source<AudioFrame2>>());
+
+	asrc.get<FrameStream2MultiSource<AudioFrame2>*>()->push(AudioFrame2{
+		e.sampling_rate,
+		e.channels,
+		std::vector<int16_t>(e.pcm.begin(), e.pcm.end()) // copy
+	});
+
+	return true;
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame&) {
