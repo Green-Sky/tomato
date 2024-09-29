@@ -527,8 +527,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 #if TOMATO_TOX_AV
 	tav.toxavIterate();
+	// breaks it
 	// HACK: pow by 1.18 to increase 200 -> ~500
-	const float av_interval = std::pow(tav.toxavIterationInterval(), 1.18)/1000.f;
+	//const float av_interval = std::pow(tav.toxavIterationInterval(), 1.18)/1000.f;
+	const float av_interval = tav.toxavIterationInterval()/1000.f;
 
 	tavvoip.tick();
 #endif
