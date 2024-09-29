@@ -39,6 +39,7 @@
 
 #if TOMATO_TOX_AV
 #include "./tox_av.hpp"
+#include "./tox_av_voip_model.hpp"
 #endif
 
 #include <string>
@@ -67,13 +68,14 @@ struct MainScreen final : public Screen {
 	ToxClient tc;
 	ToxPrivateImpl tpi;
 	AutoDirty ad;
-#if TOMATO_TOX_AV
-	ToxAV tav;
-#endif
 	ToxContactModel2 tcm;
 	ToxMessageManager tmm;
 	ToxTransferManager ttm;
 	ToxFriendFauxOfflineMessaging tffom;
+#if TOMATO_TOX_AV
+	ToxAVI tav;
+	ToxAVVoIPModel tavvoip;
+#endif
 
 	Theme& theme;
 

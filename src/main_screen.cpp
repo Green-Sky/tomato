@@ -25,13 +25,14 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	tc(save_path, save_password),
 	tpi(tc.getTox()),
 	ad(tc),
-#if TOMATO_TOX_AV
-	tav(tc.getTox()),
-#endif
 	tcm(cr, tc, tc),
 	tmm(rmm, cr, tcm, tc, tc),
 	ttm(rmm, cr, tcm, tc, tc, os),
 	tffom(cr, rmm, tcm, tc, tc),
+#if TOMATO_TOX_AV
+	tav(tc.getTox()),
+	tavvoip(os, tav, cr, tcm),
+#endif
 	theme(theme_),
 	mmil(rmm),
 	tam(/*rmm, */ os, cr, conf),
@@ -80,7 +81,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 		g_provideInstance<ToxPrivateI>("ToxPrivateI", "host", &tpi);
 		g_provideInstance<ToxEventProviderI>("ToxEventProviderI", "host", &tc);
 #if TOMATO_TOX_AV
-		g_provideInstance<ToxAV>("ToxAV", "host", &tav);
+		g_provideInstance<ToxAVI>("ToxAVI", "host", &tav);
 #endif
 		g_provideInstance<ToxContactModel2>("ToxContactModel2", "host", &tcm);
 
@@ -528,6 +529,8 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	tav.toxavIterate();
 	// HACK: pow by 1.18 to increase 200 -> ~500
 	const float av_interval = std::pow(tav.toxavIterationInterval(), 1.18)/1000.f;
+
+	tavvoip.tick();
 #endif
 
 	tcm.iterate(time_delta); // compute

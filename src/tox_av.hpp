@@ -82,14 +82,15 @@ struct ToxAVEventI {
 };
 using ToxAVEventProviderI = EventProviderI<ToxAVEventI>;
 
-struct ToxAV : public ToxAVEventProviderI{
+// TODO: seperate out implementation from interface
+struct ToxAVI : public ToxAVEventProviderI {
 	Tox* _tox = nullptr;
 	ToxAV* _tox_av = nullptr;
 
 	static constexpr const char* version {"0"};
 
-	ToxAV(Tox* tox);
-	virtual ~ToxAV(void);
+	ToxAVI(Tox* tox);
+	virtual ~ToxAVI(void);
 
 	// interface
 	// if iterate is called on a different thread, it will fire events there
@@ -132,5 +133,16 @@ struct ToxAV : public ToxAVEventProviderI{
 		const uint8_t v[/*! max(width/2, abs(vstride)) * (height/2) */],
 		int32_t ystride, int32_t ustride, int32_t vstride
 	);
+};
+
+struct ToxAVFriendCallState final {
+	const uint32_t state {TOXAV_FRIEND_CALL_STATE_NONE};
+
+	[[nodiscard]] bool is_error(void) const { return state & TOXAV_FRIEND_CALL_STATE_ERROR; }
+	[[nodiscard]] bool is_finished(void) const { return state & TOXAV_FRIEND_CALL_STATE_FINISHED; }
+	[[nodiscard]] bool is_sending_a(void) const { return state & TOXAV_FRIEND_CALL_STATE_SENDING_A; }
+	[[nodiscard]] bool is_sending_v(void) const { return state & TOXAV_FRIEND_CALL_STATE_SENDING_V; }
+	[[nodiscard]] bool is_accepting_a(void) const { return state & TOXAV_FRIEND_CALL_STATE_ACCEPTING_A; }
+	[[nodiscard]] bool is_accepting_v(void) const { return state & TOXAV_FRIEND_CALL_STATE_ACCEPTING_V; }
 };
 

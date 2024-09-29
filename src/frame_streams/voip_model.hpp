@@ -10,9 +10,9 @@ namespace Components::VoIP {
 	struct TagVoIPSession {};
 
 	// to talk to the model handling this session
-	struct VoIPModel {
-		VoIPModelI* ptr {nullptr};
-	};
+	//struct VoIPModel {
+		//VoIPModelI* ptr {nullptr};
+	//};
 
 	struct SessionState {
 		// ????
@@ -59,13 +59,13 @@ struct VoIPModelI {
 		bool outgoing_audio {true};
 		bool outgoing_video {true};
 	};
-	virtual ObjectHandle enter(const Contact3 c, const DefaultConfig& defaults = {});
+	virtual ObjectHandle enter(const Contact3 c, const DefaultConfig& defaults = {true, true, true, true}) { return {}; }
 
 	// accept/join an invite to a session
-	virtual bool accept(ObjectHandle session);
+	virtual bool accept(ObjectHandle session) { return false; }
 
 	// leaves a call
 	// - VoIP session object
-	virtual bool leave(ObjectHandle session);
+	virtual bool leave(ObjectHandle session) { return false; }
 };
 

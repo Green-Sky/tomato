@@ -107,6 +107,9 @@ target_sources(tomato PUBLIC
 	./frame_streams/audio_stream2.hpp
 	./frame_streams/stream_manager.hpp
 	./frame_streams/stream_manager.cpp
+	./frame_streams/locked_frame_stream.hpp
+
+	./frame_streams/voip_model.hpp
 
 	./frame_streams/sdl/sdl_audio2_frame_stream2.hpp
 	./frame_streams/sdl/sdl_audio2_frame_stream2.cpp
@@ -123,6 +126,9 @@ if (TOMATO_TOX_AV)
 	target_sources(tomato PUBLIC
 		./tox_av.hpp
 		./tox_av.cpp
+
+		./tox_av_voip_model.hpp
+		./tox_av_voip_model.cpp
 	)
 
 	target_compile_definitions(tomato PUBLIC TOMATO_TOX_AV)

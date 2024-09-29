@@ -9,6 +9,8 @@
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/util/utils.hpp>
 
+#include "./frame_streams/voip_model.hpp"
+
 // HACK: remove them
 #include <solanaceae/tox_contacts/components.hpp>
 
@@ -21,6 +23,7 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
+#include "entt/entity/entity.hpp"
 
 #include <cctype>
 #include <ctime>
@@ -30,6 +33,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <string>
 #include <variant>
 
 namespace Components {
@@ -257,6 +261,62 @@ float ChatGui4::render(float time_delta) {
 
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
 				if (ImGui::BeginMenuBar()) {
+					// check if contact has voip model
+					// use activesessioncomp instead?
+					if (_cr.all_of<VoIPModelI*>(*_selected_contact)) {
+						if (ImGui::BeginMenu("VoIP")) {
+							auto* voip_model = _cr.get<VoIPModelI*>(*_selected_contact);
+
+							std::vector<Object> contact_sessions;
+							for (const auto& [ov, o_vm, sc] : _os.registry().view<VoIPModelI*, Components::VoIP::SessionContact>().each()) {
+								if (o_vm != voip_model) {
+									continue;
+								}
+								if (sc.c != *_selected_contact) {
+									continue;
+								}
+								contact_sessions.push_back(ov);
+							}
+
+							static VoIPModelI::DefaultConfig g_default_connections{};
+
+							if (ImGui::BeginMenu("default connections")) {
+								ImGui::MenuItem("incoming audio", nullptr, &g_default_connections.incoming_audio);
+								ImGui::MenuItem("incoming video", nullptr, &g_default_connections.incoming_video);
+								ImGui::Separator();
+								ImGui::MenuItem("outgoing audio", nullptr, &g_default_connections.outgoing_audio);
+								ImGui::MenuItem("outgoing video", nullptr, &g_default_connections.outgoing_video);
+								ImGui::EndMenu();
+							}
+
+							// TODO: only list if >1
+							if (ImGui::BeginMenu("accept call", false)) {
+								// list incomming here?
+								ImGui::EndMenu();
+							}
+
+							// TODO: disable if already in call?
+							if (ImGui::Button("call")) {
+								auto new_session = voip_model->enter(*_selected_contact, g_default_connections);
+							}
+
+							// TODO: only list if >1
+							if (ImGui::BeginMenu("leave/reject call", !contact_sessions.empty())) {
+								// list
+								for (const auto ov : contact_sessions) {
+									std::string label = "end #";
+									label += std::to_string(entt::to_integral(entt::to_entity(ov)));
+
+									if (ImGui::MenuItem(label.c_str())) {
+										voip_model->leave({_os.registry(), ov});
+									}
+								}
+								ImGui::EndMenu();
+							}
+
+							ImGui::EndMenu();
+						}
+					}
 					if (ImGui::BeginMenu("debug")) {
 						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
 						ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
