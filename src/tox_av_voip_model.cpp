@@ -23,10 +23,12 @@ namespace Components {
 		ObjectHandle o;
 		// ptr?
 	};
+	// vid
 	struct ToxAVAudioSource {
 		ObjectHandle o;
 		// ptr?
 	};
+	// vid
 } // Components
 
 // TODO: make proper adapter
@@ -179,6 +181,20 @@ ToxAVVoIPModel::~ToxAVVoIPModel(void) {
 void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 	if (!static_cast<bool>(session)) {
 		return;
+	}
+
+	// remove lookup
+	if (session.all_of<Components::ToxAVAudioSource>()) {
+		auto it_asrc = std::find_if(
+			_audio_sources.cbegin(), _audio_sources.cend(),
+			[o = session.get<Components::ToxAVAudioSource>().o](const auto& it) {
+				return it.second == o;
+			}
+		);
+
+		if (it_asrc != _audio_sources.cend()) {
+			_audio_sources.erase(it_asrc);
+		}
 	}
 
 	// destory sources
@@ -405,6 +421,8 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 					o.emplace<Components::ToxAVAudioSource>(incoming_audio);
 					// TODO: tie session to stream
 
+					_audio_sources[e.friend_number] = incoming_audio;
+
 					_os.throwEventConstruct(incoming_audio);
 				} else if (!s.is_sending_a() && o.all_of<Components::ToxAVAudioSource>()) {
 					// remove asrc?
@@ -427,46 +445,20 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoBitrate&) {
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendAudioFrame& e) {
-	//auto& call = _calls[e.friend_number];
-
-	// get session?
-	// get asrc (directly instead?) this is pretty hot
-	const auto session_contact = _tcm.getContactFriend(e.friend_number);
-	if (!_cr.valid(session_contact)) {
+	auto asrc_it = _audio_sources.find(e.friend_number);
+	if (asrc_it == _audio_sources.cend()) {
+		// missing src from lookup table
 		return false;
 	}
 
-	// jesus this is bad
-	ObjectHandle asrc;
-	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
-		if (voipmodel != this) {
-			continue;
-		}
-
-		auto o = _os.objectHandle(ov);
-
-		if (!o.all_of<Components::VoIP::SessionContact>()) {
-			continue;
-		}
-		if (session_contact != o.get<Components::VoIP::SessionContact>().c) {
-			continue;
-		}
-
-		if (!o.all_of<Components::ToxAVAudioSource>()) {
-			continue;
-		}
-		asrc = o.get<Components::ToxAVAudioSource>().o;
-		break;
-	}
+	auto asrc = asrc_it->second;
 
 	if (!static_cast<bool>(asrc)) {
 		// missing src to put frame into ??
 		return false;
 	}
 
-	//assert(call.incoming_asrc.all_of<AudioFrameStream2MultiSource*>());
 	assert(asrc.all_of<FrameStream2MultiSource<AudioFrame2>*>());
-	//assert(call.incoming_asrc.all_of<Components::FrameStream2Source<AudioFrame>>());
 	assert(asrc.all_of<Components::FrameStream2Source<AudioFrame2>>());
 
 	asrc.get<FrameStream2MultiSource<AudioFrame2>*>()->push(AudioFrame2{

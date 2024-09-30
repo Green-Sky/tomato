@@ -6,11 +6,16 @@
 #include "./frame_streams/voip_model.hpp"
 #include "./tox_av.hpp"
 
+#include <unordered_map>
+
 struct ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	ObjectStore2& _os;
 	ToxAVI& _av;
 	Contact3Registry& _cr;
 	ToxContactModel2& _tcm;
+
+	// for faster lookup
+	std::unordered_map<uint32_t, ObjectHandle> _audio_sources;
 
 	ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm);
 	~ToxAVVoIPModel(void);
