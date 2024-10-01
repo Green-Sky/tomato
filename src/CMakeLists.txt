@@ -169,3 +169,18 @@ target_link_libraries(tomato PUBLIC
 
 set_target_properties(tomato PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+########################################
+
+add_executable(test_frame_stream2_pop_reframer EXCLUDE_FROM_ALL
+	./frame_streams/frame_stream2.hpp
+	./frame_streams/audio_stream2.hpp
+	./frame_streams/locked_frame_stream.hpp
+	./frame_streams/multi_source.hpp
+
+	./frame_streams/test_pop_reframer.cpp
+)
+
+target_link_libraries(test_frame_stream2_pop_reframer
+	solanaceae_util
+)
+
