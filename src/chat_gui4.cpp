@@ -14,6 +14,8 @@
 // HACK: remove them
 #include <solanaceae/tox_contacts/components.hpp>
 
+#include <entt/entity/entity.hpp>
+
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
@@ -23,7 +25,6 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
-#include "entt/entity/entity.hpp"
 
 #include <cctype>
 #include <ctime>
@@ -267,7 +268,8 @@ float ChatGui4::render(float time_delta) {
 						if (ImGui::BeginMenu("VoIP")) {
 							auto* voip_model = _cr.get<VoIPModelI*>(*_selected_contact);
 
-							std::vector<Object> contact_sessions;
+							std::vector<ObjectHandle> contact_sessions;
+							std::vector<ObjectHandle> acceptable_sessions;
 							for (const auto& [ov, o_vm, sc] : _os.registry().view<VoIPModelI*, Components::VoIP::SessionContact>().each()) {
 								if (o_vm != voip_model) {
 									continue;
@@ -275,7 +277,24 @@ float ChatGui4::render(float time_delta) {
 								if (sc.c != *_selected_contact) {
 									continue;
 								}
-								contact_sessions.push_back(ov);
+
+								auto o = _os.objectHandle(ov);
+								contact_sessions.push_back(o);
+
+								if (!o.all_of<Components::VoIP::Incoming>()) {
+									continue; // not incoming
+								}
+
+								// state is ringing/not yet accepted
+								const auto* session_state = o.try_get<Components::VoIP::SessionState>();
+								if (session_state == nullptr) {
+									continue;
+								}
+
+								if (session_state->state != Components::VoIP::SessionState::State::RINGING) {
+									continue;
+								}
+								acceptable_sessions.push_back(o);
 							}
 
 							static Components::VoIP::DefaultConfig g_default_connections{};
@@ -289,29 +308,46 @@ float ChatGui4::render(float time_delta) {
 								ImGui::EndMenu();
 							}
 
-							// TODO: only list if >1
-							if (ImGui::BeginMenu("accept call", false)) {
-								// list incomming here?
-								ImGui::EndMenu();
+							if (acceptable_sessions.size() < 2) {
+								if (ImGui::MenuItem("accept call", nullptr, false, !acceptable_sessions.empty())) {
+									voip_model->accept(acceptable_sessions.front(), g_default_connections);
+								}
+							} else {
+								if (ImGui::BeginMenu("accept call", !acceptable_sessions.empty())) {
+									for (const auto o : acceptable_sessions) {
+										std::string label = "accept #";
+										label += std::to_string(entt::to_integral(entt::to_entity(o.entity())));
+
+										if (ImGui::MenuItem(label.c_str())) {
+											voip_model->accept(o, g_default_connections);
+										}
+									}
+									ImGui::EndMenu();
+								}
 							}
 
 							// TODO: disable if already in call?
-							if (ImGui::Button("call")) {
-								auto new_session = voip_model->enter(*_selected_contact, g_default_connections);
+							if (ImGui::Button(" call ")) {
+								voip_model->enter(*_selected_contact, g_default_connections);
 							}
 
-							// TODO: only list if >1
-							if (ImGui::BeginMenu("leave/reject call", !contact_sessions.empty())) {
-								// list
-								for (const auto ov : contact_sessions) {
-									std::string label = "end #";
-									label += std::to_string(entt::to_integral(entt::to_entity(ov)));
-
-									if (ImGui::MenuItem(label.c_str())) {
-										voip_model->leave({_os.registry(), ov});
-									}
+							if (contact_sessions.size() < 2) {
+								if (ImGui::MenuItem("leave/reject call", nullptr, false, !contact_sessions.empty())) {
+									voip_model->leave(contact_sessions.front());
 								}
-								ImGui::EndMenu();
+							} else {
+								if (ImGui::BeginMenu("leave/reject call")) {
+									// list
+									for (const auto o : contact_sessions) {
+										std::string label = "end #";
+										label += std::to_string(entt::to_integral(entt::to_entity(o.entity())));
+
+										if (ImGui::MenuItem(label.c_str())) {
+											voip_model->leave(o);
+										}
+									}
+									ImGui::EndMenu();
+								}
 							}
 
 							ImGui::EndMenu();

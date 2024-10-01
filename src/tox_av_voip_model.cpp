@@ -10,15 +10,12 @@
 
 #include <iostream>
 
-namespace Contact::Components {
-	// session instead???
-	struct ToxAVCall {
+namespace Components {
+	struct ToxAVIncomingAV {
 		bool incoming_audio {false};
 		bool incoming_video {false};
 	};
-}
 
-namespace Components {
 	struct ToxAVAudioSink {
 		ObjectHandle o;
 		// ptr?
@@ -152,30 +149,56 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 	}
 };
 
-ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm) :
-	_os(os), _av(av), _cr(cr), _tcm(tcm)
-{
-	_av.subscribe(this, ToxAV_Event::friend_call);
-	_av.subscribe(this, ToxAV_Event::friend_call_state);
-	_av.subscribe(this, ToxAV_Event::friend_audio_bitrate);
-	_av.subscribe(this, ToxAV_Event::friend_video_bitrate);
-	_av.subscribe(this, ToxAV_Event::friend_audio_frame);
-	_av.subscribe(this, ToxAV_Event::friend_video_frame);
+void ToxAVVoIPModel::addAudioSource(ObjectHandle session, uint32_t friend_number) {
+	auto& stream_source = session.get_or_emplace<Components::VoIP::StreamSources>().streams;
 
-	// attach to all tox friend contacts
+	ObjectHandle incoming_audio {_os.registry(), _os.registry().create()};
 
-	for (const auto& [cv, _] : _cr.view<Contact::Components::ToxFriendPersistent>().each()) {
-		_cr.emplace<VoIPModelI*>(cv, this);
+	auto new_asrc = std::make_unique<FrameStream2MultiSource<AudioFrame2>>();
+	incoming_audio.emplace<FrameStream2MultiSource<AudioFrame2>*>(new_asrc.get());
+	incoming_audio.emplace<Components::FrameStream2Source<AudioFrame2>>(std::move(new_asrc));
+	incoming_audio.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame2>("ToxAV Friend Call Incoming Audio"));
+
+	std::cout << "new incoming audio\n";
+	if (
+		const auto* defaults = session.try_get<Components::VoIP::DefaultConfig>();
+		defaults != nullptr && defaults->incoming_audio
+	) {
+		incoming_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
+		std::cout << "with default\n";
 	}
-	// TODO: events
+
+	stream_source.push_back(incoming_audio);
+	session.emplace<Components::ToxAVAudioSource>(incoming_audio);
+	// TODO: tie session to stream
+
+	_audio_sources[friend_number] = incoming_audio;
+
+	_os.throwEventConstruct(incoming_audio);
 }
 
-ToxAVVoIPModel::~ToxAVVoIPModel(void) {
-	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
-		if (voipmodel == this) {
-			destroySession(_os.objectHandle(ov));
-		}
+void ToxAVVoIPModel::addAudioSink(ObjectHandle session, uint32_t friend_number) {
+	auto& stream_sinks = session.get_or_emplace<Components::VoIP::StreamSinks>().streams;
+	ObjectHandle outgoing_audio {_os.registry(), _os.registry().create()};
+
+	auto new_asink = std::make_unique<ToxAVCallAudioSink>(_av, friend_number);
+	outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink.get());
+	outgoing_audio.emplace<AudioStreamReFramer>();
+	outgoing_audio.emplace<Components::FrameStream2Sink<AudioFrame2>>(std::move(new_asink));
+	outgoing_audio.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("ToxAV Friend Call Outgoing Audio"));
+
+	if (
+		const auto* defaults = session.try_get<Components::VoIP::DefaultConfig>();
+		defaults != nullptr && defaults->outgoing_audio
+	) {
+		outgoing_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
 	}
+
+	stream_sinks.push_back(outgoing_audio);
+	session.emplace<Components::ToxAVAudioSink>(outgoing_audio);
+	// TODO: tie session to stream
+
+	_os.throwEventConstruct(outgoing_audio);
 }
 
 void ToxAVVoIPModel::destroySession(ObjectHandle session) {
@@ -218,6 +241,32 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 	// destory session
 	_os.throwEventDestroy(session);
 	_os.registry().destroy(session);
+}
+
+ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm) :
+	_os(os), _av(av), _cr(cr), _tcm(tcm)
+{
+	_av.subscribe(this, ToxAV_Event::friend_call);
+	_av.subscribe(this, ToxAV_Event::friend_call_state);
+	_av.subscribe(this, ToxAV_Event::friend_audio_bitrate);
+	_av.subscribe(this, ToxAV_Event::friend_video_bitrate);
+	_av.subscribe(this, ToxAV_Event::friend_audio_frame);
+	_av.subscribe(this, ToxAV_Event::friend_video_frame);
+
+	// attach to all tox friend contacts
+
+	for (const auto& [cv, _] : _cr.view<Contact::Components::ToxFriendPersistent>().each()) {
+		_cr.emplace<VoIPModelI*>(cv, this);
+	}
+	// TODO: events
+}
+
+ToxAVVoIPModel::~ToxAVVoIPModel(void) {
+	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
+		if (voipmodel == this) {
+			destroySession(_os.objectHandle(ov));
+		}
+	}
 }
 
 void ToxAVVoIPModel::tick(void) {
@@ -276,19 +325,79 @@ ObjectHandle ToxAVVoIPModel::enter(const Contact3 c, const Components::VoIP::Def
 
 	ObjectHandle new_session {_os.registry(), _os.registry().create()};
 
-	new_session.emplace<Components::VoIP::SessionContact>(c);
-	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
-	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
 	new_session.emplace<VoIPModelI*>(this);
+	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
+	new_session.emplace<Components::VoIP::SessionContact>(c);
+	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
 	new_session.emplace<Components::VoIP::DefaultConfig>(defaults);
 
 	_os.throwEventConstruct(new_session);
 	return new_session;
 }
 
-bool ToxAVVoIPModel::accept(ObjectHandle session) {
-	//_av.toxavAnswer(, 0, 0);
-	return false;
+bool ToxAVVoIPModel::accept(ObjectHandle session, const Components::VoIP::DefaultConfig& defaults) {
+	if (!static_cast<bool>(session)) {
+		return false;
+	}
+
+	if (!session.all_of<
+		Components::VoIP::TagVoIPSession,
+		VoIPModelI*,
+		Components::VoIP::SessionContact,
+		Components::VoIP::Incoming
+	>()) {
+		return false;
+	}
+
+	// check if self
+	if (session.get<VoIPModelI*>() != this) {
+		return false;
+	}
+
+	const auto session_contact = session.get<Components::VoIP::SessionContact>().c;
+	if (!_cr.all_of<Contact::Components::ToxFriendEphemeral>(session_contact)) {
+		return false;
+	}
+
+	const auto friend_number = _cr.get<Contact::Components::ToxFriendEphemeral>(session_contact).friend_number;
+	auto err = _av.toxavAnswer(friend_number, 0, 0);
+	if (err != TOXAV_ERR_ANSWER_OK) {
+		std::cerr << "TOXAVVOIP error: ansering call failed: " << err << "\n";
+		// we simply let it be for now, it apears we can try ansering later again
+		// we also get an error here when the call is already in progress (:
+		return false;
+	}
+
+	session.emplace<Components::VoIP::DefaultConfig>(defaults);
+
+	// answer defaults to enabled receiving audio and video
+	// TODO: think about how we should handle this
+	// set to disabled? and enable on src connection?
+	// we already default disabled send and enabled on sink connection
+	//_av.toxavCallControl(friend_number, TOXAV_CALL_CONTROL_HIDE_VIDEO);
+	//_av.toxavCallControl(friend_number, TOXAV_CALL_CONTROL_MUTE_AUDIO);
+
+
+	// how do we know the other side is accepting audio
+	// bitrate cb or what?
+	assert(!session.all_of<Components::ToxAVAudioSink>());
+	addAudioSink(session, friend_number);
+
+	if (const auto* i_av = session.try_get<Components::ToxAVIncomingAV>(); i_av != nullptr) {
+		// create audio src
+		if (i_av->incoming_audio) {
+			assert(!session.all_of<Components::ToxAVAudioSource>());
+			addAudioSource(session, friend_number);
+		}
+
+		// create video src
+		if (i_av->incoming_video) {
+		}
+	}
+
+	session.get_or_emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::CONNECTED;
+	_os.throwEventUpdate(session);
+	return true;
 }
 
 bool ToxAVVoIPModel::leave(ObjectHandle session) {
@@ -298,7 +407,11 @@ bool ToxAVVoIPModel::leave(ObjectHandle session) {
 		return false;
 	}
 
-	if (!session.all_of<Components::VoIP::TagVoIPSession, VoIPModelI*, Components::VoIP::SessionContact>()) {
+	if (!session.all_of<
+		Components::VoIP::TagVoIPSession,
+		VoIPModelI*,
+		Components::VoIP::SessionContact
+	>()) {
 		return false;
 	}
 
@@ -331,10 +444,12 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCall& e) {
 
 	ObjectHandle new_session {_os.registry(), _os.registry().create()};
 
-	new_session.emplace<Components::VoIP::SessionContact>(session_contact);
-	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
-	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
 	new_session.emplace<VoIPModelI*>(this);
+	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
+	new_session.emplace<Components::VoIP::Incoming>(session_contact); // in 1on1 its always the same contact, might leave blank
+	new_session.emplace<Components::VoIP::SessionContact>(session_contact);
+	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
+	new_session.emplace<Components::ToxAVIncomingAV>(e.audio_enabled, e.video_enabled);
 
 	_os.throwEventConstruct(new_session);
 	return true;
@@ -368,28 +483,8 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 				// remote accepted our call, or av send/recv conditions changed?
 				o.get<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::CONNECTED; // set to in call ??
 
-				auto& stream_sinks = o.get_or_emplace<Components::VoIP::StreamSinks>().streams;
 				if (s.is_accepting_a() && !o.all_of<Components::ToxAVAudioSink>()) {
-					ObjectHandle outgoing_audio {_os.registry(), _os.registry().create()};
-
-					auto new_asink = std::make_unique<ToxAVCallAudioSink>(_av, e.friend_number);
-					outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink.get());
-					outgoing_audio.emplace<AudioStreamReFramer>();
-					outgoing_audio.emplace<Components::FrameStream2Sink<AudioFrame2>>(std::move(new_asink));
-					outgoing_audio.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("ToxAV Friend Call Outgoing Audio"));
-
-					if (
-						const auto* defaults = o.try_get<Components::VoIP::DefaultConfig>();
-						defaults != nullptr && defaults->outgoing_audio
-					) {
-						outgoing_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
-					}
-
-					stream_sinks.push_back(outgoing_audio);
-					o.emplace<Components::ToxAVAudioSink>(outgoing_audio);
-					// TODO: tie session to stream
-
-					_os.throwEventConstruct(outgoing_audio);
+					addAudioSink(o, e.friend_number);
 				} else if (!s.is_accepting_a() && o.all_of<Components::ToxAVAudioSink>()) {
 					// remove asink?
 				}
@@ -397,33 +492,9 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 				// video
 
 				// add/update sources
-				auto& stream_source = o.get_or_emplace<Components::VoIP::StreamSources>().streams;
-
 				// audio
 				if (s.is_sending_a() && !o.all_of<Components::ToxAVAudioSource>()) {
-					ObjectHandle incoming_audio {_os.registry(), _os.registry().create()};
-
-					auto new_asrc = std::make_unique<FrameStream2MultiSource<AudioFrame2>>();
-					incoming_audio.emplace<FrameStream2MultiSource<AudioFrame2>*>(new_asrc.get());
-					incoming_audio.emplace<Components::FrameStream2Source<AudioFrame2>>(std::move(new_asrc));
-					incoming_audio.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame2>("ToxAV Friend Call Incoming Audio"));
-
-					std::cout << "new incoming audio\n";
-					if (
-						const auto* defaults = o.try_get<Components::VoIP::DefaultConfig>();
-						defaults != nullptr && defaults->incoming_audio
-					) {
-						incoming_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
-						std::cout << "with default\n";
-					}
-
-					stream_source.push_back(incoming_audio);
-					o.emplace<Components::ToxAVAudioSource>(incoming_audio);
-					// TODO: tie session to stream
-
-					_audio_sources[e.friend_number] = incoming_audio;
-
-					_os.throwEventConstruct(incoming_audio);
+					addAudioSource(o, e.friend_number);
 				} else if (!s.is_sending_a() && o.all_of<Components::ToxAVAudioSource>()) {
 					// remove asrc?
 				}

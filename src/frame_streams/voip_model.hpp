@@ -9,6 +9,11 @@ namespace Components::VoIP {
 
 	struct TagVoIPSession {};
 
+	// getting called or invited by
+	struct Incoming {
+		Contact3 c{entt::null};
+	};
+
 	struct DefaultConfig {
 		bool incoming_audio {true};
 		bool incoming_video {true};
@@ -60,13 +65,13 @@ struct VoIPModelI {
 	// - default stream sources/sinks ?
 	// - enable a/v ? -> done on connecting to sources
 	// returns object tieing together the VoIP session
-	virtual ObjectHandle enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults = {true, true, true, true}) { return {}; }
+	virtual ObjectHandle enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults = {true, true, true, true}) { (void)c,(void)defaults; return {}; }
 
 	// accept/join an invite to a session
-	virtual bool accept(ObjectHandle session) { return false; }
+	virtual bool accept(ObjectHandle session, const Components::VoIP::DefaultConfig& defaults = {true, true, true, true}) { (void)session,(void)defaults; return false; }
 
 	// leaves a call
 	// - VoIP session object
-	virtual bool leave(ObjectHandle session) { return false; }
+	virtual bool leave(ObjectHandle session) { (void)session; return false; }
 };
 

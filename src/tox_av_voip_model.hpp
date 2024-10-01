@@ -8,7 +8,7 @@
 
 #include <unordered_map>
 
-struct ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
+class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	ObjectStore2& _os;
 	ToxAVI& _av;
 	Contact3Registry& _cr;
@@ -17,16 +17,22 @@ struct ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	// for faster lookup
 	std::unordered_map<uint32_t, ObjectHandle> _audio_sources;
 
-	ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm);
-	~ToxAVVoIPModel(void);
+	// TODO: virtual? strategy? protected?
+	virtual void addAudioSource(ObjectHandle session, uint32_t friend_number);
+	virtual void addAudioSink(ObjectHandle session, uint32_t friend_number);
+	// TODO: video
 
 	void destroySession(ObjectHandle session);
 
-	void tick(void);
+	public:
+		ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm);
+		~ToxAVVoIPModel(void);
+
+		void tick(void);
 
 	public: // voip model
 		ObjectHandle enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults) override;
-		bool accept(ObjectHandle session) override;
+		bool accept(ObjectHandle session, const Components::VoIP::DefaultConfig& defaults) override;
 		bool leave(ObjectHandle session) override;
 
 	protected: // toxav events
