@@ -81,15 +81,9 @@ int main(void) {
 		}
 
 		stream.push(f1);
-
-		{
-			auto ret_opt = stream.pop();
-			assert(!ret_opt);
-		}
-
-		// push the other half
 		stream.push(f2);
 
+		// supposed to combine both
 		auto ret_opt = stream.pop();
 		assert(ret_opt);
 

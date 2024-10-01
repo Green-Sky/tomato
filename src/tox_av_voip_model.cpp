@@ -58,7 +58,8 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 			return nullptr;
 		}
 
-		_writer = std::make_shared<AudioStreamPopReFramer<LockedFrameStream2<AudioFrame2>>>();
+		// 20ms for now, 10ms would work too, further investigate stutters at 5ms (probably too slow interval rate)
+		_writer = std::make_shared<AudioStreamPopReFramer<LockedFrameStream2<AudioFrame2>>>(20);
 
 		return _writer;
 	}

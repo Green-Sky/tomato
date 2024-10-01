@@ -4,6 +4,8 @@
 #include <iostream>
 #include <optional>
 
+#include "../audio_stream_pop_reframer.hpp"
+
 // "thin" wrapper around sdl audio streams
 // we dont needs to get fance, as they already provide everything we need
 struct SDLAudio2StreamReader : public AudioFrame2Stream2I {
@@ -58,7 +60,7 @@ struct SDLAudio2StreamReader : public AudioFrame2Stream2I {
 			return std::nullopt;
 		}
 
-		return AudioFrame2 {
+		return AudioFrame2{
 			_sample_rate, _channels,
 			Span<int16_t>(_buffer.data(), read_bytes/sizeof(int16_t)),
 		};
@@ -127,11 +129,17 @@ std::shared_ptr<FrameStream2I<AudioFrame2>> SDLAudio2InputDevice::subscribe(void
 	// error check
 	SDL_BindAudioStream(_virtual_device_id, sdl_stream);
 
-	auto new_stream = std::make_shared<SDLAudio2StreamReader>();
-	// TODO: move to ctr
-	new_stream->_stream = {sdl_stream, &SDL_DestroyAudioStream};
-	new_stream->_sample_rate = spec.freq;
-	new_stream->_channels = spec.channels;
+	//auto new_stream = std::make_shared<SDLAudio2StreamReader>();
+	//// TODO: move to ctr
+	//new_stream->_stream = {sdl_stream, &SDL_DestroyAudioStream};
+	//new_stream->_sample_rate = spec.freq;
+	//new_stream->_channels = spec.channels;
+
+	auto new_stream = std::make_shared<AudioStreamPopReFramer<SDLAudio2StreamReader>>();
+	new_stream->_stream._stream = {sdl_stream, &SDL_DestroyAudioStream};
+	new_stream->_stream._sample_rate = spec.freq;
+	new_stream->_stream._channels = spec.channels;
+	new_stream->_frame_length_ms = 5; // WHY DOES THIS FIX MY ISSUE !!!
 
 	_streams.emplace_back(new_stream);
 

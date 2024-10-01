@@ -30,41 +30,49 @@ struct AudioStreamPopReFramer : public FrameStream2I<AudioFrame2> {
 
 	~AudioStreamPopReFramer(void) {}
 
+	size_t getDesiredSize(void) const {
+		return _frame_length_ms * _sample_rate * _channels / 1000;
+	}
+
 	int32_t size(void) override { return -1; }
 
 	std::optional<AudioFrame2> pop(void) override {
-		auto new_in = _stream.pop();
-		if (new_in.has_value()) {
-			auto& new_value = new_in.value();
+		do {
+			auto new_in = _stream.pop();
+			if (new_in.has_value()) {
+				auto& new_value = new_in.value();
 
-			// changed
-			if (_sample_rate != new_value.sample_rate || _channels != new_value.channels) {
-				if (_channels != 0) {
-					//std::cerr << "ReFramer warning: reconfiguring, dropping buffer\n";
+				// changed
+				if (_sample_rate != new_value.sample_rate || _channels != new_value.channels) {
+					//if (_channels != 0) {
+					//    std::cerr << "ReFramer warning: reconfiguring, dropping buffer\n";
+					//}
+					_sample_rate = new_value.sample_rate;
+					_channels = new_value.channels;
+
+					// buffer does not exist or config changed and we discard
+					_buffer = {};
 				}
-				_sample_rate = new_value.sample_rate;
-				_channels = new_value.channels;
 
-				// buffer does not exist or config changed and we discard
-				_buffer = {};
-			}
+				//std::cout << "new incoming frame is " << new_value.getSpan().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
 
+				auto new_span = new_value.getSpan();
 
-			//std::cout << "new incoming frame is " << new_value.getSpan().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
-
-			auto new_span = new_value.getSpan();
-
-			if (_buffer.empty()) {
-				_buffer = {new_span.cbegin(), new_span.cend()};
+				if (_buffer.empty()) {
+					_buffer = {new_span.cbegin(), new_span.cend()};
+				} else {
+					_buffer.insert(_buffer.cend(), new_span.cbegin(), new_span.cend());
+				}
+			} else if (_buffer.empty()) {
+				// first pop might result in invalid state
+				return std::nullopt;
 			} else {
-				_buffer.insert(_buffer.cend(), new_span.cbegin(), new_span.cend());
+				// inner stream pop did not give a new value
+				break; // out of loop
 			}
-		} else if (_buffer.empty()) {
-			// first pop might result in invalid state
-			return std::nullopt;
-		}
+		} while (_buffer.size() < getDesiredSize());
 
-		const size_t desired_size {_frame_length_ms * _sample_rate * _channels / 1000};
+		const auto desired_size = getDesiredSize();
 
 		// > threshold?
 		if (_buffer.size() < desired_size) {
