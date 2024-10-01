@@ -7,6 +7,7 @@
 #include "./frame_streams/audio_stream2.hpp"
 #include "./frame_streams/locked_frame_stream.hpp"
 #include "./frame_streams/multi_source.hpp"
+#include "./frame_streams/audio_stream_pop_reframer.hpp"
 
 #include <iostream>
 
@@ -28,73 +29,6 @@ namespace Components {
 	// vid
 } // Components
 
-// TODO: make proper adapter
-struct AudioStreamReFramer {
-	FrameStream2I<AudioFrame2>* _stream {nullptr};
-	uint32_t frame_length_ms {20};
-
-	// dequeue?
-	std::vector<int16_t> buffer;
-
-	uint32_t sample_rate {48'000};
-	size_t channels {0};
-
-	std::optional<AudioFrame2> pop(void) {
-		assert(_stream != nullptr);
-
-		auto new_in = _stream->pop();
-		if (new_in.has_value()) {
-			auto& new_value = new_in.value();
-
-			// changed
-			if (sample_rate != new_value.sample_rate || channels != new_value.channels) {
-				if (channels != 0) {
-					std::cerr << "ReFramer warning: reconfiguring, dropping buffer\n";
-				}
-				sample_rate = new_value.sample_rate;
-				channels = new_value.channels;
-
-				// buffer does not exist or config changed and we discard
-				buffer = {};
-			}
-
-
-			//std::cout << "new incoming frame is " << new_value.getSpan().size/new_value.channels*1000/new_value.sample_rate << "ms\n";
-
-			auto new_span = new_value.getSpan();
-
-			if (buffer.empty()) {
-				buffer = {new_span.cbegin(), new_span.cend()};
-			} else {
-				buffer.insert(buffer.cend(), new_span.cbegin(), new_span.cend());
-			}
-		} else if (buffer.empty()) {
-			// first pop might result in invalid state
-			return std::nullopt;
-		}
-
-		const size_t desired_size {frame_length_ms * sample_rate * channels / 1000};
-
-		// > threshold?
-		if (buffer.size() < desired_size) {
-			return std::nullopt;
-		}
-
-		// copy data
-		std::vector<int16_t> return_buffer(buffer.cbegin(), buffer.cbegin()+desired_size);
-
-		// now crop buffer (meh)
-		// move data from back to front
-		buffer.erase(buffer.cbegin(), buffer.cbegin() + desired_size);
-
-		return AudioFrame2{
-			sample_rate,
-			channels,
-			std::move(return_buffer),
-		};
-	}
-};
-
 struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 	ToxAVI& _toxav;
 
@@ -102,7 +36,7 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 	uint32_t _audio_bitrate {32};
 
 	uint32_t _fid;
-	std::shared_ptr<LockedFrameStream2<AudioFrame2>> _writer;
+	std::shared_ptr<AudioStreamPopReFramer<LockedFrameStream2<AudioFrame2>>> _writer;
 
 	ToxAVCallAudioSink(ToxAVI& toxav, uint32_t fid) : _toxav(toxav), _fid(fid) {}
 	~ToxAVCallAudioSink(void) {
@@ -124,7 +58,7 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 			return nullptr;
 		}
 
-		_writer = std::make_shared<LockedFrameStream2<AudioFrame2>>();
+		_writer = std::make_shared<AudioStreamPopReFramer<LockedFrameStream2<AudioFrame2>>>();
 
 		return _writer;
 	}
@@ -183,7 +117,6 @@ void ToxAVVoIPModel::addAudioSink(ObjectHandle session, uint32_t friend_number) 
 
 	auto new_asink = std::make_unique<ToxAVCallAudioSink>(_av, friend_number);
 	outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink.get());
-	outgoing_audio.emplace<AudioStreamReFramer>();
 	outgoing_audio.emplace<Components::FrameStream2Sink<AudioFrame2>>(std::move(new_asink));
 	outgoing_audio.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("ToxAV Friend Call Outgoing Audio"));
 
@@ -270,17 +203,13 @@ ToxAVVoIPModel::~ToxAVVoIPModel(void) {
 }
 
 void ToxAVVoIPModel::tick(void) {
-	for (const auto& [oc, asink, asrf] : _os.registry().view<ToxAVCallAudioSink*, AudioStreamReFramer>().each()) {
-	//for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
+	for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
 		if (!asink->_writer) {
 			continue;
 		}
 
-		asrf._stream = asink->_writer.get();
-
 		for (size_t i = 0; i < 100; i++) {
-			//auto new_frame_opt = asink->_writer->pop();
-			auto new_frame_opt = asrf.pop();
+			auto new_frame_opt = asink->_writer->pop();
 			if (!new_frame_opt.has_value()) {
 				break;
 			}
@@ -316,7 +245,6 @@ ObjectHandle ToxAVVoIPModel::enter(const Contact3 c, const Components::VoIP::Def
 
 	const auto friend_number = _cr.get<Contact::Components::ToxFriendEphemeral>(c).friend_number;
 
-	std::cerr << "TAVVOIP: lol\n";
 	const auto err = _av.toxavCall(friend_number, 0, 0);
 	if (err != TOXAV_ERR_CALL_OK) {
 		std::cerr << "TAVVOIP error: failed to start call: " << err << "\n";
