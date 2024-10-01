@@ -80,7 +80,7 @@
         ] ++ self.packages.${system}.default.dlopenBuildInputs;
 
         cmakeFlags = [
-          "-DTOMATO_TOX_AV=OFF"
+          "-DTOMATO_TOX_AV=ON"
           "-DTOMATO_ASAN=OFF"
           "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
           #"-DCMAKE_BUILD_TYPE=Debug"

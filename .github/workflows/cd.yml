@@ -22,10 +22,10 @@ jobs:
         submodules: recursive
 
     - name: Install Dependencies
-      run: sudo apt update && sudo apt -y install libsodium-dev cmake
+      run: sudo apt update && sudo apt -y install libsodium-dev cmake libvpx-dev libopus-dev
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTOMATO_TOX_AV=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
@@ -101,7 +101,7 @@ jobs:
     - name: Configure CMake
       env:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{matrix.platform.vcpkg_toolkit}} -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=${{matrix.platform.ndk_abi}} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDLIMAGE_JPG_SHARED=OFF -DSDLIMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{matrix.platform.vcpkg_toolkit}} -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=${{matrix.platform.ndk_abi}} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDLIMAGE_JPG_SHARED=OFF -DSDLIMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON -DTOMATO_TOX_AV=ON
 
     - name: Build (tomato)
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
@@ -164,7 +164,7 @@ jobs:
     #- uses: ilammy/setup-nasm@v1
 
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSDLIMAGE_VENDORED=ON -DSDLIMAGE_DEPS_SHARED=ON -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSDLIMAGE_VENDORED=ON -DSDLIMAGE_DEPS_SHARED=ON -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_TOX_AV=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -t tomato
@@ -229,7 +229,7 @@ jobs:
     #- uses: ilammy/setup-nasm@v1
 
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DSDLIMAGE_VENDORED=ON -DSDLIMAGE_DEPS_SHARED=ON -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DSDLIMAGE_VENDORED=ON -DSDLIMAGE_DEPS_SHARED=ON -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_TOX_AV=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
