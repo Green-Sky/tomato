@@ -10,6 +10,7 @@
 #include "./frame_streams/audio_stream_pop_reframer.hpp"
 
 #include "./frame_streams/sdl/video.hpp"
+#include "./frame_streams/sdl/video_push_converter.hpp"
 
 #include <cstring>
 
@@ -96,6 +97,63 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 	}
 };
 
+// exlusive
+struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
+	using stream_type = PushConversionVideoStream<LockedFrameStream2<SDLVideoFrame>>;
+	ToxAVI& _toxav;
+
+	// bitrate for enabled state
+	uint32_t _video_bitrate {2}; // HACK: hardcode to 2mbits (toxap wrongly multiplies internally by 1000)
+
+	uint32_t _fid;
+	std::shared_ptr<stream_type> _writer;
+
+	ToxAVCallVideoSink(ToxAVI& toxav, uint32_t fid) : _toxav(toxav), _fid(fid) {}
+	~ToxAVCallVideoSink(void) {
+		if (_writer) {
+			_writer = nullptr;
+			_toxav.toxavVideoSetBitRate(_fid, 0);
+		}
+	}
+
+	// sink
+	std::shared_ptr<FrameStream2I<SDLVideoFrame>> subscribe(void) override {
+		if (_writer) {
+			// max 1 (exclusive, composite video somewhere else)
+			return nullptr;
+		}
+
+		auto err = _toxav.toxavVideoSetBitRate(_fid, _video_bitrate);
+		if (err != TOXAV_ERR_BIT_RATE_SET_OK) {
+			return nullptr;
+		}
+
+		// toxav needs I420
+		_writer = std::make_shared<stream_type>(SDL_PIXELFORMAT_IYUV);
+
+		return _writer;
+	}
+
+	bool unsubscribe(const std::shared_ptr<FrameStream2I<SDLVideoFrame>>& sub) override {
+		if (!sub || !_writer) {
+			// nah
+			return false;
+		}
+
+		if (sub == _writer) {
+			_writer = nullptr;
+
+			/*auto err = */_toxav.toxavVideoSetBitRate(_fid, 0);
+			// print warning? on error?
+
+			return true;
+		}
+
+		// what
+		return false;
+	}
+};
+
 void ToxAVVoIPModel::addAudioSource(ObjectHandle session, uint32_t friend_number) {
 	auto& stream_source = session.get_or_emplace<Components::VoIP::StreamSources>().streams;
 
@@ -157,7 +215,7 @@ void ToxAVVoIPModel::addVideoSource(ObjectHandle session, uint32_t friend_number
 
 	if (
 		const auto* defaults = session.try_get<Components::VoIP::DefaultConfig>();
-		defaults != nullptr && defaults->incoming_audio
+		defaults != nullptr && defaults->incoming_video
 	) {
 		incoming_video.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
 	}
@@ -172,6 +230,26 @@ void ToxAVVoIPModel::addVideoSource(ObjectHandle session, uint32_t friend_number
 }
 
 void ToxAVVoIPModel::addVideoSink(ObjectHandle session, uint32_t friend_number) {
+	auto& stream_sinks = session.get_or_emplace<Components::VoIP::StreamSinks>().streams;
+	ObjectHandle outgoing_video {_os.registry(), _os.registry().create()};
+
+	auto new_vsink = std::make_unique<ToxAVCallVideoSink>(_av, friend_number);
+	outgoing_video.emplace<ToxAVCallVideoSink*>(new_vsink.get());
+	outgoing_video.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
+	outgoing_video.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("ToxAV Friend Call Outgoing Video"));
+
+	if (
+		const auto* defaults = session.try_get<Components::VoIP::DefaultConfig>();
+		defaults != nullptr && defaults->outgoing_video
+	) {
+		outgoing_video.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
+	}
+
+	stream_sinks.push_back(outgoing_video);
+	session.emplace<Components::ToxAVVideoSink>(outgoing_video);
+	// TODO: tie session to stream
+
+	_os.throwEventConstruct(outgoing_video);
 }
 
 void ToxAVVoIPModel::destroySession(ObjectHandle session) {
@@ -286,6 +364,39 @@ void ToxAVVoIPModel::tick(void) {
 			if (err != TOXAV_ERR_SEND_FRAME_OK) {
 				std::cerr << "DTC: failed to send audio frame " << err << "\n";
 			}
+		}
+	}
+
+	for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
+		if (!vsink->_writer) {
+			continue;
+		}
+
+		for (size_t i = 0; i < 10; i++) {
+			auto new_frame_opt = vsink->_writer->pop();
+			if (!new_frame_opt.has_value()) {
+				break;
+			}
+			const auto& new_frame = new_frame_opt.value();
+
+			if (!new_frame.surface) {
+				// wtf?
+				continue;
+			}
+
+			// conversion is done in the sink's stream
+			SDL_Surface* surf = new_frame.surface.get();
+			assert(surf != nullptr);
+
+			SDL_LockSurface(surf);
+			_av.toxavVideoSendFrame(
+				vsink->_fid,
+				surf->w, surf->h,
+				static_cast<const uint8_t*>(surf->pixels),
+				static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
+				static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h + (surf->w/2) * (surf->h/2)
+			);
+			SDL_UnlockSurface(surf);
 		}
 	}
 }
