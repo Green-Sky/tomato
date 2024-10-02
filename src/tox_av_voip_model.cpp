@@ -9,7 +9,16 @@
 #include "./frame_streams/multi_source.hpp"
 #include "./frame_streams/audio_stream_pop_reframer.hpp"
 
+#include "./frame_streams/sdl/video.hpp"
+
+#include <cstring>
+
 #include <iostream>
+
+// fwd
+namespace Message {
+uint64_t getTimeMS(void);
+} // Message
 
 namespace Components {
 	struct ToxAVIncomingAV {
@@ -21,12 +30,15 @@ namespace Components {
 		ObjectHandle o;
 		// ptr?
 	};
-	// vid
+	struct ToxAVVideoSink {
+		ObjectHandle o;
+	};
 	struct ToxAVAudioSource {
 		ObjectHandle o;
-		// ptr?
 	};
-	// vid
+	struct ToxAVVideoSource {
+		ObjectHandle o;
+	};
 } // Components
 
 struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
@@ -94,13 +106,11 @@ void ToxAVVoIPModel::addAudioSource(ObjectHandle session, uint32_t friend_number
 	incoming_audio.emplace<Components::FrameStream2Source<AudioFrame2>>(std::move(new_asrc));
 	incoming_audio.emplace<Components::StreamSource>(Components::StreamSource::create<AudioFrame2>("ToxAV Friend Call Incoming Audio"));
 
-	std::cout << "new incoming audio\n";
 	if (
 		const auto* defaults = session.try_get<Components::VoIP::DefaultConfig>();
 		defaults != nullptr && defaults->incoming_audio
 	) {
 		incoming_audio.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
-		std::cout << "with default\n";
 	}
 
 	stream_source.push_back(incoming_audio);
@@ -135,6 +145,35 @@ void ToxAVVoIPModel::addAudioSink(ObjectHandle session, uint32_t friend_number) 
 	_os.throwEventConstruct(outgoing_audio);
 }
 
+void ToxAVVoIPModel::addVideoSource(ObjectHandle session, uint32_t friend_number) {
+	auto& stream_source = session.get_or_emplace<Components::VoIP::StreamSources>().streams;
+
+	ObjectHandle incoming_video {_os.registry(), _os.registry().create()};
+
+	auto new_vsrc = std::make_unique<FrameStream2MultiSource<SDLVideoFrame>>();
+	incoming_video.emplace<FrameStream2MultiSource<SDLVideoFrame>*>(new_vsrc.get());
+	incoming_video.emplace<Components::FrameStream2Source<SDLVideoFrame>>(std::move(new_vsrc));
+	incoming_video.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("ToxAV Friend Call Incoming Video"));
+
+	if (
+		const auto* defaults = session.try_get<Components::VoIP::DefaultConfig>();
+		defaults != nullptr && defaults->incoming_audio
+	) {
+		incoming_video.emplace<Components::TagConnectToDefault>(); // depends on what was specified in enter()
+	}
+
+	stream_source.push_back(incoming_video);
+	session.emplace<Components::ToxAVVideoSource>(incoming_video);
+	// TODO: tie session to stream
+
+	_video_sources[friend_number] = incoming_video;
+
+	_os.throwEventConstruct(incoming_video);
+}
+
+void ToxAVVoIPModel::addVideoSink(ObjectHandle session, uint32_t friend_number) {
+}
+
 void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 	if (!static_cast<bool>(session)) {
 		return;
@@ -151,6 +190,18 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 
 		if (it_asrc != _audio_sources.cend()) {
 			_audio_sources.erase(it_asrc);
+		}
+	}
+	if (session.all_of<Components::ToxAVVideoSource>()) {
+		auto it_vsrc = std::find_if(
+			_video_sources.cbegin(), _video_sources.cend(),
+			[o = session.get<Components::ToxAVVideoSource>().o](const auto& it) {
+				return it.second == o;
+			}
+		);
+
+		if (it_vsrc != _video_sources.cend()) {
+			_video_sources.erase(it_vsrc);
 		}
 	}
 
@@ -311,6 +362,8 @@ bool ToxAVVoIPModel::accept(ObjectHandle session, const Components::VoIP::Defaul
 	// bitrate cb or what?
 	assert(!session.all_of<Components::ToxAVAudioSink>());
 	addAudioSink(session, friend_number);
+	assert(!session.all_of<Components::ToxAVVideoSink>());
+	addVideoSink(session, friend_number);
 
 	if (const auto* i_av = session.try_get<Components::ToxAVIncomingAV>(); i_av != nullptr) {
 		// create audio src
@@ -321,6 +374,8 @@ bool ToxAVVoIPModel::accept(ObjectHandle session, const Components::VoIP::Defaul
 
 		// create video src
 		if (i_av->incoming_video) {
+			assert(!session.all_of<Components::ToxAVVideoSource>());
+			addVideoSource(session, friend_number);
 		}
 	}
 
@@ -419,6 +474,11 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 				}
 
 				// video
+				if (s.is_accepting_v() && !o.all_of<Components::ToxAVVideoSink>()) {
+					addVideoSink(o, e.friend_number);
+				} else if (!s.is_accepting_v() && o.all_of<Components::ToxAVVideoSink>()) {
+					// remove vsink?
+				}
 
 				// add/update sources
 				// audio
@@ -429,6 +489,11 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
 				}
 
 				// video
+				if (s.is_sending_v() && !o.all_of<Components::ToxAVVideoSource>()) {
+					addVideoSource(o, e.friend_number);
+				} else if (!s.is_sending_v() && o.all_of<Components::ToxAVVideoSource>()) {
+					// remove vsrc?
+				}
 			}
 		}
 	}
@@ -470,7 +535,66 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendAudioFrame& e) {
 	return true;
 }
 
-bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame&) {
+bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame& e) {
+	auto vsrc_it = _video_sources.find(e.friend_number);
+	if (vsrc_it == _video_sources.cend()) {
+		// missing src from lookup table
+		return false;
+	}
+
+	auto vsrc = vsrc_it->second;
+
+	if (!static_cast<bool>(vsrc)) {
+		// missing src to put frame into ??
+		return false;
+	}
+
+	assert(vsrc.all_of<FrameStream2MultiSource<SDLVideoFrame>*>());
+	assert(vsrc.all_of<Components::FrameStream2Source<SDLVideoFrame>>());
+
+	auto* new_surf = SDL_CreateSurface(e.width, e.height, SDL_PIXELFORMAT_IYUV);
+	assert(new_surf);
+	if (SDL_LockSurface(new_surf)) {
+		// copy the data
+		// we know how the implementation works, its y u v consecutivlely
+		// y
+		for (size_t y = 0; y < e.height; y++) {
+			std::memcpy(
+				//static_cast<uint8_t*>(new_surf->pixels) + new_surf->pitch*y,
+				static_cast<uint8_t*>(new_surf->pixels) + e.width*y,
+				e.y.ptr + e.ystride*y,
+				e.width
+			);
+		}
+
+		// u
+		for (size_t y = 0; y < e.height/2; y++) {
+			std::memcpy(
+				static_cast<uint8_t*>(new_surf->pixels) + (e.width*e.height) + (e.width/2)*y,
+				e.u.ptr + e.ustride*y,
+				e.width/2
+			);
+		}
+
+		// v
+		for (size_t y = 0; y < e.height/2; y++) {
+			std::memcpy(
+				static_cast<uint8_t*>(new_surf->pixels) + (e.width*e.height) + ((e.width/2)*(e.height/2)) + (e.width/2)*y,
+				e.v.ptr + e.vstride*y,
+				e.width/2
+			);
+		}
+
+		SDL_UnlockSurface(new_surf);
+	}
+
+	vsrc.get<FrameStream2MultiSource<SDLVideoFrame>*>()->push({
+		// ms -> us
+		Message::getTimeMS() * 1000, // TODO: make more precise
+		new_surf
+	});
+
+	SDL_DestroySurface(new_surf);
 	return false;
 }
 

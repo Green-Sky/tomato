@@ -16,11 +16,13 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 
 	// for faster lookup
 	std::unordered_map<uint32_t, ObjectHandle> _audio_sources;
+	std::unordered_map<uint32_t, ObjectHandle> _video_sources;
 
 	// TODO: virtual? strategy? protected?
 	virtual void addAudioSource(ObjectHandle session, uint32_t friend_number);
 	virtual void addAudioSink(ObjectHandle session, uint32_t friend_number);
-	// TODO: video
+	virtual void addVideoSource(ObjectHandle session, uint32_t friend_number);
+	virtual void addVideoSink(ObjectHandle session, uint32_t friend_number);
 
 	void destroySession(ObjectHandle session);
 
