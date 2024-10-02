@@ -297,7 +297,10 @@ float ChatGui4::render(float time_delta) {
 								acceptable_sessions.push_back(o);
 							}
 
-							static Components::VoIP::DefaultConfig g_default_connections{};
+							static Components::VoIP::DefaultConfig g_default_connections{
+								true, true,
+								true, false
+							};
 
 							if (ImGui::BeginMenu("default connections")) {
 								ImGui::MenuItem("incoming audio", nullptr, &g_default_connections.incoming_audio);

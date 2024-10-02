@@ -6,6 +6,7 @@
 #include <solanaceae/contact/components.hpp>
 
 #include "./frame_streams/sdl/sdl_audio2_frame_stream2.hpp"
+#include "./frame_streams/sdl/sdl_video_frame_stream2.hpp"
 
 #include <imgui/imgui.h>
 
@@ -177,6 +178,27 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 		}
 	} else {
 		std::cerr << "MS warning: no sdl audio: " << SDL_GetError() << "\n";
+	}
+
+	if (SDL_InitSubSystem(SDL_INIT_CAMERA)) {
+		{ // video in
+			ObjectHandle vsrc {os.registry(), os.registry().create()};
+			try {
+				vsrc.emplace<Components::FrameStream2Source<SDLVideoFrame>>(
+					std::make_unique<SDLVideo2InputDevice>()
+				);
+
+				vsrc.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("SDL Video Default Recording Device"));
+				vsrc.emplace<Components::TagDefaultTarget>();
+
+				os.throwEventConstruct(vsrc);
+			} catch (...) {
+				std::cerr << "MS error: failed constructing default video input source\n";
+				os.registry().destroy(vsrc);
+			}
+		}
+	} else {
+		std::cerr << "MS warning: no sdl camera: " << SDL_GetError() << "\n";
 	}
 }
 
