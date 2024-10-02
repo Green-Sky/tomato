@@ -21,6 +21,7 @@ static bool isFormatYUV(SDL_PixelFormat f) {
 }
 
 SDL_Surface* convertYUY2_IYUV(SDL_Surface* surf);
+SDL_Surface* convertNV12_IYUV(SDL_Surface* surf);
 
 template<typename RealStream>
 struct PushConversionVideoStream : public RealStream {
@@ -42,6 +43,8 @@ struct PushConversionVideoStream : public RealStream {
 				//auto end = Message::getTimeMS();
 				// 3ms
 				//std::cerr << "DTC: timing " << SDL_GetPixelFormatName(converted_surf->format) << "->SDL_PIXELFORMAT_IYUV: " << end-start << "ms\n";
+			} else if (surf->format == SDL_PIXELFORMAT_NV12 && _forced_format == SDL_PIXELFORMAT_IYUV) {
+				surf = convertNV12_IYUV(surf);
 			} else if (isFormatYUV(surf->format)) {
 				// TODO: fix sdl rgb->yuv conversion resulting in too dark (colorspace) issues
 				// https://github.com/libsdl-org/SDL/issues/10877
