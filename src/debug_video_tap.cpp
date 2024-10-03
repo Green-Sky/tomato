@@ -10,6 +10,8 @@
 
 #include "./frame_streams/sdl/video.hpp"
 #include "./frame_streams/frame_stream2.hpp"
+#include "./frame_streams/locked_frame_stream.hpp"
+#include "./frame_streams/sdl/video_push_converter.hpp"
 
 #include <string>
 #include <memory>
@@ -26,40 +28,6 @@
 namespace Message {
 uint64_t getTimeMS(void);
 }
-
-// threadsafe queue frame stream
-// protected by a simple mutex lock
-template<typename FrameType>
-struct LockedFrameStream2 : public FrameStream2I<FrameType> {
-	std::mutex _lock;
-
-	std::deque<FrameType> _frames;
-
-	~LockedFrameStream2(void) {}
-
-	int32_t size(void) { return -1; }
-
-	std::optional<FrameType> pop(void) {
-		std::lock_guard lg{_lock};
-
-		if (_frames.empty()) {
-			return std::nullopt;
-		}
-
-		FrameType new_frame = std::move(_frames.front());
-		_frames.pop_front();
-
-		return std::move(new_frame);
-	}
-
-	bool push(const FrameType& value) {
-		std::lock_guard lg{_lock};
-
-		_frames.push_back(value);
-
-		return true;
-	}
-};
 
 struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 	TextureUploaderI& _tu;
@@ -80,7 +48,7 @@ struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 			float _v_interval_avg {0.f}; // s
 		} view;
 
-		std::shared_ptr<LockedFrameStream2<SDLVideoFrame>> stream;
+		std::shared_ptr<PushConversionVideoStream<LockedFrameStream2<SDLVideoFrame>>> stream;
 	};
 	std::vector<Writer> _writers;
 
@@ -91,7 +59,7 @@ struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 	std::shared_ptr<FrameStream2I<SDLVideoFrame>> subscribe(void) override {
 		_writers.emplace_back(Writer{
 			Writer::View{_id_counter++},
-			std::make_shared<LockedFrameStream2<SDLVideoFrame>>()
+			std::make_shared<PushConversionVideoStream<LockedFrameStream2<SDLVideoFrame>>>(SDL_PIXELFORMAT_RGBA32)
 		});
 
 		return _writers.back().stream;
@@ -127,7 +95,7 @@ struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
 		_thread = std::thread([this](void) {
 			while (!_stop) {
 				if (!_readers.empty()) {
-					auto* surf = SDL_CreateSurface(960, 720, SDL_PIXELFORMAT_ARGB32);
+					auto* surf = SDL_CreateSurface(960, 720, SDL_PIXELFORMAT_RGBA32);
 
 					// color
 					static auto start_time = Message::getTimeMS();

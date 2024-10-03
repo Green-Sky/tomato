@@ -7,6 +7,11 @@
 #include <atomic>
 #include <thread>
 
+// tips: you can force a SDL vido driver by setting an env:
+// SDL_CAMERA_DRIVER=v4l2
+// SDL_CAMERA_DRIVER=pipewire
+// etc.
+
 // while a stream is subscribed, have the camera device open
 // and aquire and push frames from a thread
 struct SDLVideo2InputDevice : public FrameStream2MultiSource<SDLVideoFrame> {
