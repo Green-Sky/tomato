@@ -346,6 +346,11 @@ Screen* MainScreen::render(float time_delta, bool&) {
 						ImGui::SetItemTooltip("Limiting compute can slow down things like filetransfers!");
 					}
 
+					ImGui::Separator();
+
+					ImGui::Text("render interval: %.0fms (%.2ffps)", _render_interval*1000.f, 1.f/_render_interval);
+					ImGui::Text("tick   interval: %.0fms (%.2ftps)", _min_tick_interval*1000.f, 1.f/_min_tick_interval);
+
 					ImGui::EndMenu();
 				}
 				if (ImGui::BeginMenu("Settings")) {
@@ -504,12 +509,12 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	// min over non animations in all cases
 	_render_interval = std::min<float>(pm_interval, cg_interval);
 	_render_interval = std::min<float>(_render_interval, tc_unfinished_queue_interval);
+	_render_interval = std::min<float>(_render_interval, dvt_interval);
 
 	// low delay time window
 	if (!_window_hidden && _time_since_event < curr_profile.low_delay_window) {
 		_render_interval = std::min<float>(_render_interval, ctc_interval);
 		_render_interval = std::min<float>(_render_interval, msgtc_interval);
-		_render_interval = std::min<float>(_render_interval, dvt_interval);
 
 		_render_interval = std::clamp(
 			_render_interval,
@@ -520,7 +525,6 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	} else if (!_window_hidden && _time_since_event < curr_profile.mid_delay_window) {
 		_render_interval = std::min<float>(_render_interval, ctc_interval);
 		_render_interval = std::min<float>(_render_interval, msgtc_interval);
-		_render_interval = std::min<float>(_render_interval, dvt_interval);
 
 		_render_interval = std::clamp(
 			_render_interval,

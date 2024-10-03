@@ -194,7 +194,7 @@ bool StreamManager::connect(Object src, Object sink, bool threaded) {
 		std::move(our_data),
 		[](Connection& con) -> void {
 			// there might be more stored
-			for (size_t i = 0; i < 10; i++) {
+			for (size_t i = 0; i < 64; i++) {
 				auto new_frame_opt = static_cast<inlineData*>(con.data.get())->reader->pop();
 				// TODO: frame interval estimates
 				if (new_frame_opt.has_value()) {

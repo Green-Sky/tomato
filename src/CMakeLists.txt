@@ -116,7 +116,6 @@ target_sources(tomato PUBLIC
 	./frame_streams/sdl/sdl_audio2_frame_stream2.cpp
 	./frame_streams/sdl/video.hpp
 	./frame_streams/sdl/video_push_converter.hpp
-	./frame_streams/sdl/video_push_converter.cpp
 	./frame_streams/sdl/sdl_video_frame_stream2.hpp
 	./frame_streams/sdl/sdl_video_frame_stream2.cpp
 

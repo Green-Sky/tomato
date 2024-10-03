@@ -7,25 +7,10 @@
 
 #include <iostream> // meh
 
-static bool isFormatYUV(SDL_PixelFormat f) {
-	return
-		f == SDL_PIXELFORMAT_YV12 ||
-		f == SDL_PIXELFORMAT_IYUV ||
-		f == SDL_PIXELFORMAT_YUY2 ||
-		f == SDL_PIXELFORMAT_UYVY ||
-		f == SDL_PIXELFORMAT_YVYU ||
-		f == SDL_PIXELFORMAT_NV12 ||
-		f == SDL_PIXELFORMAT_NV21 ||
-		f == SDL_PIXELFORMAT_P010
-	;
-}
-
-SDL_Surface* convertYUY2_IYUV(SDL_Surface* surf);
-SDL_Surface* convertNV12_IYUV(SDL_Surface* surf);
-
 template<typename RealStream>
 struct PushConversionVideoStream : public RealStream {
 	SDL_PixelFormat _forced_format {SDL_PIXELFORMAT_IYUV};
+	// TODO: force colorspace?
 
 	template<typename... Args>
 	PushConversionVideoStream(SDL_PixelFormat forced_format, Args&&... args) : RealStream(std::forward<Args>(args)...), _forced_format(forced_format) {}
@@ -34,43 +19,33 @@ struct PushConversionVideoStream : public RealStream {
 	bool push(const SDLVideoFrame& value) override {
 		SDL_Surface* surf = value.surface.get();
 		if (surf->format != _forced_format) {
-			//std::cerr << "DTC: need to convert from " << SDL_GetPixelFormatName(converted_surf->format) << " to SDL_PIXELFORMAT_IYUV\n";
-			if (surf->format == SDL_PIXELFORMAT_YUY2 && _forced_format == SDL_PIXELFORMAT_IYUV) {
-				// optimized custom impl
+			//std::cerr << "PCVS: need to convert from " << SDL_GetPixelFormatName(surf->format) << " to " << SDL_GetPixelFormatName(_forced_format) << "\n";
+			if ((surf = SDL_ConvertSurface(surf, _forced_format)) == nullptr) {
+				surf = value.surface.get(); // reset ptr
+				//std::cerr << "PCVS warning: default conversion failed: " << SDL_GetError() << "\n";
 
-				//auto start = Message::getTimeMS();
-				surf = convertYUY2_IYUV(surf);
-				//auto end = Message::getTimeMS();
-				// 3ms
-				//std::cerr << "DTC: timing " << SDL_GetPixelFormatName(converted_surf->format) << "->SDL_PIXELFORMAT_IYUV: " << end-start << "ms\n";
-			} else if (surf->format == SDL_PIXELFORMAT_NV12 && _forced_format == SDL_PIXELFORMAT_IYUV) {
-				surf = convertNV12_IYUV(surf);
-			} else if (isFormatYUV(surf->format)) {
-				// TODO: fix sdl rgb->yuv conversion resulting in too dark (colorspace) issues
-				// https://github.com/libsdl-org/SDL/issues/10877
-
-				// meh, need to convert to rgb as a stopgap
-
-				//auto start = Message::getTimeMS();
-				SDL_Surface* tmp_conv_surf = SDL_ConvertSurfaceAndColorspace(surf, SDL_PIXELFORMAT_RGB24, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
-				//auto end = Message::getTimeMS();
-				// 1ms
-				//std::cerr << "DTC: timing " << SDL_GetPixelFormatName(converted_surf->format) << "->SDL_PIXELFORMAT_RGB24: " << end-start << "ms\n";
-
-				//start = Message::getTimeMS();
-				surf = SDL_ConvertSurfaceAndColorspace(tmp_conv_surf, _forced_format, nullptr, SDL_COLORSPACE_YUV_DEFAULT, 0);
-				//end = Message::getTimeMS();
-				// 60ms
-				//std::cerr << "DTC: timing SDL_PIXELFORMAT_RGB24->" << SDL_GetPixelFormatName(_forced_format) << ": " << end-start << "ms\n";
-
-				SDL_DestroySurface(tmp_conv_surf);
-			} else {
-				surf = SDL_ConvertSurface(surf, _forced_format);
+				// sdl hardcodes BT709_LIMITED
+				if ((surf = SDL_ConvertSurfaceAndColorspace(surf, _forced_format, nullptr, SDL_GetSurfaceColorspace(surf), 0)) == nullptr) {
+				//if ((surf = SDL_ConvertSurfaceAndColorspace(surf, _forced_format, nullptr, SDL_COLORSPACE_BT709_LIMITED, 0)) == nullptr) {
+					surf = value.surface.get(); // reset ptr
+					//std::cerr << "PCVS warning: default conversion with same colorspace failed: " << SDL_GetError() << "\n";
+					// simple convert failed, fall back to ->rgb->yuv
+					//SDL_Surface* tmp_conv_surf = SDL_ConvertSurfaceAndColorspace(surf, SDL_PIXELFORMAT_RGB24, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
+					SDL_Surface* tmp_conv_surf = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGB24);
+					if (tmp_conv_surf == nullptr) {
+						std::cerr << "PCVS error: conversion to RGB failed: " << SDL_GetError() << "\n";
+					} else {
+						//surf = SDL_ConvertSurfaceAndColorspace(tmp_conv_surf, _forced_format, nullptr, SDL_COLORSPACE_YUV_DEFAULT, 0);
+						surf = SDL_ConvertSurface(tmp_conv_surf, _forced_format);
+						//surf = SDL_ConvertSurfaceAndColorspace(tmp_conv_surf, _forced_format, nullptr, SDL_COLORSPACE_BT601_LIMITED, 0);
+						SDL_DestroySurface(tmp_conv_surf);
+					}
+				}
 			}
 
 			if (surf == nullptr) {
 				// oh god
-				std::cerr << "DTC error: failed to convert surface to IYUV: " << SDL_GetError() << "\n";
+				std::cerr << "PCVS error: failed to convert surface to IYUV: " << SDL_GetError() << "\n";
 				return false;
 			}
 		}

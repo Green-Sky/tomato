@@ -701,7 +701,9 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame& e) {
 
 	vsrc.get<FrameStream2MultiSource<SDLVideoFrame>*>()->push({
 		// ms -> us
-		Message::getTimeMS() * 1000, // TODO: make more precise
+		// would be nice if we had been giving this from toxcore
+		// TODO: make more precise
+		Message::getTimeMS() * 1000,
 		new_surf
 	});
 

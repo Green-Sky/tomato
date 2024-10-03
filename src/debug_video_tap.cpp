@@ -220,7 +220,7 @@ float DebugVideoTap::render(void) {
 	for (auto& [view, stream] : dvtsw) {
 		std::string window_title {"DebugVideoTap #"};
 		window_title += std::to_string(view._id);
-		ImGui::SetNextWindowSize({250, 250}, ImGuiCond_Appearing);
+		ImGui::SetNextWindowSize({400, 420}, ImGuiCond_Appearing);
 		if (ImGui::Begin(window_title.c_str())) {
 			while (auto new_frame_opt = stream->pop()) {
 				// timing
@@ -233,7 +233,7 @@ float DebugVideoTap::render(void) {
 					if (view._v_interval_avg == 0) {
 						view._v_interval_avg = delta/1'000'000.f;
 					} else {
-						const float r = 0.2f;
+						const float r = 0.05f;
 						view._v_interval_avg = view._v_interval_avg * (1.f-r) + (delta/1'000'000.f) * r;
 					}
 				}
@@ -277,7 +277,7 @@ float DebugVideoTap::render(void) {
 			// img here
 			if (view._tex != 0) {
 				ImGui::SameLine();
-				ImGui::Text("moving avg interval: %f", view._v_interval_avg);
+				ImGui::Text("%dx%d ~avg interval: %.0fms (%.2ffps)", view._tex_w, view._tex_h, view._v_interval_avg*1000.f, 1.f/view._v_interval_avg);
 				const float img_w = ImGui::GetContentRegionAvail().x;
 				ImGui::Image(
 					reinterpret_cast<ImTextureID>(view._tex),
@@ -287,6 +287,9 @@ float DebugVideoTap::render(void) {
 				);
 			}
 
+			if (view._v_interval_avg > 0) {
+				min_interval = std::min(min_interval, view._v_interval_avg);
+			}
 		}
 		ImGui::End();
 	}
