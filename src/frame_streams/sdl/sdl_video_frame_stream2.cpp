@@ -46,7 +46,6 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 
 		int devcount {0};
 		SDL_CameraID *devices = SDL_GetCameras(&devcount);
-		//std::cout << "SDL Camera Driver: " << SDL_GetCurrentCameraDriver() << "\n";
 
 		if (devices == nullptr || devcount < 1) {
 			_ref--;
@@ -55,46 +54,66 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 			return nullptr;
 		}
 
-		// TODO: relist on device open?
-		//std::cout << "### found cameras:\n";
-		//for (int i = 0; i < devcount; i++) {
-		//    const SDL_CameraID device = devices[i];
-
-		//    const char *name = SDL_GetCameraName(device);
-		//    std::cout << "  - Camera #" << i << ": " << name << "\n";
-
-		//    int speccount {0};
-		//    SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
-		//    if (specs == nullptr) {
-		//        std::cout << "    - no supported spec\n";
-		//    } else {
-		//        for (int spec_i = 0; spec_i < speccount; spec_i++) {
-		//            std::cout << "    - " << specs[spec_i]->width << "x" << specs[spec_i]->height << "@" << float(specs[spec_i]->framerate_numerator)/specs[spec_i]->framerate_denominator << "fps " << SDL_GetPixelFormatName(specs[spec_i]->format) << "\n";
-
-		//        }
-		//        SDL_free(specs);
-		//    }
-		//}
-
-		std::unique_ptr<SDL_Camera, decltype(&SDL_CloseCamera)> camera {nullptr, &SDL_CloseCamera};
+		auto device = devices[0];
+		//auto device = devices[devcount-1];
 
 		SDL_CameraSpec spec {
 			// FORCE a different pixel format
-			//SDL_PIXELFORMAT_UNKNOWN,
-			SDL_PIXELFORMAT_YUY2,
-			//SDL_COLORSPACE_UNKNOWN,
-			SDL_COLORSPACE_YUV_DEFAULT,
+			SDL_PIXELFORMAT_UNKNOWN,
+			//SDL_PIXELFORMAT_YUY2,
+			SDL_COLORSPACE_UNKNOWN,
+			//SDL_COLORSPACE_YUV_DEFAULT,
 
 			1280, 720,
 
-			30, 1
+			60, 1
 		};
+
+		// choose a good spec, large res but <= 1080p
+		int speccount {0};
+		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
+		if (specs != nullptr) {
+			spec = *specs[0];
+			for (int spec_i = 1; spec_i < speccount; spec_i++) {
+				if (specs[spec_i]->height > 1080) {
+					continue;
+				}
+				if (spec.height > specs[spec_i]->height) {
+					continue;
+				}
+				if (
+					float(spec.framerate_numerator)/float(spec.framerate_denominator)
+					>
+					float(specs[spec_i]->framerate_numerator)/float(specs[spec_i]->framerate_denominator)
+				) {
+					continue;
+				}
+
+				if (spec.format == SDL_PIXELFORMAT_NV12 && specs[spec_i]->format == SDL_PIXELFORMAT_YUY2) {
+					// HACK: prefer nv12 over yuy2
+					continue;
+				}
+
+				// seems to be better
+				spec = *specs[spec_i];
+			}
+			SDL_free(specs);
+		}
+
+		std::unique_ptr<SDL_Camera, decltype(&SDL_CloseCamera)> camera {nullptr, &SDL_CloseCamera};
+
 		camera = {
-			//SDL_OpenCamera(devices[0], &spec),
-			SDL_OpenCamera(devices[0], nullptr),
+			//SDL_OpenCamera(device, nullptr),
+			SDL_OpenCamera(device, &spec),
 			&SDL_CloseCamera
 		};
 		SDL_free(devices);
+
+		if (!camera) {
+			std::cerr << "SDLVID error: failed opening camera device\n";
+			_ref--;
+			return nullptr;
+		}
 
 		// seems like we need this before get format() ?
 		// TODO: best would be waiting in thread, but that obv does not work well
