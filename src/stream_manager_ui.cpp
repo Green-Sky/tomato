@@ -17,7 +17,7 @@ void StreamManagerUI::render(void) {
 				// TODO: drop all menu sep?
 				//ImGui::Separator(); // os already exists (very hacky)
 				if (ImGui::BeginMenu("ObjectStore")) {
-					if (ImGui::MenuItem("Stream Manger", nullptr, _show_window)) {
+					if (ImGui::MenuItem("Stream Manager", nullptr, _show_window)) {
 						_show_window = !_show_window;
 					}
 					ImGui::EndMenu();
