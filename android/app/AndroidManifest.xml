@@ -33,17 +33,15 @@
 		android:required="false" />
 
 	<!-- Audio recording support -->
-	<!-- if you want to capture audio, uncomment this. -->
-	<!-- <uses-feature
+	<uses-feature
 		android:name="android.hardware.microphone"
-		android:required="false" /> -->
+		android:required="false" />
 
 	<!-- Camera support -->
-	<!-- if you want to record video, uncomment this. -->
-	<!--
 	<uses-permission android:name="android.permission.CAMERA" />
-	<uses-feature android:name="android.hardware.camera" />
-	-->
+	<uses-feature
+		android:name="android.hardware.camera"
+		android:required="false" />
 
 	<uses-permission android:name="android.permission.INTERNET" />
 
