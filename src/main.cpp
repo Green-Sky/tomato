@@ -19,6 +19,42 @@
 #include <thread>
 #include <chrono>
 
+#ifdef __ANDROID__
+#include <android/log.h>
+
+// logger hack based on https://stackoverflow.com/questions/8870174/is-stdcout-usable-in-android-ndk
+class AndroidBuf : public std::streambuf {
+	static constexpr size_t bufsize = 128;
+	char buffer[bufsize];
+	public:
+		AndroidBuf(void) {
+			setp(buffer, buffer + bufsize - 1);
+		}
+
+	private:
+		int overflow(int c) {
+			if (c == traits_type::eof()) {
+				*pptr() = traits_type::to_char_type(c);
+				sbumpc();
+			}
+			return sync() ? traits_type::eof() : traits_type::not_eof(c);
+		}
+
+		int sync(void) {
+			int rc = 0;
+			if (pbase() != pptr()) {
+				char writebuf[bufsize+1];
+				memcpy(writebuf, pbase(), pptr() - pbase());
+				writebuf[pptr() - pbase()] = '\0';
+
+				rc = __android_log_write(ANDROID_LOG_INFO, "std", writebuf) > 0;
+				setp(buffer, buffer + bufsize - 1);
+			}
+			return rc;
+		}
+};
+#endif
+
 int main(int argc, char** argv) {
 	// better args
 	std::vector<std::string_view> args;
@@ -31,6 +67,9 @@ int main(int argc, char** argv) {
 	SDL_SetAppMetadata("tomato", "0.0.0-wip", nullptr);
 
 #ifdef __ANDROID__
+	std::cout.rdbuf(new AndroidBuf); // log hack
+	std::cerr.rdbuf(new AndroidBuf); // log hack
+
 	// change current working dir to internal storage
 	std::filesystem::current_path(SDL_GetAndroidInternalStoragePath());
 #endif
