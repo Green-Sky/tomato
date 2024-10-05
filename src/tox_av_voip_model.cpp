@@ -185,7 +185,8 @@ void ToxAVVoIPModel::addAudioSink(ObjectHandle session, uint32_t friend_number) 
 	ObjectHandle outgoing_audio {_os.registry(), _os.registry().create()};
 
 	auto new_asink = std::make_unique<ToxAVCallAudioSink>(_av, friend_number);
-	outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink.get());
+	auto* new_asink_ptr = new_asink.get();
+	outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink_ptr);
 	outgoing_audio.emplace<Components::FrameStream2Sink<AudioFrame2>>(std::move(new_asink));
 	outgoing_audio.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("ToxAV Friend Call Outgoing Audio"));
 
@@ -201,6 +202,9 @@ void ToxAVVoIPModel::addAudioSink(ObjectHandle session, uint32_t friend_number) 
 	// TODO: tie session to stream
 
 	_os.throwEventConstruct(outgoing_audio);
+
+	std::lock_guard lg{_audio_sinks_mutex};
+	_audio_sinks.push_back(new_asink_ptr);
 }
 
 void ToxAVVoIPModel::addVideoSource(ObjectHandle session, uint32_t friend_number) {
@@ -234,7 +238,8 @@ void ToxAVVoIPModel::addVideoSink(ObjectHandle session, uint32_t friend_number) 
 	ObjectHandle outgoing_video {_os.registry(), _os.registry().create()};
 
 	auto new_vsink = std::make_unique<ToxAVCallVideoSink>(_av, friend_number);
-	outgoing_video.emplace<ToxAVCallVideoSink*>(new_vsink.get());
+	auto* new_vsink_ptr = new_vsink.get();
+	outgoing_video.emplace<ToxAVCallVideoSink*>(new_vsink_ptr);
 	outgoing_video.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
 	outgoing_video.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("ToxAV Friend Call Outgoing Video"));
 
@@ -250,6 +255,9 @@ void ToxAVVoIPModel::addVideoSink(ObjectHandle session, uint32_t friend_number) 
 	// TODO: tie session to stream
 
 	_os.throwEventConstruct(outgoing_video);
+
+	std::lock_guard lg{_video_sinks_mutex};
+	_video_sinks.push_back(new_vsink_ptr);
 }
 
 void ToxAVVoIPModel::destroySession(ObjectHandle session) {
@@ -282,6 +290,20 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 			_video_sources.erase(it_vsrc);
 		}
 	}
+	if (session.all_of<ToxAVCallAudioSink*>()) {
+		std::lock_guard lg{_audio_sinks_mutex};
+		auto it = std::find(_audio_sinks.cbegin(), _audio_sinks.cend(), session.get<ToxAVCallAudioSink*>());
+		if (it != _audio_sinks.cend()) {
+			_audio_sinks.erase(it);
+		}
+	}
+	if (session.all_of<ToxAVCallVideoSink*>()) {
+		std::lock_guard lg{_video_sinks_mutex};
+		auto it = std::find(_video_sinks.cbegin(), _video_sinks.cend(), session.get<ToxAVCallVideoSink*>());
+		if (it != _video_sinks.cend()) {
+			_video_sinks.erase(it);
+		}
+	}
 
 	// destory sources
 	if (auto* ss = session.try_get<Components::VoIP::StreamSources>(); ss != nullptr) {
@@ -306,34 +328,10 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 	_os.registry().destroy(session);
 }
 
-ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm) :
-	_os(os), _av(av), _cr(cr), _tcm(tcm)
-{
-	_av.subscribe(this, ToxAV_Event::friend_call);
-	_av.subscribe(this, ToxAV_Event::friend_call_state);
-	_av.subscribe(this, ToxAV_Event::friend_audio_bitrate);
-	_av.subscribe(this, ToxAV_Event::friend_video_bitrate);
-	_av.subscribe(this, ToxAV_Event::friend_audio_frame);
-	_av.subscribe(this, ToxAV_Event::friend_video_frame);
-
-	// attach to all tox friend contacts
-
-	for (const auto& [cv, _] : _cr.view<Contact::Components::ToxFriendPersistent>().each()) {
-		_cr.emplace<VoIPModelI*>(cv, this);
-	}
-	// TODO: events
-}
-
-ToxAVVoIPModel::~ToxAVVoIPModel(void) {
-	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
-		if (voipmodel == this) {
-			destroySession(_os.objectHandle(ov));
-		}
-	}
-}
-
-void ToxAVVoIPModel::tick(void) {
-	for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
+void ToxAVVoIPModel::audio_thread_tick(void) {
+	//for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
+	std::lock_guard lg{_audio_sinks_mutex};
+	for (const auto& asink : _audio_sinks) {
 		if (!asink->_writer) {
 			continue;
 		}
@@ -366,8 +364,12 @@ void ToxAVVoIPModel::tick(void) {
 			}
 		}
 	}
+}
 
-	for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
+void ToxAVVoIPModel::video_thread_tick(void) {
+	//for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
+	std::lock_guard lg{_video_sinks_mutex};
+	for (const auto& vsink : _video_sinks) {
 		if (!vsink->_writer) {
 			continue;
 		}
@@ -398,6 +400,134 @@ void ToxAVVoIPModel::tick(void) {
 			);
 			SDL_UnlockSurface(surf);
 		}
+	}
+}
+
+void ToxAVVoIPModel::handleEvent(const Events::FriendCall& e) {
+	// new incoming call, create voip session, ready to be accepted
+	// (or rejected...)
+
+	const auto session_contact = _tcm.getContactFriend(e.friend_number);
+	if (!_cr.valid(session_contact)) {
+		return;
+	}
+
+	ObjectHandle new_session {_os.registry(), _os.registry().create()};
+
+	new_session.emplace<VoIPModelI*>(this);
+	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
+	new_session.emplace<Components::VoIP::Incoming>(session_contact); // in 1on1 its always the same contact, might leave blank
+	new_session.emplace<Components::VoIP::SessionContact>(session_contact);
+	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
+	new_session.emplace<Components::ToxAVIncomingAV>(e.audio_enabled, e.video_enabled);
+
+	_os.throwEventConstruct(new_session);
+}
+
+void ToxAVVoIPModel::handleEvent(const Events::FriendCallState& e) {
+	const auto session_contact = _tcm.getContactFriend(e.friend_number);
+	if (!_cr.valid(session_contact)) {
+		return;
+	}
+
+	ToxAVFriendCallState s{e.state};
+
+	// find session(s?)
+	// TODO: keep lookup table
+	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
+		if (voipmodel == this) {
+			auto o = _os.objectHandle(ov);
+
+			if (!o.all_of<Components::VoIP::SessionContact>()) {
+				continue;
+			}
+			if (session_contact != o.get<Components::VoIP::SessionContact>().c) {
+				continue;
+			}
+
+			if (s.is_error() || s.is_finished()) {
+				// destroy call
+				destroySession(o);
+			} else {
+				// remote accepted our call, or av send/recv conditions changed?
+				o.get<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::CONNECTED; // set to in call ??
+
+				if (s.is_accepting_a() && !o.all_of<Components::ToxAVAudioSink>()) {
+					addAudioSink(o, e.friend_number);
+				} else if (!s.is_accepting_a() && o.all_of<Components::ToxAVAudioSink>()) {
+					// remove asink?
+				}
+
+				// video
+				if (s.is_accepting_v() && !o.all_of<Components::ToxAVVideoSink>()) {
+					addVideoSink(o, e.friend_number);
+				} else if (!s.is_accepting_v() && o.all_of<Components::ToxAVVideoSink>()) {
+					// remove vsink?
+				}
+
+				// add/update sources
+				// audio
+				if (s.is_sending_a() && !o.all_of<Components::ToxAVAudioSource>()) {
+					addAudioSource(o, e.friend_number);
+				} else if (!s.is_sending_a() && o.all_of<Components::ToxAVAudioSource>()) {
+					// remove asrc?
+				}
+
+				// video
+				if (s.is_sending_v() && !o.all_of<Components::ToxAVVideoSource>()) {
+					addVideoSource(o, e.friend_number);
+				} else if (!s.is_sending_v() && o.all_of<Components::ToxAVVideoSource>()) {
+					// remove vsrc?
+				}
+			}
+		}
+	}
+}
+
+ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm) :
+	_os(os), _av(av), _cr(cr), _tcm(tcm)
+{
+	_av.subscribe(this, ToxAV_Event::friend_call);
+	_av.subscribe(this, ToxAV_Event::friend_call_state);
+	_av.subscribe(this, ToxAV_Event::friend_audio_bitrate);
+	_av.subscribe(this, ToxAV_Event::friend_video_bitrate);
+	_av.subscribe(this, ToxAV_Event::friend_audio_frame);
+	_av.subscribe(this, ToxAV_Event::friend_video_frame);
+	_av.subscribe(this, ToxAV_Event::iterate_audio);
+	_av.subscribe(this, ToxAV_Event::iterate_video);
+
+	// attach to all tox friend contacts
+
+	for (const auto& [cv, _] : _cr.view<Contact::Components::ToxFriendPersistent>().each()) {
+		_cr.emplace<VoIPModelI*>(cv, this);
+	}
+	// TODO: events
+}
+
+ToxAVVoIPModel::~ToxAVVoIPModel(void) {
+	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
+		if (voipmodel == this) {
+			destroySession(_os.objectHandle(ov));
+		}
+	}
+}
+
+void ToxAVVoIPModel::tick(void) {
+	std::lock_guard lg{_e_queue_mutex};
+	while (!_e_queue.empty()) {
+		const auto& e_var = _e_queue.front();
+
+		if (std::holds_alternative<Events::FriendCall>(e_var)) {
+			const auto& e = std::get<Events::FriendCall>(e_var);
+			handleEvent(e);
+		} else if (std::holds_alternative<Events::FriendCallState>(e_var)) {
+			const auto& e = std::get<Events::FriendCallState>(e_var);
+			handleEvent(e);
+		} else {
+			assert(false && "unk event");
+		}
+
+		_e_queue.pop_front();
 	}
 }
 
@@ -529,94 +659,24 @@ bool ToxAVVoIPModel::leave(ObjectHandle session) {
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendCall& e) {
-	// new incoming call, create voip session, ready to be accepted
-	// (or rejected...)
-
-	const auto session_contact = _tcm.getContactFriend(e.friend_number);
-	if (!_cr.valid(session_contact)) {
-		return false;
-	}
-
-	ObjectHandle new_session {_os.registry(), _os.registry().create()};
-
-	new_session.emplace<VoIPModelI*>(this);
-	new_session.emplace<Components::VoIP::TagVoIPSession>(); // ??
-	new_session.emplace<Components::VoIP::Incoming>(session_contact); // in 1on1 its always the same contact, might leave blank
-	new_session.emplace<Components::VoIP::SessionContact>(session_contact);
-	new_session.emplace<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::RINGING;
-	new_session.emplace<Components::ToxAVIncomingAV>(e.audio_enabled, e.video_enabled);
-
-	_os.throwEventConstruct(new_session);
-	return true;
+	std::lock_guard lg{_e_queue_mutex};
+	_e_queue.push_back(e);
+	return true; // false?
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendCallState& e) {
-	const auto session_contact = _tcm.getContactFriend(e.friend_number);
-	if (!_cr.valid(session_contact)) {
-		return false;
-	}
-
-	ToxAVFriendCallState s{e.state};
-
-	// find session(s?)
-	// TODO: keep lookup table
-	for (const auto& [ov, voipmodel] : _os.registry().view<VoIPModelI*>().each()) {
-		if (voipmodel == this) {
-			auto o = _os.objectHandle(ov);
-
-			if (!o.all_of<Components::VoIP::SessionContact>()) {
-				continue;
-			}
-			if (session_contact != o.get<Components::VoIP::SessionContact>().c) {
-				continue;
-			}
-
-			if (s.is_error() || s.is_finished()) {
-				// destroy call
-				destroySession(o);
-			} else {
-				// remote accepted our call, or av send/recv conditions changed?
-				o.get<Components::VoIP::SessionState>().state = Components::VoIP::SessionState::State::CONNECTED; // set to in call ??
-
-				if (s.is_accepting_a() && !o.all_of<Components::ToxAVAudioSink>()) {
-					addAudioSink(o, e.friend_number);
-				} else if (!s.is_accepting_a() && o.all_of<Components::ToxAVAudioSink>()) {
-					// remove asink?
-				}
-
-				// video
-				if (s.is_accepting_v() && !o.all_of<Components::ToxAVVideoSink>()) {
-					addVideoSink(o, e.friend_number);
-				} else if (!s.is_accepting_v() && o.all_of<Components::ToxAVVideoSink>()) {
-					// remove vsink?
-				}
-
-				// add/update sources
-				// audio
-				if (s.is_sending_a() && !o.all_of<Components::ToxAVAudioSource>()) {
-					addAudioSource(o, e.friend_number);
-				} else if (!s.is_sending_a() && o.all_of<Components::ToxAVAudioSource>()) {
-					// remove asrc?
-				}
-
-				// video
-				if (s.is_sending_v() && !o.all_of<Components::ToxAVVideoSource>()) {
-					addVideoSource(o, e.friend_number);
-				} else if (!s.is_sending_v() && o.all_of<Components::ToxAVVideoSource>()) {
-					// remove vsrc?
-				}
-			}
-		}
-	}
-
-	return true;
+	std::lock_guard lg{_e_queue_mutex};
+	_e_queue.push_back(e);
+	return true; // false?
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendAudioBitrate&) {
+	// TODO: use this info
 	return false;
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendVideoBitrate&) {
+	// TODO: use this info
 	return false;
 }
 
@@ -708,6 +768,16 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame& e) {
 	});
 
 	SDL_DestroySurface(new_surf);
+	return true;
+}
+
+bool ToxAVVoIPModel::onEvent(const Events::IterateAudio&) {
+	audio_thread_tick();
+	return false;
+}
+
+bool ToxAVVoIPModel::onEvent(const Events::IterateVideo&) {
+	video_thread_tick();
 	return false;
 }
 

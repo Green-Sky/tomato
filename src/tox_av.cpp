@@ -80,6 +80,17 @@ uint32_t ToxAVI::toxavIterationInterval(void) const {
 
 void ToxAVI::toxavIterate(void) {
 	toxav_iterate(_tox_av);
+
+	dispatch(
+		ToxAV_Event::iterate_audio,
+		Events::IterateAudio{
+		}
+	);
+	dispatch(
+		ToxAV_Event::iterate_video,
+		Events::IterateVideo{
+		}
+	);
 }
 
 uint32_t ToxAVI::toxavAudioIterationInterval(void) const {
@@ -88,6 +99,12 @@ uint32_t ToxAVI::toxavAudioIterationInterval(void) const {
 
 void ToxAVI::toxavAudioIterate(void) {
 	toxav_audio_iterate(_tox_av);
+
+	dispatch(
+		ToxAV_Event::iterate_audio,
+		Events::IterateAudio{
+		}
+	);
 }
 
 uint32_t ToxAVI::toxavVideoIterationInterval(void) const {
@@ -96,6 +113,12 @@ uint32_t ToxAVI::toxavVideoIterationInterval(void) const {
 
 void ToxAVI::toxavVideoIterate(void) {
 	toxav_video_iterate(_tox_av);
+
+	dispatch(
+		ToxAV_Event::iterate_video,
+		Events::IterateVideo{
+		}
+	);
 }
 
 Toxav_Err_Call ToxAVI::toxavCall(uint32_t friend_number, uint32_t audio_bit_rate, uint32_t video_bit_rate) {

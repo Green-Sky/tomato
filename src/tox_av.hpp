@@ -55,6 +55,16 @@ namespace /*toxav*/ Events {
 		int32_t vstride;
 	};
 
+	// event fired on a/av thread every iterate
+	struct IterateAudio {
+		//float time_delta;
+	};
+
+	// event fired on v/av thread every iterate
+	struct IterateVideo {
+		//float time_delta;
+	};
+
 } // Event
 
 enum class ToxAV_Event : uint32_t {
@@ -64,6 +74,9 @@ enum class ToxAV_Event : uint32_t {
 	friend_video_bitrate,
 	friend_audio_frame,
 	friend_video_frame,
+
+	iterate_audio,
+	iterate_video,
 
 	MAX
 };
@@ -79,11 +92,15 @@ struct ToxAVEventI {
 	virtual bool onEvent(const Events::FriendVideoBitrate&) { return false; }
 	virtual bool onEvent(const Events::FriendAudioFrame&) { return false; }
 	virtual bool onEvent(const Events::FriendVideoFrame&) { return false; }
+	virtual bool onEvent(const Events::IterateAudio&) { return false; }
+	virtual bool onEvent(const Events::IterateVideo&) { return false; }
 };
 using ToxAVEventProviderI = EventProviderI<ToxAVEventI>;
 
 // TODO: seperate out implementation from interface
 struct ToxAVI : public ToxAVEventProviderI {
+	// tox and toxav internally are mutex protected
+	// BUT only if "experimental_thread_safety" is enabled
 	Tox* _tox = nullptr;
 	ToxAV* _tox_av = nullptr;
 
