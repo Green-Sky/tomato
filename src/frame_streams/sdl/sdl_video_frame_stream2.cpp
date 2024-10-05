@@ -54,8 +54,8 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 			return nullptr;
 		}
 
-		auto device = devices[0];
-		//auto device = devices[devcount-1];
+		//auto device = devices[0];
+		auto device = devices[devcount-1];
 
 		SDL_CameraSpec spec {
 			// FORCE a different pixel format
