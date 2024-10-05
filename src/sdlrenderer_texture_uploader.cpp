@@ -79,8 +79,35 @@ uint64_t SDLRendererTextureUploader::upload(const uint8_t* data, uint32_t width,
 		}
 	}
 
-	if (!SDL_UpdateTexture(tex, nullptr, surf->pixels, surf->pitch)) {
-		std::cerr << "SDLRTU error: tex update failed " << SDL_GetError() << "\n";
+	// while this split *should* not needed, the opengles renderer might like this more...
+	if (sdl_format == SDL_PIXELFORMAT_IYUV || sdl_format == SDL_PIXELFORMAT_YV12) {
+		if (!SDL_UpdateYUVTexture(
+			tex,
+			nullptr,
+			static_cast<const uint8_t*>(surf->pixels),
+			surf->w * 1,
+			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
+			surf->w/2 * 1,
+			static_cast<const uint8_t*>(surf->pixels) + (surf->w/2) * (surf->h/2),
+			surf->w/2 * 1
+		)) {
+			std::cerr << "SDLRTU error: tex yuv update failed " << SDL_GetError() << "\n";
+		}
+	} else if (sdl_format == SDL_PIXELFORMAT_NV12 || sdl_format == SDL_PIXELFORMAT_NV21) {
+		if (!SDL_UpdateNVTexture(
+			tex,
+			nullptr,
+			static_cast<const uint8_t*>(surf->pixels),
+			surf->w * 1,
+			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
+			surf->w * 1
+		)) {
+			std::cerr << "SDLRTU error: tex nv update failed " << SDL_GetError() << "\n";
+		}
+	} else {
+		if (!SDL_UpdateTexture(tex, nullptr, surf->pixels, surf->pitch)) {
+			std::cerr << "SDLRTU error: tex update failed " << SDL_GetError() << "\n";
+		}
 	}
 
 	if (need_to_lock) {
