@@ -58,7 +58,7 @@ ImageLoaderSDLImage::ImageInfo ImageLoaderSDLImage::loadInfoFromMemory(const uin
 		return res;
 	}
 
-	SDL_Surface* surf = IMG_Load_IO(ios, SDL_TRUE);
+	SDL_Surface* surf = IMG_Load_IO(ios, true);
 	if (surf == nullptr) {
 		return res;
 	}
@@ -83,7 +83,7 @@ ImageLoaderSDLImage::ImageResult ImageLoaderSDLImage::loadFromMemoryRGBA(const u
 		return res;
 	}
 
-	IMG_Animation* anim = IMG_LoadAnimation_IO(ios, SDL_TRUE);
+	IMG_Animation* anim = IMG_LoadAnimation_IO(ios, true);
 	if (anim == nullptr) {
 		return res;
 	}

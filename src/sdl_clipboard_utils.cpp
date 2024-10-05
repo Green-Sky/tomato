@@ -9,7 +9,7 @@
 static const char* clipboardHas(const std::vector<std::string_view>& filter_mime_types) {
 	for (const auto& mime_type : filter_mime_types) {
 		// ASSERTS that stringview is null terminated
-		if (SDL_HasClipboardData(mime_type.data()) == SDL_TRUE) {
+		if (SDL_HasClipboardData(mime_type.data())) {
 			return mime_type.data();
 		}
 	}
