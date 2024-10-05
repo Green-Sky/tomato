@@ -290,18 +290,24 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 			_video_sources.erase(it_vsrc);
 		}
 	}
-	if (session.all_of<ToxAVCallAudioSink*>()) {
-		std::lock_guard lg{_audio_sinks_mutex};
-		auto it = std::find(_audio_sinks.cbegin(), _audio_sinks.cend(), session.get<ToxAVCallAudioSink*>());
-		if (it != _audio_sinks.cend()) {
-			_audio_sinks.erase(it);
+	if (session.all_of<Components::ToxAVAudioSink>()) {
+		auto asink = session.get<Components::ToxAVAudioSink>().o;
+		if (asink.all_of<ToxAVCallAudioSink*>()) {
+			std::lock_guard lg{_audio_sinks_mutex};
+			auto it = std::find(_audio_sinks.cbegin(), _audio_sinks.cend(), asink.get<ToxAVCallAudioSink*>());
+			if (it != _audio_sinks.cend()) {
+				_audio_sinks.erase(it);
+			}
 		}
 	}
-	if (session.all_of<ToxAVCallVideoSink*>()) {
-		std::lock_guard lg{_video_sinks_mutex};
-		auto it = std::find(_video_sinks.cbegin(), _video_sinks.cend(), session.get<ToxAVCallVideoSink*>());
-		if (it != _video_sinks.cend()) {
-			_video_sinks.erase(it);
+	if (session.all_of<Components::ToxAVVideoSink>()) {
+		auto vsink = session.get<Components::ToxAVVideoSink>().o;
+		if (vsink.all_of<ToxAVCallVideoSink*>()) {
+			std::lock_guard lg{_video_sinks_mutex};
+			auto it = std::find(_video_sinks.cbegin(), _video_sinks.cend(), vsink.get<ToxAVCallVideoSink*>());
+			if (it != _video_sinks.cend()) {
+				_video_sinks.erase(it);
+			}
 		}
 	}
 
@@ -331,7 +337,7 @@ void ToxAVVoIPModel::destroySession(ObjectHandle session) {
 void ToxAVVoIPModel::audio_thread_tick(void) {
 	//for (const auto& [oc, asink] : _os.registry().view<ToxAVCallAudioSink*>().each()) {
 	std::lock_guard lg{_audio_sinks_mutex};
-	for (const auto& asink : _audio_sinks) {
+	for (const auto* asink : _audio_sinks) {
 		if (!asink->_writer) {
 			continue;
 		}
@@ -369,7 +375,7 @@ void ToxAVVoIPModel::audio_thread_tick(void) {
 void ToxAVVoIPModel::video_thread_tick(void) {
 	//for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
 	std::lock_guard lg{_video_sinks_mutex};
-	for (const auto& vsink : _video_sinks) {
+	for (const auto* vsink : _video_sinks) {
 		if (!vsink->_writer) {
 			continue;
 		}
