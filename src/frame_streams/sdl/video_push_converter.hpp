@@ -5,6 +5,7 @@
 
 #include <cassert>
 
+#include <chrono> // meh
 #include <iostream> // meh
 
 template<typename RealStream>
@@ -20,6 +21,7 @@ struct PushConversionVideoStream : public RealStream {
 		SDL_Surface* surf = value.surface.get();
 		if (surf->format != _forced_format) {
 			//std::cerr << "PCVS: need to convert from " << SDL_GetPixelFormatName(surf->format) << " to " << SDL_GetPixelFormatName(_forced_format) << "\n";
+			//const auto start = std::chrono::steady_clock::now();
 			if ((surf = SDL_ConvertSurface(surf, _forced_format)) == nullptr) {
 				surf = value.surface.get(); // reset ptr
 				//std::cerr << "PCVS warning: default conversion failed: " << SDL_GetError() << "\n";
@@ -42,15 +44,16 @@ struct PushConversionVideoStream : public RealStream {
 					}
 				}
 			}
+			//const auto end = std::chrono::steady_clock::now();
+			//std::cerr << "PCVS: conversion took " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "ms\n";
 
 			if (surf == nullptr) {
 				// oh god
-				std::cerr << "PCVS error: failed to convert surface to IYUV: " << SDL_GetError() << "\n";
+				std::cerr << "PCVS error: failed to convert surface to " << SDL_GetPixelFormatName(_forced_format) << ": " << SDL_GetError() << "\n";
 				return false;
 			}
-		}
-		assert(surf != nullptr);
-		if (surf != value.surface.get()) {
+			assert(surf != nullptr);
+
 			// TODO: add ctr with uptr
 			SDLVideoFrame new_value{value.timestampUS, nullptr};
 			new_value.surface = {

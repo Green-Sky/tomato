@@ -12,6 +12,8 @@ struct SDLRendererTextureUploader : public TextureUploaderI {
 
 	uint64_t uploadRGBA(const uint8_t* data, uint32_t width, uint32_t height, Filter filter, Access access) override;
 	bool updateRGBA(uint64_t tex_id, const uint8_t* data, size_t size) override;
+	uint64_t upload(const uint8_t* data, uint32_t width, uint32_t height, Format format, Filter filter, Access access) override;
+	bool update(uint64_t tex_id, const uint8_t* data, size_t size) override;
 	void destroy(uint64_t tex_id) override;
 };
 

@@ -59,7 +59,7 @@ struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 	std::shared_ptr<FrameStream2I<SDLVideoFrame>> subscribe(void) override {
 		_writers.emplace_back(Writer{
 			Writer::View{_id_counter++},
-			std::make_shared<PushConversionVideoStream<LockedFrameStream2<SDLVideoFrame>>>(SDL_PIXELFORMAT_RGBA32)
+			std::make_shared<PushConversionVideoStream<LockedFrameStream2<SDLVideoFrame>>>(SDL_PIXELFORMAT_IYUV)
 		});
 
 		return _writers.back().stream;
@@ -189,7 +189,7 @@ float DebugVideoTap::render(void) {
 		std::string window_title {"DebugVideoTap #"};
 		window_title += std::to_string(view._id);
 		ImGui::SetNextWindowSize({400, 420}, ImGuiCond_Appearing);
-		if (ImGui::Begin(window_title.c_str())) {
+		if (ImGui::Begin(window_title.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar)) {
 			while (auto new_frame_opt = stream->pop()) {
 				// timing
 				if (view._v_last_ts == 0) {
@@ -209,20 +209,21 @@ float DebugVideoTap::render(void) {
 				SDL_Surface* new_frame_surf = new_frame_opt.value().surface.get();
 
 				SDL_Surface* converted_surf = new_frame_surf;
-				if (new_frame_surf->format != SDL_PIXELFORMAT_RGBA32) {
-					// we need to convert
-					//std::cerr << "DVT: need to convert\n";
-					converted_surf = SDL_ConvertSurfaceAndColorspace(new_frame_surf, SDL_PIXELFORMAT_RGBA32, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
-					assert(converted_surf->format == SDL_PIXELFORMAT_RGBA32);
-				}
+				//if (new_frame_surf->format != SDL_PIXELFORMAT_RGBA32) {
+				//    // we need to convert
+				//    //std::cerr << "DVT: need to convert\n";
+				//    converted_surf = SDL_ConvertSurfaceAndColorspace(new_frame_surf, SDL_PIXELFORMAT_RGBA32, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
+				//    assert(converted_surf->format == SDL_PIXELFORMAT_RGBA32);
+				//}
 
 				SDL_LockSurface(converted_surf);
 				if (view._tex == 0 || (int)view._tex_w != converted_surf->w || (int)view._tex_h != converted_surf->h) {
 					_tu.destroy(view._tex);
-					view._tex = _tu.uploadRGBA(
+					view._tex = _tu.upload(
 						static_cast<const uint8_t*>(converted_surf->pixels),
 						converted_surf->w,
 						converted_surf->h,
+						TextureUploaderI::IYUV, // forced conversion
 						TextureUploaderI::LINEAR,
 						TextureUploaderI::STREAMING
 					);
@@ -230,22 +231,24 @@ float DebugVideoTap::render(void) {
 					view._tex_w = converted_surf->w;
 					view._tex_h = converted_surf->h;
 				} else {
-					_tu.updateRGBA(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 4);
+					//_tu.update(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 4);
+					_tu.update(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 3/2);
+					//_tu.updateRGBA(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 4);
 				}
 				SDL_UnlockSurface(converted_surf);
 
-				if (new_frame_surf != converted_surf) {
-					// clean up temp
-					SDL_DestroySurface(converted_surf);
-				}
+				//if (new_frame_surf != converted_surf) {
+				//    // clean up temp
+				//    SDL_DestroySurface(converted_surf);
+				//}
 			}
 
-			ImGui::Checkbox("mirror", &view._mirror);
+			ImGui::Checkbox("mirror ", &view._mirror);
 
 			// img here
 			if (view._tex != 0) {
 				ImGui::SameLine();
-				ImGui::Text("%dx%d ~avg interval: %.0fms (%.2ffps)", view._tex_w, view._tex_h, view._v_interval_avg*1000.f, 1.f/view._v_interval_avg);
+				ImGui::Text("%dx%d interval: ~%.0fms (%.2ffps)", view._tex_w, view._tex_h, view._v_interval_avg*1000.f, 1.f/view._v_interval_avg);
 				const float img_w = ImGui::GetContentRegionAvail().x;
 				ImGui::Image(
 					reinterpret_cast<ImTextureID>(view._tex),
