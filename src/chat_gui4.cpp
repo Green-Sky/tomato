@@ -201,7 +201,7 @@ void ChatGui4::setClipboardData(std::vector<std::string> mime_types, std::shared
 ChatGui4::ChatGui4(
 	ConfigModelI& conf,
 	ObjectStore2& os,
-	RegistryMessageModel& rmm,
+	RegistryMessageModelI& rmm,
 	Contact3Registry& cr,
 	TextureUploaderI& tu,
 	ContactTextureCache& contact_tc,

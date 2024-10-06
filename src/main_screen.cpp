@@ -75,7 +75,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
 		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
-		g_provideInstance<RegistryMessageModel>("RegistryMessageModel", "host", &rmm);
+		g_provideInstance<RegistryMessageModelI>("RegistryMessageModelI", "host", &rmm);
 		g_provideInstance<MessageSerializerNJ>("MessageSerializerNJ", "host", &msnj);
 
 		g_provideInstance<ToxI>("ToxI", "host", &tc);

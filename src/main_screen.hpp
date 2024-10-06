@@ -6,6 +6,7 @@
 #include <solanaceae/util/simple_config_model.hpp>
 #include <solanaceae/contact/contact_model3.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
+#include <solanaceae/message3/registry_message_model_impl.hpp>
 #include <solanaceae/message3/message_time_sort.hpp>
 #include <solanaceae/message3/message_serializer.hpp>
 #include <solanaceae/plugin/plugin_manager.hpp>
@@ -58,7 +59,7 @@ struct MainScreen final : public Screen {
 
 	SimpleConfigModel conf;
 	Contact3Registry cr;
-	RegistryMessageModel rmm;
+	RegistryMessageModelImpl rmm;
 	MessageSerializerNJ msnj;
 	MessageTimeSort mts;
 

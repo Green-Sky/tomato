@@ -13,14 +13,14 @@ namespace Message::Components {
 // adds metadata to file messages
 class MediaMetaInfoLoader : public RegistryMessageModelEventI {
 	protected:
-		RegistryMessageModel& _rmm;
+		RegistryMessageModelI& _rmm;
 
 		std::vector<std::unique_ptr<ImageLoaderI>> _image_loaders;
 
 		void handleMessage(const Message3Handle& m);
 
 	public:
-		MediaMetaInfoLoader(RegistryMessageModel& rmm);
+		MediaMetaInfoLoader(RegistryMessageModelI& rmm);
 		virtual ~MediaMetaInfoLoader(void);
 
 	protected: // rmm

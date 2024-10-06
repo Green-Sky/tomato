@@ -15,7 +15,7 @@ namespace Contact::Components {
 // timers get reset on connection changes, and send order is preserved.
 class ToxFriendFauxOfflineMessaging : public ToxEventI {
 	Contact3Registry& _cr;
-	RegistryMessageModel& _rmm;
+	RegistryMessageModelI& _rmm;
 	ToxContactModel2& _tcm;
 	ToxI& _t;
 	ToxEventProviderI& _tep;
@@ -30,7 +30,7 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 	public:
 		ToxFriendFauxOfflineMessaging(
 			Contact3Registry& cr,
-			RegistryMessageModel& rmm,
+			RegistryMessageModelI& rmm,
 			ToxContactModel2& tcm,
 			ToxI& t,
 			ToxEventProviderI& tep

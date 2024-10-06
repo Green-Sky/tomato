@@ -26,7 +26,7 @@ namespace Contact::Components {
 
 ToxFriendFauxOfflineMessaging::ToxFriendFauxOfflineMessaging(
 	Contact3Registry& cr,
-	RegistryMessageModel& rmm,
+	RegistryMessageModelI& rmm,
 	ToxContactModel2& tcm,
 	ToxI& t,
 	ToxEventProviderI& tep
@@ -54,7 +54,7 @@ float ToxFriendFauxOfflineMessaging::tick(float time_delta) {
 			// cleanup
 			if (_cr.all_of<Contact::Components::NextSendAttempt>(c)) {
 				_cr.remove<Contact::Components::NextSendAttempt>(c);
-				auto* mr = static_cast<const RegistryMessageModel&>(_rmm).get(c);
+				auto* mr = static_cast<const RegistryMessageModelI&>(_rmm).get(c);
 				if (mr != nullptr) {
 					mr->storage<Message::Components::LastSendAttempt>().clear();
 				}
@@ -99,7 +99,7 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 	// unacked message
 	// timeouts for exising unacked messages expired (send)
 
-	auto* mr = static_cast<const RegistryMessageModel&>(_rmm).get(c);
+	auto* mr = static_cast<const RegistryMessageModelI&>(_rmm).get(c);
 	if (mr == nullptr) {
 		// no messages
 		return dfmc_Ret::NO_MSG;

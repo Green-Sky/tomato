@@ -27,7 +27,7 @@ using MessageTextureCache = TextureCache<void*, Message3Handle, MessageImageLoad
 class ChatGui4 {
 	ConfigModelI& _conf;
 	ObjectStore2& _os;
-	RegistryMessageModel& _rmm;
+	RegistryMessageModelI& _rmm;
 	Contact3Registry& _cr;
 
 	ContactTextureCache& _contact_tc;
@@ -60,7 +60,7 @@ class ChatGui4 {
 		ChatGui4(
 			ConfigModelI& conf,
 			ObjectStore2& os,
-			RegistryMessageModel& rmm,
+			RegistryMessageModelI& rmm,
 			Contact3Registry& cr,
 			TextureUploaderI& tu,
 			ContactTextureCache& contact_tc,
