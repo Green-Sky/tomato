@@ -7,32 +7,19 @@
 SDLVideo2InputDevice::SDLVideo2InputDevice(void) {
 	int devcount {0};
 	SDL_CameraID *devices = SDL_GetCameras(&devcount);
-	std::cout << "SDLVID: SDL Camera Driver: " << SDL_GetCurrentCameraDriver() << "\n";
 
 	if (devices == nullptr || devcount < 1) {
 		throw int(2); // TODO: proper error code
 	}
 
-	std::cout << "SDLVID: found cameras:\n";
-	for (int i = 0; i < devcount; i++) {
-		const SDL_CameraID device = devices[i];
+	// pick the last (usually the newest device)
+	_dev = devices[devcount-1];
 
-		const char *name = SDL_GetCameraName(device);
-		std::cout << "  - Camera #" << i << ": " << name << "\n";
-
-		int speccount {0};
-		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
-		if (specs == nullptr) {
-			std::cout << "    - no supported spec\n";
-		} else {
-			for (int spec_i = 0; spec_i < speccount; spec_i++) {
-				std::cout << "    - " << specs[spec_i]->width << "x" << specs[spec_i]->height << "@" << float(specs[spec_i]->framerate_numerator)/specs[spec_i]->framerate_denominator << "fps " << SDL_GetPixelFormatName(specs[spec_i]->format) << "\n";
-
-			}
-			SDL_free(specs);
-		}
-	}
 	SDL_free(devices);
+}
+
+SDLVideo2InputDevice::SDLVideo2InputDevice(const SDL_CameraID dev) : _dev(dev) {
+	// nothing else?
 }
 
 SDLVideo2InputDevice::~SDLVideo2InputDevice(void) {
@@ -43,19 +30,6 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 	if (prev_ref == 0) {
 		// there was previously no stream, we assume no thread
 		// open device here? or on the thread?
-
-		int devcount {0};
-		SDL_CameraID *devices = SDL_GetCameras(&devcount);
-
-		if (devices == nullptr || devcount < 1) {
-			_ref--;
-			// error/no devices, should we do this in the constructor?
-			SDL_free(devices);
-			return nullptr;
-		}
-
-		//auto device = devices[0];
-		auto device = devices[devcount-1];
 
 		SDL_CameraSpec spec {
 			// FORCE a different pixel format
@@ -71,7 +45,7 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 
 		// choose a good spec, large res but <= 1080p
 		int speccount {0};
-		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
+		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(_dev, &speccount);
 		if (specs != nullptr) {
 			spec = *specs[0];
 			for (int spec_i = 1; spec_i < speccount; spec_i++) {
@@ -104,10 +78,9 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 
 		camera = {
 			//SDL_OpenCamera(device, nullptr),
-			SDL_OpenCamera(device, &spec),
+			SDL_OpenCamera(_dev, &spec),
 			&SDL_CloseCamera
 		};
-		SDL_free(devices);
 
 		if (!camera) {
 			std::cerr << "SDLVID error: failed opening camera device\n";

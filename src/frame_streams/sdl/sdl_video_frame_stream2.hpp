@@ -15,11 +15,13 @@
 // while a stream is subscribed, have the camera device open
 // and aquire and push frames from a thread
 struct SDLVideo2InputDevice : public FrameStream2MultiSource<SDLVideoFrame> {
+	SDL_CameraID _dev {0};
+
 	std::atomic_uint _ref {0};
 	std::thread _thread;
 
-	// TODO: device id
 	SDLVideo2InputDevice(void);
+	SDLVideo2InputDevice(const SDL_CameraID dev);
 	virtual ~SDLVideo2InputDevice(void);
 
 	// we hook int multi source
