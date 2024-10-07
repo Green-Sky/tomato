@@ -1118,38 +1118,38 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// hacky
 	const auto* fts = o.try_get<ObjComp::Ephemeral::File::TransferStats>();
 	if (fts != nullptr && o.any_of<ObjComp::F::SingleInfo, ObjComp::F::CollectionInfo>()) {
-		const auto total_size =
+		const int64_t total_size =
 			o.all_of<ObjComp::F::SingleInfo>() ?
 				o.get<ObjComp::F::SingleInfo>().file_size :
 				o.get<ObjComp::F::CollectionInfo>().total_size
 			;
 
-		uint64_t total {0u};
-		float rate {0.f};
+		int64_t transfer_total {0u};
+		float transfer_rate {0.f};
 		if (o.all_of<ObjComp::F::TagLocalHaveAll>() && fts->total_down <= 0) {
 			// if have all AND no dl -> show upload progress
 			ImGui::TextUnformatted("  up");
-			total = fts->total_up;
-			rate = fts->rate_up;
+			transfer_total = fts->total_up;
+			transfer_rate = fts->rate_up;
 		} else {
 			// else show download progress
 			ImGui::TextUnformatted("down");
-			total = fts->total_down;
-			rate = fts->rate_down;
+			transfer_total = fts->total_down;
+			transfer_rate = fts->rate_down;
 		}
 		ImGui::SameLine();
 
-		float fraction = float(total) / total_size;
+		float fraction = float(transfer_total) / total_size;
 
 		char overlay_buf[64];
-		if (rate > 0.000001f) {
+		if (transfer_rate > 0.000001f) {
 			const char* byte_suffix = "???";
-			int64_t byte_divider = sizeToHumanReadable(rate, byte_suffix);
-			int64_t seconds_remaining = (total_size - total) / rate;
+			int64_t byte_divider = sizeToHumanReadable(transfer_rate, byte_suffix);
+			int64_t seconds_remaining = (total_size - transfer_total) / transfer_rate;
 			if (seconds_remaining > 0) {
-				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s %lds ", fraction * 100 + 0.01f, rate/byte_divider, byte_suffix, seconds_remaining);
+				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s %lds ", fraction * 100 + 0.01f, transfer_rate/byte_divider, byte_suffix, seconds_remaining);
 			} else {
-				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s", fraction * 100 + 0.01f, rate/byte_divider, byte_suffix);
+				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s", fraction * 100 + 0.01f, transfer_rate/byte_divider, byte_suffix);
 			}
 		} else {
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);

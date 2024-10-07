@@ -198,7 +198,7 @@ void FileSelector::render(void) {
 					const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
 
 					const auto ltime = std::localtime(&ctime);
-					ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+					ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon + 1, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
 				}
 			}
 
