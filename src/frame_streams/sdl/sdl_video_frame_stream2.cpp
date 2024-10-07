@@ -47,7 +47,7 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 		int speccount {0};
 		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(_dev, &speccount);
 		if (specs != nullptr) {
-			spec = *specs[0];
+			spec = *specs[speccount-1]; // start with last, as its usually the smallest
 			for (int spec_i = 1; spec_i < speccount; spec_i++) {
 				if (specs[spec_i]->height > 1080) {
 					continue;
