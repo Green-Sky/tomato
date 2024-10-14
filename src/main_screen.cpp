@@ -43,6 +43,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	mil(),
 	msg_tc(mil, sdlrtu),
 	cg(conf, os, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
+	ctw(cr, theme, contact_tc),
 	sw(conf),
 	osui(os),
 	tuiu(tc, conf),
@@ -357,6 +358,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	const float msgtc_interval = msg_tc.update();
 
 	const float cg_interval = cg.render(time_delta); // render
+	ctw.render();
 	sw.render(); // render
 	osui.render();
 	tuiu.render(); // render

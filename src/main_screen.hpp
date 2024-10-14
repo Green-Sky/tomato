@@ -30,6 +30,7 @@
 #include "./message_image_loader.hpp"
 
 #include "./chat_gui4.hpp"
+#include "./chat_gui/contact_tree.hpp"
 #include "./chat_gui/settings_window.hpp"
 #include "./object_store_ui.hpp"
 #include "./tox_ui_utils.hpp"
@@ -92,6 +93,7 @@ struct MainScreen final : public Screen {
 	TextureCache<void*, Message3Handle, MessageImageLoader> msg_tc;
 
 	ChatGui4 cg;
+	ContactTreeWindow ctw;
 	SettingsWindow sw;
 	ObjectStoreUI osui;
 	ToxUIUtils tuiu;

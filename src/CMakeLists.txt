@@ -80,6 +80,8 @@ target_sources(tomato PUBLIC
 	./chat_gui/icons/group.cpp
 	./chat_gui/contact_list.hpp
 	./chat_gui/contact_list.cpp
+	./chat_gui/contact_tree.hpp
+	./chat_gui/contact_tree.cpp
 	./chat_gui/file_selector.hpp
 	./chat_gui/file_selector.cpp
 	./chat_gui/send_image_popup.hpp
