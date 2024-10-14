@@ -29,6 +29,8 @@
 #include "./tox_avatar_loader.hpp"
 #include "./message_image_loader.hpp"
 
+#include "./sys_tray.hpp"
+
 #include "./chat_gui4.hpp"
 #include "./chat_gui/settings_window.hpp"
 #include "./object_store_ui.hpp"
@@ -90,6 +92,8 @@ struct MainScreen final : public Screen {
 	TextureCache<void*, Contact3, ToxAvatarLoader> contact_tc;
 	MessageImageLoader mil;
 	TextureCache<void*, Message3Handle, MessageImageLoader> msg_tc;
+
+	SystemTray st;
 
 	ChatGui4 cg;
 	SettingsWindow sw;

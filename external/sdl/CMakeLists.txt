@@ -9,7 +9,8 @@ if (NOT TARGET SDL3::SDL3)
 	set(SDL_DISABLE_ANDROID_JAR OFF CACHE INTERNAL "")
 
 	FetchContent_Declare(SDL3
-		GIT_REPOSITORY https://github.com/libsdl-org/SDL
+		#GIT_REPOSITORY https://github.com/libsdl-org/SDL
+		GIT_REPOSITORY https://github.com/Semphriss/SDL
 		#GIT_TAG 0429f5d6a36fc35b551bcc2acd4a40c2db6dab82 # tip when looking
 		#GIT_TAG 14f584a94bfd49cf1524db75bf3c419fdf9436cd # tip 26-04-2024
 		#GIT_TAG 06d6f2cb2518622593570985589700910cf4399f # 13-05-2024 - before
@@ -25,7 +26,8 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG 6e885d96193a4b0096fe7fed6d4e6c3e5f247283 # tip 09-09-2024
 		#GIT_TAG 9dd8859240703d886941733ad32c1dc6f50d64f0 # tip 19-09-2024
 		#GIT_TAG afdf325fb4090e93a124519d1a3bc1fbe0ba9025 # bad
-		GIT_TAG e292d1f5ace469f718d7b6b4dec8c28e37dcaa0e # tip 05-10-2024 (3.1.3)
+		#GIT_TAG e292d1f5ace469f718d7b6b4dec8c28e37dcaa0e # tip 05-10-2024 (3.1.3)
+		GIT_TAG c523f0bcfeb5700ee233b7fae3c2b036822b8627
 
 		FIND_PACKAGE_ARGS # for the future
 	)
