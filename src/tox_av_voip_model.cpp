@@ -491,16 +491,18 @@ void ToxAVVoIPModel::handleEvent(const Events::FriendCallState& e) {
 }
 
 ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm) :
-	_os(os), _av(av), _cr(cr), _tcm(tcm)
+	_os(os), _av(av), _av_sr(_av.newSubRef(this)), _cr(cr), _tcm(tcm)
 {
-	_av.subscribe(this, ToxAV_Event::friend_call);
-	_av.subscribe(this, ToxAV_Event::friend_call_state);
-	_av.subscribe(this, ToxAV_Event::friend_audio_bitrate);
-	_av.subscribe(this, ToxAV_Event::friend_video_bitrate);
-	_av.subscribe(this, ToxAV_Event::friend_audio_frame);
-	_av.subscribe(this, ToxAV_Event::friend_video_frame);
-	_av.subscribe(this, ToxAV_Event::iterate_audio);
-	_av.subscribe(this, ToxAV_Event::iterate_video);
+	_av_sr
+		.subscribe(ToxAV_Event::friend_call)
+		.subscribe(ToxAV_Event::friend_call_state)
+		.subscribe(ToxAV_Event::friend_audio_bitrate)
+		.subscribe(ToxAV_Event::friend_video_bitrate)
+		.subscribe(ToxAV_Event::friend_audio_frame)
+		.subscribe(ToxAV_Event::friend_video_frame)
+		.subscribe(ToxAV_Event::iterate_audio)
+		.subscribe(ToxAV_Event::iterate_video)
+	;
 
 	// attach to all tox friend contacts
 

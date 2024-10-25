@@ -14,6 +14,7 @@ struct ToxKey;
 
 class ToxAvatarManager : public ObjectStoreEventI {
 	ObjectStore2& _os;
+	ObjectStore2::SubscriptionReference _os_sr;
 	Contact3Registry& _cr;
 	ConfigModelI& _conf;
 

@@ -27,10 +27,12 @@ StreamManager::Connection::Connection(
 	}
 }
 
-StreamManager::StreamManager(ObjectStore2& os) : _os(os) {
-	_os.subscribe(this, ObjectStore_Event::object_construct);
-	//_os.subscribe(this, ObjectStore_Event::object_update);
-	_os.subscribe(this, ObjectStore_Event::object_destroy);
+StreamManager::StreamManager(ObjectStore2& os) : _os(os), _os_sr(_os.newSubRef(this)) {
+	_os_sr
+		.subscribe(ObjectStore_Event::object_construct)
+		//.subscribe(ObjectStore_Event::object_update)
+		.subscribe(ObjectStore_Event::object_destroy)
+	;
 }
 
 StreamManager::~StreamManager(void) {

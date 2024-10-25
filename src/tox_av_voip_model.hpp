@@ -18,6 +18,7 @@ struct ToxAVCallVideoSink;
 class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	ObjectStore2& _os;
 	ToxAVI& _av;
+	ToxAVI::SubscriptionReference _av_sr;
 	Contact3Registry& _cr;
 	ToxContactModel2& _tcm;
 

@@ -14,6 +14,7 @@ namespace Message::Components {
 class MediaMetaInfoLoader : public RegistryMessageModelEventI {
 	protected:
 		RegistryMessageModelI& _rmm;
+		RegistryMessageModelI::SubscriptionReference _rmm_sr;
 
 		std::vector<std::unique_ptr<ImageLoaderI>> _image_loaders;
 

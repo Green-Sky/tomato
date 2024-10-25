@@ -120,15 +120,17 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 	_rmm.throwEventUpdate(m);
 }
 
-MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModelI& rmm) : _rmm(rmm) {
+MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModelI& rmm) : _rmm(rmm), _rmm_sr(_rmm.newSubRef(this)) {
 	// HACK: make them be added externally?
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 
-	_rmm.subscribe(this, RegistryMessageModel_Event::message_construct);
-	_rmm.subscribe(this, RegistryMessageModel_Event::message_updated);
+	_rmm_sr
+		.subscribe(RegistryMessageModel_Event::message_construct)
+		.subscribe(RegistryMessageModel_Event::message_updated)
+	;
 }
 
 MediaMetaInfoLoader::~MediaMetaInfoLoader(void) {

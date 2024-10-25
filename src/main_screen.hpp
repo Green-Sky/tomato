@@ -65,8 +65,8 @@ struct MainScreen final : public Screen {
 
 	StreamManager sm;
 
-	ToxEventLogger tel{std::cout};
 	ToxClient tc;
+	ToxEventLogger tel;
 	ToxPrivateImpl tpi;
 	AutoDirty ad;
 	ToxContactModel2 tcm;

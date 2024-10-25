@@ -8,8 +8,7 @@ class ToxClient;
 // sets ToxClient dirty on some events
 class AutoDirty : public ToxEventI {
 	ToxClient& _tc;
-
-	void subscribe(void); // private
+	ToxEventProviderI::SubscriptionReference _tep_sr;
 
 	public:
 		AutoDirty(ToxClient& tc);

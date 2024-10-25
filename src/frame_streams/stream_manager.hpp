@@ -57,6 +57,7 @@ namespace Components {
 class StreamManager : protected ObjectStoreEventI {
 	friend class StreamManagerUI; // TODO: make this go away
 	ObjectStore2& _os;
+	ObjectStore2::SubscriptionReference _os_sr;
 
 	struct Connection {
 		ObjectHandle src;

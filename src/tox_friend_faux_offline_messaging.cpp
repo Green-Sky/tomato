@@ -30,8 +30,8 @@ ToxFriendFauxOfflineMessaging::ToxFriendFauxOfflineMessaging(
 	ToxContactModel2& tcm,
 	ToxI& t,
 	ToxEventProviderI& tep
-) : _cr(cr), _rmm(rmm), _tcm(tcm), _t(t), _tep(tep) {
-	_tep.subscribe(this, Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS);
+) : _cr(cr), _rmm(rmm), _tcm(tcm), _t(t), _tep_sr(tep.newSubRef(this)) {
+	_tep_sr.subscribe(Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS);
 }
 
 float ToxFriendFauxOfflineMessaging::tick(float time_delta) {

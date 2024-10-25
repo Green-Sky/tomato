@@ -61,9 +61,9 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: update vcpkg
-      run: |
-        git clone https://github.com/microsoft/vcpkg.git
+    #- name: update vcpkg
+    #  run: |
+    #    git clone https://github.com/microsoft/vcpkg.git
 
     - name: Install Dependencies (host)
       run: sudo apt update && sudo apt -y install cmake pkg-config nasm
@@ -71,7 +71,8 @@ jobs:
     - name: Install Dependencies (target)
       env:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
-      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
+      #run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
+      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} libsodium opus libvpx libpng libjpeg-turbo
 
     # vcpkg scripts root /usr/local/share/vcpkg/scripts
     - name: Configure CMake

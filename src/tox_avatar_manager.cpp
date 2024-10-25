@@ -33,9 +33,11 @@ ToxAvatarManager::ToxAvatarManager(
 	ObjectStore2& os,
 	Contact3Registry& cr,
 	ConfigModelI& conf
-) : /*_rmm(rmm)*/ _os(os), _cr(cr), _conf(conf) {
-	_os.subscribe(this, ObjectStore_Event::object_construct);
-	_os.subscribe(this, ObjectStore_Event::object_update);
+) : /*_rmm(rmm)*/ _os(os), _os_sr(_os.newSubRef(this)), _cr(cr), _conf(conf) {
+	_os_sr
+		.subscribe(ObjectStore_Event::object_construct)
+		.subscribe(ObjectStore_Event::object_update)
+	;
 
 	if (!_conf.has_string("ToxAvatarManager", "save_path")) {
 		// or on linux: $HOME/.config/tox/avatars/

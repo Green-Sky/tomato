@@ -2,21 +2,18 @@
 
 #include "./tox_client.hpp"
 
-// TODO: add more events
-
-void AutoDirty::subscribe(void) {
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_SELF_CONNECTION_STATUS);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_FRIEND_REQUEST);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_INVITE);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_SELF_JOIN);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_PEER_JOIN);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_GROUP_PEER_EXIT);
-	_tc.subscribe(this, Tox_Event_Type::TOX_EVENT_CONFERENCE_INVITE);
-}
-
-AutoDirty::AutoDirty(ToxClient& tc) : _tc(tc) {
-	subscribe();
+AutoDirty::AutoDirty(ToxClient& tc) : _tc(tc), _tep_sr(_tc.newSubRef(this)) {
+	// TODO: add more events
+	_tep_sr
+		.subscribe(Tox_Event_Type::TOX_EVENT_SELF_CONNECTION_STATUS)
+		.subscribe(Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS)
+		.subscribe(Tox_Event_Type::TOX_EVENT_FRIEND_REQUEST)
+		.subscribe(Tox_Event_Type::TOX_EVENT_GROUP_INVITE)
+		.subscribe(Tox_Event_Type::TOX_EVENT_GROUP_SELF_JOIN)
+		.subscribe(Tox_Event_Type::TOX_EVENT_GROUP_PEER_JOIN)
+		.subscribe(Tox_Event_Type::TOX_EVENT_GROUP_PEER_EXIT)
+		.subscribe(Tox_Event_Type::TOX_EVENT_CONFERENCE_INVITE)
+	;
 }
 
 bool AutoDirty::onToxEvent(const Tox_Event_Self_Connection_Status*) {

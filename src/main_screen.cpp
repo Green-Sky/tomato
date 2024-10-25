@@ -24,6 +24,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	mts(rmm),
 	sm(os),
 	tc(save_path, save_password),
+	tel(tc, std::cout),
 	tpi(tc.getTox()),
 	ad(tc),
 	tcm(cr, tc, tc),
@@ -50,7 +51,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	smui(os, sm),
 	dvt(os, sm, sdlrtu)
 {
-	tel.subscribeAll(tc);
+	tel.subscribeAll();
 
 	registerMessageComponents(msnj);
 	registerToxMessageComponents(msnj);

@@ -18,7 +18,7 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 	RegistryMessageModelI& _rmm;
 	ToxContactModel2& _tcm;
 	ToxI& _t;
-	ToxEventProviderI& _tep;
+	ToxEventProviderI::SubscriptionReference _tep_sr;
 
 	float _interval_timer{0.f};
 
