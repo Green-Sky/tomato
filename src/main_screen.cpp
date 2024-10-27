@@ -20,7 +20,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	renderer(renderer_),
 	conf(std::move(conf_)),
 	rmm(cr),
-	msnj{cr, {}, {}},
+	msnj{cr, os, {}, {}},
 	mts(rmm),
 	sm(os),
 	tc(save_path, save_password),

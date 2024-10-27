@@ -1048,6 +1048,11 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 
 void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	auto o = reg.get<Message::Components::MessageFileObject>(e).o;
+	if (!o) {
+		ImGui::TextDisabled("file message missing file object!");
+		return;
+	}
+
 	if (
 		!_show_chat_avatar_tf
 		&& (
@@ -1457,7 +1462,7 @@ void ChatGui4::pasteFile(const char* mime_type) {
 		size_t data_size = 0;
 		void* data = SDL_GetClipboardData(mime_type, &data_size);
 
-		std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
+		std::cout << "CG: pasted image of size: " << data_size << " mimetype: " << mime_type << "\n";
 
 		_sip.sendMemory(
 			static_cast<const uint8_t*>(data), data_size,
