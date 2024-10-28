@@ -1352,10 +1352,27 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 
 		if (fts != nullptr) {
 			ImGui::SeparatorText("transfer stats");
-			ImGui::Text("rate up   : %.1f Bytes/s", fts->rate_up);
-			ImGui::Text("rate down : %.1f Bytes/s", fts->rate_down);
-			ImGui::Text("total up  : %lu Bytes", fts->total_up);
-			ImGui::Text("total down: %lu Bytes", fts->total_down);
+
+			{
+				const char* byte_suffix = "???";
+				int64_t byte_divider = sizeToHumanReadable(fts->rate_up, byte_suffix);
+				ImGui::Text("rate up   : %.2f %s/s", fts->rate_up/byte_divider, byte_suffix);
+			}
+			{
+				const char* byte_suffix = "???";
+				int64_t byte_divider = sizeToHumanReadable(fts->rate_down, byte_suffix);
+				ImGui::Text("rate down : %.2f %s/s", fts->rate_down/byte_divider, byte_suffix);
+			}
+			{
+				const char* byte_suffix = "???";
+				int64_t byte_divider = sizeToHumanReadable(fts->total_up, byte_suffix);
+				ImGui::Text("total up  : %.3f %s", double(fts->total_up)/byte_divider, byte_suffix);
+			}
+			{
+				const char* byte_suffix = "???";
+				int64_t byte_divider = sizeToHumanReadable(fts->total_down, byte_suffix);
+				ImGui::Text("total down: %.3f %s", double(fts->total_down)/byte_divider, byte_suffix);
+			}
 		}
 
 		ImGui::EndTooltip();
