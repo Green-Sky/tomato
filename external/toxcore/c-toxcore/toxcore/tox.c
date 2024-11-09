@@ -1058,7 +1058,7 @@ void tox_kill(Tox *tox)
     }
 
     tox_lock(tox);
-    LOGGER_ASSERT(tox->m->log, tox->m->msi_packet == nullptr, "Attempted to kill tox while toxav is still alive");
+    LOGGER_ASSERT(tox->m->log, tox->toxav_object == nullptr, "Attempted to kill tox while toxav is still alive");
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
     mono_time_free(tox->sys.mem, tox->mono_time);
@@ -2551,6 +2551,12 @@ uint32_t tox_conference_join(Tox *tox, uint32_t friend_number, const uint8_t *co
                              Tox_Err_Conference_Join *error)
 {
     assert(tox != nullptr);
+
+    if (cookie == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_CONFERENCE_JOIN_NULL);
+        return UINT32_MAX;
+    }
+
     tox_lock(tox);
     const int ret = join_groupchat(tox->m->conferences_object, friend_number, GROUPCHAT_TYPE_TEXT, cookie, length);
     tox_unlock(tox);
@@ -4262,6 +4268,11 @@ uint32_t tox_group_invite_accept(Tox *tox, uint32_t friend_number, const uint8_t
                                  size_t password_length, Tox_Err_Group_Invite_Accept *error)
 {
     assert(tox != nullptr);
+
+    if (invite_data == nullptr || name == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_INVITE_ACCEPT_NULL);
+        return UINT32_MAX;
+    }
 
     tox_lock(tox);
     const int ret = gc_accept_invite(tox->m->group_handler, friend_number, invite_data, length, name, name_length, password,

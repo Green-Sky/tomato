@@ -5,11 +5,11 @@ FROM alpine:3.19.0 AS build
 RUN ["apk", "--no-cache", "add",\
  "clang",\
  "cmake",\
- "linux-headers",\
  "libconfig-dev",\
  "libconfig-static",\
  "libsodium-dev",\
  "libsodium-static",\
+ "linux-headers",\
  "musl-dev",\
  "ninja",\
  "python3"]

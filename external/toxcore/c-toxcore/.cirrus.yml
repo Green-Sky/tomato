@@ -1,5 +1,6 @@
 ---
 bazel-opt_task:
+  timeout_in: 5m
   container:
     image: toxchat/toktok-stack:latest-release
     cpu: 2
@@ -7,9 +8,9 @@ bazel-opt_task:
   configure_script:
     - git submodule update --init --recursive
     - /src/workspace/tools/inject-repo c-toxcore
-    - sed -i -e 's/build --config=remote/#&/' /src/workspace/.bazelrc.local
   test_all_script:
     - cd /src/workspace && bazel test -k
+        --remote_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --build_tag_filters=-haskell
         --test_tag_filters=-haskell
         --
@@ -17,6 +18,7 @@ bazel-opt_task:
         -//c-toxcore/auto_tests:tcp_relay_test # Cirrus doesn't allow external network connections.
 
 bazel-dbg_task:
+  timeout_in: 5m
   container:
     image: toxchat/toktok-stack:latest-debug
     cpu: 2
@@ -26,14 +28,15 @@ bazel-dbg_task:
     - /src/workspace/tools/inject-repo c-toxcore
   test_all_script:
     - cd /src/workspace && bazel test -k
+        --remote_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --build_tag_filters=-haskell
         --test_tag_filters=-haskell
-        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --
         //c-toxcore/...
         -//c-toxcore/auto_tests:tcp_relay_test # Cirrus doesn't allow external network connections.
 
 cimple_task:
+  timeout_in: 5m
   container:
     image: toxchat/toktok-stack:latest-release
     cpu: 2
@@ -41,17 +44,18 @@ cimple_task:
   configure_script:
     - git submodule update --init --recursive
     - /src/workspace/tools/inject-repo c-toxcore
-    - sed -i -e 's/build --config=remote/#&/' /src/workspace/.bazelrc.local
   test_all_script:
     - cd /src/workspace && bazel test -k
+        --remote_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --build_tag_filters=haskell
         --test_tag_filters=haskell
         --
         //c-toxcore/...
 
 freebsd_task:
+  timeout_in: 5m
   freebsd_instance:
-    image_family: freebsd-14-0
+    image_family: freebsd-14-1
   configure_script:
     - PAGER=cat ASSUME_ALWAYS_YES=YES pkg install
         cmake

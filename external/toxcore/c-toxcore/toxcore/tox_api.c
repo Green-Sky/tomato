@@ -887,6 +887,9 @@ const char *tox_err_conference_join_to_string(Tox_Err_Conference_Join value)
 
         case TOX_ERR_CONFERENCE_JOIN_FAIL_SEND:
             return "TOX_ERR_CONFERENCE_JOIN_FAIL_SEND";
+
+        case TOX_ERR_CONFERENCE_JOIN_NULL:
+            return "TOX_ERR_CONFERENCE_JOIN_NULL";
     }
 
     return "<invalid Tox_Err_Conference_Join>";
@@ -1448,6 +1451,9 @@ const char *tox_err_group_invite_accept_to_string(Tox_Err_Group_Invite_Accept va
 
         case TOX_ERR_GROUP_INVITE_ACCEPT_FAIL_SEND:
             return "TOX_ERR_GROUP_INVITE_ACCEPT_FAIL_SEND";
+
+        case TOX_ERR_GROUP_INVITE_ACCEPT_NULL:
+            return "TOX_ERR_GROUP_INVITE_ACCEPT_NULL";
     }
 
     return "<invalid Tox_Err_Group_Invite_Accept>";
