@@ -1,6 +1,22 @@
 #pragma once
 
-// TODO: if linux/android
+// TODO: require msvc
+#ifdef WIN32
+
+#include <client/windows/handler/exception_handler.h>
+
+bool dumpCallback(const wchar_t* dump_path, const wchar_t* minidump_id, void* context, EXCEPTION_POINTERS* exinfo, MDRawAssertionInfo* assertion, bool succeeded);
+
+#define BREAKPAD_MAIN_INIT \
+	google_breakpad::ExceptionHandler bp_eh{ \
+		L".\\", /* path */ \
+		nullptr, \
+		dumpCallback, \
+		nullptr, \
+		google_breakpad::ExceptionHandler::HANDLER_ALL, \
+	}
+
+#else
 
 #include <client/linux/handler/exception_handler.h>
 
@@ -19,4 +35,4 @@ bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, void*, 
 		-1, /* dump in-process (OOP would be better) */ \
 	}
 
-// endif linux
+#endif

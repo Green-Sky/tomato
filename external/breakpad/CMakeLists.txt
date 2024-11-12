@@ -39,7 +39,6 @@ if (NOT TARGET breakpad_client)
 	if(NOT breakpad_POPULATED)
 		FetchContent_Populate(breakpad)
 
-		enable_language(ASM)
 		add_library(breakpad_common STATIC
 			${breakpad_SOURCE_DIR}/src/common/convert_UTF.h
 			${breakpad_SOURCE_DIR}/src/common/convert_UTF.cc
@@ -51,7 +50,10 @@ if (NOT TARGET breakpad_client)
 		target_include_directories(breakpad_common PUBLIC "${breakpad_SOURCE_DIR}/src")
 
 		if (WIN32)
-			# TODO: common
+			target_sources(breakpad_common PUBLIC
+				${breakpad_SOURCE_DIR}/src/common/windows/guid_string.h
+				${breakpad_SOURCE_DIR}/src/common/windows/guid_string.cc
+			)
 
 			add_library(breakpad_client STATIC)
 			target_sources(breakpad_client
@@ -59,11 +61,16 @@ if (NOT TARGET breakpad_client)
 					${breakpad_SOURCE_DIR}/src/client/windows/handler/exception_handler.h
 					${breakpad_SOURCE_DIR}/src/client/windows/common/ipc_protocol.h
 					${breakpad_SOURCE_DIR}/src/client/windows/crash_generation/crash_generation_client.h
+					${breakpad_SOURCE_DIR}/src/client/windows/crash_generation/minidump_generator.h
 				PRIVATE
 					${breakpad_SOURCE_DIR}/src/client/windows/handler/exception_handler.cc
+					${breakpad_SOURCE_DIR}/src/client/windows/crash_generation/crash_generation_client.cc
+					${breakpad_SOURCE_DIR}/src/client/windows/crash_generation/minidump_generator.cc
 			)
+			target_compile_definitions(breakpad_client PRIVATE UNICODE)
 		#elseif() # TODO: mac, ios and any other platform
 		else() # assume linux
+			enable_language(ASM) # mostly to document, needs to be set in parent
 			target_sources(breakpad_common PUBLIC
 				${breakpad_SOURCE_DIR}/src/common/linux/elf_core_dump.cc
 				${breakpad_SOURCE_DIR}/src/common/linux/elfutils.h
@@ -115,11 +122,13 @@ if (NOT TARGET breakpad_client)
 		endif()
 
 		if (TARGET breakpad_client)
-			target_sources(breakpad_client PUBLIC
-				${breakpad_SOURCE_DIR}/src/client/minidump_file_writer-inl.h
-				${breakpad_SOURCE_DIR}/src/client/minidump_file_writer.h
-				${breakpad_SOURCE_DIR}/src/client/minidump_file_writer.cc
-			)
+			if (NOT WIN32)
+				target_sources(breakpad_client PUBLIC
+					${breakpad_SOURCE_DIR}/src/client/minidump_file_writer-inl.h
+					${breakpad_SOURCE_DIR}/src/client/minidump_file_writer.h
+					${breakpad_SOURCE_DIR}/src/client/minidump_file_writer.cc
+				)
+			endif()
 			target_link_libraries(breakpad_client PUBLIC breakpad_common)
 			target_include_directories(breakpad_client PUBLIC "${breakpad_SOURCE_DIR}/src")
 			target_compile_features(breakpad_client PUBLIC cxx_std_11)
