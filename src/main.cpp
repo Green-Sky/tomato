@@ -29,6 +29,7 @@ int main(int argc, char** argv) {
 #ifdef TOMATO_BREAKPAD
 	// TODO: maybe run before sys check?
 	BREAKPAD_MAIN_INIT;
+	std::cout << "Breakpad handler installed.\n";
 #endif
 
 	// better args
