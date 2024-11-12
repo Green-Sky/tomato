@@ -19,14 +19,24 @@
 #include <thread>
 #include <chrono>
 
+#ifdef TOMATO_BREAKPAD
+#	include "./breakpad_client.hpp"
+#endif
+
 int main(int argc, char** argv) {
+	runSysCheck();
+
+#ifdef TOMATO_BREAKPAD
+	// TODO: maybe run before sys check?
+	BREAKPAD_MAIN_INIT;
+#endif
+
 	// better args
 	std::vector<std::string_view> args;
 	for (int i = 0; i < argc; i++) {
 		args.push_back(argv[i]);
 	}
 
-	runSysCheck();
 
 	SDL_SetAppMetadata("tomato", "0.0.0-wip", nullptr);
 

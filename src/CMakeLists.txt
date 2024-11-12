@@ -126,6 +126,16 @@ target_sources(tomato PUBLIC
 	./debug_video_tap.cpp
 )
 
+if (TOMATO_BREAKPAD)
+	target_sources(tomato PUBLIC
+		./breakpad_client.hpp
+		./breakpad_client.cpp
+	)
+
+	target_link_libraries(tomato PUBLIC breakpad_client)
+	target_compile_definitions(tomato PUBLIC TOMATO_BREAKPAD)
+endif()
+
 if (TOMATO_TOX_AV)
 	target_sources(tomato PUBLIC
 		./tox_av.hpp
@@ -166,9 +176,6 @@ target_link_libraries(tomato PUBLIC
 	qoi
 	SDL3_image::SDL3_image
 )
-
-# probably not enough
-#target_compile_definitions(tomato PUBLIC ENTT_API_EXPORT)
 
 set_target_properties(tomato PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

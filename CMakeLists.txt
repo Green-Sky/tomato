@@ -20,9 +20,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(TOMATO_MAIN_SO "Build tomato as a shared object (for eg android apps)" ANDROID)
 option(TOMATO_ASAN "Build tomato with asan (gcc/clang/msvc)" OFF)
+option(TOMATO_BREAKPAD "Build tomato with breakpad crash dumping" OFF)
 option(TOMATO_TOX_AV "Build tomato with ToxAV" OFF)
 
-message("II TOMATO_TOX_AV: ${TOMATO_TOX_AV}")
 
 if (TOMATO_ASAN)
 	if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
@@ -42,6 +42,17 @@ if (TOMATO_ASAN)
 		message("!! can not enable ASAN on this platform")
 	endif()
 endif()
+
+message("II TOMATO_BREAKPAD: ${TOMATO_BREAKPAD}")
+if (TOMATO_BREAKPAD)
+	if (LINUX) # TODO: test if android
+		# HACK: workaround an ugly cmake bug,
+		# where subdirs can now propergate enable_language upwards
+		enable_language(ASM)
+	endif()
+endif()
+
+message("II TOMATO_TOX_AV: ${TOMATO_TOX_AV}")
 
 # uggly, but it needs to be defined for all of tomato.
 # but this also means that we can not compile tomato in the same cmake as plugins
