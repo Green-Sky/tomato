@@ -168,7 +168,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 }
 
 Screen* StartScreen::render(float, bool&) {
-	const float TEXT_LOAD_WIDTH = ImGui::CalcTextSize("load").x;
+	const float TEXT_PROCEED_WIDTH = ImGui::CalcTextSize("proceed").x;
 	const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
 
@@ -283,7 +283,7 @@ Screen* StartScreen::render(float, bool&) {
 		// load but file missing
 
 		ImGui::BeginDisabled();
-		ImGui::Button("load", {TEXT_LOAD_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f});
+		ImGui::Button("proceed", {TEXT_PROCEED_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f});
 		ImGui::EndDisabled();
 
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_AllowWhenDisabled)) {
@@ -293,14 +293,14 @@ Screen* StartScreen::render(float, bool&) {
 		// new but file exists
 
 		ImGui::BeginDisabled();
-		ImGui::Button("load", {TEXT_LOAD_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f});
+		ImGui::Button("proceed", {TEXT_PROCEED_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f});
 		ImGui::EndDisabled();
 
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_AllowWhenDisabled)) {
 			ImGui::SetTooltip("file already exists");
 		}
 	} else {
-		if (ImGui::Button("load", {TEXT_LOAD_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f})) {
+		if (ImGui::Button("proceed", {TEXT_PROCEED_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f})) {
 
 			auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
 			return new_screen.release();

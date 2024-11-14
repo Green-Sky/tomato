@@ -46,7 +46,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	cg(conf, os, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
 	osui(os),
-	tuiu(tc, conf),
+	tuiu(tc, conf, &tpi),
 	tdch(tpi),
 	smui(os, sm),
 	dvt(os, sm, sdlrtu)

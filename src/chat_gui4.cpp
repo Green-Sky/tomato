@@ -846,7 +846,6 @@ float ChatGui4::render(float time_delta) {
 						ImGuiInputTextFlags_CtrlEnterForNewLine;
 
 					if (ImGui::InputTextMultiline("##text_input", &_text_input_buffer, {-0.001f, -0.001f}, input_flags)) {
-						//_mm.sendMessage(*_selected_contact, MessageType::TEXT, text_buffer);
 						_rmm.sendText(*_selected_contact, _text_input_buffer);
 						_text_input_buffer.clear();
 						evil_enter_looses_focus_hack = true;

@@ -2,6 +2,8 @@
 
 #include "./tox_client.hpp"
 
+#include <solanaceae/toxcore/tox_private_interface.hpp>
+
 #include <tox/tox.h>
 
 #include <solanaceae/util/utils.hpp>
@@ -13,8 +15,9 @@
 
 ToxUIUtils::ToxUIUtils(
 	ToxClient& tc,
-	ConfigModelI& conf
-) : _tc(tc), _conf(conf) {
+	ConfigModelI& conf,
+	ToxPrivateI* tp
+) : _tc(tc), _conf(conf), _tp(tp) {
 }
 
 void ToxUIUtils::render(void) {
@@ -44,6 +47,30 @@ void ToxUIUtils::render(void) {
 
 					ImGui::EndMenu();
 				}
+
+				switch (_tc.toxSelfGetConnectionStatus()) {
+					case TOX_CONNECTION_NONE:
+						ImGui::TextColored({1.0,0.5,0.5,0.8}, "Offline");
+						break;
+					case TOX_CONNECTION_TCP:
+						ImGui::TextColored({0.0,1.0,0.8,0.8}, "Online-TCP");
+						break;
+					case TOX_CONNECTION_UDP:
+						ImGui::TextColored({0.3,1.0,0.0,0.8}, "Online-UDP");
+						break;
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Tox Onion connection status");
+				}
+
+				if (_tp != nullptr) {
+					ImGui::Text("(%d)", _tp->toxDHTGetNumCloselist());
+					if (ImGui::IsItemHovered()) {
+						ImGui::SetTooltip("Number of connected DHT nodes");
+					}
+				}
+
 				ImGui::EndMenuBar();
 			}
 
@@ -64,6 +91,12 @@ void ToxUIUtils::render(void) {
 				// TODO: add string_view variant to utils
 				auto [_, err_r] = _tc.toxFriendAdd(hex2bin(std::string{tox_id}), message);
 				err = err_r;
+
+				{ // reset everything
+					for (size_t i = 0; i < sizeof(tox_id); i++) {
+						tox_id[i] = '\0';
+					}
+				}
 			}
 			if (err != Tox_Err_Friend_Add::TOX_ERR_FRIEND_ADD_OK) {
 				ImGui::SameLine();
