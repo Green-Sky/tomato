@@ -94,6 +94,45 @@ static int64_t sizeToHumanReadable(int64_t file_size, const char*& suffix_out) {
 	return (divider > 1024) ? (divider / 1024) : 1;
 }
 
+// returns divider and places static suffix string into suffix_out
+static int64_t durationToHumanReadable(int64_t t, const char*& suffix_out) {
+	static const char* suffix_arr[] {
+		"ms",
+		"s",
+		"min",
+		"h",
+		"d",
+		"a",
+	};
+	static const int64_t divider_arr[] {
+		1000, // ms -> s
+		60, // s -> min
+		60, // min -> h
+		24, // h -> d
+		256, // d -> a // aprox
+	};
+
+	if (t <= 0) {
+		suffix_out = suffix_arr[0];
+		return 1;
+	}
+
+	int64_t divider {1};
+	for (size_t i = 0; i < std::size(divider_arr); i++) {
+		if (t < divider * divider_arr[i]) {
+			suffix_out = suffix_arr[i];
+			return divider;
+		}
+
+		divider *= divider_arr[i];
+	}
+
+	// if we are here, we are in the last element
+	// 5 and 4
+	suffix_out = suffix_arr[5];
+	return divider;
+}
+
 static std::string file_path_url_escape(const std::string&& value) {
 	std::ostringstream escaped;
 
@@ -1145,13 +1184,25 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 
 		float fraction = float(transfer_total) / total_size;
 
-		char overlay_buf[64];
+		char overlay_buf[128];
 		if (transfer_rate > 0.000001f) {
 			const char* byte_suffix = "???";
 			int64_t byte_divider = sizeToHumanReadable(transfer_rate, byte_suffix);
-			int64_t seconds_remaining = (total_size - transfer_total) / transfer_rate;
-			if (seconds_remaining > 0) {
-				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s %lds ", fraction * 100 + 0.01f, transfer_rate/byte_divider, byte_suffix, seconds_remaining);
+			int64_t ms_remaining = (total_size - transfer_total) / (transfer_rate/1000.f);
+			if (ms_remaining > 0) {
+				const char* duration_suffix = "???";
+				int64_t duration_divider = durationToHumanReadable(ms_remaining, duration_suffix);
+				std::snprintf(
+					overlay_buf, sizeof(overlay_buf),
+					"%.1f%% @ %.1f%s/s %.1f%s",
+					fraction * 100 + 0.01f,
+
+					transfer_rate/byte_divider,
+					byte_suffix,
+
+					double(ms_remaining)/duration_divider,
+					duration_suffix
+				);
 			} else {
 				std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%% @ %.1f%s/s", fraction * 100 + 0.01f, transfer_rate/byte_divider, byte_suffix);
 			}

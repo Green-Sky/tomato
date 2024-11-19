@@ -103,7 +103,7 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 	ToxAVI& _toxav;
 
 	// bitrate for enabled state
-	uint32_t _video_bitrate {2000};
+	uint32_t _video_bitrate {1400};
 
 	uint32_t _fid;
 	std::shared_ptr<stream_type> _writer;
