@@ -1345,6 +1345,45 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 
 			ImGui::Separator();
 
+			// TODO: better way to dif up/down
+			if (!o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+				if (ImGui::BeginMenu("dowload priority")) {
+					using Priority = ObjComp::Ephemeral::File::DownloadPriority::Priority;
+					auto& p_comp = o.get_or_emplace<ObjComp::Ephemeral::File::DownloadPriority>();
+
+					bool updated {false};
+					if (ImGui::MenuItem("highest", nullptr, p_comp.p == Priority::HIGHEST)) {
+						p_comp.p = Priority::HIGHEST;
+						updated = true;
+					}
+					if (ImGui::MenuItem("high", nullptr, p_comp.p == Priority::HIGH)) {
+						p_comp.p = Priority::HIGH;
+						updated = true;
+					}
+					if (ImGui::MenuItem("normal", nullptr, p_comp.p == Priority::NORMAL)) {
+						p_comp.p = Priority::NORMAL;
+						updated = true;
+					}
+					if (ImGui::MenuItem("low", nullptr, p_comp.p == Priority::LOW)) {
+						p_comp.p = Priority::LOW;
+						updated = true;
+					}
+					if (ImGui::MenuItem("lowest", nullptr, p_comp.p == Priority::LOWEST)) {
+						p_comp.p = Priority::LOWEST;
+						updated = true;
+					}
+
+					if (updated) {
+						std::cout << "CG: updated download priority to " << int(p_comp.p) << "\n";
+						// TODO: dont do it here
+						_os.throwEventUpdate(o);
+					}
+
+					ImGui::EndMenu();
+				}
+				ImGui::Separator();
+			}
+
 			if (ImGui::BeginMenu("forward", o.all_of<ObjComp::F::TagLocalHaveAll>())) {
 				for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
 					// filter
