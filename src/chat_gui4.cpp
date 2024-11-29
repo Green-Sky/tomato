@@ -915,39 +915,36 @@ float ChatGui4::render(float time_delta) {
 						);
 					}
 
-					{
-						// TODO: add support for more than images
-						// !!! polling each frame can be VERY expensive !!!
-						//const auto* mime_type = clipboardHasImage();
-						//ImGui::BeginDisabled(mime_type == nullptr);
-						if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
-							if (const auto* imt = clipboardHasImage(); imt != nullptr) { // making sure
-								pasteFile(imt);
-							} else if (const auto* fpmt = clipboardHasFileList(); fpmt != nullptr) {
-								pasteFile(fpmt);
-							}
-						//} else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-						} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
-							// TODO: use list instead
-							const static std::vector<const char*> image_mime_types {
-								// add apng?
-								"image/png",
-								"image/webp",
-								"image/gif",
-								"image/jpeg",
-								"image/bmp",
-								"image/qoi",
-							};
-
-							for (const char* mime_type : image_mime_types) {
-								if (ImGui::MenuItem(mime_type)) {
-									pasteFile(mime_type);
-								}
-							}
-							ImGui::EndPopup();
+					// TODO: add support for more than images
+					// !!! polling each frame can be VERY expensive !!!
+					//const auto* mime_type = clipboardHasImage();
+					//ImGui::BeginDisabled(mime_type == nullptr);
+					if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
+						if (const auto* imt = clipboardHasImage(); imt != nullptr) { // making sure
+							pasteFile(imt);
+						} else if (const auto* fpmt = clipboardHasFileList(); fpmt != nullptr) {
+							pasteFile(fpmt);
 						}
-						//ImGui::EndDisabled();
+					} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
+						// TODO: use list instead
+						const static std::vector<const char*> image_mime_types {
+							// add apng?
+							"image/png",
+							"image/webp",
+							"image/gif",
+							"image/jpeg",
+							"image/bmp",
+							"image/qoi",
+						};
+
+						for (const char* mime_type : image_mime_types) {
+							if (ImGui::MenuItem(mime_type)) {
+								pasteFile(mime_type);
+							}
+						}
+						ImGui::EndPopup();
 					}
+					//ImGui::EndDisabled();
 				}
 				ImGui::EndChild();
 
