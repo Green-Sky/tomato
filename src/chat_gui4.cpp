@@ -668,7 +668,7 @@ float ChatGui4::render(float time_delta) {
 									// TODO: dedup?
 									ImGui::TextDisabled("_");
 								} else {
-									const auto list = msg_reg.get<Message::Components::ReceivedBy>(e).ts;
+									const auto& list = msg_reg.get<Message::Components::ReceivedBy>(e).ts;
 									// wrongly assumes contacts never get removed from a group
 									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 										// if partically delivered
