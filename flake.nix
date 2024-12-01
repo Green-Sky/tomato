@@ -142,7 +142,7 @@
 
         shellHook = ''
           echo hello to tomato dev shell!
-          export LD_LIBRARY_PATH=/run/opengl-driver/lib
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/run/opengl-driver/lib
           '';
       };
 
