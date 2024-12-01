@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 class ToxClient;
 struct ConfigModelI;
 struct ToxPrivateI;
@@ -10,7 +12,9 @@ class ToxUIUtils {
 
 	ToxClient& _tc;
 	ConfigModelI& _conf;
-	ToxPrivateI* _tp{nullptr};
+	ToxPrivateI* _tp {nullptr};
+
+	char _chat_id[32*2+1] {};
 
 	public:
 		ToxUIUtils(

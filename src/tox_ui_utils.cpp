@@ -13,6 +13,8 @@
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
+#include <cstring>
+
 ToxUIUtils::ToxUIUtils(
 	ToxClient& tc,
 	ConfigModelI& conf,
@@ -37,6 +39,27 @@ void ToxUIUtils::render(void) {
 					}
 					if (ImGui::MenuItem("join Group by ID (ngc)", nullptr, _show_add_group_window)) {
 						_show_add_group_window = !_show_add_group_window;
+					}
+
+					if (ImGui::BeginMenu("common public groups")) {
+						struct {
+							std::string name;
+							std::string_view id;
+						} groups[] {
+							{"TokTok-dev (toxcore dev)", "360497da684bce2a500c1af9b3a5ce949bbb9f6fb1f91589806fb04ca039e313"},
+							{"Lobby (general offtopic)", "d325f0095cb4d10f5ed668b854e2e10c131f7256949625e5e2dddadd8143dffa"},
+							// TODO: offical solanaceae/tomato group
+						};
+
+						for (const auto& [name, id] : groups) {
+							if (ImGui::MenuItem(name.c_str(), nullptr, false, true)) {
+								std::memcpy(_chat_id, id.data(), id.size());
+								_show_add_group_window = true;
+								ImGui::SetWindowFocus("Tox join Group");
+							}
+						}
+
+						ImGui::EndMenu();
 					}
 
 					ImGui::SeparatorText("DHT");
@@ -88,8 +111,7 @@ void ToxUIUtils::render(void) {
 
 			static Tox_Err_Friend_Add err = Tox_Err_Friend_Add::TOX_ERR_FRIEND_ADD_OK;
 			if (ImGui::Button("add")) {
-				// TODO: add string_view variant to utils
-				auto [_, err_r] = _tc.toxFriendAdd(hex2bin(std::string{tox_id}), message);
+				auto [_, err_r] = _tc.toxFriendAdd(hex2bin(std::string_view{tox_id, std::size(tox_id)-1}), message);
 				err = err_r;
 
 				{ // reset everything
@@ -111,8 +133,7 @@ void ToxUIUtils::render(void) {
 			ImGui::TextDisabled("NGC refers to the New DHT enabled Group Chats.");
 			ImGui::TextDisabled("Connecting via ID might take a very long time.");
 
-			static char chat_id[TOX_GROUP_CHAT_ID_SIZE*2+1] = {};
-			ImGui::InputText("chat ID", chat_id, TOX_GROUP_CHAT_ID_SIZE*2+1);
+			ImGui::InputText("chat ID", _chat_id, TOX_GROUP_CHAT_ID_SIZE*2+1);
 
 			static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
 			ImGui::InputText("name to join with", &self_name);
@@ -123,16 +144,14 @@ void ToxUIUtils::render(void) {
 			static Tox_Err_Group_Join err = Tox_Err_Group_Join::TOX_ERR_GROUP_JOIN_OK;
 			if (ImGui::Button("join")) {
 				auto [_, err_r] = _tc.toxGroupJoin(
-					hex2bin(std::string{chat_id}), // TODO: add string_view variant to utils
+					hex2bin(std::string_view{_chat_id, std::size(_chat_id)-1}),
 					self_name,
 					password
 				);
 				err = err_r;
 
 				{ // reset everything
-					for (size_t i = 0; i < sizeof(chat_id); i++) {
-						chat_id[i] = '\0';
-					}
+					std::memset(_chat_id, '\0', std::size(_chat_id));
 
 					self_name = _conf.get_string("tox", "name").value_or("default_tomato");
 
