@@ -629,7 +629,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
     }
 
     const int enc_len = group_packet_wrap(
-                            chat->log, chat->rng, chat->self_public_key.enc, gconn->session_shared_key, packet,
+                            chat->log, chat->mem, chat->rng, chat->self_public_key.enc, gconn->session_shared_key, packet,
                             packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {

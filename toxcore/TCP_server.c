@@ -327,7 +327,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
     encrypt_precompute(data, self_secret_key, shared_key);
     uint8_t plain[TCP_HANDSHAKE_PLAIN_SIZE];
-    int len = decrypt_data_symmetric(shared_key, data + CRYPTO_PUBLIC_KEY_SIZE,
+    int len = decrypt_data_symmetric(con->con.mem, shared_key, data + CRYPTO_PUBLIC_KEY_SIZE,
                                      data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE, plain);
 
     if (len != TCP_HANDSHAKE_PLAIN_SIZE) {
@@ -347,7 +347,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
     uint8_t response[TCP_SERVER_HANDSHAKE_SIZE];
     random_nonce(con->con.rng, response);
 
-    len = encrypt_data_symmetric(shared_key, response, resp_plain, TCP_HANDSHAKE_PLAIN_SIZE,
+    len = encrypt_data_symmetric(con->con.mem, shared_key, response, resp_plain, TCP_HANDSHAKE_PLAIN_SIZE,
                                  response + CRYPTO_NONCE_SIZE);
 
     if (len != TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE) {

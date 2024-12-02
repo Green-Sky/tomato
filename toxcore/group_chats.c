@@ -30,6 +30,7 @@
 #include "group_moderation.h"
 #include "group_pack.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
 #include "network.h"
@@ -1473,8 +1474,8 @@ static bool sign_gc_shared_state(GC_Chat *chat)
  * Return -2 on decryption failure.
  * Return -3 if plaintext payload length is invalid.
  */
-non_null(1, 2, 3, 5, 6) nullable(4)
-static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
+non_null(1, 2, 3, 4, 6, 7) nullable(5)
+static int group_packet_unwrap(const Logger *log, const Memory *mem, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
     assert(data != nullptr);
@@ -1492,7 +1493,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
         return -1;
     }
 
-    int plain_len = decrypt_data_symmetric(gconn->session_shared_key, packet, packet + CRYPTO_NONCE_SIZE,
+    int plain_len = decrypt_data_symmetric(mem, gconn->session_shared_key, packet, packet + CRYPTO_NONCE_SIZE,
                                            length - CRYPTO_NONCE_SIZE, plain);
 
     if (plain_len <= 0) {
@@ -1533,7 +1534,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
 }
 
 int group_packet_wrap(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+    const Logger *log, const Memory *mem, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, Net_Packet_Type net_packet_type)
 {
@@ -1588,7 +1589,7 @@ int group_packet_wrap(
         return -2;
     }
 
-    const int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt);
+    const int enc_len = encrypt_data_symmetric(mem, shared_key, nonce, plain, plain_len, encrypt);
 
     free(plain);
 
@@ -1634,7 +1635,7 @@ static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gc
     }
 
     const int len = group_packet_wrap(
-                        chat->log, chat->rng, chat->self_public_key.enc, gconn->session_shared_key, packet,
+                        chat->log, chat->mem, chat->rng, chat->self_public_key.enc, gconn->session_shared_key, packet,
                         packet_size, data, length, 0, packet_type, NET_PACKET_GC_LOSSY);
 
     if (len < 0) {
@@ -5508,7 +5509,7 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
  * Return -2 if decryption fails.
  */
 non_null()
-static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_sk, const uint8_t *sender_pk,
+static int unwrap_group_handshake_packet(const Logger *log, const Memory *mem, const uint8_t *self_sk, const uint8_t *sender_pk,
         uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length)
 {
     if (length <= CRYPTO_NONCE_SIZE) {
@@ -5516,7 +5517,7 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
         return -1;
     }
 
-    const int plain_len = decrypt_data(sender_pk, self_sk, packet, packet + CRYPTO_NONCE_SIZE,
+    const int plain_len = decrypt_data(mem, sender_pk, self_sk, packet, packet + CRYPTO_NONCE_SIZE,
                                        length - CRYPTO_NONCE_SIZE, plain);
 
     if (plain_len < 0 || (uint32_t)plain_len != plain_size) {
@@ -5539,7 +5540,7 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
  */
 non_null()
 static int wrap_group_handshake_packet(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *self_sk,
+    const Logger *log, const Memory *mem, const Random *rng, const uint8_t *self_pk, const uint8_t *self_sk,
     const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
     const uint8_t *data, uint16_t length)
 {
@@ -5558,7 +5559,7 @@ static int wrap_group_handshake_packet(
         return -2;
     }
 
-    const int enc_len = encrypt_data(target_pk, self_sk, nonce, data, length, encrypt);
+    const int enc_len = encrypt_data(mem, target_pk, self_sk, nonce, data, length, encrypt);
 
     if (enc_len < 0 || (size_t)enc_len != encrypt_buf_size) {
         LOGGER_ERROR(log, "Failed to encrypt group handshake packet (len: %d)", enc_len);
@@ -5622,7 +5623,7 @@ static int make_gc_handshake_packet(const GC_Chat *chat, const GC_Connection *gc
     }
 
     const int enc_len = wrap_group_handshake_packet(
-                            chat->log, chat->rng, chat->self_public_key.enc, chat->self_secret_key.enc,
+                            chat->log, chat->mem, chat->rng, chat->self_public_key.enc, chat->self_secret_key.enc,
                             gconn->addr.public_key.enc, packet, (uint16_t)packet_size, data, length);
 
     if (enc_len != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + nodes_size) {
@@ -5951,7 +5952,7 @@ static int handle_gc_handshake_packet(GC_Chat *chat, const uint8_t *sender_pk, c
         return -1;
     }
 
-    const int plain_len = unwrap_group_handshake_packet(chat->log, chat->self_secret_key.enc, sender_pk, data,
+    const int plain_len = unwrap_group_handshake_packet(chat->log, chat->mem, chat->self_secret_key.enc, sender_pk, data,
                           data_buf_size, packet, length);
 
     if (plain_len < GC_MIN_HS_PACKET_PAYLOAD_SIZE)  {
@@ -6181,7 +6182,7 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
     uint8_t packet_type;
     uint64_t message_id;
 
-    const int len = group_packet_unwrap(chat->log, gconn, data, &message_id, &packet_type, packet, length);
+    const int len = group_packet_unwrap(chat->log, chat->mem, gconn, data, &message_id, &packet_type, packet, length);
 
     if (len < 0) {
         Ip_Ntoa ip_str;
@@ -6334,7 +6335,7 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
 
     uint8_t packet_type;
 
-    const int len = group_packet_unwrap(chat->log, gconn, data, nullptr, &packet_type, packet, length);
+    const int len = group_packet_unwrap(chat->log, chat->mem, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
         Ip_Ntoa ip_str;

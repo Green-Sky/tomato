@@ -6,19 +6,22 @@
 #include <vector>
 
 #include "../testing/fuzzing/fuzz_support.hh"
+#include "mem_test_util.hh"
 
 namespace {
 
 void TestHandleRequest(Fuzz_Data &input)
 {
+    const Test_Memory mem;
+
     CONSUME_OR_RETURN(const uint8_t *self_public_key, input, CRYPTO_PUBLIC_KEY_SIZE);
     CONSUME_OR_RETURN(const uint8_t *self_secret_key, input, CRYPTO_SECRET_KEY_SIZE);
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t request[MAX_CRYPTO_REQUEST_SIZE];
     uint8_t request_id;
-    handle_request(self_public_key, self_secret_key, public_key, request, &request_id, input.data(),
-        input.size());
+    handle_request(mem, self_public_key, self_secret_key, public_key, request, &request_id,
+        input.data(), input.size());
 }
 
 void TestUnpackNodes(Fuzz_Data &input)
@@ -31,7 +34,8 @@ void TestUnpackNodes(Fuzz_Data &input)
     const int packed_count = unpack_nodes(
         nodes, node_count, &processed_data_len, input.data(), input.size(), tcp_enabled);
     if (packed_count > 0) {
-        Logger *logger = logger_new();
+        const Memory *mem = os_memory();
+        Logger *logger = logger_new(mem);
         std::vector<uint8_t> packed(packed_count * PACKED_NODE_SIZE_IP6);
         const int packed_size
             = pack_nodes(logger, packed.data(), packed.size(), nodes, packed_count);

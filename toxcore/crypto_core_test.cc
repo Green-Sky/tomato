@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "crypto_core_test_util.hh"
+#include "mem_test_util.hh"
 #include "util.h"
 
 namespace {
@@ -19,6 +20,7 @@ using Nonce = std::array<uint8_t, CRYPTO_NONCE_SIZE>;
 
 TEST(CryptoCore, EncryptLargeData)
 {
+    Test_Memory mem;
     Test_Random rng;
 
     Nonce nonce{};
@@ -30,7 +32,8 @@ TEST(CryptoCore, EncryptLargeData)
     std::vector<uint8_t> plain(100 * 1024 * 1024);
     std::vector<uint8_t> encrypted(plain.size() + CRYPTO_MAC_SIZE);
 
-    encrypt_data(pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data());
+    encrypt_data(
+        mem, pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data());
 }
 
 TEST(CryptoCore, IncrementNonce)

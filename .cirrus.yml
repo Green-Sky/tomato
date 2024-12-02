@@ -9,7 +9,9 @@ bazel-opt_task:
     - git submodule update --init --recursive
     - /src/workspace/tools/inject-repo c-toxcore
   test_all_script:
-    - cd /src/workspace && bazel test -k
+    - cd /src/workspace && bazel
+        --max_idle_secs=5
+        test -k
         --remote_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --build_tag_filters=-haskell
         --test_tag_filters=-haskell
@@ -27,7 +29,9 @@ bazel-dbg_task:
     - git submodule update --init --recursive
     - /src/workspace/tools/inject-repo c-toxcore
   test_all_script:
-    - cd /src/workspace && bazel test -k
+    - cd /src/workspace && bazel
+        --max_idle_secs=5
+        test -k
         --remote_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --build_tag_filters=-haskell
         --test_tag_filters=-haskell
@@ -45,7 +49,9 @@ cimple_task:
     - git submodule update --init --recursive
     - /src/workspace/tools/inject-repo c-toxcore
   test_all_script:
-    - cd /src/workspace && bazel test -k
+    - cd /src/workspace && bazel
+        --max_idle_secs=5
+        test -k
         --remote_cache=http://$CIRRUS_HTTP_CACHE_HOST
         --build_tag_filters=haskell
         --test_tag_filters=haskell

@@ -148,7 +148,7 @@ uint32_t tox_version_minor(void);
  * Incremented when bugfixes are applied without changing any functionality or
  * API or ABI.
  */
-#define TOX_VERSION_PATCH              19
+#define TOX_VERSION_PATCH              20
 
 uint32_t tox_version_patch(void);
 
@@ -274,7 +274,7 @@ uint32_t tox_max_status_message_length(void);
  *
  * @deprecated The macro will be removed in 0.3.0. Use the function instead.
  */
-#define TOX_MAX_FRIEND_REQUEST_LENGTH  1016
+#define TOX_MAX_FRIEND_REQUEST_LENGTH  921
 
 uint32_t tox_max_friend_request_length(void);
 
@@ -668,6 +668,24 @@ struct Tox_Options {
      * Default: false.
      */
     bool experimental_groups_persistence;
+
+    /**
+     * @brief Disable DNS hostname resolution.
+     *
+     * Hostnames or IP addresses are passed to the bootstrap/add_tcp_relay
+     * function and proxy host options. If disabled (this flag is true), only
+     * IP addresses are allowed.
+     *
+     * If this is set to true, the library will not attempt to resolve
+     * hostnames. This is useful for clients that want to resolve hostnames
+     * themselves and pass the resolved IP addresses to the library (e.g. in
+     * case it wants to use Tor).
+     * Passing hostnames will result in a TOX_ERR_BOOTSTRAP_BAD_HOST error if
+     * this is set to true.
+     *
+     * Default: false. May become true in the future (0.3.0).
+     */
+    bool experimental_disable_dns;
 };
 
 bool tox_options_get_ipv6_enabled(const Tox_Options *options);
@@ -741,6 +759,10 @@ void tox_options_set_experimental_thread_safety(Tox_Options *options, bool exper
 bool tox_options_get_experimental_groups_persistence(const Tox_Options *options);
 
 void tox_options_set_experimental_groups_persistence(Tox_Options *options, bool experimental_groups_persistence);
+
+bool tox_options_get_experimental_disable_dns(const Tox_Options *options);
+
+void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experimental_disable_dns);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.
