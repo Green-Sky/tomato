@@ -514,6 +514,12 @@ static int sys_listen(void *obj, Socket sock, int backlog)
 }
 
 non_null()
+static int sys_connect(void *obj, Socket sock, const Network_Addr *addr)
+{
+    return connect(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
+}
+
+non_null()
 static int sys_recvbuf(void *obj, Socket sock)
 {
 #ifdef OS_WIN32
@@ -586,11 +592,98 @@ static int sys_setsockopt(void *obj, Socket sock, int level, int optname, const 
     return setsockopt(net_socket_to_native(sock), level, optname, (const char *)optval, optlen);
 }
 
+// sets and fills an array of addrs for address
+// returns the number of entries in addrs
+non_null()
+static int sys_getaddrinfo(void *obj, const Memory *mem, const char *address, int family, int sock_type, Network_Addr **addrs)
+{
+    assert(addrs != nullptr);
+
+    struct addrinfo hints = {0};
+    hints.ai_family = family;
+
+
+    // different platforms favour a different field
+    // hints.ai_socktype = SOCK_DGRAM; // type of socket Tox uses.
+    hints.ai_socktype = sock_type;
+    // hints.ai_protocol = protocol;
+
+    struct addrinfo *infos = nullptr;
+
+    const int rc = getaddrinfo(address, nullptr, &hints, &infos);
+
+    // Lookup failed.
+    if (rc != 0) {
+        // TODO(Green-Sky): log error
+        return 0;
+    }
+
+    const int32_t max_count = INT32_MAX / sizeof(Network_Addr);
+
+    // we count number of "valid" results
+    int result = 0;
+    for (struct addrinfo *walker = infos; walker != nullptr && result < max_count; walker = walker->ai_next) {
+        if (walker->ai_family == family || family == AF_UNSPEC) {
+            ++result;
+        }
+
+        // do we need to check socktype/protocol?
+    }
+
+    assert(max_count >= result);
+
+    Network_Addr *tmp_addrs = (Network_Addr *)mem_valloc(mem, result, sizeof(Network_Addr));
+    if (tmp_addrs == nullptr) {
+        freeaddrinfo(infos);
+        return 0;
+    }
+
+    // now we fill in
+    int i = 0;
+    for (struct addrinfo *walker = infos; walker != nullptr; walker = walker->ai_next) {
+        if (walker->ai_family == family || family == AF_UNSPEC) {
+            tmp_addrs[i].size = sizeof(struct sockaddr_storage);
+            tmp_addrs[i].addr.ss_family = walker->ai_family;
+
+            // according to spec, storage is supposed to be large enough (and source shows they are)
+            // storage is 128 bytes
+            assert(walker->ai_addrlen <= tmp_addrs[i].size);
+
+            memcpy(&tmp_addrs[i].addr, walker->ai_addr, walker->ai_addrlen);
+            tmp_addrs[i].size = walker->ai_addrlen;
+
+            ++i;
+        }
+    }
+
+    assert(i == result);
+
+    freeaddrinfo(infos);
+
+    *addrs = tmp_addrs;
+
+    // number of entries in addrs
+    return result;
+}
+
+non_null()
+static int sys_freeaddrinfo(void *obj, const Memory *mem, Network_Addr *addrs)
+{
+    if (addrs == nullptr) {
+        return 0;
+    }
+
+    mem_delete(mem, addrs);
+
+    return 0;
+}
+
 static const Network_Funcs os_network_funcs = {
     sys_close,
     sys_accept,
     sys_bind,
     sys_listen,
+    sys_connect,
     sys_recvbuf,
     sys_recv,
     sys_recvfrom,
@@ -600,8 +693,10 @@ static const Network_Funcs os_network_funcs = {
     sys_socket_nonblock,
     sys_getsockopt,
     sys_setsockopt,
+    sys_getaddrinfo,
+    sys_freeaddrinfo,
 };
-static const Network os_network_obj = {&os_network_funcs};
+static const Network os_network_obj = {&os_network_funcs, nullptr};
 
 const Network *os_network(void)
 {
@@ -882,7 +977,11 @@ bool set_socket_nosigpipe(const Network *ns, Socket sock)
 bool set_socket_reuseaddr(const Network *ns, Socket sock)
 {
     int set = 1;
+#if defined(OS_WIN32)
+    return net_setsockopt(ns, sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, &set, sizeof(set)) == 0;
+#else
     return net_setsockopt(ns, sock, SOL_SOCKET, SO_REUSEADDR, &set, sizeof(set)) == 0;
+#endif /* OS_WIN32 */
 }
 
 bool set_socket_dualstack(const Network *ns, Socket sock)
@@ -1815,36 +1914,33 @@ bool addr_parse_ip(const char *address, IP *to)
  * prefers v6 if `ip.family` was TOX_AF_UNSPEC and both available
  * Returns in `*extra` an IPv4 address, if family was TOX_AF_UNSPEC and `*to` is TOX_AF_INET6
  *
- * @return 0 on failure, `TOX_ADDR_RESOLVE_*` on success.
+ * @return false on failure, true on success.
  */
-non_null(1, 2, 3) nullable(4)
-static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extra)
+non_null(1, 2, 3, 4) nullable(5)
+static bool addr_resolve(const Network *ns, const Memory *mem, const char *address, IP *to, IP *extra)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
-        return 0;
+        return false;
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
     if (address == nullptr || to == nullptr) {
-        return 0;
+        return false;
     }
 
     const Family tox_family = to->family;
     const int family = make_family(tox_family);
 
-    struct addrinfo hints = {0};
-    hints.ai_family   = family;
-    hints.ai_socktype = SOCK_DGRAM; // type of socket Tox uses.
+    Network_Addr *addrs = nullptr;
+    const int rc = ns->funcs->getaddrinfo(ns->obj, mem, address, family, 0, &addrs);
 
-    struct addrinfo *server = nullptr;
-
-    const int rc = getaddrinfo(address, nullptr, &hints, &server);
-
-    // Lookup failed.
-    if (rc != 0) {
-        return 0;
+    // Lookup failed / empty.
+    if (rc <= 0) {
+        return false;
     }
+
+    assert(addrs != nullptr);
 
     IP ip4;
     ip_init(&ip4, false); // ipv6enabled = false
@@ -1854,16 +1950,16 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
     int result = 0;
     bool done = false;
 
-    for (struct addrinfo *walker = server; walker != nullptr && !done; walker = walker->ai_next) {
-        switch (walker->ai_family) {
+    for (int i = 0; i < rc && !done; ++i) {
+        switch (addrs[i].addr.ss_family) {
             case AF_INET: {
-                if (walker->ai_family == family) { /* AF_INET requested, done */
-                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)walker->ai_addr;
+                if (addrs[i].addr.ss_family == family) { /* AF_INET requested, done */
+                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
                     get_ip4(&to->ip.v4, &addr->sin_addr);
                     result = TOX_ADDR_RESOLVE_INET;
                     done = true;
                 } else if ((result & TOX_ADDR_RESOLVE_INET) == 0) { /* AF_UNSPEC requested, store away */
-                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)walker->ai_addr;
+                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
                     get_ip4(&ip4.ip.v4, &addr->sin_addr);
                     result |= TOX_ADDR_RESOLVE_INET;
                 }
@@ -1872,16 +1968,16 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
             }
 
             case AF_INET6: {
-                if (walker->ai_family == family) { /* AF_INET6 requested, done */
-                    if (walker->ai_addrlen == sizeof(struct sockaddr_in6)) {
-                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)walker->ai_addr;
+                if (addrs[i].addr.ss_family == family) { /* AF_INET6 requested, done */
+                    if (addrs[i].size == sizeof(struct sockaddr_in6)) {
+                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)&addrs[i].addr;
                         get_ip6(&to->ip.v6, &addr->sin6_addr);
                         result = TOX_ADDR_RESOLVE_INET6;
                         done = true;
                     }
                 } else if ((result & TOX_ADDR_RESOLVE_INET6) == 0) { /* AF_UNSPEC requested, store away */
-                    if (walker->ai_addrlen == sizeof(struct sockaddr_in6)) {
-                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)walker->ai_addr;
+                    if (addrs[i].size == sizeof(struct sockaddr_in6)) {
+                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)&addrs[i].addr;
                         get_ip6(&ip6.ip.v6, &addr->sin6_addr);
                         result |= TOX_ADDR_RESOLVE_INET6;
                     }
@@ -1906,37 +2002,34 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
         }
     }
 
-    freeaddrinfo(server);
-    return result;
+    ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
+    return result != 0;
 }
 
-bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP *extra)
+bool addr_resolve_or_parse_ip(const Network *ns, const Memory *mem, const char *address, IP *to, IP *extra, bool dns_enabled)
 {
-    if (addr_resolve(ns, address, to, extra) == 0) {
-        if (!addr_parse_ip(address, to)) {
-            return false;
-        }
+    if (dns_enabled && addr_resolve(ns, mem, address, to, extra)) {
+        return true;
     }
 
-    return true;
+    return addr_parse_ip(address, to);
 }
 
-bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
+bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
 {
-    struct sockaddr_storage addr = {0};
-    size_t addrsize;
+    Network_Addr addr = {{0}};
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
-        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr.addr;
 
-        addrsize = sizeof(struct sockaddr_in);
+        addr.size = sizeof(struct sockaddr_in);
         addr4->sin_family = AF_INET;
         fill_addr4(&ip_port->ip.ip.v4, &addr4->sin_addr);
         addr4->sin_port = ip_port->port;
     } else if (net_family_is_ipv6(ip_port->ip.family)) {
-        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr;
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr.addr;
 
-        addrsize = sizeof(struct sockaddr_in6);
+        addr.size = sizeof(struct sockaddr_in6);
         addr6->sin6_family = AF_INET6;
         fill_addr6(&ip_port->ip.ip.v6, &addr6->sin6_addr);
         addr6->sin6_port = ip_port->port;
@@ -1958,7 +2051,7 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
                  net_socket_to_native(sock), net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port));
     errno = 0;
 
-    if (connect(net_socket_to_native(sock), (struct sockaddr *)&addr, addrsize) == -1) {
+    if (ns->funcs->connect(ns->obj, sock, &addr) == -1) {
         const int error = net_error();
 
         // Non-blocking socket: "Operation in progress" means it's connecting.
@@ -1974,7 +2067,7 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
     return true;
 }
 
-int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type)
+int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP_Port **res, int tox_type, bool dns_enabled)
 {
     assert(node != nullptr);
 
@@ -1996,6 +2089,10 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
         return 1;
     }
 
+    if (!dns_enabled) {
+        return -1;
+    }
+
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
         IP_Port *ip_port = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
@@ -2010,25 +2107,29 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
-    // It's not an IP address, so now we try doing a DNS lookup.
-    struct addrinfo *infos;
-    const int ret = getaddrinfo(node, nullptr, nullptr, &infos);
+    int type = make_socktype(tox_type);
+    // ugly
+    if (tox_type == -1) {
+        type = 0;
+    }
 
-    if (ret != 0) {
+    // It's not an IP address, so now we try doing a DNS lookup.
+    Network_Addr *addrs = nullptr;
+    const int rc = ns->funcs->getaddrinfo(ns->obj, mem, node, AF_UNSPEC, type, &addrs);
+
+    // Lookup failed / empty.
+    if (rc <= 0) {
         return -1;
     }
 
+    assert(addrs != nullptr);
+
     // Used to avoid calloc parameter overflow
     const size_t max_count = min_u64(SIZE_MAX, INT32_MAX) / sizeof(IP_Port);
-    const int type = make_socktype(tox_type);
     size_t count = 0;
 
-    for (struct addrinfo *cur = infos; count < max_count && cur != nullptr; cur = cur->ai_next) {
-        if (cur->ai_socktype != 0 && type > 0 && cur->ai_socktype != type) {
-            continue;
-        }
-
-        if (cur->ai_family != AF_INET && cur->ai_family != AF_INET6) {
+    for (int i = 0; i < rc && count < max_count; ++i) {
+        if (addrs[i].addr.ss_family != AF_INET && addrs[i].addr.ss_family != AF_INET6) {
             continue;
         }
 
@@ -2038,40 +2139,36 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
     assert(count <= max_count);
 
     if (count == 0) {
-        freeaddrinfo(infos);
+        ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
         return 0;
     }
 
     IP_Port *ip_port = (IP_Port *)mem_valloc(mem, count, sizeof(IP_Port));
 
     if (ip_port == nullptr) {
-        freeaddrinfo(infos);
+        ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
         *res = nullptr;
         return -1;
     }
 
     *res = ip_port;
 
-    for (struct addrinfo *cur = infos; cur != nullptr; cur = cur->ai_next) {
-        if (cur->ai_socktype != 0 && type > 0 && cur->ai_socktype != type) {
-            continue;
-        }
-
-        if (cur->ai_family == AF_INET) {
-            const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)cur->ai_addr;
+    for (int i = 0; i < rc && count < max_count; ++i) {
+        if (addrs[i].addr.ss_family == AF_INET) {
+            const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
             ip_port->ip.ip.v4.uint32 = addr->sin_addr.s_addr;
-        } else if (cur->ai_family == AF_INET6) {
-            const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(const void *)cur->ai_addr;
+        } else if (addrs[i].addr.ss_family == AF_INET6) {
+            const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(const void *)&addrs[i].addr;
             memcpy(ip_port->ip.ip.v6.uint8, addr->sin6_addr.s6_addr, sizeof(IP6));
         } else {
             continue;
         }
 
-        const Family *const family = make_tox_family(cur->ai_family);
+        const Family *const family = make_tox_family(addrs[i].addr.ss_family);
         assert(family != nullptr);
 
         if (family == nullptr) {
-            freeaddrinfo(infos);
+            ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
             return -1;
         }
 
@@ -2080,7 +2177,7 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
         ++ip_port;
     }
 
-    freeaddrinfo(infos);
+    ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
 
     return count;
 }

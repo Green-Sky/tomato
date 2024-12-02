@@ -99,7 +99,7 @@ extern "C" {
  * @return the length of the created packet on success.
  */
 non_null()
-int create_request(const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
+int create_request(const Memory *mem, const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
                    uint8_t *packet, const uint8_t *recv_public_key,
                    const uint8_t *data, uint32_t data_length, uint8_t request_id);
 
@@ -127,7 +127,7 @@ int create_request(const Random *rng, const uint8_t *send_public_key, const uint
  */
 non_null()
 int handle_request(
-    const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
+    const Memory *mem, const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
     uint8_t *request_id, const uint8_t *packet, uint16_t packet_length);
 
 typedef struct IPPTs {
@@ -404,12 +404,13 @@ bool dht_bootstrap(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key);
  * @param address can be a hostname or an IP address (IPv4 or IPv6).
  * @param ipv6enabled if false, the resolving sticks STRICTLY to IPv4 addresses.
  *   Otherwise, the resolving looks for IPv6 addresses first, then IPv4 addresses.
+ * @param dns_enabled if false, the resolving does not use DNS, only IP addresses are supported.
  *
  * @retval true if the address could be converted into an IP address
  * @retval false otherwise
  */
 non_null()
-bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
+bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled, bool dns_enabled,
                                 uint16_t port, const uint8_t *public_key);
 
 /** @brief Start sending packets after DHT loaded_friends_list and loaded_clients_list are set.

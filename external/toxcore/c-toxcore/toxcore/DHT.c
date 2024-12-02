@@ -279,7 +279,7 @@ const uint8_t *dht_get_shared_key_sent(DHT *dht, const uint8_t *public_key)
 
 #define CRYPTO_SIZE (1 + CRYPTO_PUBLIC_KEY_SIZE * 2 + CRYPTO_NONCE_SIZE)
 
-int create_request(const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
+int create_request(const Memory *mem, const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
                    uint8_t *packet, const uint8_t *recv_public_key,
                    const uint8_t *data, uint32_t data_length, uint8_t request_id)
 {
@@ -296,7 +296,7 @@ int create_request(const Random *rng, const uint8_t *send_public_key, const uint
     uint8_t temp[MAX_CRYPTO_REQUEST_SIZE] = {0};
     temp[0] = request_id;
     memcpy(temp + 1, data, data_length);
-    const int len = encrypt_data(recv_public_key, send_secret_key, nonce, temp, data_length + 1,
+    const int len = encrypt_data(mem, recv_public_key, send_secret_key, nonce, temp, data_length + 1,
                                  packet + CRYPTO_SIZE);
 
     if (len == -1) {
@@ -312,7 +312,7 @@ int create_request(const Random *rng, const uint8_t *send_public_key, const uint
     return len + CRYPTO_SIZE;
 }
 
-int handle_request(const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
+int handle_request(const Memory *mem, const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
                    uint8_t *request_id, const uint8_t *packet, uint16_t packet_length)
 {
     if (self_public_key == nullptr || public_key == nullptr || data == nullptr || request_id == nullptr
@@ -331,7 +331,7 @@ int handle_request(const uint8_t *self_public_key, const uint8_t *self_secret_ke
     memcpy(public_key, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
     const uint8_t *const nonce = packet + 1 + CRYPTO_PUBLIC_KEY_SIZE * 2;
     uint8_t temp[MAX_CRYPTO_REQUEST_SIZE];
-    int32_t len1 = decrypt_data(public_key, self_secret_key, nonce,
+    int32_t len1 = decrypt_data(mem, public_key, self_secret_key, nonce,
                                 packet + CRYPTO_SIZE, packet_length - CRYPTO_SIZE, temp);
 
     if (len1 == -1 || len1 == 0) {
@@ -378,7 +378,7 @@ int dht_create_packet(const Memory *mem, const Random *rng,
 
     random_nonce(rng, nonce);
 
-    const int encrypted_length = encrypt_data_symmetric(shared_key, nonce, plain, plain_length, encrypted);
+    const int encrypted_length = encrypt_data_symmetric(mem, shared_key, nonce, plain, plain_length, encrypted);
 
     if (encrypted_length < 0) {
         mem_delete(mem, encrypted);
@@ -870,7 +870,7 @@ static int handle_data_search_response(void *object, const IP_Port *source,
     const uint8_t *public_key = packet + 1;
     const uint8_t *shared_key = dht_get_shared_key_recv(dht, public_key);
 
-    if (decrypt_data_symmetric(shared_key,
+    if (decrypt_data_symmetric(dht->mem, shared_key,
                                packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                plain_len + CRYPTO_MAC_SIZE,
@@ -1381,6 +1381,7 @@ static int handle_getnodes(void *object, const IP_Port *source, const uint8_t *p
     uint8_t plain[CRYPTO_NODE_SIZE];
     const uint8_t *shared_key = dht_get_shared_key_recv(dht, packet + 1);
     const int len = decrypt_data_symmetric(
+                        dht->mem,
                         shared_key,
                         packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                         packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
@@ -1442,6 +1443,7 @@ static bool handle_sendnodes_core(void *object, const IP_Port *source, const uin
     VLA(uint8_t, plain, plain_size);
     const uint8_t *shared_key = dht_get_shared_key_sent(dht, packet + 1);
     const int len = decrypt_data_symmetric(
+                        dht->mem,
                         shared_key,
                         packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                         packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
@@ -1840,7 +1842,7 @@ bool dht_bootstrap(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key)
     return dht_getnodes(dht, ip_port, public_key, dht->self_public_key);
 }
 
-bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
+bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled, bool dns_enabled,
                                 uint16_t port, const uint8_t *public_key)
 {
     IP_Port ip_port_v64;
@@ -1855,7 +1857,7 @@ bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
         ip_extra = &ip_port_v4.ip;
     }
 
-    if (addr_resolve_or_parse_ip(dht->ns, address, &ip_port_v64.ip, ip_extra)) {
+    if (addr_resolve_or_parse_ip(dht->ns, dht->mem, address, &ip_port_v64.ip, ip_extra, dns_enabled)) {
         ip_port_v64.port = port;
         dht_bootstrap(dht, &ip_port_v64, public_key);
 
@@ -2123,7 +2125,7 @@ static int send_nat_ping(const DHT *dht, const uint8_t *public_key, uint64_t pin
     memcpy(data + 1, &ping_id, sizeof(uint64_t));
     /* 254 is NAT ping request packet id */
     const int len = create_request(
-                        dht->rng, dht->self_public_key, dht->self_secret_key, packet_data, public_key,
+                        dht->mem, dht->rng, dht->self_public_key, dht->self_secret_key, packet_data, public_key,
                         data, sizeof(uint64_t) + 1, CRYPTO_PACKET_NAT_PING);
 
     if (len == -1) {
@@ -2458,7 +2460,7 @@ static int cryptopacket_handle(void *object, const IP_Port *source, const uint8_
         uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
         uint8_t data[MAX_CRYPTO_REQUEST_SIZE];
         uint8_t number;
-        const int len = handle_request(dht->self_public_key, dht->self_secret_key, public_key,
+        const int len = handle_request(dht->mem, dht->self_public_key, dht->self_secret_key, public_key,
                                        data, &number, packet, length);
 
         if (len == -1 || len == 0) {

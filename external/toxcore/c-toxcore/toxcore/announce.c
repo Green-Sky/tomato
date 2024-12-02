@@ -451,7 +451,7 @@ static int create_reply_plain_store_announce_request(Announcements *announce,
         return -1;
     }
 
-    if (decrypt_data_symmetric(shared_key,
+    if (decrypt_data_symmetric(announce->mem, shared_key,
                                data + CRYPTO_PUBLIC_KEY_SIZE,
                                data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                plain_len + CRYPTO_MAC_SIZE,
@@ -568,7 +568,7 @@ static int create_reply(Announcements *announce, const IP_Port *source,
     VLA(uint8_t, plain, plain_len);
     const uint8_t *shared_key = dht_get_shared_key_recv(announce->dht, data + 1);
 
-    if (decrypt_data_symmetric(shared_key,
+    if (decrypt_data_symmetric(announce->mem, shared_key,
                                data + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                data + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                plain_len + CRYPTO_MAC_SIZE,

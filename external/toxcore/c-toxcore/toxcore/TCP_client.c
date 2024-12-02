@@ -107,12 +107,12 @@ void tcp_con_set_custom_uint(TCP_Client_Connection *con, uint32_t value)
  * @retval false on failure
  */
 non_null()
-static bool connect_sock_to(const Logger *logger, const Memory *mem, Socket sock, const IP_Port *ip_port, const TCP_Proxy_Info *proxy_info)
+static bool connect_sock_to(const Network *ns, const Logger *logger, const Memory *mem, Socket sock, const IP_Port *ip_port, const TCP_Proxy_Info *proxy_info)
 {
     if (proxy_info->proxy_type != TCP_PROXY_NONE) {
-        return net_connect(mem, logger, sock, &proxy_info->ip_port);
+        return net_connect(ns, mem, logger, sock, &proxy_info->ip_port);
     } else {
-        return net_connect(mem, logger, sock, ip_port);
+        return net_connect(ns, mem, logger, sock, ip_port);
     }
 }
 
@@ -312,7 +312,7 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
     memcpy(plain + CRYPTO_PUBLIC_KEY_SIZE, tcp_conn->con.sent_nonce, CRYPTO_NONCE_SIZE);
     memcpy(tcp_conn->con.last_packet, tcp_conn->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(tcp_conn->con.rng, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE);
-    const int len = encrypt_data_symmetric(tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE, plain,
+    const int len = encrypt_data_symmetric(tcp_conn->con.mem, tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE, plain,
                                            sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
 
     if (len != sizeof(plain) + CRYPTO_MAC_SIZE) {
@@ -334,7 +334,7 @@ non_null()
 static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data)
 {
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
-    const int len = decrypt_data_symmetric(tcp_conn->con.shared_key, data, data + CRYPTO_NONCE_SIZE,
+    const int len = decrypt_data_symmetric(tcp_conn->con.mem, tcp_conn->con.shared_key, data, data + CRYPTO_NONCE_SIZE,
                                            TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain);
 
     if (len != sizeof(plain)) {
@@ -617,7 +617,7 @@ TCP_Client_Connection *new_tcp_connection(
         return nullptr;
     }
 
-    if (!(set_socket_nonblock(ns, sock) && connect_sock_to(logger, mem, sock, ip_port, proxy_info))) {
+    if (!(set_socket_nonblock(ns, sock) && connect_sock_to(ns, logger, mem, sock, ip_port, proxy_info))) {
         kill_sock(ns, sock);
         return nullptr;
     }
