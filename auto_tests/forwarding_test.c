@@ -112,7 +112,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     Forwarding_Subtox *subtox = (Forwarding_Subtox *)calloc(1, sizeof(Forwarding_Subtox));
     ck_assert(subtox != nullptr);
 
-    subtox->log = logger_new();
+    subtox->log = logger_new(mem);
     ck_assert(subtox->log != nullptr);
     logger_callback_log(subtox->log, print_debug_logger, nullptr, index);
     subtox->mono_time = mono_time_new(mem, nullptr, nullptr);

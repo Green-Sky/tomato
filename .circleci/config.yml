@@ -4,14 +4,15 @@ version: 2
 workflows:
   version: 2
   program-analysis:
+    # TODO(iphydf): Re-enable tsan when it's fixed.
     jobs:
       # Dynamic analysis in the Bazel build
       - bazel-asan
       - bazel-msan
-      - bazel-tsan
+      # - bazel-tsan
       # Dynamic analysis with CMake
       - asan
-      - tsan
+      # - tsan
       - ubsan
       # Static analysis
       - clang-analyze

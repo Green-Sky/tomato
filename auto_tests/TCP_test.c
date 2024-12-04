@@ -53,7 +53,7 @@ static void test_basic(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
     logger_callback_log(logger, print_debug_logger, nullptr, nullptr);
 
     // Attempt to create a new TCP_Server instance.
@@ -74,7 +74,7 @@ static void test_basic(void)
     for (uint8_t i = 0; i < NUM_PORTS; i++) {
         sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
         localhost.port = net_htons(ports[i]);
-        bool ret = net_connect(mem, logger, sock, &localhost);
+        bool ret = net_connect(ns, mem, logger, sock, &localhost);
         ck_assert_msg(ret, "Failed to connect to created TCP relay server on port %d (%d).", ports[i], errno);
 
         // Leave open one connection for the next test.
@@ -111,12 +111,12 @@ static void test_basic(void)
 
     // Sending the handshake
     ck_assert_msg(net_send(ns, logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1,
-                           &localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+                           &localhost, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "An attempt to send the initial handshake minus last byte failed.");
 
     do_tcp_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost) == 1,
+    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost, nullptr) == 1,
                   "The attempt to send the last byte of handshake failed.");
 
     free(handshake);
@@ -155,7 +155,7 @@ static void test_basic(void)
             msg_length = sizeof(r_req) - i;
         }
 
-        ck_assert_msg(net_send(ns, logger, sock, r_req + i, msg_length, &localhost) == msg_length,
+        ck_assert_msg(net_send(ns, logger, sock, r_req + i, msg_length, &localhost, nullptr) == msg_length,
                       "Failed to send request after completing the handshake.");
         i += msg_length;
 
@@ -213,7 +213,7 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
     localhost.ip = get_loopback();
     localhost.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
 
-    bool ok = net_connect(mem, logger, sock, &localhost);
+    bool ok = net_connect(ns, mem, logger, sock, &localhost);
     ck_assert_msg(ok, "Failed to connect to the test TCP relay server.");
 
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -234,12 +234,12 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
                   "Failed to encrypt the outgoing handshake.");
 
     ck_assert_msg(net_send(ns, logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1,
-                           &localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+                           &localhost, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "Failed to send the first portion of the handshake to the TCP relay server.");
 
     do_tcp_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost) == 1,
+    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost, nullptr) == 1,
                   "Failed to send last byte of handshake.");
 
     do_tcp_server_delay(tcp_s, mono_time, 50);
@@ -283,7 +283,7 @@ static int write_packet_tcp_test_connection(const Logger *logger, struct sec_TCP
     localhost.ip = get_loopback();
     localhost.port = 0;
 
-    ck_assert_msg(net_send(con->ns, logger, con->sock, packet, packet_size, &localhost) == packet_size,
+    ck_assert_msg(net_send(con->ns, logger, con->sock, packet, packet_size, &localhost, nullptr) == packet_size,
                   "Failed to send a packet.");
     return 0;
 }
@@ -312,7 +312,7 @@ static void test_some(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -506,7 +506,7 @@ static void test_client(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -524,7 +524,7 @@ static void test_client(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr);
+    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
     // TCP sockets might need a moment before they can be written to.
     c_sleep(50);
     do_tcp_connection(logger, mono_time, conn, nullptr);
@@ -560,7 +560,7 @@ static void test_client(void)
     crypto_new_keypair(rng, f2_public_key, f2_secret_key);
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     TCP_Client_Connection *conn2 = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f2_public_key,
-                                   f2_secret_key, nullptr);
+                                   f2_secret_key, nullptr, nullptr);
     c_sleep(50);
 
     // The client should call this function (defined earlier) during the routing process.
@@ -643,7 +643,7 @@ static void test_client_invalid(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -657,7 +657,7 @@ static void test_client_invalid(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
     TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s,
-                                  self_public_key, f_public_key, f_secret_key, nullptr);
+                                  self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
 
     // Run the client's main loop but not the server.
     mono_time_update(mono_time);
@@ -721,7 +721,7 @@ static void test_tcp_connection(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     tcp_data_callback_called = 0;
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -834,7 +834,7 @@ static void test_tcp_connection2(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     tcp_oobdata_callback_called = 0;
     tcp_data_callback_called = 0;
