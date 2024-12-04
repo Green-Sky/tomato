@@ -334,7 +334,7 @@ TEST(AnnounceNodes, SetAndTest)
     Test_Memory mem;
     Test_Network ns;
 
-    Logger *log = logger_new();
+    Logger *log = logger_new(mem);
     ASSERT_NE(log, nullptr);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);

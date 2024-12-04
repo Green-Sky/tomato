@@ -3,6 +3,7 @@
 #include <iomanip>
 
 #include "crypto_core.h"
+#include "mem.h"
 #include "network.h"
 #include "test_util.hh"
 
@@ -11,6 +12,7 @@ Network_Funcs const Network_Class::vtable = {
     Method<net_accept_cb, Network_Class>::invoke<&Network_Class::accept>,
     Method<net_bind_cb, Network_Class>::invoke<&Network_Class::bind>,
     Method<net_listen_cb, Network_Class>::invoke<&Network_Class::listen>,
+    Method<net_connect_cb, Network_Class>::invoke<&Network_Class::connect>,
     Method<net_recvbuf_cb, Network_Class>::invoke<&Network_Class::recvbuf>,
     Method<net_recv_cb, Network_Class>::invoke<&Network_Class::recv>,
     Method<net_recvfrom_cb, Network_Class>::invoke<&Network_Class::recvfrom>,
@@ -33,6 +35,10 @@ int Test_Network::bind(void *obj, Socket sock, const Network_Addr *addr)
 int Test_Network::listen(void *obj, Socket sock, int backlog)
 {
     return net->funcs->listen(net->obj, sock, backlog);
+}
+int Test_Network::connect(void *obj, Socket sock, const Network_Addr *addr)
+{
+    return net->funcs->connect(net->obj, sock, addr);
 }
 int Test_Network::recvbuf(void *obj, Socket sock) { return net->funcs->recvbuf(net->obj, sock); }
 int Test_Network::recv(void *obj, Socket sock, uint8_t *buf, size_t len)
@@ -70,13 +76,14 @@ int Test_Network::setsockopt(
 {
     return net->funcs->setsockopt(net->obj, sock, level, optname, optval, optlen);
 }
-int Test_Network::getaddrinfo(void *obj, int family, Network_Addr **addrs)
+int Test_Network::getaddrinfo(void *obj, const Memory *mem, const char *address, int family,
+    int protocol, Network_Addr **addrs)
 {
-    return net->funcs->getaddrinfo(net->obj, family, addrs);
+    return net->funcs->getaddrinfo(net->obj, mem, address, family, protocol, addrs);
 }
-int Test_Network::freeaddrinfo(void *obj, Network_Addr *addrs)
+int Test_Network::freeaddrinfo(void *obj, const Memory *mem, Network_Addr *addrs)
 {
-    return net->funcs->freeaddrinfo(net->obj, addrs);
+    return net->funcs->freeaddrinfo(net->obj, mem, addrs);
 }
 
 Network_Class::~Network_Class() = default;

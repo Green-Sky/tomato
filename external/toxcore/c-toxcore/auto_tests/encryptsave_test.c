@@ -3,8 +3,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <sodium.h>
-
 #include "../testing/misc_tools.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/crypto_core.h"
@@ -14,12 +12,9 @@
 #include "check_compat.h"
 
 static unsigned char test_salt[TOX_PASS_SALT_LENGTH] = {0xB1, 0xC2, 0x09, 0xEE, 0x50, 0x6C, 0xF0, 0x20, 0xC4, 0xD6, 0xEB, 0xC0, 0x44, 0x51, 0x3B, 0x60, 0x4B, 0x39, 0x4A, 0xCF, 0x09, 0x53, 0x4F, 0xEA, 0x08, 0x41, 0xFA, 0xCA, 0x66, 0xD2, 0x68, 0x7F};
-static unsigned char known_key[TOX_PASS_KEY_LENGTH] = {0x29, 0x36, 0x1c, 0x9e, 0x65, 0xbb, 0x46, 0x8b, 0xde, 0xa1, 0xac, 0xf, 0xd5, 0x11, 0x81, 0xc8, 0x29, 0x28, 0x17, 0x23, 0xa6, 0xc3, 0x6b, 0x77, 0x2e, 0xd7, 0xd3, 0x10, 0xeb, 0xd2, 0xf7, 0xc8};
+static unsigned char known_key[CRYPTO_SHARED_KEY_SIZE] = {0x7a, 0xfa, 0x95, 0x45, 0x36, 0x8a, 0xa2, 0x5c, 0x40, 0xfd, 0xc0, 0xe2, 0x35, 0x8, 0x7, 0x88, 0xfa, 0xf9, 0x37, 0x86, 0xeb, 0xff, 0x50, 0x4f, 0x3, 0xe2, 0xf6, 0xd9, 0xef, 0x9, 0x17, 0x1};
 static const char *pw = "hunter2";
 static unsigned int pwlen = 7;
-
-static unsigned char known_key2[CRYPTO_SHARED_KEY_SIZE] = {0x7a, 0xfa, 0x95, 0x45, 0x36, 0x8a, 0xa2, 0x5c, 0x40, 0xfd, 0xc0, 0xe2, 0x35, 0x8, 0x7, 0x88, 0xfa, 0xf9, 0x37, 0x86, 0xeb, 0xff, 0x50, 0x4f, 0x3, 0xe2, 0xf6, 0xd9, 0xef, 0x9, 0x17, 0x1};
-// same as above, except standard opslimit instead of extra ops limit for test_known_kdf, and hash pw before kdf for compat
 
 /* cause I'm shameless */
 static void accept_friend_request(Tox *m, const uint8_t *public_key, const uint8_t *data, size_t length, void *userdata)
@@ -31,20 +26,6 @@ static void accept_friend_request(Tox *m, const uint8_t *public_key, const uint8
     if (length == 7 && memcmp("Gentoo", data, 7) == 0) {
         tox_friend_add_norequest(m, public_key, nullptr);
     }
-}
-
-static void test_known_kdf(void)
-{
-    unsigned char out[CRYPTO_SHARED_KEY_SIZE];
-    int16_t res = crypto_pwhash_scryptsalsa208sha256(out,
-                  CRYPTO_SHARED_KEY_SIZE,
-                  pw,
-                  pwlen,
-                  test_salt,
-                  crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE * 8,
-                  crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE);
-    ck_assert_msg(res != -1, "crypto function failed");
-    ck_assert_msg(memcmp(out, known_key, CRYPTO_SHARED_KEY_SIZE) == 0, "derived key is wrong");
 }
 
 static void test_save_friend(void)
@@ -101,7 +82,7 @@ static void test_save_friend(void)
     Tox_Pass_Key *key = tox_pass_key_derive((const uint8_t *)"123qweasdzxc", 12, &keyerr);
     ck_assert_msg(key != nullptr, "pass key allocation failure");
     memcpy((uint8_t *)key, test_salt, TOX_PASS_SALT_LENGTH);
-    memcpy((uint8_t *)key + TOX_PASS_SALT_LENGTH, known_key2, TOX_PASS_KEY_LENGTH);
+    memcpy((uint8_t *)key + TOX_PASS_SALT_LENGTH, known_key, TOX_PASS_KEY_LENGTH);
     size2 = size + TOX_PASS_ENCRYPTION_EXTRA_LENGTH;
     uint8_t *encdata2 = (uint8_t *)malloc(size2);
     ck_assert(encdata2 != nullptr);
@@ -224,7 +205,6 @@ static void test_keys(void)
 int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
-    test_known_kdf();
     test_save_friend();
     test_keys();
 

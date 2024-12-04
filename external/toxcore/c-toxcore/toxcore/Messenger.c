@@ -3482,7 +3482,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         return nullptr;
     }
 
-    m->log = logger_new();
+    m->log = logger_new(mem);
 
     if (m->log == nullptr) {
         friendreq_kill(m->fr);
