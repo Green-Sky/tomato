@@ -228,9 +228,9 @@ static void test_basic(void)
     const Random *rng = os_random();
     ck_assert(rng != nullptr);
 
-    Logger *log1 = logger_new();
+    Logger *log1 = logger_new(mem);
     logger_callback_log(log1, print_debug_logger, nullptr, &index[0]);
-    Logger *log2 = logger_new();
+    Logger *log2 = logger_new(mem);
     logger_callback_log(log2, print_debug_logger, nullptr, &index[1]);
 
     Mono_Time *mono_time1 = mono_time_new(mem, nullptr, nullptr);
@@ -329,7 +329,7 @@ static void test_basic(void)
                     CRYPTO_PUBLIC_KEY_SIZE) != 0);
 
     c_sleep(1000);
-    Logger *log3 = logger_new();
+    Logger *log3 = logger_new(mem);
     logger_callback_log(log3, print_debug_logger, nullptr, &index[2]);
 
     Mono_Time *mono_time3 = mono_time_new(mem, nullptr, nullptr);
@@ -412,7 +412,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
-    on->log = logger_new();
+    on->log = logger_new(mem);
 
     if (!on->log) {
         free(on);

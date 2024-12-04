@@ -75,7 +75,6 @@ cc_library(
     deps = [
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:tox",
-        "@libsodium",
     ],
 )
 

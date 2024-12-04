@@ -44,7 +44,7 @@ set_source_files_properties(
 # versions in a synchronised way.
 set(PROJECT_VERSION_MAJOR "0")
 set(PROJECT_VERSION_MINOR "2")
-set(PROJECT_VERSION_PATCH "19")
+set(PROJECT_VERSION_PATCH "20")
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 # set .so library version / following libtool scheme
@@ -309,6 +309,8 @@ set(toxcore_SOURCES
   toxcore/mono_time.h
   toxcore/net_crypto.c
   toxcore/net_crypto.h
+  toxcore/net_profile.c
+  toxcore/net_profile.h
   toxcore/network.c
   toxcore/network.h
   toxcore/onion_announce.c
@@ -352,7 +354,9 @@ set(toxcore_SOURCES
   toxcore/tox_unpack.h
   toxcore/util.c
   toxcore/util.h)
-if(TARGET unofficial-sodium::sodium)
+if(TARGET libsodium::libsodium)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} libsodium::libsodium)
+elseif(TARGET unofficial-sodium::sodium)
   set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} unofficial-sodium::sodium)
 else()
   set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${LIBSODIUM_LIBRARIES})
@@ -399,7 +403,9 @@ if(BUILD_TOXAV)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
     ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav)
 
-  if(MSVC)
+  if(TARGET Opus::opus AND TARGET libvpx::libvpx)
+    set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} Opus::opus libvpx::libvpx)
+  elseif(TARGET PkgConfig::OPUS AND TARGET PkgConfig::VPX)
     set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} PkgConfig::OPUS PkgConfig::VPX)
   else()
     set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${OPUS_LIBRARIES} ${VPX_LIBRARIES})
@@ -452,7 +458,9 @@ if(SOCKET_LIBRARIES)
   set(toxcore_PKGCONFIG_LIBS ${toxcore_PKGCONFIG_LIBS} -lsocket)
 endif()
 
-if(TARGET PThreads4W::PThreads4W)
+if(TARGET pthreads4w::pthreads4w)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} pthreads4w::pthreads4w)
+elseif(TARGET PThreads4W::PThreads4W)
   set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} PThreads4W::PThreads4W)
 elseif(TARGET Threads::Threads)
   set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} Threads::Threads)
@@ -510,17 +518,19 @@ install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tox)
 #
 ################################################################################
 
-add_library(test_util STATIC
-  toxcore/DHT_test_util.cc
-  toxcore/DHT_test_util.hh
-  toxcore/crypto_core_test_util.cc
-  toxcore/crypto_core_test_util.hh
-  toxcore/mem_test_util.cc
-  toxcore/mem_test_util.hh
-  toxcore/network_test_util.cc
-  toxcore/network_test_util.hh
-  toxcore/test_util.cc
-  toxcore/test_util.hh)
+if(UNITTEST)
+  add_library(test_util STATIC
+    toxcore/DHT_test_util.cc
+    toxcore/DHT_test_util.hh
+    toxcore/crypto_core_test_util.cc
+    toxcore/crypto_core_test_util.hh
+    toxcore/mem_test_util.cc
+    toxcore/mem_test_util.hh
+    toxcore/network_test_util.cc
+    toxcore/network_test_util.hh
+    toxcore/test_util.cc
+    toxcore/test_util.hh)
+endif()
 
 function(unit_test subdir target)
   add_executable(unit_${target}_test ${subdir}/${target}_test.cc)
@@ -529,6 +539,13 @@ function(unit_test subdir target)
     target_link_libraries(unit_${target}_test PRIVATE toxcore_static)
   else()
     target_link_libraries(unit_${target}_test PRIVATE toxcore_shared)
+  endif()
+  if(TARGET pthreads4w::pthreads4w)
+    target_link_libraries(unit_${target}_test PRIVATE pthreads4w::pthreads4w)
+  elseif(TARGET PThreads4W::PThreads4W)
+    target_link_libraries(unit_${target}_test PRIVATE PThreads4W::PThreads4W)
+  elseif(TARGET Threads::Threads)
+    target_link_libraries(unit_${target}_test PRIVATE Threads::Threads)
   endif()
   target_link_libraries(unit_${target}_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock)
   set_target_properties(unit_${target}_test PROPERTIES COMPILE_FLAGS "${TEST_CXX_FLAGS}")
@@ -583,10 +600,14 @@ if(DHT_BOOTSTRAP)
     target_link_libraries(DHT_bootstrap PRIVATE toxcore_shared)
   endif()
   target_link_libraries(DHT_bootstrap PRIVATE misc_tools)
-  if(TARGET unofficial-sodium::sodium)
+  if(TARGET libsodium::libsodium)
+    target_link_libraries(DHT_bootstrap PRIVATE libsodium::libsodium)
+  elseif(TARGET unofficial-sodium::sodium)
     target_link_libraries(DHT_bootstrap PRIVATE unofficial-sodium::sodium)
   endif()
-  if(TARGET PThreads4W::PThreads4W)
+  if(TARGET pthreads4w::pthreads4w)
+    target_link_libraries(DHT_bootstrap PRIVATE pthreads4w::pthreads4w)
+  elseif(TARGET PThreads4W::PThreads4W)
     target_link_libraries(DHT_bootstrap PRIVATE PThreads4W::PThreads4W)
   elseif(TARGET Threads::Threads)
     target_link_libraries(DHT_bootstrap PRIVATE Threads::Threads)
