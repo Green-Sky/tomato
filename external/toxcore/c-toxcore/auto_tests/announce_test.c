@@ -57,7 +57,7 @@ static void test_store_data(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Logger *log = logger_new();
+    Logger *log = logger_new(mem);
     ck_assert(log != nullptr);
     logger_callback_log(log, print_debug_logger, nullptr, nullptr);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);

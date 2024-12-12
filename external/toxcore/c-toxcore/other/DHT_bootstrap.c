@@ -144,15 +144,15 @@ int main(int argc, char *argv[])
     IP ip;
     ip_init(&ip, ipv6enabled);
 
-    Logger *logger = logger_new();
+    const Random *rng = os_random();
+    const Network *ns = os_network();
+    const Memory *mem = os_memory();
+
+    Logger *logger = logger_new(mem);
 
     if (MIN_LOGGER_LEVEL <= LOGGER_LEVEL_DEBUG) {
         logger_callback_log(logger, print_log, nullptr, nullptr);
     }
-
-    const Random *rng = os_random();
-    const Network *ns = os_network();
-    const Memory *mem = os_memory();
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
     const uint16_t start_port = PORT;
@@ -228,9 +228,12 @@ int main(int argc, char *argv[])
 
         const uint16_t port = net_htons((uint16_t)port_conv);
 
+        // TODO(iphydf): Maybe disable and only use IP addresses?
+        const bool dns_enabled = true;
+
         uint8_t *bootstrap_key = hex_string_to_bin(argv[argvoffset + 3]);
         const bool res = dht_bootstrap_from_address(dht, argv[argvoffset + 1],
-                         ipv6enabled, port, bootstrap_key);
+                         ipv6enabled, dns_enabled, port, bootstrap_key);
         free(bootstrap_key);
 
         if (!res) {

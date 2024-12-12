@@ -17,6 +17,7 @@
 #include "bin_pack.h"
 #include "logger.h"
 #include "mem.h"
+#include "net_profile.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,6 +40,7 @@ typedef int net_close_cb(void *obj, Socket sock);
 typedef Socket net_accept_cb(void *obj, Socket sock);
 typedef int net_bind_cb(void *obj, Socket sock, const Network_Addr *addr);
 typedef int net_listen_cb(void *obj, Socket sock, int backlog);
+typedef int net_connect_cb(void *obj, Socket sock, const Network_Addr *addr);
 typedef int net_recvbuf_cb(void *obj, Socket sock);
 typedef int net_recv_cb(void *obj, Socket sock, uint8_t *buf, size_t len);
 typedef int net_recvfrom_cb(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr);
@@ -48,8 +50,8 @@ typedef Socket net_socket_cb(void *obj, int domain, int type, int proto);
 typedef int net_socket_nonblock_cb(void *obj, Socket sock, bool nonblock);
 typedef int net_getsockopt_cb(void *obj, Socket sock, int level, int optname, void *optval, size_t *optlen);
 typedef int net_setsockopt_cb(void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen);
-typedef int net_getaddrinfo_cb(void *obj, int family, Network_Addr **addrs);
-typedef int net_freeaddrinfo_cb(void *obj, Network_Addr *addrs);
+typedef int net_getaddrinfo_cb(void *obj, const Memory *mem, const char *address, int family, int protocol, Network_Addr **addrs);
+typedef int net_freeaddrinfo_cb(void *obj, const Memory *mem, Network_Addr *addrs);
 
 /** @brief Functions wrapping POSIX network functions.
  *
@@ -61,6 +63,7 @@ typedef struct Network_Funcs {
     net_accept_cb *accept;
     net_bind_cb *bind;
     net_listen_cb *listen;
+    net_connect_cb *connect;
     net_recvbuf_cb *recvbuf;
     net_recv_cb *recv;
     net_recvfrom_cb *recvfrom;
@@ -234,8 +237,9 @@ Socket net_invalid_socket(void);
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
-non_null()
-int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
+non_null(1, 2, 4, 6) nullable(7)
+int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port,
+             Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
@@ -396,21 +400,23 @@ non_null()
 void ipport_copy(IP_Port *target, const IP_Port *source);
 
 /**
- * Resolves string into an IP address
+ * @brief Resolves string into an IP address.
  *
- * @param address a hostname (or something parseable to an IP address)
- * @param to to.family MUST be initialized, either set to a specific IP version
+ * @param[in,out] ns Network object.
+ * @param[in] address a hostname (or something parseable to an IP address).
+ * @param[in,out] to to.family MUST be initialized, either set to a specific IP version
  *   (TOX_AF_INET/TOX_AF_INET6) or to the unspecified TOX_AF_UNSPEC (0), if both
- *   IP versions are acceptable
- * @param extra can be NULL and is only set in special circumstances, see returns
+ *   IP versions are acceptable.
+ * @param[out] extra can be NULL and is only set in special circumstances, see returns.
+ * @param[in] dns_enabled if false, DNS resolution is skipped.
  *
- * Returns in `*to` a matching address (IPv6 or IPv4)
- * Returns in `*extra`, if not NULL, an IPv4 address, if `to->family` was TOX_AF_UNSPEC
+ * Returns in `*to` a matching address (IPv6 or IPv4).
+ * Returns in `*extra`, if not NULL, an IPv4 address, if `to->family` was `TOX_AF_UNSPEC`.
  *
  * @return true on success, false on failure
  */
-non_null(1, 2, 3) nullable(4)
-bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP *extra);
+non_null(1, 2, 3, 4) nullable(5)
+bool addr_resolve_or_parse_ip(const Network *ns, const Memory *mem, const char *address, IP *to, IP *extra, bool dns_enabled);
 
 /** @brief Function to receive data, ip and port of sender is put into ip_port.
  * Packet data is put into data.
@@ -501,7 +507,7 @@ void networking_poll(const Networking_Core *net, void *userdata);
  * Return false on failure.
  */
 non_null()
-bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port);
+bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port);
 
 /** @brief High-level getaddrinfo implementation.
  *
@@ -510,14 +516,21 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
  * address that can be specified by calling `net_connect()`, the port is ignored.
  *
  * Skip all addresses with socktype != type (use type = -1 to get all addresses)
- * To correctly deallocate array memory use `net_freeipport()`
+ * To correctly deallocate array memory use `net_freeipport()`.
+ *
+ * @param ns Network object.
+ * @param mem Memory allocator.
+ * @param node The node parameter identifies the host or service on which to connect.
+ * @param[out] res An array of IP_Port structures will be allocated into this pointer.
+ * @param tox_type The type of socket to use (stream or datagram), only relevant for DNS lookups.
+ * @param dns_enabled If false, DNS resolution is skipped, when passed a hostname, this function will return an error.
  *
  * @return number of elements in res array.
  * @retval 0 if res array empty.
  * @retval -1 on error.
  */
 non_null()
-int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type);
+int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP_Port **res, int tox_type, bool dns_enabled);
 
 /** Deallocates memory allocated by net_getipport */
 non_null(1) nullable(2)
@@ -602,6 +615,13 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, con
 /** Function to cleanup networking stuff (doesn't do much right now). */
 nullable(1)
 void kill_networking(Networking_Core *net);
+
+/** @brief Returns a pointer to the network net_profile object associated with `net`.
+ *
+ * Returns null if `net` is null.
+ */
+non_null()
+const Net_Profile *net_get_net_profile(const Networking_Core *net);
 
 #ifdef __cplusplus
 } /* extern "C" */
