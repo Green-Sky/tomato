@@ -1123,6 +1123,10 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		// TODO: missing other states
 		ImGui::TextUnformatted("running");
 	}
+	if (o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+		ImGui::SameLine();
+		ImGui::TextUnformatted("(have all)");
+	}
 
 	// if in offered state
 	// paused, never started
