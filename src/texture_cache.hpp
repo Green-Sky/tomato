@@ -91,6 +91,7 @@ struct TextureCache {
 
 	entt::dense_map<KeyType, TextureEntry> _cache;
 	entt::dense_set<KeyType> _to_load;
+	// to_reload // to_update? _marked_stale?
 
 	const uint64_t ms_before_purge {60 * 1000ull};
 	const size_t min_count_before_purge {0}; // starts purging after that
@@ -134,6 +135,18 @@ struct TextureCache {
 		}
 	}
 
+	// markes a texture as stale and will reload it
+	// only if it already is loaded, does not update ts
+	bool stale(const KeyType& key) {
+		auto it = _cache.find(key);
+
+		if (it == _cache.end()) {
+			return false;
+		}
+		_to_load.insert(key);
+		return true;
+	}
+
 	float update(void) {
 		const uint64_t ts_now = Message::getTimeMS();
 		uint64_t ts_min_next = ts_now + ms_before_purge;
@@ -165,6 +178,7 @@ struct TextureCache {
 				}
 			}
 			_cache.erase(key);
+			_to_load.erase(key);
 		}
 	}
 
@@ -172,13 +186,32 @@ struct TextureCache {
 	bool workLoadQueue(void) {
 		auto it = _to_load.begin();
 		for (; it != _to_load.end(); it++) {
-			auto new_entry_opt = _l.load(_tu, *it);
-			if (new_entry_opt.has_value()) {
-				_cache.emplace(*it, new_entry_opt.value());
-				it = _to_load.erase(it);
+			if (_cache.count(*it)) {
+				auto new_entry_opt = _l.load(_tu, *it);
+				if (new_entry_opt.has_value()) {
+					auto old_entry = _cache.at(*it);
+					for (const auto& tex_id : old_entry.textures) {
+						_tu.destroy(tex_id);
+					}
+					auto [new_it, _] = _cache.insert_or_assign(*it, new_entry_opt.value());
+					//new_it->second.current_texture = old_entry.current_texture; // ??
+					new_it->second.rendered_this_frame = old_entry.rendered_this_frame;
+					new_it->second.timestamp_last_rendered = old_entry.timestamp_last_rendered;
 
-				// TODO: not a good idea?
-				break; // end load from queue/onlyload 1 per update
+					it = _to_load.erase(it);
+
+					// TODO: not a good idea?
+					break; // end load from queue/onlyload 1 per update
+				}
+			} else {
+				auto new_entry_opt = _l.load(_tu, *it);
+				if (new_entry_opt.has_value()) {
+					_cache.emplace(*it, new_entry_opt.value());
+					it = _to_load.erase(it);
+
+					// TODO: not a good idea?
+					break; // end load from queue/onlyload 1 per update
+				}
 			}
 		}
 

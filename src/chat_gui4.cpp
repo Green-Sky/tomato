@@ -1,7 +1,5 @@
 #include "./chat_gui4.hpp"
 
-#include <solanaceae/object_store/object_store.hpp>
-
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/msg_components.hpp>
 #include <solanaceae/tox_messages/obj_components.hpp>
@@ -18,6 +16,7 @@
 
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
+#include <imgui/imgui_internal.h>
 
 #include <SDL3/SDL.h>
 
@@ -25,6 +24,7 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
+#include "os_comps.hpp"
 
 #include <cctype>
 #include <ctime>
@@ -246,7 +246,19 @@ ChatGui4::ChatGui4(
 	ContactTextureCache& contact_tc,
 	MessageTextureCache& msg_tc,
 	Theme& theme
-) : _conf(conf), _os(os), _rmm(rmm), _cr(cr), _contact_tc(contact_tc), _msg_tc(msg_tc), _theme(theme), _sip(tu) {
+) :
+	_conf(conf),
+	_os(os),
+	_os_sr(_os.newSubRef(this)),
+	_rmm(rmm),
+	_cr(cr),
+	_contact_tc(contact_tc),
+	_msg_tc(msg_tc),
+	_b_tc(_bil, tu),
+	_theme(theme),
+	_sip(tu)
+{
+	_os_sr.subscribe(ObjectStore_Event::object_update);
 }
 
 ChatGui4::~ChatGui4(void) {
@@ -263,6 +275,8 @@ ChatGui4::~ChatGui4(void) {
 float ChatGui4::render(float time_delta) {
 	_fss.render();
 	_sip.render(time_delta);
+	_b_tc.update();
+	_b_tc.workLoadQueue();
 
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -1162,6 +1176,8 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// hacky
 	const auto* fts = o.try_get<ObjComp::Ephemeral::File::TransferStats>();
 	if (fts != nullptr && o.any_of<ObjComp::F::SingleInfo, ObjComp::F::CollectionInfo>()) {
+		const bool upload = o.all_of<ObjComp::F::TagLocalHaveAll>() && fts->total_down <= 0;
+
 		const int64_t total_size =
 			o.all_of<ObjComp::F::SingleInfo>() ?
 				o.get<ObjComp::F::SingleInfo>().file_size :
@@ -1170,7 +1186,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 
 		int64_t transfer_total {0u};
 		float transfer_rate {0.f};
-		if (o.all_of<ObjComp::F::TagLocalHaveAll>() && fts->total_down <= 0) {
+		if (upload) {
 			// if have all AND no dl -> show upload progress
 			ImGui::TextUnformatted("  up");
 			transfer_total = fts->total_up;
@@ -1183,7 +1199,12 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		}
 		ImGui::SameLine();
 
-		float fraction = float(transfer_total) / total_size;
+		float fraction{0.f};
+		if (total_size > 0) {
+			fraction = float(transfer_total) / total_size;
+		} else if (o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+			fraction = 1.f;
+		}
 
 		char overlay_buf[128];
 		if (transfer_rate > 0.000001f) {
@@ -1211,11 +1232,48 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
 		}
 
-		ImGui::ProgressBar(
-			fraction,
-			{-FLT_MIN, TEXT_BASE_HEIGHT},
-			overlay_buf
-		);
+		if (!upload && !o.all_of<ObjComp::F::TagLocalHaveAll>() && o.all_of<ObjComp::F::LocalHaveBitset>()) {
+			ImGui::BeginGroup();
+
+			// TODO: hights are all off
+
+			ImGui::ProgressBar(
+				fraction,
+				{-FLT_MIN, TEXT_BASE_HEIGHT*0.66f},
+				overlay_buf
+			);
+
+			auto const cursor_start_vec = ImGui::GetCursorScreenPos();
+			const ImVec2 bar_size{ImGui::GetContentRegionAvail().x, TEXT_BASE_HEIGHT*0.15f};
+			// TODO: replace with own version, so we dont have to internal
+			ImGui::RenderFrame(
+				cursor_start_vec,
+				{
+					cursor_start_vec.x + bar_size.x,
+					cursor_start_vec.y + bar_size.y
+				},
+				ImGui::GetColorU32(ImGuiCol_FrameBg),
+				false
+			);
+
+			auto [id, img_width, img_height] = _b_tc.get(o);
+			ImGui::Image(
+				id,
+				bar_size,
+				{0.f, 0.f}, // default
+				{1.f, 1.f}, // default
+				ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram)
+			);
+
+			ImGui::EndGroup();
+		//} else if (upload && o.all_of<ObjComp::F::RemoteHaveBitset>()) {
+		} else {
+			ImGui::ProgressBar(
+				fraction,
+				{-FLT_MIN, TEXT_BASE_HEIGHT},
+				overlay_buf
+			);
+		}
 	} else {
 		// infinite scrolling progressbar fallback
 		ImGui::TextUnformatted("  ??");
@@ -1225,16 +1283,6 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			{-FLT_MIN, TEXT_BASE_HEIGHT},
 			"?%"
 		);
-	}
-
-	if (!o.all_of<ObjComp::F::TagLocalHaveAll>() && o.all_of<ObjComp::F::LocalHaveBitset>()) {
-		// texture based on have bitset
-		// TODO: missing have chunks/chunksize to get the correct size
-
-		//const auto& bitest = o.get<ObjComp::F::LocalHaveBitset>().have;
-		// generate 1bit sdlsurface zerocopy using bitset.data() and bitset.size_bytes()
-		// optionally scale down filtered (would copy)
-		// update texture? in cache?
 	}
 
 	if (o.all_of<ObjComp::F::FrameDims>()) {
@@ -1719,5 +1767,14 @@ void ChatGui4::sendFileList(const std::vector<std::string_view>& list) {
 			// if not file (???)
 		}
 	}
+}
+
+bool ChatGui4::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
+	if (!e.e.all_of<ObjComp::F::LocalHaveBitset>()) {
+		return false;
+	}
+
+	_b_tc.stale(e.e);
+	return false;
 }
 

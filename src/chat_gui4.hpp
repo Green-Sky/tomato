@@ -1,6 +1,6 @@
 #pragma once
 
-#include <solanaceae/object_store/fwd.hpp>
+#include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/util/config_model.hpp>
 
@@ -10,6 +10,7 @@
 #include "./texture_cache.hpp"
 #include "./tox_avatar_loader.hpp"
 #include "./message_image_loader.hpp"
+#include "./bitset_image_loader.hpp"
 #include "./chat_gui/file_selector.hpp"
 #include "./chat_gui/send_image_popup.hpp"
 
@@ -23,15 +24,19 @@
 
 using ContactTextureCache = TextureCache<void*, Contact3, ToxAvatarLoader>;
 using MessageTextureCache = TextureCache<void*, Message3Handle, MessageImageLoader>;
+using BitsetTextureCache = TextureCache<void*, ObjectHandle, BitsetImageLoader>;
 
-class ChatGui4 {
+class ChatGui4 : public ObjectStoreEventI {
 	ConfigModelI& _conf;
 	ObjectStore2& _os;
+	ObjectStoreEventProviderI::SubscriptionReference _os_sr;
 	RegistryMessageModelI& _rmm;
 	Contact3Registry& _cr;
 
 	ContactTextureCache& _contact_tc;
 	MessageTextureCache& _msg_tc;
+	BitsetImageLoader _bil;
+	BitsetTextureCache _b_tc;
 
 	Theme& _theme;
 
@@ -86,6 +91,9 @@ class ChatGui4 {
 		//bool renderSubContactListContact(const Contact3 c, const bool selected) const;
 
 		void pasteFile(const char* mime_type);
+
+	protected:
+		bool onEvent(const ObjectStore::Events::ObjectUpdate&) override;
 };
 
 

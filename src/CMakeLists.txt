@@ -56,6 +56,8 @@ target_sources(tomato PUBLIC
 	./tox_avatar_loader.cpp
 	./message_image_loader.hpp
 	./message_image_loader.cpp
+	./bitset_image_loader.hpp
+	./bitset_image_loader.cpp
 
 	./tox_avatar_manager.hpp
 	./tox_avatar_manager.cpp
