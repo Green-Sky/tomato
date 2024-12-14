@@ -1232,7 +1232,10 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
 		}
 
-		if (!upload && !o.all_of<ObjComp::F::TagLocalHaveAll>() && o.all_of<ObjComp::F::LocalHaveBitset>()) {
+		if (
+			(!upload && !o.all_of<ObjComp::F::TagLocalHaveAll>() && o.all_of<ObjComp::F::LocalHaveBitset>()) ||
+			(upload && o.all_of<ObjComp::F::RemoteHaveBitset>())
+		) {
 			ImGui::BeginGroup();
 
 			// TODO: hights are all off
@@ -1266,7 +1269,6 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			);
 
 			ImGui::EndGroup();
-		//} else if (upload && o.all_of<ObjComp::F::RemoteHaveBitset>()) {
 		} else {
 			ImGui::ProgressBar(
 				fraction,
@@ -1770,11 +1772,10 @@ void ChatGui4::sendFileList(const std::vector<std::string_view>& list) {
 }
 
 bool ChatGui4::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
-	if (!e.e.all_of<ObjComp::F::LocalHaveBitset>()) {
-		return false;
+	if (e.e.any_of<ObjComp::F::LocalHaveBitset, ObjComp::F::RemoteHaveBitset>()) {
+		_b_tc.stale(e.e);
 	}
 
-	_b_tc.stale(e.e);
 	return false;
 }
 

@@ -18,8 +18,6 @@ constexpr std::string_view entt::type_name<x>::value() noexcept { \
 
 // cross compile(r) stable ids
 
-DEFINE_COMP_ID(ObjComp::F::RemoteHaveBitset)
-
 DEFINE_COMP_ID(ObjComp::Ephemeral::File::TransferStatsSeparated)
 
 #undef DEFINE_COMP_ID
