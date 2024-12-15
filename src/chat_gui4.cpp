@@ -1246,27 +1246,34 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				overlay_buf
 			);
 
-			auto const cursor_start_vec = ImGui::GetCursorScreenPos();
+			ImVec2 orig_curser_pos = ImGui::GetCursorPos();
 			const ImVec2 bar_size{ImGui::GetContentRegionAvail().x, TEXT_BASE_HEIGHT*0.15f};
-			// TODO: replace with own version, so we dont have to internal
-			ImGui::RenderFrame(
-				cursor_start_vec,
-				{
-					cursor_start_vec.x + bar_size.x,
-					cursor_start_vec.y + bar_size.y
-				},
-				ImGui::GetColorU32(ImGuiCol_FrameBg),
-				false
-			);
+			// deploy dummy and check visibility
+			ImGui::Dummy(bar_size);
+			if (ImGui::IsItemVisible()) {
+				ImGui::SetCursorPos(orig_curser_pos); // reset before dummy
 
-			auto [id, img_width, img_height] = _b_tc.get(o);
-			ImGui::Image(
-				id,
-				bar_size,
-				{0.f, 0.f}, // default
-				{1.f, 1.f}, // default
-				ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram)
-			);
+				auto const cursor_start_vec = ImGui::GetCursorScreenPos();
+				// TODO: replace with own version, so we dont have to internal
+				ImGui::RenderFrame(
+					cursor_start_vec,
+					{
+						cursor_start_vec.x + bar_size.x,
+						cursor_start_vec.y + bar_size.y
+					},
+					ImGui::GetColorU32(ImGuiCol_FrameBg),
+					false
+				);
+
+				auto [id, img_width, img_height] = _b_tc.get(o);
+				ImGui::Image(
+					id,
+					bar_size,
+					{0.f, 0.f}, // default
+					{1.f, 1.f}, // default
+					ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram)
+				);
+			}
 
 			ImGui::EndGroup();
 		} else {
