@@ -71,27 +71,27 @@ std::optional<TextureEntry> BitsetImageLoader::haveToTexture(TextureUploaderI& t
 BitsetImageLoader::BitsetImageLoader(void) {
 }
 
-std::optional<TextureEntry> BitsetImageLoader::load(TextureUploaderI& tu, ObjectHandle o) {
+TextureLoaderResult BitsetImageLoader::load(TextureUploaderI& tu, ObjectHandle o) {
 	if (!static_cast<bool>(o)) {
 		std::cerr << "BIL error: trying to load invalid object\n";
-		return std::nullopt;
+		return {std::nullopt};
 	}
 
 	if (!o.any_of<ObjComp::F::LocalHaveBitset, ObjComp::F::RemoteHaveBitset>()) {
 		// after completion, this is called until the texture times out
 		//std::cout << "BIL: no local have bitset\n";
-		return std::nullopt;
+		return {std::nullopt};
 	}
 
 	if (o.all_of<ObjComp::F::LocalHaveBitset>()) {
 		auto& have = o.get<ObjComp::F::LocalHaveBitset>().have;
 		assert(have.size_bits() > 0);
-		return haveToTexture(tu, have, o);
+		return {haveToTexture(tu, have, o)};
 	} else if (o.all_of<ObjComp::F::RemoteHaveBitset>()) {
 		auto& list = o.get<ObjComp::F::RemoteHaveBitset>().others;
 		if (list.empty()) {
 			std::cout << "BIL: remote set list empty\n";
-			return std::nullopt;
+			return {std::nullopt};
 		}
 		const auto& first_entry = list.begin()->second;
 
@@ -115,10 +115,10 @@ std::optional<TextureEntry> BitsetImageLoader::load(TextureUploaderI& tu, Object
 			}
 		}
 
-		return haveToTexture(tu, _tmp_bitset, o);
+		return {haveToTexture(tu, _tmp_bitset, o)};
 	}
 
-	return std::nullopt;
+	return {std::nullopt};
 }
 
 std::optional<TextureEntry> BitsetImageLoader::load(TextureUploaderI& tu, ObjectContactSub ocs) {

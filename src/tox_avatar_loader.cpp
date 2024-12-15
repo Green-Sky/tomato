@@ -4,6 +4,7 @@
 #include "./image_loader_qoi.hpp"
 #include "./image_loader_webp.hpp"
 #include "./image_loader_sdl_image.hpp"
+#include "texture_uploader.hpp"
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
@@ -119,9 +120,9 @@ static std::vector<uint8_t> generateToxIdenticon(const ToxKey& key) {
 	return pixels;
 }
 
-std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
+TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 	if (!_cr.valid(c)) {
-		return std::nullopt;
+		return {std::nullopt};
 	}
 
 	if (_cr.all_of<Contact::Components::AvatarMemory>(c)) {
@@ -134,13 +135,13 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 		new_entry.width = a_m.width;
 		new_entry.height = a_m.height;
 
-		const auto n_t = tu.uploadRGBA(a_m.data.data(), a_m.width, a_m.height);
+		const auto n_t = tu.upload(a_m.data.data(), a_m.width, a_m.height);
 		new_entry.textures.push_back(n_t);
 		new_entry.frame_duration.push_back(250);
 
 		std::cout << "TAL: loaded memory buffer\n";
 
-		return new_entry;
+		return {new_entry};
 	}
 
 	if (_cr.all_of<Contact::Components::AvatarFile>(c)) {
@@ -169,7 +170,7 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 				new_entry.timestamp_last_rendered = Message::getTimeMS();
 				new_entry.current_texture = 0;
 				for (const auto& [ms, data] : res.frames) {
-					const auto n_t = tu.uploadRGBA(data.data(), res.width, res.height);
+					const auto n_t = tu.upload(data.data(), res.width, res.height);
 					new_entry.textures.push_back(n_t);
 					new_entry.frame_duration.push_back(ms);
 				}
@@ -179,7 +180,7 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 
 				std::cout << "TAL: loaded image file " << a_f.file_path << "\n";
 
-				return new_entry;
+				return {new_entry};
 			}
 		}
 	} // continues if loading img fails
@@ -190,7 +191,7 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 		Contact::Components::ToxGroupPeerPersistent,
 		Contact::Components::ID
 	>(c)) {
-		return std::nullopt;
+		return {std::nullopt};
 	}
 
 	std::vector<uint8_t> pixels;
@@ -212,7 +213,7 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 	new_entry.timestamp_last_rendered = Message::getTimeMS();
 	new_entry.current_texture = 0;
 
-	const auto n_t = tu.uploadRGBA(pixels.data(), 5, 5, TextureUploaderI::NEAREST);
+	const auto n_t = tu.upload(pixels.data(), 5, 5, TextureUploaderI::RGBA, TextureUploaderI::NEAREST);
 	new_entry.textures.push_back(n_t);
 	new_entry.frame_duration.push_back(250);
 
@@ -221,6 +222,6 @@ std::optional<TextureEntry> ToxAvatarLoader::load(TextureUploaderI& tu, Contact3
 
 	std::cout << "TAL: generated ToxIdenticon\n";
 
-	return new_entry;
+	return {new_entry};
 }
 

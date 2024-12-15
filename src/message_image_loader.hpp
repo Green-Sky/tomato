@@ -12,6 +12,6 @@ class MessageImageLoader {
 
 	public:
 		MessageImageLoader(void);
-		std::optional<TextureEntry> load(TextureUploaderI& tu, Message3Handle m);
+		TextureLoaderResult load(TextureUploaderI& tu, Message3Handle m);
 };
 

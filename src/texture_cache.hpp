@@ -6,6 +6,7 @@
 #include <entt/container/dense_set.hpp>
 
 #include <iostream>
+#include <optional>
 
 struct TextureEntry {
 	uint32_t width {0};
@@ -68,6 +69,11 @@ struct TextureEntry {
 			return reinterpret_cast<TextureType>(static_cast<uint32_t>(textures.at(current_texture)));
 		}
 	}
+};
+
+struct TextureLoaderResult {
+	std::optional<TextureEntry> texture;
+	bool keep_trying{false}; // if set, cant be cleared, as some async might be going on
 };
 
 TextureEntry generateTestAnim(TextureUploaderI& tu);
@@ -188,12 +194,12 @@ struct TextureCache {
 		for (; it != _to_load.end(); it++) {
 			if (_cache.count(*it)) {
 				auto new_entry_opt = _l.load(_tu, *it);
-				if (new_entry_opt.has_value()) {
+				if (new_entry_opt.texture.has_value()) {
 					auto old_entry = _cache.at(*it);
 					for (const auto& tex_id : old_entry.textures) {
 						_tu.destroy(tex_id);
 					}
-					auto [new_it, _] = _cache.insert_or_assign(*it, new_entry_opt.value());
+					auto [new_it, _] = _cache.insert_or_assign(*it, new_entry_opt.texture.value());
 					//new_it->second.current_texture = old_entry.current_texture; // ??
 					new_it->second.rendered_this_frame = old_entry.rendered_this_frame;
 					new_it->second.timestamp_last_rendered = old_entry.timestamp_last_rendered;
@@ -202,15 +208,21 @@ struct TextureCache {
 
 					// TODO: not a good idea?
 					break; // end load from queue/onlyload 1 per update
+				} else if (!new_entry_opt.keep_trying) {
+					// failed to load and the loader is done
+					it = _to_load.erase(it);
 				}
 			} else {
 				auto new_entry_opt = _l.load(_tu, *it);
-				if (new_entry_opt.has_value()) {
-					_cache.emplace(*it, new_entry_opt.value());
+				if (new_entry_opt.texture.has_value()) {
+					_cache.emplace(*it, new_entry_opt.texture.value());
 					it = _to_load.erase(it);
 
 					// TODO: not a good idea?
 					break; // end load from queue/onlyload 1 per update
+				} else if (!new_entry_opt.keep_trying) {
+					// failed to load and the loader is done
+					it = _to_load.erase(it);
 				}
 			}
 		}

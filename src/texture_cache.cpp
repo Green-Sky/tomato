@@ -46,7 +46,7 @@ TextureEntry generateTestAnim(TextureUploaderI& tu) {
 			}
 		}
 
-		const auto n_t = tu.uploadRGBA(pixels.data(), width, height);
+		const auto n_t = tu.upload(pixels.data(), width, height);
 
 		// this is so ugly
 		new_entry.textures.emplace_back(n_t);

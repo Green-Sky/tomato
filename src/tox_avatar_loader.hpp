@@ -14,6 +14,6 @@ class ToxAvatarLoader {
 
 	public:
 		ToxAvatarLoader(Contact3Registry& cr);
-		std::optional<TextureEntry> load(TextureUploaderI& tu, Contact3 c);
+		TextureLoaderResult load(TextureUploaderI& tu, Contact3 c);
 };
 
