@@ -1044,7 +1044,7 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	ImGui::BeginGroup();
 	do {
 		const auto current_line = msgtext_sv.substr(pos_prev, pos_next - pos_prev);
-		if (current_line.front() == '>') {
+		if (!current_line.empty() && current_line.front() == '>') {
 			// TODO: theming
 			ImGui::PushStyleColor(ImGuiCol_Text, {0.3f, 0.9f, 0.1f, 1.f});
 			ImGui::TextUnformatted(current_line.data(), current_line.data()+current_line.size());
