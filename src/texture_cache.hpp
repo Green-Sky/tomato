@@ -5,8 +5,11 @@
 #include <entt/container/dense_map.hpp>
 #include <entt/container/dense_set.hpp>
 
-#include <iostream>
 #include <optional>
+#include <vector>
+#include <cassert>
+
+#include <iostream>
 
 struct TextureEntry {
 	uint32_t width {0};
@@ -163,7 +166,10 @@ struct TextureCache {
 				const uint64_t ts_next = te.doAnimation(ts_now);
 				te.rendered_this_frame = false;
 				ts_min_next = std::min(ts_min_next, ts_next);
-			} else if (_cache.size() > min_count_before_purge && ts_now - te.timestamp_last_rendered >= ms_before_purge) {
+			} else if (
+				_cache.size() > min_count_before_purge &&
+				ts_now - te.timestamp_last_rendered >= ms_before_purge
+			) {
 				to_purge.push_back(key);
 			}
 		}
@@ -178,31 +184,38 @@ struct TextureCache {
 
 	void invalidate(const std::vector<KeyType>& to_purge) {
 		for (const auto& key : to_purge) {
+			if (_to_load.count(key)) {
+				// TODO: only remove if not keep trying
+				_to_load.erase(key);
+			}
 			if (_cache.count(key)) {
 				for (const auto& tex_id : _cache.at(key).textures) {
 					_tu.destroy(tex_id);
 				}
+				_cache.erase(key);
 			}
-			_cache.erase(key);
-			_to_load.erase(key);
 		}
 	}
 
 	// returns true if there is still work queued up
 	bool workLoadQueue(void) {
-		auto it = _to_load.begin();
-		for (; it != _to_load.end(); it++) {
+		auto it = _to_load.cbegin();
+		for (; it != _to_load.cend(); it++) {
+			auto new_entry_opt = _l.load(_tu, *it);
 			if (_cache.count(*it)) {
-				auto new_entry_opt = _l.load(_tu, *it);
 				if (new_entry_opt.texture.has_value()) {
-					auto old_entry = _cache.at(*it);
+					auto old_entry = _cache.at(*it); // copy
+					assert(!old_entry.textures.empty());
 					for (const auto& tex_id : old_entry.textures) {
 						_tu.destroy(tex_id);
 					}
-					auto [new_it, _] = _cache.insert_or_assign(*it, new_entry_opt.texture.value());
-					//new_it->second.current_texture = old_entry.current_texture; // ??
-					new_it->second.rendered_this_frame = old_entry.rendered_this_frame;
-					new_it->second.timestamp_last_rendered = old_entry.timestamp_last_rendered;
+
+					_cache.erase(*it);
+					auto& new_entry = _cache[*it] = new_entry_opt.texture.value();
+					// TODO: make update interface and let loader handle this
+					//new_entry.current_texture = old_entry.current_texture; // ??
+					new_entry.rendered_this_frame = old_entry.rendered_this_frame;
+					new_entry.timestamp_last_rendered = old_entry.timestamp_last_rendered;
 
 					it = _to_load.erase(it);
 
@@ -213,9 +226,9 @@ struct TextureCache {
 					it = _to_load.erase(it);
 				}
 			} else {
-				auto new_entry_opt = _l.load(_tu, *it);
 				if (new_entry_opt.texture.has_value()) {
 					_cache.emplace(*it, new_entry_opt.texture.value());
+					_cache.at(*it).rendered_this_frame = true; // ?
 					it = _to_load.erase(it);
 
 					// TODO: not a good idea?
@@ -227,8 +240,8 @@ struct TextureCache {
 			}
 		}
 
-		// peak
-		return it != _to_load.end();
+		// peek
+		return it != _to_load.cend();
 	}
 };
 
