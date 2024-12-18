@@ -55,6 +55,7 @@ ImageLoaderSDLImage::ImageInfo ImageLoaderSDLImage::loadInfoFromMemory(const uin
 	// we ignore tga
 	auto ext_opt = getExt(ios);
 	if (!ext_opt.has_value()) {
+		SDL_CloseIO(ios);
 		return res;
 	}
 
@@ -80,6 +81,7 @@ ImageLoaderSDLImage::ImageResult ImageLoaderSDLImage::loadFromMemoryRGBA(const u
 	// we ignore tga
 	auto ext_opt = getExt(ios);
 	if (!ext_opt.has_value()) {
+		SDL_CloseIO(ios);
 		return res;
 	}
 

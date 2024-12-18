@@ -11,6 +11,8 @@
 
 #include <imgui/imgui.h>
 
+#include <cmath>
+
 // fwd
 namespace Message {
 uint64_t getTimeMS(void);
@@ -91,7 +93,7 @@ bool SendImagePopup::load(void) {
 		preview_image.timestamp_last_rendered = Message::getTimeMS();
 		preview_image.current_texture = 0;
 		for (const auto& [ms, data] : original_image.frames) {
-			const auto n_t = _tu.uploadRGBA(data.data(), original_image.width, original_image.height);
+			const auto n_t = _tu.upload(data.data(), original_image.width, original_image.height);
 			preview_image.textures.push_back(n_t);
 			preview_image.frame_duration.push_back(ms);
 		}
