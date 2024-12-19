@@ -27,9 +27,18 @@ option(TOMATO_TOX_AV "Build tomato with ToxAV" OFF)
 if (TOMATO_ASAN)
 	if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 		if (NOT WIN32) # exclude mingw
-			#link_libraries(-fsanitize=address)
-			link_libraries(-fsanitize=address,undefined)
-			#link_libraries(-fsanitize=undefined)
+			add_compile_options(-fno-omit-frame-pointer)
+			add_compile_options(-fsanitize=address,undefined)
+			#add_compile_options(-fsanitize=address,undefined,pointer-compare,pointer-subtract)
+			#add_compile_options(-fhardened)
+			#add_compile_options(-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fPIE  -pie  -Wl,-z,relro,-z,now -fstack-protector-strong -fstack-clash-protection -fcf-protection=full)
+
+			add_link_options(-fno-omit-frame-pointer)
+			add_link_options(-fsanitize=address,undefined)
+			#add_link_options(-fsanitize=address,undefined,pointer-compare,pointer-subtract)
+			#add_link_options(-fhardened)
+			#add_link_options(-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fPIE  -pie  -Wl,-z,relro,-z,now -fstack-protector-strong -fstack-clash-protection -fcf-protection=full)
+
 			link_libraries(-static-libasan) # make it "work" on nix
 			message("II enabled ASAN")
 		else()
