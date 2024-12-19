@@ -78,6 +78,7 @@ extra_data = {
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",
+        "//c-toxcore/toxcore:tox_unpack",
         "//c-toxcore/toxcore:util",
         "//c-toxcore/toxencryptsave",
         "@libsodium",

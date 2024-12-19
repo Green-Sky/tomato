@@ -53,7 +53,7 @@ static void test_basic(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
     logger_callback_log(logger, print_debug_logger, nullptr, nullptr);
 
     // Attempt to create a new TCP_Server instance.
@@ -74,7 +74,7 @@ static void test_basic(void)
     for (uint8_t i = 0; i < NUM_PORTS; i++) {
         sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
         localhost.port = net_htons(ports[i]);
-        bool ret = net_connect(mem, logger, sock, &localhost);
+        bool ret = net_connect(ns, mem, logger, sock, &localhost);
         ck_assert_msg(ret, "Failed to connect to created TCP relay server on port %d (%d).", ports[i], errno);
 
         // Leave open one connection for the next test.
@@ -102,7 +102,7 @@ static void test_basic(void)
     random_nonce(rng, handshake + CRYPTO_PUBLIC_KEY_SIZE);
 
     // Encrypting handshake
-    int ret = encrypt_data(self_public_key, f_secret_key, handshake + CRYPTO_PUBLIC_KEY_SIZE, handshake_plain,
+    int ret = encrypt_data(mem, self_public_key, f_secret_key, handshake + CRYPTO_PUBLIC_KEY_SIZE, handshake_plain,
                            TCP_HANDSHAKE_PLAIN_SIZE, handshake + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
     ck_assert_msg(ret == TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                   "encrypt_data() call failed.");
@@ -128,7 +128,7 @@ static void test_basic(void)
     uint8_t response_plain[TCP_HANDSHAKE_PLAIN_SIZE];
     ck_assert_msg(net_recv(ns, logger, sock, response, TCP_SERVER_HANDSHAKE_SIZE, &localhost) == TCP_SERVER_HANDSHAKE_SIZE,
                   "Could/did not receive a server response to the initial handshake.");
-    ret = decrypt_data(self_public_key, f_secret_key, response, response + CRYPTO_NONCE_SIZE,
+    ret = decrypt_data(mem, self_public_key, f_secret_key, response, response + CRYPTO_NONCE_SIZE,
                        TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, response_plain);
     ck_assert_msg(ret == TCP_HANDSHAKE_PLAIN_SIZE, "Failed to decrypt handshake response.");
     uint8_t f_nonce_r[CRYPTO_NONCE_SIZE];
@@ -143,7 +143,7 @@ static void test_basic(void)
     uint8_t r_req[2 + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE];
     uint16_t size = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE;
     size = net_htons(size);
-    encrypt_data_symmetric(f_shared_key, f_nonce, r_req_p, 1 + CRYPTO_PUBLIC_KEY_SIZE, r_req + 2);
+    encrypt_data_symmetric(mem, f_shared_key, f_nonce, r_req_p, 1 + CRYPTO_PUBLIC_KEY_SIZE, r_req + 2);
     increment_nonce(f_nonce);
     memcpy(r_req, &size, 2);
 
@@ -174,7 +174,7 @@ static void test_basic(void)
                   "Wrong packet size for request response.");
 
     uint8_t packet_resp_plain[4096];
-    ret = decrypt_data_symmetric(f_shared_key, f_nonce_r, packet_resp + 2, recv_data_len - 2, packet_resp_plain);
+    ret = decrypt_data_symmetric(mem, f_shared_key, f_nonce_r, packet_resp + 2, recv_data_len - 2, packet_resp_plain);
     ck_assert_msg(ret != -1, "Failed to decrypt the TCP server's response.");
     increment_nonce(f_nonce_r);
 
@@ -213,7 +213,7 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
     localhost.ip = get_loopback();
     localhost.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
 
-    bool ok = net_connect(mem, logger, sock, &localhost);
+    bool ok = net_connect(ns, mem, logger, sock, &localhost);
     ck_assert_msg(ok, "Failed to connect to the test TCP relay server.");
 
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -228,7 +228,7 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
     memcpy(handshake, sec_c->public_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(rng, handshake + CRYPTO_PUBLIC_KEY_SIZE);
 
-    int ret = encrypt_data(tcp_server_public_key(tcp_s), f_secret_key, handshake + CRYPTO_PUBLIC_KEY_SIZE, handshake_plain,
+    int ret = encrypt_data(mem, tcp_server_public_key(tcp_s), f_secret_key, handshake + CRYPTO_PUBLIC_KEY_SIZE, handshake_plain,
                            TCP_HANDSHAKE_PLAIN_SIZE, handshake + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
     ck_assert_msg(ret == TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                   "Failed to encrypt the outgoing handshake.");
@@ -248,7 +248,7 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
     uint8_t response_plain[TCP_HANDSHAKE_PLAIN_SIZE];
     ck_assert_msg(net_recv(sec_c->ns, logger, sock, response, TCP_SERVER_HANDSHAKE_SIZE, &localhost) == TCP_SERVER_HANDSHAKE_SIZE,
                   "Failed to receive server handshake response.");
-    ret = decrypt_data(tcp_server_public_key(tcp_s), f_secret_key, response, response + CRYPTO_NONCE_SIZE,
+    ret = decrypt_data(mem, tcp_server_public_key(tcp_s), f_secret_key, response, response + CRYPTO_NONCE_SIZE,
                        TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, response_plain);
     ck_assert_msg(ret == TCP_HANDSHAKE_PLAIN_SIZE, "Failed to decrypt server handshake response.");
     encrypt_precompute(response_plain, t_secret_key, sec_c->shared_key);
@@ -271,7 +271,7 @@ static int write_packet_tcp_test_connection(const Logger *logger, struct sec_TCP
 
     uint16_t c_length = net_htons(length + CRYPTO_MAC_SIZE);
     memcpy(packet, &c_length, sizeof(uint16_t));
-    int len = encrypt_data_symmetric(con->shared_key, con->sent_nonce, data, length, packet + sizeof(uint16_t));
+    int len = encrypt_data_symmetric(con->mem, con->shared_key, con->sent_nonce, data, length, packet + sizeof(uint16_t));
 
     if ((unsigned int)len != (packet_size - sizeof(uint16_t))) {
         return -1;
@@ -296,7 +296,7 @@ static int read_packet_sec_tcp(const Logger *logger, struct sec_TCP_con *con, ui
 
     int rlen = net_recv(con->ns, logger, con->sock, data, length, &localhost);
     ck_assert_msg(rlen == length, "Did not receive packet of correct length. Wanted %i, instead got %i", length, rlen);
-    rlen = decrypt_data_symmetric(con->shared_key, con->recv_nonce, data + 2, length - 2, data);
+    rlen = decrypt_data_symmetric(con->mem, con->shared_key, con->recv_nonce, data + 2, length - 2, data);
     ck_assert_msg(rlen != -1, "Failed to decrypt a received packet from the Relay server.");
     increment_nonce(con->recv_nonce);
     return rlen;
@@ -312,7 +312,7 @@ static void test_some(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -506,7 +506,7 @@ static void test_client(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -643,7 +643,7 @@ static void test_client_invalid(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -721,7 +721,7 @@ static void test_tcp_connection(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     tcp_data_callback_called = 0;
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -834,7 +834,7 @@ static void test_tcp_connection2(void)
     ck_assert(mem != nullptr);
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new();
+    Logger *logger = logger_new(mem);
 
     tcp_oobdata_callback_called = 0;
     tcp_data_callback_called = 0;

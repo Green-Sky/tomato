@@ -9,6 +9,7 @@ cc_binary(
         "main/tox_main.h",
     ],
     deps = [
+        "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_events",
     ],
