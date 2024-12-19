@@ -15,7 +15,7 @@ CPPFLAGS+=("-Itoxav")
 CPPFLAGS+=("-Itoxencryptsave")
 CPPFLAGS+=("-Ithird_party/cmp")
 
-LDFLAGS=("-lopus" "-lsodium" "-lvpx" "-lpthread" "-lconfig" "-lgmock" "-lgtest")
+LDFLAGS=("-lopus" "-lsodium" "-lvpx" "-lpthread" "-lconfig" "-lgmock" "-lgtest" "-lbenchmark")
 LDFLAGS+=("-fuse-ld=gold")
 LDFLAGS+=("-Wl,--detect-odr-violations")
 LDFLAGS+=("-Wl,--warn-common")
@@ -27,7 +27,7 @@ put() {
   if [ "$SKIP_LINES" = "" ]; then
     echo "#line 1 \"$1\"" >>amalgamation.cc
   fi
-  cat "$1" >>amalgamation.cc
+  grep -v '^BENCHMARK_MAIN' "$1" >>amalgamation.cc
 }
 
 putmain() {

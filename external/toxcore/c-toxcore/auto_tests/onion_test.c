@@ -109,7 +109,7 @@ static int handle_test_3(void *object, const IP_Port *source, const uint8_t *pac
 #if 0
     print_client_id(packet, length);
 #endif
-    int len = decrypt_data(test_3_pub_key, dht_get_self_secret_key(onion->dht),
+    int len = decrypt_data(onion->mem, test_3_pub_key, dht_get_self_secret_key(onion->dht),
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH,
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE,
                            2 + CRYPTO_SHA256_SIZE + CRYPTO_MAC_SIZE, plain);
@@ -144,7 +144,7 @@ static int handle_test_3_old(void *object, const IP_Port *source, const uint8_t 
 #if 0
     print_client_id(packet, length);
 #endif
-    int len = decrypt_data(test_3_pub_key, dht_get_self_secret_key(onion->dht),
+    int len = decrypt_data(onion->mem, test_3_pub_key, dht_get_self_secret_key(onion->dht),
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH,
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE,
                            1 + CRYPTO_SHA256_SIZE + CRYPTO_MAC_SIZE, plain);
@@ -182,7 +182,7 @@ static int handle_test_4(void *object, const IP_Port *source, const uint8_t *pac
         return 1;
     }
 
-    int len = decrypt_data(packet + 1 + CRYPTO_NONCE_SIZE, dht_get_self_secret_key(onion->dht), packet + 1,
+    int len = decrypt_data(onion->mem, packet + 1 + CRYPTO_NONCE_SIZE, dht_get_self_secret_key(onion->dht), packet + 1,
                            packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE, sizeof("Install gentoo") + CRYPTO_MAC_SIZE, plain);
 
     if (len == -1) {
@@ -202,10 +202,10 @@ static int handle_test_4(void *object, const IP_Port *source, const uint8_t *pac
  * Use Onion_Path path to send data of length to dest.
  * Maximum length of data is ONION_MAX_DATA_SIZE.
  */
-static void send_onion_packet(const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
+static void send_onion_packet(const Networking_Core *net, const Memory *mem, const Random *rng, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
 {
     uint8_t packet[ONION_MAX_PACKET_SIZE];
-    const int len = create_onion_packet(rng, packet, sizeof(packet), path, dest, data, length);
+    const int len = create_onion_packet(mem, rng, packet, sizeof(packet), path, dest, data, length);
     ck_assert_msg(len != -1, "failed to create onion packet");
     ck_assert_msg(sendpacket(net, &path->ip_port1, packet, len) == len, "failed to send onion packet");
 }
@@ -228,9 +228,9 @@ static void test_basic(void)
     const Random *rng = os_random();
     ck_assert(rng != nullptr);
 
-    Logger *log1 = logger_new();
+    Logger *log1 = logger_new(mem);
     logger_callback_log(log1, print_debug_logger, nullptr, &index[0]);
-    Logger *log2 = logger_new();
+    Logger *log2 = logger_new(mem);
     logger_callback_log(log2, print_debug_logger, nullptr, &index[1]);
 
     Mono_Time *mono_time1 = mono_time_new(mem, nullptr, nullptr);
@@ -264,7 +264,7 @@ static void test_basic(void)
     nodes[3] = n2;
     Onion_Path path;
     create_onion_path(rng, onion1->dht, &path, nodes);
-    send_onion_packet(onion1->net, rng, &path, &nodes[3].ip_port, req_packet, sizeof(req_packet));
+    send_onion_packet(onion1->net, onion1->mem, rng, &path, &nodes[3].ip_port, req_packet, sizeof(req_packet));
 
     handled_test_1 = 0;
 
@@ -291,7 +291,7 @@ static void test_basic(void)
     uint64_t s;
     memcpy(&s, sb_data, sizeof(uint64_t));
     memcpy(test_3_pub_key, nodes[3].public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    int ret = send_announce_request(log1, onion1->net, rng, &path, &nodes[3],
+    int ret = send_announce_request(log1, onion1->mem, onion1->net, rng, &path, &nodes[3],
                                     dht_get_self_public_key(onion1->dht),
                                     dht_get_self_secret_key(onion1->dht),
                                     zeroes,
@@ -313,7 +313,7 @@ static void test_basic(void)
     memcpy(onion_announce_entry_public_key(onion2_a, 1), dht_get_self_public_key(onion2->dht), CRYPTO_PUBLIC_KEY_SIZE);
     onion_announce_entry_set_time(onion2_a, 1, mono_time_get(mono_time2));
     networking_registerhandler(onion1->net, NET_PACKET_ONION_DATA_RESPONSE, &handle_test_4, onion1);
-    send_announce_request(log1, onion1->net, rng, &path, &nodes[3],
+    send_announce_request(log1, onion1->mem, onion1->net, rng, &path, &nodes[3],
                           dht_get_self_public_key(onion1->dht),
                           dht_get_self_secret_key(onion1->dht),
                           test_3_ping_id,
@@ -329,7 +329,7 @@ static void test_basic(void)
                     CRYPTO_PUBLIC_KEY_SIZE) != 0);
 
     c_sleep(1000);
-    Logger *log3 = logger_new();
+    Logger *log3 = logger_new(mem);
     logger_callback_log(log3, print_debug_logger, nullptr, &index[2]);
 
     Mono_Time *mono_time3 = mono_time_new(mem, nullptr, nullptr);
@@ -338,7 +338,7 @@ static void test_basic(void)
     ck_assert_msg((onion3 != nullptr), "Onion failed initializing.");
 
     random_nonce(rng, nonce);
-    ret = send_data_request(log3, onion3->net, rng, &path, &nodes[3].ip_port,
+    ret = send_data_request(log3, onion3->mem, onion3->net, rng, &path, &nodes[3].ip_port,
                             dht_get_self_public_key(onion1->dht),
                             dht_get_self_public_key(onion1->dht),
                             nonce, (const uint8_t *)"Install gentoo", sizeof("Install gentoo"));
@@ -412,7 +412,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
-    on->log = logger_new();
+    on->log = logger_new(mem);
 
     if (!on->log) {
         free(on);

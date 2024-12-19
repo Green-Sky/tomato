@@ -283,16 +283,17 @@ int main(int argc, char *argv[])
     IP ip;
     ip_init(&ip, enable_ipv6);
 
-    Logger *logger = logger_new();
+    const Memory *mem = os_memory();
+    const Random *rng = os_random();
+    const Network *ns = os_network();
+
+    Logger *logger = logger_new(mem);
 
     if (MIN_LOGGER_LEVEL <= LOGGER_LEVEL_DEBUG) {
         logger_callback_log(logger, toxcore_logger_callback, nullptr, nullptr);
     }
 
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
-    const Memory *mem = os_memory();
-    const Random *rng = os_random();
-    const Network *ns = os_network();
     Networking_Core *net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
 
     if (net == nullptr) {

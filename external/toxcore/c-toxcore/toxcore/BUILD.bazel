@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 
 exports_files(
@@ -100,11 +100,55 @@ cc_test(
     size = "small",
     srcs = ["util_test.cc"],
     deps = [
-        ":crypto_core",
-        ":crypto_core_test_util",
         ":util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "sort",
+    srcs = ["sort.c"],
+    hdrs = ["sort.h"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":util",
+    ],
+)
+
+cc_library(
+    name = "sort_test_util",
+    testonly = True,
+    srcs = ["sort_test_util.cc"],
+    hdrs = ["sort_test_util.hh"],
+    deps = [
+        ":sort",
+        ":util",
+    ],
+)
+
+cc_test(
+    name = "sort_test",
+    size = "small",
+    srcs = ["sort_test.cc"],
+    deps = [
+        ":sort",
+        ":sort_test_util",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "sort_bench",
+    testonly = True,
+    srcs = ["sort_bench.cc"],
+    deps = [
+        ":mem",
+        ":sort",
+        ":sort_test_util",
+        "@benchmark",
     ],
 )
 
@@ -121,6 +165,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":mem",
     ],
 )
 
@@ -170,6 +215,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":mem",
         ":util",
         "@libsodium",
     ],
@@ -208,6 +254,7 @@ cc_test(
     deps = [
         ":crypto_core",
         ":crypto_core_test_util",
+        ":mem_test_util",
         ":util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -332,6 +379,7 @@ cc_library(
     hdrs = ["network_test_util.hh"],
     deps = [
         ":crypto_core",
+        ":mem",
         ":network",
         ":test_util",
     ],
@@ -435,6 +483,7 @@ cc_library(
         ":network",
         ":ping_array",
         ":shared_key_cache",
+        ":sort",
         ":state",
         ":util",
     ],
@@ -478,10 +527,12 @@ cc_test(
 cc_fuzz_test(
     name = "DHT_fuzz_test",
     size = "small",
+    testonly = True,
     srcs = ["DHT_fuzz_test.cc"],
     corpus = ["//tools/toktok-fuzzer/corpus:DHT_fuzz_test"],
     deps = [
         ":DHT",
+        ":mem_test_util",
         "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
@@ -490,7 +541,11 @@ cc_library(
     name = "onion",
     srcs = ["onion.c"],
     hdrs = ["onion.h"],
-    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+    ],
     deps = [
         ":DHT",
         ":attributes",
@@ -509,7 +564,11 @@ cc_library(
     name = "forwarding",
     srcs = ["forwarding.c"],
     hdrs = ["forwarding.h"],
-    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+    ],
     deps = [
         ":DHT",
         ":attributes",
@@ -704,6 +763,7 @@ cc_library(
         ":network",
         ":onion",
         ":shared_key_cache",
+        ":sort",
         ":timed_auth",
         ":util",
     ],
@@ -777,6 +837,7 @@ cc_library(
         ":crypto_core",
         ":group_announce",
         ":logger",
+        ":mem",
         ":mono_time",
         ":network",
         ":onion_announce",
@@ -806,6 +867,7 @@ cc_library(
         ":onion",
         ":onion_announce",
         ":ping_array",
+        ":sort",
         ":timed_auth",
         ":util",
     ],
@@ -971,9 +1033,11 @@ cc_library(
         ":crypto_core",
         ":friend_connection",
         ":logger",
+        ":mem",
         ":mono_time",
         ":net_crypto",
         ":network",
+        ":sort",
         ":state",
         ":util",
     ],

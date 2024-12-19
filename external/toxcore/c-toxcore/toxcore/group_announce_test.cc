@@ -118,11 +118,12 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
 struct AnnouncesPack : ::testing::Test {
 protected:
     std::vector<GC_Announce> announces_;
+    Test_Memory mem_;
     Logger *logger_ = nullptr;
 
     void SetUp() override
     {
-        logger_ = logger_new();
+        logger_ = logger_new(mem_);
         ASSERT_NE(logger_, nullptr);
 
         // Add an announce without TCP relay.

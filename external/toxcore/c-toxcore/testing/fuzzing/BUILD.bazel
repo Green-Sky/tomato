@@ -48,6 +48,7 @@ cc_fuzz_test(
     deps = [
         ":fuzz_support",
         ":fuzz_tox",
+        "//c-toxcore/toxcore:crypto_core",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",
@@ -102,6 +103,7 @@ cc_test(
     deps = [
         ":fuzz_support",
         ":fuzz_tox",
+        "//c-toxcore/toxcore:crypto_core",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",
@@ -117,6 +119,7 @@ cc_fuzz_test(
     deps = [
         ":fuzz_support",
         ":fuzz_tox",
+        "//c-toxcore/toxcore:crypto_core",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",

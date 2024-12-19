@@ -3,20 +3,15 @@ version: 2
 
 workflows:
   version: 2
-  program-analysis:
+  circleci:
     jobs:
-      # Dynamic analysis in the Bazel build
       - bazel-asan
       - bazel-msan
-      - bazel-tsan
-      # Dynamic analysis with CMake
-      - asan
-      - tsan
-      - ubsan
-      # Static analysis
       - clang-analyze
       - cpplint
       - static-analysis
+      - cimplefmt
+      - generate-events
 
 jobs:
   bazel-asan:
@@ -29,20 +24,6 @@ jobs:
       - run: .circleci/bazel-test
           //c-toxcore/...
 
-  bazel-tsan:
-    working_directory: /tmp/cirrus-ci-build
-    docker:
-      - image: toxchat/toktok-stack:latest-tsan
-
-    steps:
-      - checkout
-      - run: .circleci/bazel-test
-          //c-toxcore/...
-          -//c-toxcore/auto_tests:conference_av_test
-          -//c-toxcore/auto_tests:conference_test
-          -//c-toxcore/auto_tests:onion_test
-          -//c-toxcore/auto_tests:tox_many_test
-
   bazel-msan:
     working_directory: /tmp/cirrus-ci-build
     docker:
@@ -53,7 +34,7 @@ jobs:
       - run: .circleci/bazel-test
           //c-toxcore/auto_tests:lossless_packet_test
 
-  asan:
+  static-analysis:
     working_directory: ~/work
     docker:
       - image: ubuntu
@@ -67,6 +48,7 @@ jobs:
             clang
             cmake
             git
+            libbenchmark-dev
             libconfig-dev
             libgmock-dev
             libgtest-dev
@@ -76,39 +58,6 @@ jobs:
             llvm-dev
             ninja-build
             pkg-config
-      - checkout
-      - run: git submodule update --init --recursive
-      - run: CC=clang .circleci/cmake-asan
-
-  tsan:
-    working_directory: ~/work
-    docker:
-      - image: ubuntu
-
-    steps:
-      - run: *apt_install
-      - checkout
-      - run: git submodule update --init --recursive
-      - run: CC=clang .circleci/cmake-tsan
-
-  ubsan:
-    working_directory: ~/work
-    docker:
-      - image: ubuntu
-
-    steps:
-      - run: *apt_install
-      - checkout
-      - run: git submodule update --init --recursive
-      - run: CC=clang .circleci/cmake-ubsan
-
-  static-analysis:
-    working_directory: ~/work
-    docker:
-      - image: ubuntu
-
-    steps:
-      - run: *apt_install
       - run:
           apt-get install -y --no-install-recommends
             ca-certificates
@@ -145,3 +94,22 @@ jobs:
       - checkout
       - run: git submodule update --init --recursive
       - run: other/analysis/run-cpplint
+
+  cimplefmt:
+    working_directory: ~/work
+    machine: { image: ubuntu-2204:current }
+
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: other/docker/cimplefmt/run -u $(find tox* -name "*.[ch]")
+
+  generate-events:
+    working_directory: ~/work
+    machine: { image: ubuntu-2204:current }
+
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: other/event_tooling/run
+      - run: git diff --exit-code
