@@ -85,6 +85,7 @@ struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 };
 
 struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
+	std::mutex _readers_mutex;
 	std::vector<std::shared_ptr<LockedFrameStream2<SDLVideoFrame>>> _readers;
 
 	std::atomic_bool _stop {false};
@@ -94,6 +95,9 @@ struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
 		std::cout << "DVTS: starting new test video source\n";
 		_thread = std::thread([this](void) {
 			while (!_stop) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+				std::lock_guard lg{_readers_mutex};
 				if (!_readers.empty()) {
 					auto* surf = SDL_CreateSurface(960, 720, SDL_PIXELFORMAT_RGBA32);
 
@@ -113,8 +117,6 @@ struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
 
 					SDL_DestroySurface(surf);
 				}
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
 		});
 	}
@@ -124,10 +126,12 @@ struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
 	}
 
 	std::shared_ptr<FrameStream2I<SDLVideoFrame>> subscribe(void) override {
+		std::lock_guard lg{_readers_mutex};
 		return _readers.emplace_back(std::make_shared<LockedFrameStream2<SDLVideoFrame>>());
 	}
 
 	bool unsubscribe(const std::shared_ptr<FrameStream2I<SDLVideoFrame>>& sub) override {
+		std::lock_guard lg{_readers_mutex};
 		for (auto it = _readers.cbegin(); it != _readers.cend(); it++) {
 			if (it->get() == sub.get()) {
 				_readers.erase(it);
