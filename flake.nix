@@ -1,7 +1,9 @@
 {
   description = "tomato flake";
   # bc flakes and git submodules dont really like each other, you need to
-  # append '.?submodules=1' to the nix commands.
+  # append '.?submodules=1#' to the nix commands.
+
+  # $ nix bundle --bundler github:ralismark/nix-appimage 'git+file:///home/green/workspace/tox/tomato?submodules=1#'
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
