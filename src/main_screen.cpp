@@ -16,6 +16,22 @@
 #include <cmath>
 #include <string_view>
 
+static std::unique_ptr<SystemTray> constructSystemTray(SimpleConfigModel& conf, SDL_Window* window) {
+	bool conf_system_tray {false};
+	if (auto value_stt = conf.get_bool("tomato", "start_to_tray"); value_stt.has_value) {
+		conf_system_tray = value_stt.value();
+		// TODO: warn or error if "system_try" is false
+	} else if (auto value_st = conf.get_bool("tomato", "system_tray"); value_st.has_value) {
+		conf_system_tray = value_st.value();
+	}
+
+	if (conf_system_tray) {
+		return std::make_unique<SystemTray>(window);
+	} else {
+		return nullptr;
+	}
+}
+
 MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	conf(std::move(conf_)),
@@ -43,7 +59,8 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 	contact_tc(tal, sdlrtu),
 	mil(),
 	msg_tc(mil, sdlrtu),
-	si(rmm, cr, SDL_GetRenderWindow(renderer_)),
+	st(constructSystemTray(conf, SDL_GetRenderWindow(renderer_))),
+	si(rmm, cr, SDL_GetRenderWindow(renderer_), st.get()),
 	cg(conf, os, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
 	osui(os),
@@ -248,13 +265,13 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 	if (e.type == SDL_EVENT_DROP_FILE) {
 		std::cout << "DROP FILE: " << e.drop.data << "\n";
 		_dopped_files.emplace_back(e.drop.data);
-		//cg.sendFilePath(e.drop.data);
 		_render_interval = 1.f/60.f; // TODO: magic
 		_time_since_event = 0.f;
 		return true;
 	}
 
 	if (
+		e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED ||
 		e.type == SDL_EVENT_WINDOW_MINIMIZED ||
 		e.type == SDL_EVENT_WINDOW_HIDDEN ||
 		e.type == SDL_EVENT_WINDOW_OCCLUDED // does this trigger on partial occlusion?
@@ -262,12 +279,20 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 		auto* window = SDL_GetWindowFromID(e.window.windowID);
 		auto* event_renderer = SDL_GetRenderer(window);
 		if (event_renderer != nullptr && event_renderer == renderer) {
+			if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+				// this event only fires if not last window (systrays count as windows)
+				SDL_HideWindow(window);
+			}
+
 			// our window is now obstructed
 			if (_window_hidden_ts < e.window.timestamp) {
 				_window_hidden_ts = e.window.timestamp;
 				_window_hidden = true;
 				//std::cout << "TOMAT: window hidden " << e.type << " " << e.window.timestamp << "\n";
 			}
+		}
+		if (st) {
+			st->update();
 		}
 		return true; // forward?
 	}
@@ -296,6 +321,9 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 		}
 		_render_interval = 1.f/60.f; // TODO: magic
 		_time_since_event = 0.f;
+		if (st) {
+			st->update(); // TODO: limit this
+		}
 		return true; // forward?
 	}
 

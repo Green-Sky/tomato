@@ -311,7 +311,13 @@ Screen* StartScreen::render(float, bool&) {
 
 	// TODO: dont check every frame
 	// do in tick instead?
-	if (_conf.get_bool("tomato", "skip_setup_and_load").value_or(false)) {
+	const bool start_to_tray = _conf.get_bool("tomato", "start_to_tray").value_or(false);
+	const bool skip_setup = _conf.get_bool("tomato", "skip_setup_and_load").value_or(false);
+	if (start_to_tray || skip_setup) {
+		if (start_to_tray) {
+			// TODO: the window should really be created hidden in the first place
+			SDL_HideWindow(SDL_GetRenderWindow(_renderer));
+		}
 		auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
 		return new_screen.release();
 	} else {

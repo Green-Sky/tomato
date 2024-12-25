@@ -71,6 +71,9 @@ target_sources(tomato PUBLIC
 	./sdl_clipboard_utils.hpp
 	./sdl_clipboard_utils.cpp
 
+	./sys_tray.hpp
+	./sys_tray.cpp
+
 	./chat_gui/theme.hpp
 	./chat_gui/theme.cpp
 	./chat_gui/icons/direct.hpp

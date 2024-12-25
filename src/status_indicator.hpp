@@ -2,6 +2,8 @@
 
 #include <solanaceae/message3/registry_message_model.hpp>
 
+#include "./sys_tray.hpp"
+
 #include <SDL3/SDL.h>
 
 // service that sets window and tray icon depending on program state
@@ -11,7 +13,7 @@ class StatusIndicator {
 	Contact3Registry& _cr;
 
 	SDL_Window* _main_window;
-	// systray ptr here
+	SystemTray* _tray;
 
 	float _cooldown {1.f};
 
@@ -27,7 +29,8 @@ class StatusIndicator {
 		StatusIndicator(
 			RegistryMessageModelI& rmm,
 			Contact3Registry& cr,
-			SDL_Window* main_window
+			SDL_Window* main_window,
+			SystemTray* tray = nullptr
 		);
 
 		// does not actually render, just on the render thread

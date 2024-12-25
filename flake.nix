@@ -65,6 +65,8 @@
 
           pipewire
 
+          libayatana-appindicator
+
           # sdl3_image:
           libpng
           libjpeg

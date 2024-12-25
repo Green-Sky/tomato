@@ -3,7 +3,12 @@
 		"save_file_path": "tomato.tox"
 	},
 	"tomato": {
-		"skip_setup_and_load": true
+		"skip_setup_and_load": true,
+
+		"system_tray": true,
+
+		"start_to_tray": true,
+		"__comment_start_to_tray": "Implies both skip_setup_and_load and system_tray"
 	},
 	"PluginManager": {
 		"autoload": {

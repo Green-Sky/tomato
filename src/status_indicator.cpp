@@ -28,16 +28,22 @@ void StatusIndicator::updateState(State state) {
 	}
 
 	SDL_SetWindowIcon(_main_window, surf.get());
+
+	if (_tray != nullptr) {
+		_tray->setIcon(surf.get());
+	}
 }
 
 StatusIndicator::StatusIndicator(
 	RegistryMessageModelI& rmm,
 	Contact3Registry& cr,
-	SDL_Window* main_window
+	SDL_Window* main_window,
+	SystemTray* tray
 ) :
 	_rmm(rmm),
 	_cr(cr),
-	_main_window(main_window)
+	_main_window(main_window),
+	_tray(tray)
 {
 	// start off with base icon
 	updateState(State::base);
