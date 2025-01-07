@@ -1,5 +1,7 @@
 #include "./debug_video_tap.hpp"
 
+#include <solanaceae/util/time.hpp>
+
 #include <solanaceae/object_store/object_store.hpp>
 
 #include <entt/entity/entity.hpp>
@@ -23,11 +25,6 @@
 #include <atomic>
 
 #include <iostream>
-
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-}
 
 struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 	TextureUploaderI& _tu;
@@ -102,12 +99,12 @@ struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
 					auto* surf = SDL_CreateSurface(960, 720, SDL_PIXELFORMAT_RGBA32);
 
 					// color
-					static auto start_time = Message::getTimeMS();
-					const float time = (Message::getTimeMS() - start_time)/1000.f;
+					static auto start_time = getTimeMS();
+					const float time = (getTimeMS() - start_time)/1000.f;
 					SDL_ClearSurface(surf, std::sin(time), std::cos(time), 0.5f, 1.f);
 
 					SDLVideoFrame frame{ // non-owning
-						Message::getTimeMS()*1000,
+						getTimeMS()*1000,
 						surf,
 					};
 

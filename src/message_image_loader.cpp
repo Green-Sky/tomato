@@ -18,11 +18,6 @@
 
 #include <iostream>
 
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-}
-
 MessageImageLoader::MessageImageLoader(void) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
@@ -104,7 +99,7 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 		}
 
 		TextureEntry new_entry;
-		new_entry.timestamp_last_rendered = Message::getTimeMS();
+		new_entry.timestamp_last_rendered = getTimeMS();
 		new_entry.current_texture = 0;
 		for (const auto& [ms, data] : res.frames) {
 			const auto n_t = tu.upload(data.data(), res.width, res.height);

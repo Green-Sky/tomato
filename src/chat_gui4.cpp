@@ -694,7 +694,7 @@ float ChatGui4::render(float time_delta) {
 
 									if (ImGui::BeginItemTooltip()) {
 										std::string synced_by_text {"delivery confirmed by:"};
-										const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+										const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 										size_t other_contacts {0};
 										for (const auto& [c, syned_ts] : list) {
@@ -737,7 +737,7 @@ float ChatGui4::render(float time_delta) {
 
 									if (ImGui::BeginItemTooltip()) {
 										std::string synced_by_text {"read confirmed by:"};
-										const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+										const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 										for (const auto& [c, syned_ts] : list) {
 											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
@@ -823,8 +823,8 @@ float ChatGui4::render(float time_delta) {
 									cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
 									cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
 
-									cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
-									cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts = Message::getTimeMS();
+									cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts = getTimeMS();
+									cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts = getTimeMS();
 
 									std::cout << "CG: created view FRONT begin ts\n";
 									_rmm.throwEventConstruct(cg_view.begin);
@@ -1546,7 +1546,7 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 
 	if (reg.all_of<Message::Components::SyncedBy>(e)) {
 		std::string synced_by_text {"syncedBy:"};
-		const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+		const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 		for (const auto& [c, syned_ts] : reg.get<Message::Components::SyncedBy>(e).ts) {
 			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
@@ -1566,7 +1566,7 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 	// TODO: remove?
 	if (reg.all_of<Message::Components::ReceivedBy>(e)) {
 		std::string synced_by_text {"receivedBy:"};
-		const int64_t now_ts_s = int64_t(Message::getTimeMS() / 1000u);
+		const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 		for (const auto& [c, syned_ts] : reg.get<Message::Components::ReceivedBy>(e).ts) {
 			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {

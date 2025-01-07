@@ -11,11 +11,6 @@
 
 #include <iostream>
 
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-}
-
 std::optional<TextureEntry> BitsetImageLoader::haveToTexture(TextureUploaderI& tu, BitSet& have, ObjectHandle o) {
 	assert(have.size_bits() > 0);
 
@@ -50,7 +45,7 @@ std::optional<TextureEntry> BitsetImageLoader::haveToTexture(TextureUploaderI& t
 	SDL_LockSurface(conv_surf);
 
 	TextureEntry new_entry;
-	new_entry.timestamp_last_rendered = Message::getTimeMS();
+	new_entry.timestamp_last_rendered = getTimeMS();
 	new_entry.width = have.size_bits();
 	new_entry.height = 1;
 

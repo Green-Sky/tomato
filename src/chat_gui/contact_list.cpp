@@ -2,6 +2,7 @@
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/util/utils.hpp>
+#include <solanaceae/util/time.hpp>
 
 #include <imgui/imgui.h>
 //#include <imgui/imgui_internal.h>
@@ -11,6 +12,8 @@
 #include "./icons/mail.hpp"
 #include "./icons/person.hpp"
 #include "./icons/group.hpp"
+
+#include <cinttypes>
 
 void renderAvatar(
 	const Theme& th,
@@ -112,6 +115,22 @@ bool renderContactBig(
 			);
 		} else {
 			ImGui::TextUnformatted("Connection state: unknown");
+		}
+
+		// TODO: better time formatter
+		const int64_t ts_now = getTimeMS();
+
+		if (const auto* cfirst = c.try_get<Contact::Components::FirstSeen>(); cfirst != nullptr) {
+			ImGui::Text("First seen: %" PRId64 "s ago", (ts_now - int64_t(cfirst->ts))/1000);
+		}
+
+		// TODO: fill with useful values periodically, maybe only show if not online?
+		//if (const auto* clast = c.try_get<Contact::Components::LastSeen>(); clast != nullptr) {
+		//    ImGui::Text("Last seen: %" PRId64 "s ago", (ts_now - int64_t(clast->ts))/1000);
+		//}
+
+		if (const auto* clasta = c.try_get<Contact::Components::LastActivity>(); clasta != nullptr) {
+			ImGui::Text("Last Activity: %" PRId64 "s ago", (ts_now - int64_t(clasta->ts))/1000);
 		}
 
 		if (

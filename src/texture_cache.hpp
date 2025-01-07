@@ -5,6 +5,8 @@
 #include <entt/container/dense_map.hpp>
 #include <entt/container/dense_set.hpp>
 
+#include <solanaceae/util/time.hpp>
+
 #include <optional>
 #include <vector>
 #include <cassert>
@@ -81,11 +83,6 @@ struct TextureLoaderResult {
 
 TextureEntry generateTestAnim(TextureUploaderI& tu);
 
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-}
-
 template<typename TextureType, typename KeyType, class Loader>
 struct TextureCache {
 	static_assert(
@@ -157,7 +154,7 @@ struct TextureCache {
 	}
 
 	float update(void) {
-		const uint64_t ts_now = Message::getTimeMS();
+		const uint64_t ts_now = getTimeMS();
 		uint64_t ts_min_next = ts_now + ms_before_purge;
 
 		std::vector<KeyType> to_purge;

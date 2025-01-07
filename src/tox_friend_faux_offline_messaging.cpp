@@ -1,5 +1,7 @@
 #include "./tox_friend_faux_offline_messaging.hpp"
 
+#include <solanaceae/util/time.hpp>
+
 #include <solanaceae/toxcore/tox_interface.hpp>
 
 #include <solanaceae/contact/components.hpp>
@@ -43,7 +45,7 @@ float ToxFriendFauxOfflineMessaging::tick(float time_delta) {
 	_interval_timer = 60.f;
 
 
-	const uint64_t ts_now = Message::getTimeMS();
+	const uint64_t ts_now = getTimeMS();
 
 	// check ALL
 	// for each online tox friend
@@ -105,7 +107,7 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 		return dfmc_Ret::NO_MSG;
 	}
 
-	const uint64_t ts_now = Message::getTimeMS();
+	const uint64_t ts_now = getTimeMS();
 
 	if (!_cr.all_of<Contact::Components::Self>(c)) {
 		return dfmc_Ret::NO_MSG; // error
@@ -220,7 +222,7 @@ bool ToxFriendFauxOfflineMessaging::onToxEvent(const Tox_Event_Friend_Connection
 		return false;
 	}
 
-	_cr.emplace_or_replace<Contact::Components::NextSendAttempt>(c, Message::getTimeMS() + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
+	_cr.emplace_or_replace<Contact::Components::NextSendAttempt>(c, getTimeMS() + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
 
 	_interval_timer = 0.f;
 

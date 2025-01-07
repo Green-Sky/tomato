@@ -16,11 +16,6 @@
 #include <cassert>
 #include <vector>
 
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-}
-
 ToxAvatarLoader::ToxAvatarLoader(Contact3Registry& cr) : _cr(cr) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
@@ -129,7 +124,7 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 		const auto& a_m = _cr.get<Contact::Components::AvatarMemory>(c);
 
 		TextureEntry new_entry;
-		new_entry.timestamp_last_rendered = Message::getTimeMS();
+		new_entry.timestamp_last_rendered = getTimeMS();
 		new_entry.current_texture = 0;
 
 		new_entry.width = a_m.width;
@@ -167,7 +162,7 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 				}
 
 				TextureEntry new_entry;
-				new_entry.timestamp_last_rendered = Message::getTimeMS();
+				new_entry.timestamp_last_rendered = getTimeMS();
 				new_entry.current_texture = 0;
 				for (const auto& [ms, data] : res.frames) {
 					const auto n_t = tu.upload(data.data(), res.width, res.height);
@@ -210,7 +205,7 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 	}
 
 	TextureEntry new_entry;
-	new_entry.timestamp_last_rendered = Message::getTimeMS();
+	new_entry.timestamp_last_rendered = getTimeMS();
 	new_entry.current_texture = 0;
 
 	const auto n_t = tu.upload(pixels.data(), 5, 5, TextureUploaderI::RGBA, TextureUploaderI::NEAREST);

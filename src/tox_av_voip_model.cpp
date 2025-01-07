@@ -2,6 +2,7 @@
 
 #include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
+#include <solanaceae/util/time.hpp>
 
 #include "./frame_streams/stream_manager.hpp"
 #include "./frame_streams/audio_stream2.hpp"
@@ -15,11 +16,6 @@
 #include <cstring>
 
 #include <iostream>
-
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-} // Message
 
 namespace Components {
 	struct ToxAVIncomingAV {
@@ -771,7 +767,7 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame& e) {
 		// ms -> us
 		// would be nice if we had been giving this from toxcore
 		// TODO: make more precise
-		Message::getTimeMS() * 1000,
+		getTimeMS() * 1000,
 		new_surf
 	});
 

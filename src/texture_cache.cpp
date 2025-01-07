@@ -1,6 +1,5 @@
 #include "./texture_cache.hpp"
 
-#include <chrono>
 #include <array>
 #include <limits>
 
@@ -24,7 +23,7 @@ int64_t TextureEntry::doAnimation(const int64_t ts_now) {
 
 TextureEntry generateTestAnim(TextureUploaderI& tu) {
 	TextureEntry new_entry;
-	new_entry.timestamp_last_rendered = Message::getTimeMS();
+	new_entry.timestamp_last_rendered = getTimeMS();
 	new_entry.current_texture = 0;
 	for (size_t i = 0; i < 4; i++) {
 		// hack

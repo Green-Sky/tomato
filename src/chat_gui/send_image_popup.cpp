@@ -6,17 +6,14 @@
 #include "../image_loader_qoi.hpp"
 #include "../image_loader_sdl_image.hpp"
 
+#include <solanaceae/util/time.hpp>
+
 #include <filesystem>
 #include <solanaceae/file/file2_std.hpp>
 
 #include <imgui/imgui.h>
 
 #include <cmath>
-
-// fwd
-namespace Message {
-uint64_t getTimeMS(void);
-}
 
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
@@ -90,7 +87,7 @@ bool SendImagePopup::load(void) {
 		}
 
 		assert(preview_image.textures.empty());
-		preview_image.timestamp_last_rendered = Message::getTimeMS();
+		preview_image.timestamp_last_rendered = getTimeMS();
 		preview_image.current_texture = 0;
 		for (const auto& [ms, data] : original_image.frames) {
 			const auto n_t = _tu.upload(data.data(), original_image.width, original_image.height);
@@ -226,7 +223,7 @@ void SendImagePopup::render(float time_delta) {
 		//const auto TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
 		const auto TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
-		preview_image.doAnimation(Message::getTimeMS());
+		preview_image.doAnimation(getTimeMS());
 
 		time += time_delta;
 		time = fmod(time, 1.f); // fract()
