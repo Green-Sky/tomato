@@ -13,6 +13,9 @@ target_sources(tomato PUBLIC
 	./main.cpp
 	./icon.rc
 
+	./icon_generator.hpp
+	./icon_generator.cpp
+
 	./sys_check.hpp
 	./sys_check.cpp
 
