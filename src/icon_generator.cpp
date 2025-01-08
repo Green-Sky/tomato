@@ -19,18 +19,17 @@ SDL_Surface* base(void) {
 	);
 	if (img_data == nullptr) {
 		// not readable
-		return {};
+		return nullptr;
 	}
 
-	auto* surf = SDL_CreateSurfaceFrom(desc.width, desc.height, SDL_PIXELFORMAT_RGBA32, img_data, 0);
+	auto* surf = SDL_CreateSurfaceFrom(desc.width, desc.height, SDL_PIXELFORMAT_RGBA32, img_data, 4*desc.width);
 	if (surf == nullptr) {
-		return {}; // ??
+		return nullptr;
 	}
 
 	auto* surf_dup = SDL_DuplicateSurface(surf);
 
 	SDL_DestroySurface(surf);
-
 	free(img_data);
 
 	return surf_dup;
