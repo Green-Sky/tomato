@@ -358,6 +358,8 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	const float ctc_interval = contact_tc.update();
 	const float msgtc_interval = msg_tc.update();
 
+	si.render(time_delta);
+
 	const float cg_interval = cg.render(time_delta); // render
 	sw.render(); // render
 	osui.render();
