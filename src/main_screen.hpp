@@ -29,6 +29,7 @@
 #include "./tox_avatar_loader.hpp"
 #include "./message_image_loader.hpp"
 
+#include "./status_indicator.hpp"
 #include "./chat_gui4.hpp"
 #include "./chat_gui/settings_window.hpp"
 #include "./object_store_ui.hpp"
@@ -91,6 +92,7 @@ struct MainScreen final : public Screen {
 	MessageImageLoader mil;
 	TextureCache<void*, Message3Handle, MessageImageLoader> msg_tc;
 
+	StatusIndicator si;
 	ChatGui4 cg;
 	SettingsWindow sw;
 	ObjectStoreUI osui;

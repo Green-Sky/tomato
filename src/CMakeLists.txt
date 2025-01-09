@@ -105,6 +105,9 @@ target_sources(tomato PUBLIC
 	./tox_friend_faux_offline_messaging.hpp
 	./tox_friend_faux_offline_messaging.cpp
 
+	./status_indicator.hpp
+	./status_indicator.cpp
+
 	./chat_gui4.hpp
 	./chat_gui4.cpp
 
