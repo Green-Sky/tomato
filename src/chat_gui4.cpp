@@ -272,11 +272,16 @@ ChatGui4::~ChatGui4(void) {
 	//}
 }
 
-float ChatGui4::render(float time_delta) {
+float ChatGui4::render(float time_delta, bool window_hidden) {
 	_fss.render();
 	_sip.render(time_delta);
 	_b_tc.update();
 	_b_tc.workLoadQueue();
+
+	if (window_hidden) {
+		// annoying, but all of the above needs to continue while not rendering
+		return 1000.f;
+	}
 
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);

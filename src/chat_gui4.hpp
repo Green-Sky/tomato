@@ -75,7 +75,7 @@ class ChatGui4 : public ObjectStoreEventI {
 		~ChatGui4(void);
 
 	public:
-		float render(float time_delta);
+		float render(float time_delta, bool window_hidden);
 
 	public:
 		void sendFilePath(std::string_view file_path);

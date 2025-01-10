@@ -360,7 +360,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	si.render(time_delta);
 
-	const float cg_interval = cg.render(time_delta); // render
+	const float cg_interval = cg.render(time_delta, _window_hidden); // render
 	sw.render(); // render
 	osui.render();
 	tuiu.render(); // render
