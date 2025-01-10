@@ -266,7 +266,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 			if (_window_hidden_ts < e.window.timestamp) {
 				_window_hidden_ts = e.window.timestamp;
 				_window_hidden = true;
-				//std::cout << "TOMAT: window hidden " << e.window.timestamp << "\n";
+				//std::cout << "TOMAT: window hidden " << e.type << " " << e.window.timestamp << "\n";
 			}
 		}
 		return true; // forward?
@@ -274,7 +274,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 
 	if (
 		e.type == SDL_EVENT_WINDOW_SHOWN ||
-		e.type == SDL_EVENT_WINDOW_RESTORED ||
+		//e.type == SDL_EVENT_WINDOW_RESTORED || // triggers on hide
 		e.type == SDL_EVENT_WINDOW_EXPOSED
 	) {
 		auto* window = SDL_GetWindowFromID(e.window.windowID);
@@ -283,13 +283,15 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 			if (_window_hidden_ts <= e.window.timestamp) {
 				_window_hidden_ts = e.window.timestamp;
 
+#if 0
 				if (_window_hidden) {
 					// if window was previously hidden, we shorten the wait for the next frame
 					_render_interval = 1.f/60.f;
 				}
+#endif
 
 				_window_hidden = false;
-				//std::cout << "TOMAT: window shown " << e.window.timestamp << "\n";
+				//std::cout << "TOMAT: window shown " << e.type << " " << e.window.timestamp << "\n";
 			}
 		}
 		_render_interval = 1.f/60.f; // TODO: magic
