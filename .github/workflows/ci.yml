@@ -81,7 +81,7 @@ jobs:
     - name: Configure CMake
       env:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{matrix.platform.vcpkg_toolkit}} -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=${{matrix.platform.ndk_abi}} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDLIMAGE_JPG_SHARED=OFF -DSDLIMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{matrix.platform.vcpkg_toolkit}} -DANDROID=1 -DANDROID_PLATFORM=23 -DANDROID_ABI=${{matrix.platform.ndk_abi}} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{steps.setup_ndk.outputs.ndk-path}}/build/cmake/android.toolchain.cmake -DSDL_ANDROID_JAR=ON -DSDLIMAGE_JPG_SHARED=OFF -DSDLIMAGE_PNG_SHARED=OFF -DTOMATO_MAIN_SO=ON
 
     - name: Build (tomato)
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
