@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
 #include "toxav.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +20,7 @@
 #include "../toxcore/network.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_private.h"
-#include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_struct.h"  // IWYU pragma: keep
 #include "../toxcore/util.h"
 
 // TODO(zoff99): don't hardcode this, let the application choose it
@@ -342,7 +341,7 @@ uint32_t toxav_iteration_interval(const ToxAV *av)
  * @param frame_time the duration of the current frame in ms
  * @param start_time the timestamp when decoding of this frame started
  */
-static void calc_interval(ToxAV *av, DecodeTimeStats *stats, int32_t frame_time, uint64_t start_time)
+static void calc_interval(const ToxAV *av, DecodeTimeStats *stats, int32_t frame_time, uint64_t start_time)
 {
     stats->interval = frame_time < stats->average ? 0 : (frame_time - stats->average);
     stats->total += current_time_monotonic(av->toxav_mono_time) - start_time;

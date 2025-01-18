@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
 #include "video.h"
@@ -8,14 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "msi.h"
 #include "ring_buffer.h"
 #include "rtp.h"
 
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/network.h"
 
 /**
  * Soft deadline the decoder should attempt to meet, in "us" (microseconds).
@@ -143,7 +141,7 @@ static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int
 #endif /* 0 */
 }
 
-VCSession *vc_new(const Logger *log, Mono_Time *mono_time, ToxAV *av, uint32_t friend_number,
+VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, ToxAV *av, uint32_t friend_number,
                   toxav_video_receive_frame_cb *cb, void *cb_data)
 {
     VCSession *vc = (VCSession *)calloc(1, sizeof(VCSession));
@@ -346,7 +344,7 @@ void vc_iterate(VCSession *vc)
     }
 }
 
-int vc_queue_message(Mono_Time *mono_time, void *cs, struct RTPMessage *msg)
+int vc_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *msg)
 {
     VCSession *vc = (VCSession *)cs;
 

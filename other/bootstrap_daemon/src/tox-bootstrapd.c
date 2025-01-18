@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2024 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2014-2016 Tox project.
  */
 
@@ -200,10 +200,10 @@ static LOG_LEVEL logger_level_to_log_level(Logger_Level level)
     }
 }
 
-static void toxcore_logger_callback(void *context, Logger_Level level, const char *file, int line,
+static void toxcore_logger_callback(void *context, Logger_Level level, const char *file, uint32_t line,
                                     const char *func, const char *message, void *userdata)
 {
-    log_write(logger_level_to_log_level(level), "%s:%d(%s) %s\n", file, line, func, message);
+    log_write(logger_level_to_log_level(level), "%s:%u(%s) %s\n", file, line, func, message);
 }
 
 static volatile sig_atomic_t caught_signal = 0;
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Forwarding *forwarding = new_forwarding(logger, rng, mono_time, dht);
+    Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht);
 
     if (forwarding == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize forwarding. Exiting.\n");
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    GC_Announces_List *group_announce = new_gca_list();
+    GC_Announces_List *group_announce = new_gca_list(mem);
 
     if (group_announce == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize group announces. Exiting.\n");
@@ -563,7 +563,7 @@ int main(int argc, char *argv[])
     Broadcast_Info *broadcast = nullptr;
 
     if (enable_lan_discovery) {
-        broadcast = lan_discovery_init(ns);
+        broadcast = lan_discovery_init(mem, ns);
         log_write(LOG_LEVEL_INFO, "Initialized LAN discovery successfully.\n");
     }
 

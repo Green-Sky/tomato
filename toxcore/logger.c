@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
 
@@ -8,6 +8,7 @@
  */
 #include "logger.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,12 +53,13 @@ void logger_kill(Logger *log)
 
 void logger_callback_log(Logger *log, logger_cb *function, void *context, void *userdata)
 {
+    assert(log != nullptr);
     log->callback = function;
     log->context  = context;
     log->userdata = userdata;
 }
 
-void logger_write(const Logger *log, Logger_Level level, const char *file, int line, const char *func,
+void logger_write(const Logger *log, Logger_Level level, const char *file, uint32_t line, const char *func,
                   const char *format, ...)
 {
     if (log == nullptr) {

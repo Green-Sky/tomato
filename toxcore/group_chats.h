@@ -650,7 +650,7 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
  *
  * Return group_number on success.
  * Return -1 if the group object fails to initialize.
- * Return -2 if chat_id is NULL or a group with chat_id already exists in the chats array.
+ * Return -2 if chat_id is NULL.
  * Return -3 if nick is too long.
  * Return -4 if nick is empty or nick length is zero.
  * Return -5 if there is an error setting the group password.
@@ -676,8 +676,8 @@ bool gc_disconnect_from_group(const GC_Session *c, GC_Chat *chat);
  * Returns -1 if the group handler object or chat object is null.
  * Returns -2 if the Messenger friend connection fails to initialize.
  */
-non_null()
-int gc_rejoin_group(GC_Session *c, GC_Chat *chat);
+non_null(1, 2) nullable(3)
+int gc_rejoin_group(GC_Session *c, GC_Chat *chat, const uint8_t *passwd, uint16_t passwd_len);
 
 /** @brief Joins a group using the invite data received in a friend's group invite.
  *

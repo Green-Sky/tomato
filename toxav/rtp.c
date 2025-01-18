@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
 #include "rtp.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -768,22 +767,35 @@ void rtp_stop_receiving(Tox *tox)
     tox_callback_friend_lossy_packet_per_pktid(tox, nullptr, RTP_TYPE_VIDEO);
 }
 
+/**
+ * Log the neterror error if any.
+ *
+ * @param error the error from rtp_send_custom_lossy_packet.
+ * @param rdata_size The package length to be shown in the log.
+ */
+static void rtp_report_error_maybe(const Logger *log, Tox_Err_Friend_Custom_Packet error, uint16_t rdata_size)
+{
+    if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
+        char *netstrerror = net_new_strerror(net_error());
+        const char *toxerror = tox_err_friend_custom_packet_to_string(error);
+        LOGGER_WARNING(log, "RTP send failed (len: %u)! tox error: %s net error: %s",
+                       rdata_size, toxerror, netstrerror);
+        net_kill_strerror(netstrerror);
+    }
+}
+
 static void rtp_send_piece(const Logger *log, Tox *tox, uint32_t friend_number, const struct RTPHeader *header,
                            const uint8_t *data, uint8_t *rdata, uint16_t length)
 {
     rtp_header_pack(rdata + 1, header);
     memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
 
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossy_packet(tox, friend_number,
-                                 rdata, length + RTP_HEADER_SIZE + 1, &error);
+    const uint16_t rdata_size = length + RTP_HEADER_SIZE + 1;
 
-    if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-        char *netstrerror = net_new_strerror(net_error());
-        LOGGER_WARNING(log, "RTP send failed (len: %d)! tox error: %d, net error: %s",
-                       length + RTP_HEADER_SIZE + 1, error, netstrerror);
-        net_kill_strerror(netstrerror);
-    }
+    Tox_Err_Friend_Custom_Packet error;
+    tox_friend_send_lossy_packet(tox, friend_number, rdata, rdata_size, &error);
+
+    rtp_report_error_maybe(log, error, rdata_size);
 }
 
 static struct RTPHeader rtp_default_header(const RTPSession *session, uint32_t length, bool is_keyframe)
@@ -811,7 +823,7 @@ static struct RTPHeader rtp_default_header(const RTPSession *session, uint32_t l
     header.ma = 0;
     header.pt = session->payload_type % 128;
     header.sequnum = session->sequnum;
-    Mono_Time *mt = toxav_get_av_mono_time(session->toxav);
+    const Mono_Time *mt = toxav_get_av_mono_time(session->toxav);
     if (mt != nullptr) {
         header.timestamp = current_time_monotonic(mt);
     } else {

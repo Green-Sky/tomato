@@ -71,22 +71,22 @@ static uint8_t *read_save(const char *save_path, size_t *length)
 
 static void test_save_compatibility(const char *save_path)
 {
-    struct Tox_Options options = {0};
-    tox_options_default(&options);
+    Tox_Options *options = tox_options_new(nullptr);
+    ck_assert(options != nullptr);
 
     size_t size = 0;
     uint8_t *save_data = read_save(save_path, &size);
     ck_assert_msg(save_data != nullptr, "error while reading save file '%s'", save_path);
 
-    options.savedata_data = save_data;
-    options.savedata_length = size;
-    options.savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;
+    tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
+    tox_options_set_savedata_data(options, save_data, size);
 
     size_t index = 0;
     Tox_Err_New err;
-    Tox *tox = tox_new_log(&options, &err, &index);
+    Tox *tox = tox_new_log(options, &err, &index);
     ck_assert_msg(tox, "failed to create tox, error number: %d", err);
 
+    tox_options_free(options);
     free(save_data);
 
     const size_t name_size = tox_self_get_name_size(tox);
@@ -145,7 +145,10 @@ static bool is_little_endian(void)
 // cppcheck-suppress constParameter
 int main(int argc, char *argv[])
 {
-    char base_path[4096] = {0};
+    const size_t base_path_size = 4096;
+    char *base_path = (char *)malloc(base_path_size);
+    ck_assert(base_path != nullptr);
+    memset(base_path, 0, 4096);
 
     if (argc <= 1) {
         const char *srcdir = getenv("srcdir");
@@ -154,21 +157,29 @@ int main(int argc, char *argv[])
             srcdir = ".";
         }
 
-        snprintf(base_path, sizeof(base_path), "%s", srcdir);
+        snprintf(base_path, base_path_size, "%s", srcdir);
     } else {
-        snprintf(base_path, sizeof(base_path), "%s", argv[1]);
+        snprintf(base_path, base_path_size, "%s", argv[1]);
         base_path[strrchr(base_path, '/') - base_path] = '\0';
     }
 
     if (is_little_endian()) {
-        char save_path[4096 + sizeof(LOADED_SAVE_FILE_LITTLE)];
-        snprintf(save_path, sizeof(save_path), "%s/%s", base_path, LOADED_SAVE_FILE_LITTLE);
+        const size_t save_path_size = 4096 + sizeof(LOADED_SAVE_FILE_LITTLE);
+        char *save_path = (char *)malloc(save_path_size);
+        ck_assert(save_path != nullptr);
+        snprintf(save_path, save_path_size, "%s/%s", base_path, LOADED_SAVE_FILE_LITTLE);
         test_save_compatibility(save_path);
+        free(save_path);
     } else {
-        char save_path[4096 + sizeof(LOADED_SAVE_FILE_BIG)];
-        snprintf(save_path, sizeof(save_path), "%s/%s", base_path, LOADED_SAVE_FILE_BIG);
+        const size_t save_path_size = 4096 + sizeof(LOADED_SAVE_FILE_BIG);
+        char *save_path = (char *)malloc(save_path_size);
+        ck_assert(save_path != nullptr);
+        snprintf(save_path, save_path_size, "%s/%s", base_path, LOADED_SAVE_FILE_BIG);
         test_save_compatibility(save_path);
+        free(save_path);
     }
+
+    free(base_path);
 
     return 0;
 }

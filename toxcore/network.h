@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -17,6 +17,7 @@
 #include "bin_pack.h"
 #include "logger.h"
 #include "mem.h"
+#include "net_profile.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -236,8 +237,9 @@ Socket net_invalid_socket(void);
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
-non_null()
-int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
+non_null(1, 2, 4, 6) nullable(7)
+int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port,
+             Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
@@ -499,13 +501,22 @@ void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handl
 non_null(1) nullable(2)
 void networking_poll(const Networking_Core *net, void *userdata);
 
+typedef enum Net_Err_Connect {
+    NET_ERR_CONNECT_OK,
+    NET_ERR_CONNECT_INVALID_FAMILY,
+    NET_ERR_CONNECT_FAILED,
+} Net_Err_Connect;
+
+const char *net_err_connect_to_string(Net_Err_Connect err);
+
 /** @brief Connect a socket to the address specified by the ip_port.
  *
- * Return true on success.
- * Return false on failure.
+ * @param[out] err Set to NET_ERR_CONNECT_OK on success, otherwise an error code.
+ *
+ * @retval true on success, false on failure.
  */
 non_null()
-bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port);
+bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port, Net_Err_Connect *err);
 
 /** @brief High-level getaddrinfo implementation.
  *
@@ -613,6 +624,13 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, con
 /** Function to cleanup networking stuff (doesn't do much right now). */
 nullable(1)
 void kill_networking(Networking_Core *net);
+
+/** @brief Returns a pointer to the network net_profile object associated with `net`.
+ *
+ * Returns null if `net` is null.
+ */
+non_null()
+const Net_Profile *net_get_net_profile(const Networking_Core *net);
 
 #ifdef __cplusplus
 } /* extern "C" */

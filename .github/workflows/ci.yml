@@ -127,6 +127,7 @@ jobs:
               libopus
               libsodium
               libvpx
+              ninja
               pkg-config
 
           run: |
@@ -138,7 +139,8 @@ jobs:
               -DNON_HERMETIC_TESTS=ON \
               -DTEST_TIMEOUT_SECONDS=90 \
               -DUSE_IPV6=OFF \
-              -DAUTOTEST=ON
+              -DAUTOTEST=ON \
+              -GNinja
             cmake --build . --target install
             ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
 
@@ -163,6 +165,7 @@ jobs:
               libconfig
               libsodium
               libvpx
+              ninja
               opus
               pkgconf
 
@@ -175,7 +178,8 @@ jobs:
               -DNON_HERMETIC_TESTS=ON \
               -DTEST_TIMEOUT_SECONDS=50 \
               -DUSE_IPV6=OFF \
-              -DAUTOTEST=ON
+              -DAUTOTEST=ON \
+              -GNinja
             cmake --build . --target install
             ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
 

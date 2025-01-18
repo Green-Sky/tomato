@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
 #ifndef C_TOXCORE_TOXAV_RTP_H
@@ -147,7 +147,7 @@ struct RTPWorkBufferList {
 
 #define DISMISS_FIRST_LOST_VIDEO_PACKET_COUNT 10
 
-typedef int rtp_m_cb(Mono_Time *mono_time, void *cs, struct RTPMessage *msg);
+typedef int rtp_m_cb(const Mono_Time *mono_time, void *cs, struct RTPMessage *msg);
 
 /**
  * RTP control session.

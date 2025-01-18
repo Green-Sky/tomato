@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2024 The TokTok team.
+ * Copyright © 2023-2025 The TokTok team.
  */
 
 #include "sort.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>  // generate, sort
 #include <limits>
 #include <random>
 
