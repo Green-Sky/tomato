@@ -259,7 +259,7 @@ void SendImagePopup::render(float time_delta) {
 			if (cropping) { // if cropping
 				// display full image
 				ImGui::Image(
-					preview_image.getID<void*>(),
+					preview_image.getID<ImTextureID>(),
 					ImVec2{static_cast<float>(width), static_cast<float>(height)}
 				);
 				const auto post_img_curser = ImGui::GetCursorPos();
@@ -407,7 +407,7 @@ void SendImagePopup::render(float time_delta) {
 
 				// display cropped area
 				ImGui::Image(
-					preview_image.getID<void*>(),
+					preview_image.getID<ImTextureID>(),
 					ImVec2{static_cast<float>(width), static_cast<float>(height)},
 					ImVec2{float(crop_rect.x)/original_image.width, float(crop_rect.y)/original_image.height},
 					ImVec2{float(crop_rect.x+crop_rect.w)/original_image.width, float(crop_rect.y+crop_rect.h)/original_image.height}

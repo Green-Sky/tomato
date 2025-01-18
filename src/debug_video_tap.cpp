@@ -252,7 +252,7 @@ float DebugVideoTap::render(void) {
 				ImGui::Text("%dx%d interval: ~%.0fms (%.2ffps)", view._tex_w, view._tex_h, view._v_interval_avg*1000.f, 1.f/view._v_interval_avg);
 				const float img_w = ImGui::GetContentRegionAvail().x;
 				ImGui::Image(
-					reinterpret_cast<ImTextureID>(view._tex),
+					static_cast<ImTextureID>(static_cast<intptr_t>(view._tex)),
 					ImVec2{img_w, img_w * float(view._tex_h)/view._tex_w},
 					ImVec2{view._mirror?1.f:0.f, 0},
 					ImVec2{view._mirror?0.f:1.f, 1}

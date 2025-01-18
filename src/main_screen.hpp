@@ -26,8 +26,7 @@
 
 #include "./sdlrenderer_texture_uploader.hpp"
 #include "./texture_cache.hpp"
-#include "./tox_avatar_loader.hpp"
-#include "./message_image_loader.hpp"
+#include "./chat_gui/texture_cache_defs.hpp"
 
 #include "./sys_tray.hpp"
 #include "./status_indicator.hpp"
@@ -89,9 +88,9 @@ struct MainScreen final : public Screen {
 	//OpenGLTextureUploader ogltu;
 
 	ToxAvatarLoader tal;
-	TextureCache<void*, Contact3, ToxAvatarLoader> contact_tc;
+	ContactTextureCache contact_tc;
 	MessageImageLoader mil;
-	TextureCache<void*, Message3Handle, MessageImageLoader> msg_tc;
+	MessageTextureCache msg_tc;
 
 	std::unique_ptr<SystemTray> st;
 	StatusIndicator si;

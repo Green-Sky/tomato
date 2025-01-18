@@ -69,7 +69,8 @@ struct TextureEntry {
 		rendered_this_frame = true;
 		assert(current_texture < textures.size());
 		if constexpr (sizeof(TextureType) == sizeof(uint64_t)) {
-			return reinterpret_cast<TextureType>(textures.at(current_texture));
+			//return reinterpret_cast<TextureType>(textures.at(current_texture));
+			return static_cast<TextureType>(static_cast<intptr_t>(textures.at(current_texture)));
 		} else if constexpr (sizeof(TextureType) == sizeof(uint32_t)) {
 			return reinterpret_cast<TextureType>(static_cast<uint32_t>(textures.at(current_texture)));
 		}

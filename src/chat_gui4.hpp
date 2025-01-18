@@ -5,6 +5,7 @@
 #include <solanaceae/util/config_model.hpp>
 
 #include "./chat_gui/theme.hpp"
+#include "./chat_gui/texture_cache_defs.hpp"
 
 #include "./texture_uploader.hpp"
 #include "./texture_cache.hpp"
@@ -21,10 +22,6 @@
 #include <string>
 #include <mutex>
 #include <memory>
-
-using ContactTextureCache = TextureCache<void*, Contact3, ToxAvatarLoader>;
-using MessageTextureCache = TextureCache<void*, Message3Handle, MessageImageLoader>;
-using BitsetTextureCache = TextureCache<void*, ObjectHandle, BitsetImageLoader>;
 
 class ChatGui4 : public ObjectStoreEventI {
 	ConfigModelI& _conf;
