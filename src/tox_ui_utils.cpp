@@ -142,7 +142,7 @@ void ToxUIUtils::render(void) {
 			ImGui::InputText("password to join with", &password);
 
 			static Tox_Err_Group_Join err = Tox_Err_Group_Join::TOX_ERR_GROUP_JOIN_OK;
-			if (ImGui::Button("join")) {
+			if (ImGui::Button("join/reconnect")) {
 				auto [_, err_r] = _tc.toxGroupJoin(
 					hex2bin(std::string_view{_chat_id, std::size(_chat_id)-1}),
 					self_name,
@@ -163,7 +163,7 @@ void ToxUIUtils::render(void) {
 			}
 			if (err != Tox_Err_Group_Join::TOX_ERR_GROUP_JOIN_OK) {
 				ImGui::SameLine();
-				ImGui::Text("error joining group (code: %d)", err);
+				ImGui::Text("error joining group '%s' (%d)", tox_err_group_join_to_string(err), err);
 			}
 		}
 		ImGui::End();
