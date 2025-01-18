@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -137,7 +137,7 @@ void getaddress(const Messenger *m, uint8_t *address)
 }
 
 non_null()
-static bool send_online_packet(Messenger *m, int friendcon_id)
+static bool send_online_packet(const Messenger *m, int friendcon_id)
 {
     const uint8_t packet[1] = {PACKET_ID_ONLINE};
     return write_cryptpacket(m->net_crypto, friend_connection_crypt_connection_id(m->fr_c, friendcon_id), packet,
@@ -145,7 +145,7 @@ static bool send_online_packet(Messenger *m, int friendcon_id)
 }
 
 non_null()
-static bool send_offline_packet(Messenger *m, int friendcon_id)
+static bool send_offline_packet(const Messenger *m, int friendcon_id)
 {
     const uint8_t packet[1] = {PACKET_ID_OFFLINE};
     return write_cryptpacket(m->net_crypto, friend_connection_crypt_connection_id(m->fr_c, friendcon_id), packet,
@@ -2515,7 +2515,7 @@ static bool self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend 
         return false;
     }
 
-    if (gca_add_announce(m->mono_time, m->group_announce, &announce) == nullptr) {
+    if (gca_add_announce(m->mem, m->mono_time, m->group_announce, &announce) == nullptr) {
         onion_friend_set_gc_data(onion_friend, nullptr, 0);
         return false;
     }
@@ -3475,7 +3475,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->rng = rng;
     m->ns = ns;
 
-    m->fr = friendreq_new();
+    m->fr = friendreq_new(mem);
 
     if (m->fr == nullptr) {
         mem_delete(mem, m);
@@ -3544,7 +3544,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         return nullptr;
     }
 
-    m->group_announce = new_gca_list();
+    m->group_announce = new_gca_list(m->mem);
 
     if (m->group_announce == nullptr) {
         LOGGER_WARNING(m->log, "DHT group chats initialisation failed");
@@ -3559,7 +3559,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
 
     if (options->dht_announcements_enabled) {
-        m->forwarding = new_forwarding(m->log, m->rng, m->mono_time, m->dht);
+        m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht);
         if (m->forwarding != nullptr) {
             m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding);
         } else {
@@ -3574,7 +3574,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
     if (m->onion_c != nullptr) {
-        m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+        m->fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
     }
 
     if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||

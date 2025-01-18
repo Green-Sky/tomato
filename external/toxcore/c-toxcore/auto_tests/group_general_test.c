@@ -392,9 +392,9 @@ static void group_announce_test(AutoTox *autotoxes)
     ck_assert(s_err == TOX_ERR_GROUP_SELF_STATUS_SET_OK);
 
     fprintf(stderr, "Peer 0 reconnecting...\n");
-    Tox_Err_Group_Reconnect r_err;
-    tox_group_reconnect(tox0, groupnumber, &r_err);
-    ck_assert(r_err == TOX_ERR_GROUP_RECONNECT_OK);
+    Tox_Err_Group_Join err_rejoin;
+    tox_group_join(tox0, chat_id, (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, nullptr, 0, &err_rejoin);
+    ck_assert(err_rejoin == TOX_ERR_GROUP_JOIN_OK);
 
     while (state1->peer_joined_count != 2 && state0->self_joined_count == 2) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);

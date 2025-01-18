@@ -1,15 +1,15 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2022-2025 The TokTok team.
  */
 
 #include "tox_dispatch.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "attributes.h"
 #include "ccompat.h"
 #include "events/events_alloc.h" // IWYU pragma: keep
-#include "tox.h"
 #include "tox_event.h"
 #include "tox_events.h"
 

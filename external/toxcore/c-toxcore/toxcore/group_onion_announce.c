@@ -20,12 +20,16 @@
 #include "onion_announce.h"
 #include "timed_auth.h"
 
+static_assert(TIMED_AUTH_SIZE <= ONION_ANNOUNCE_REQUEST_MAX_SIZE,
+              "Timed auth does not fit into the onion packet");
+static_assert(PACKED_NODE_SIZE_IP6 <= GCA_ANNOUNCE_MAX_SIZE,
+              "IP6 does not fit into the GC_Announce");
 static_assert(GCA_ANNOUNCE_MAX_SIZE <= ONION_MAX_EXTRA_DATA_SIZE,
               "GC_Announce does not fit into the onion packet extra data");
 
 static pack_extra_data_cb pack_group_announces;
 non_null()
-static int pack_group_announces(void *object, const Logger *logger, const Mono_Time *mono_time,
+static int pack_group_announces(void *object, const Logger *logger, const Memory *mem, const Mono_Time *mono_time,
                                 uint8_t num_nodes, uint8_t *plain, uint16_t plain_size,
                                 uint8_t *response, uint16_t response_size, uint16_t offset)
 {
@@ -38,7 +42,7 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
         return -1;
     }
 
-    const GC_Peer_Announce *new_announce = gca_add_announce(mono_time, gc_announces_list, &public_announce);
+    const GC_Peer_Announce *new_announce = gca_add_announce(mem, mono_time, gc_announces_list, &public_announce);
 
     if (new_announce == nullptr) {
         LOGGER_ERROR(logger, "Failed to add group announce");

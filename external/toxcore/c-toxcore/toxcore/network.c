@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2023 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -86,6 +86,7 @@
 #include "ccompat.h"
 #include "logger.h"
 #include "mem.h"
+#include "net_profile.h"
 #include "util.h"
 
 // Disable MSG_NOSIGNAL on systems not supporting it, e.g. Windows, FreeBSD
@@ -907,9 +908,14 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
 }
 
 int net_send(const Network *ns, const Logger *log,
-             Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port)
+             Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile)
 {
     const int res = ns->funcs->send(ns->obj, sock, buf, len);
+
+    if (res > 0) {
+        netprof_record_packet(net_profile, buf[0], res, PACKET_DIRECTION_SEND);
+    }
+
     loglogdata(log, "T=>", buf, len, ip_port, res);
     return res;
 }
@@ -1013,6 +1019,8 @@ struct Networking_Core {
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
+
+    Net_Profile *udp_net_profile;
 };
 
 Family net_family(const Networking_Core *net)
@@ -1098,6 +1106,11 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
     loglogdata(net->log, "O=>", packet.data, packet.length, ip_port, res);
 
     assert(res <= INT_MAX);
+
+    if (res == packet.length && packet.data != nullptr) {
+        netprof_record_packet(net->udp_net_profile, packet.data[0], packet.length, PACKET_DIRECTION_SEND);
+    }
+
     return (int)res;
 }
 
@@ -1202,6 +1215,8 @@ void networking_poll(const Networking_Core *net, void *userdata)
             continue;
         }
 
+        netprof_record_packet(net->udp_net_profile, data[0], length, PACKET_DIRECTION_RECV);
+
         const Packet_Handler *const handler = &net->packethandlers[data[0]];
 
         if (handler->function == nullptr) {
@@ -1262,6 +1277,14 @@ Networking_Core *new_networking_ex(
         return nullptr;
     }
 
+    Net_Profile *np = netprof_new(log, mem);
+
+    if (np == nullptr) {
+        free(temp);
+        return nullptr;
+    }
+
+    temp->udp_net_profile = np;
     temp->ns = ns;
     temp->log = log;
     temp->mem = mem;
@@ -1278,6 +1301,7 @@ Networking_Core *new_networking_ex(
         char *strerror = net_new_strerror(neterror);
         LOGGER_ERROR(log, "failed to get a socket?! %d, %s", neterror, strerror);
         net_kill_strerror(strerror);
+        netprof_kill(mem, temp->udp_net_profile);
         mem_delete(mem, temp);
 
         if (error != nullptr) {
@@ -1485,6 +1509,7 @@ void kill_networking(Networking_Core *net)
         kill_sock(net->ns, net->sock);
     }
 
+    netprof_kill(net->mem, net->udp_net_profile);
     mem_delete(net->mem, net);
 }
 
@@ -2015,7 +2040,21 @@ bool addr_resolve_or_parse_ip(const Network *ns, const Memory *mem, const char *
     return addr_parse_ip(address, to);
 }
 
-bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
+const char *net_err_connect_to_string(Net_Err_Connect err)
+{
+    switch (err) {
+        case NET_ERR_CONNECT_OK:
+            return "NET_ERR_CONNECT_OK";
+        case NET_ERR_CONNECT_INVALID_FAMILY:
+            return "NET_ERR_CONNECT_INVALID_FAMILY";
+        case NET_ERR_CONNECT_FAILED:
+            return "NET_ERR_CONNECT_FAILED";
+    }
+
+    return "<invalid Net_Err_Connect>";
+}
+
+bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port, Net_Err_Connect *err)
 {
     Network_Addr addr = {{0}};
 
@@ -2037,11 +2076,13 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
         Ip_Ntoa ip_str;
         LOGGER_ERROR(log, "cannot connect to %s:%d which is neither IPv4 nor IPv6",
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port));
+        *err = NET_ERR_CONNECT_INVALID_FAMILY;
         return false;
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
+        *err = NET_ERR_CONNECT_OK;
         return true;
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
@@ -2060,10 +2101,12 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
             LOGGER_WARNING(log, "failed to connect to %s:%d: %d (%s)",
                            net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error, net_strerror);
             net_kill_strerror(net_strerror);
+            *err = NET_ERR_CONNECT_FAILED;
             return false;
         }
     }
 
+    *err = NET_ERR_CONNECT_OK;
     return true;
 }
 
@@ -2392,4 +2435,13 @@ void net_kill_strerror(char *strerror)
 #else
     free(strerror);
 #endif /* OS_WIN32 */
+}
+
+const Net_Profile *net_get_net_profile(const Networking_Core *net)
+{
+    if (net == nullptr) {
+        return nullptr;
+    }
+
+    return net->udp_net_profile;
 }

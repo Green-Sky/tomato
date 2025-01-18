@@ -5,12 +5,19 @@
 
 #include "auto_test_support.h"
 
+#ifndef USE_IPV6
+#define USE_IPV6 1
+#endif
+
 int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
     struct Tox_Options *opts = tox_options_new(nullptr);
     tox_options_set_udp_enabled(opts, false);
+#if !USE_IPV6
+    tox_options_set_ipv6_enabled(opts, false);
+#endif
     Tox *tox_tcp = tox_new_log(opts, nullptr, nullptr);
     tox_options_free(opts);
 

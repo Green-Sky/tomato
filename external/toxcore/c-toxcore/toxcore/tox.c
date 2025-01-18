@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -33,7 +33,7 @@
 #include "onion_client.h"
 #include "state.h"
 #include "tox_private.h"
-#include "tox_struct.h"
+#include "tox_struct.h" // IWYU pragma: keep
 #include "util.h"
 
 #include "../toxencryptsave/defines.h"
@@ -79,7 +79,7 @@ struct Tox_Userdata {
 
 static logger_cb tox_log_handler;
 non_null(1, 3, 5, 6) nullable(7)
-static void tox_log_handler(void *context, Logger_Level level, const char *file, int line, const char *func,
+static void tox_log_handler(void *context, Logger_Level level, const char *file, uint32_t line, const char *func,
                             const char *message, void *userdata)
 {
     Tox *tox = (Tox *)context;
@@ -929,7 +929,7 @@ static Tox *tox_new_system(const struct Tox_Options *options, Tox_Err_New *error
         return nullptr;
     }
 
-    tox->m->conferences_object = new_groupchats(tox->mono_time, tox->m);
+    tox->m->conferences_object = new_groupchats(tox->mono_time, sys->mem, tox->m);
 
     if (tox->m->conferences_object == nullptr) {
         kill_messenger(tox->m);
@@ -3249,7 +3249,7 @@ bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnec
         return false;
     }
 
-    const int ret = gc_rejoin_group(tox->m->group_handler, chat);
+    const int ret = gc_rejoin_group(tox->m->group_handler, chat, nullptr, 0);
     tox_unlock(tox);
 
     switch (ret) {

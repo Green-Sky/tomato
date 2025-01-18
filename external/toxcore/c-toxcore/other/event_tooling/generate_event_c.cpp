@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright © 2023-2024 The TokTok team.
+// Copyright © 2023-2025 The TokTok team.
 
 // this file can be used to generate event.c files
 // requires c++17
@@ -156,7 +156,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
 
     f << R"(/* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2024 The TokTok team.
+ * Copyright © 2023-2025 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -178,6 +178,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 #include "../ccompat.h"
 #include "../mem.h"
 #include "../tox.h"
+#include "../tox_event.h"
 #include "../tox_events.h")";
     if (need_tox_unpack_h) {
         f << R"(
@@ -843,4 +844,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

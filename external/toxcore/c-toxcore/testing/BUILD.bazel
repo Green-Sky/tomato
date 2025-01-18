@@ -89,3 +89,10 @@ cc_binary(
         "//c-toxcore/toxcore:mono_time",
     ],
 )
+
+cc_binary(
+    name = "decrypt_save",
+    testonly = 1,
+    srcs = ["decrypt_save.c"],
+    deps = ["//c-toxcore/toxencryptsave"],
+)

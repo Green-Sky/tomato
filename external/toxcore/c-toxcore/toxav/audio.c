@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
 #include "audio.h"
@@ -195,7 +195,7 @@ void ac_iterate(ACSession *ac)
     free(temp_audio_buffer);
 }
 
-int ac_queue_message(Mono_Time *mono_time, void *cs, struct RTPMessage *msg)
+int ac_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *msg)
 {
     ACSession *ac = (ACSession *)cs;
 

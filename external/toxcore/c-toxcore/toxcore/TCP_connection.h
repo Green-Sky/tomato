@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2015 Tox project.
  */
 
@@ -21,6 +21,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 
 #define TCP_CONN_NONE 0
@@ -316,5 +317,12 @@ void do_tcp_connections(const Logger *logger, TCP_Connections *tcp_c, void *user
 
 nullable(1)
 void kill_tcp_connections(TCP_Connections *tcp_c);
+
+/** @brief a pointer to the tcp client net profile associated with tcp_c.
+ *
+ * @retval null if tcp_c is null.
+ */
+non_null()
+const Net_Profile *tcp_connection_get_client_net_profile(const TCP_Connections *tcp_c);
 
 #endif /* C_TOXCORE_TOXCORE_TCP_CONNECTION_H */

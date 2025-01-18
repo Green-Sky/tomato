@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2025 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -394,4 +394,64 @@ bool tox_pass_decrypt(const uint8_t ciphertext[], size_t ciphertext_len, const u
 bool tox_is_data_encrypted(const uint8_t data[TOX_PASS_ENCRYPTION_EXTRA_LENGTH])
 {
     return memcmp(data, TOX_ENC_SAVE_MAGIC_NUMBER, TOX_ENC_SAVE_MAGIC_LENGTH) == 0;
+}
+
+const char *tox_err_key_derivation_to_string(Tox_Err_Key_Derivation error)
+{
+    switch (error) {
+        case TOX_ERR_KEY_DERIVATION_OK:
+            return "TOX_ERR_KEY_DERIVATION_OK";
+        case TOX_ERR_KEY_DERIVATION_NULL:
+            return "TOX_ERR_KEY_DERIVATION_NULL";
+        case TOX_ERR_KEY_DERIVATION_FAILED:
+            return "TOX_ERR_KEY_DERIVATION_FAILED";
+    }
+    return "<invalid Tox_Err_Key_Derivation>";
+}
+
+const char *tox_err_encryption_to_string(Tox_Err_Encryption error)
+{
+    switch (error) {
+        case TOX_ERR_ENCRYPTION_OK:
+            return "TOX_ERR_ENCRYPTION_OK";
+        case TOX_ERR_ENCRYPTION_NULL:
+            return "TOX_ERR_ENCRYPTION_NULL";
+        case TOX_ERR_ENCRYPTION_KEY_DERIVATION_FAILED:
+            return "TOX_ERR_ENCRYPTION_KEY_DERIVATION_FAILED";
+        case TOX_ERR_ENCRYPTION_FAILED:
+            return "TOX_ERR_ENCRYPTION_FAILED";
+    }
+    return "<invalid Tox_Err_Encryption>";
+}
+
+const char *tox_err_decryption_to_string(Tox_Err_Decryption error)
+{
+    switch (error) {
+        case TOX_ERR_DECRYPTION_OK:
+            return "TOX_ERR_DECRYPTION_OK";
+        case TOX_ERR_DECRYPTION_NULL:
+            return "TOX_ERR_DECRYPTION_NULL";
+        case TOX_ERR_DECRYPTION_INVALID_LENGTH:
+            return "TOX_ERR_DECRYPTION_INVALID_LENGTH";
+        case TOX_ERR_DECRYPTION_BAD_FORMAT:
+            return "TOX_ERR_DECRYPTION_BAD_FORMAT";
+        case TOX_ERR_DECRYPTION_KEY_DERIVATION_FAILED:
+            return "TOX_ERR_DECRYPTION_KEY_DERIVATION_FAILED";
+        case TOX_ERR_DECRYPTION_FAILED:
+            return "TOX_ERR_DECRYPTION_FAILED";
+    }
+    return "<invalid Tox_Err_Decryption>";
+}
+
+const char *tox_err_get_salt_to_string(Tox_Err_Get_Salt error)
+{
+    switch (error) {
+        case TOX_ERR_GET_SALT_OK:
+            return "TOX_ERR_GET_SALT_OK";
+        case TOX_ERR_GET_SALT_NULL:
+            return "TOX_ERR_GET_SALT_NULL";
+        case TOX_ERR_GET_SALT_BAD_FORMAT:
+            return "TOX_ERR_GET_SALT_BAD_FORMAT";
+    }
+    return "<invalid Tox_Err_Get_Salt>";
 }

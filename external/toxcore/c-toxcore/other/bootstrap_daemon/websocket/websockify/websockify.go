@@ -9,7 +9,7 @@
 // - Proper error handling in general.
 // - Support both websocket and regular GET requests on /.
 //
-// Copyright 2022 The TokTok team.
+// Copyright 2022-2025 The TokTok team.
 // Copyright 2021 Michael.liu.
 // See LICENSE for licensing conditions.
 

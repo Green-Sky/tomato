@@ -1,9 +1,9 @@
 /* Tests that we can send messages to friends.
  */
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "auto_test_support.h"
 
