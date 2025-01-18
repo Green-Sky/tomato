@@ -1318,7 +1318,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		// deploy dummy of framedim size and check visibility
 		// +2 for border
 		ImGui::Dummy(ImVec2{width+2, height+2});
-		if (ImGui::IsItemVisible() && o.all_of<ObjComp::F::TagLocalHaveAll, ObjComp::F::SingleInfo, ObjComp::Ephemeral::Backend>()) {
+		if (ImGui::IsItemVisible() && o.all_of<ObjComp::F::TagLocalHaveAll, ObjComp::F::SingleInfo, ObjComp::Ephemeral::BackendFile2>()) {
 			ImGui::SetCursorPos(orig_curser_pos); // reset for actual img
 
 			auto [id, img_width, img_height] = _msg_tc.get(Message3Handle{reg, e});

@@ -45,8 +45,8 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 		return {std::nullopt};
 	}
 
-	if (!o.all_of<ObjComp::Ephemeral::Backend, ObjComp::F::SingleInfo>()) {
-		std::cerr << "MIL error: object missing backend (?)\n";
+	if (!o.all_of<ObjComp::Ephemeral::BackendFile2, ObjComp::F::SingleInfo>()) {
+		std::cerr << "MIL error: object missing file backend (?)\n";
 		return {std::nullopt};
 	}
 
@@ -68,13 +68,13 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 		return {std::nullopt};
 	}
 
-	auto* file_backend = o.get<ObjComp::Ephemeral::Backend>().ptr;
+	auto* file_backend = o.get<ObjComp::Ephemeral::BackendFile2>().ptr;
 	if (file_backend == nullptr) {
 		std::cerr << "MIL error: object backend nullptr\n";
 		return {std::nullopt};
 	}
 
-	auto file2 = file_backend->file2(o, StorageBackendI::FILE2_READ);
+	auto file2 = file_backend->file2(o, StorageBackendIFile2::FILE2_READ);
 	if (!file2 || !file2->isGood() || !file2->can_read) {
 		std::cerr << "MIL error: creating file2 from object via backendI\n";
 		return {std::nullopt};

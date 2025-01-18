@@ -45,8 +45,8 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return; // we dont have all data
 	}
 
-	if (!o.all_of<ObjComp::Ephemeral::Backend, ObjComp::F::SingleInfo>()) {
-		std::cerr << "MMIL error: object missing backend/file info (?)\n";
+	if (!o.all_of<ObjComp::Ephemeral::BackendFile2, ObjComp::F::SingleInfo>()) {
+		std::cerr << "MMIL error: object missing file backend/file info (?)\n";
 		return;
 	}
 
@@ -68,14 +68,14 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
-	auto* file_backend = o.get<ObjComp::Ephemeral::Backend>().ptr;
+	auto* file_backend = o.get<ObjComp::Ephemeral::BackendFile2>().ptr;
 	if (file_backend == nullptr) {
 		std::cerr << "MMIL error: object backend nullptr\n";
 		return;
 	}
 
 
-	auto file2 = file_backend->file2(o, StorageBackendI::FILE2_READ);
+	auto file2 = file_backend->file2(o, StorageBackendIFile2::FILE2_READ);
 	if (!file2 || !file2->isGood() || !file2->can_read) {
 		std::cerr << "MMIL error: creating file2 from object via backendI\n";
 		return;
