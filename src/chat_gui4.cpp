@@ -272,7 +272,7 @@ ChatGui4::~ChatGui4(void) {
 	//}
 }
 
-float ChatGui4::render(float time_delta, bool window_hidden) {
+float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused) {
 	_fss.render();
 	_sip.render(time_delta);
 	_b_tc.update();
@@ -533,17 +533,17 @@ float ChatGui4::render(float time_delta, bool window_hidden) {
 						Message3Registry& msg_reg = *msg_reg_ptr;
 
 						// do systems TODO: extract
-						{ // fade system
+						if (window_focused) { // fade system
 							std::vector<Message3> to_remove;
 							msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
 								// TODO: configurable
-								const float fade_duration = 7.5f;
-								fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/8.f); // fps but not below 8 for smooth-ish fade
+								const float fade_duration = 5.f;
+								fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/10.f); // fps but not below 10 for smooth-ish fade
 								if (fade.fade <= 0.f) {
 									to_remove.push_back(e);
 								}
 							});
-							msg_reg.remove<Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
+							msg_reg.remove<Message::Components::TagUnread, Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
 						}
 
 						//auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
@@ -611,14 +611,22 @@ float ChatGui4::render(float time_delta, bool window_hidden) {
 								// use username as visibility test
 								if (ImGui::IsItemVisible()) {
 									if (msg_reg.all_of<Message::Components::TagUnread>(e)) {
-										// get time now
-										const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-										msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
-										msg_reg.remove<Message::Components::TagUnread>(e);
-										msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
-
-										// we remove the unread tag here
-										_rmm.throwEventUpdate(msg_reg, e);
+										if (!msg_reg.all_of<Components::UnreadFade>(e)) {
+											if (msg_reg.all_of<Message::Components::Read>(e)) {
+												// skip fade, we might get here by merging
+												msg_reg.remove<Message::Components::TagUnread>(e);
+											} else {
+												// get time now
+												const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+												msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
+												msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
+											}
+											_rmm.throwEventUpdate(msg_reg, e);
+										} else if (window_focused) {
+											// remove unread early, when we focus the window
+											msg_reg.remove<Message::Components::TagUnread>(e);
+											_rmm.throwEventUpdate(msg_reg, e);
+										}
 									}
 
 									// track view

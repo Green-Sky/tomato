@@ -181,15 +181,6 @@ int main(int argc, char** argv) {
 			last_time_render = new_time;
 		}
 
-		//// TODO: seperate out render and tick
-		//const float time_to_next_loop = std::min<float>(screen->nextRender(), screen->nextTick());
-
-		//std::this_thread::sleep_for( // time left to get to 60fps
-			//std::chrono::duration<float, std::chrono::seconds::period>(time_to_next_loop)
-			//- std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now() - new_time) // time used for rendering
-		//);
-
-
 #if 1
 		if (render || tick) {
 			// why is windows like this

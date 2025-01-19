@@ -288,8 +288,8 @@ float ToxNetprofUI::render(float time_delta) {
 		if (ImGui::Begin("Tox Netprof histograms", &_show_window_histo)) {
 			if (_enabled) {
 				const float line_height = ImGui::GetTextLineHeight();
-				ImGui::PlotHistogram("udp total count sent##histograms", _udp_tctx.data(), _udp_tctx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
-				ImGui::PlotHistogram("udp total count received##histograms", _udp_tcrx.data(), _udp_tcrx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
+				ImGui::PlotHistogram("udp total packets sent##histograms", _udp_tctx.data(), _udp_tctx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
+				ImGui::PlotHistogram("udp total packets received##histograms", _udp_tcrx.data(), _udp_tcrx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
 				ImGui::PlotHistogram("udp total bytes sent##histograms", _udp_tbtx.data(), _udp_tbtx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
 				ImGui::PlotHistogram("udp total bytes received##histograms", _udp_tbrx.data(), _udp_tbrx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
 			} else {

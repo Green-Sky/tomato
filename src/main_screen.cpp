@@ -328,6 +328,14 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 		return true; // forward?
 	}
 
+	if (e.type == SDL_EVENT_WINDOW_FOCUS_GAINED) {
+		_window_focused = true;
+	}
+
+	if (e.type == SDL_EVENT_WINDOW_FOCUS_LOST) {
+		_window_focused = false;
+	}
+
 	if (
 		_fps_perf_mode <= 1 && (
 			// those are all the events imgui polls
@@ -391,7 +399,11 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	si.render(time_delta);
 
-	const float cg_interval = cg.render(time_delta, _window_hidden); // render
+	if (_window_hidden && _window_focused) {
+		_window_focused = false;
+	}
+
+	const float cg_interval = cg.render(time_delta, _window_hidden, _window_focused); // render
 	sw.render(); // render
 	osui.render();
 	tuiu.render(); // render
