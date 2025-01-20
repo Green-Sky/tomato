@@ -43,6 +43,9 @@ class ToxNetprofUI {
 	std::vector<float> _udp_tbtx;
 	std::vector<float> _udp_tbrx;
 
+	float _udp_tbtx_avg {0.f};
+	float _udp_tbrx_avg {0.f};
+
 	const float _value_add_interval {1.f}; // every second
 	float _time_since_last_add {0.f};
 

@@ -1,6 +1,7 @@
 #include "./tox_netprof_ui.hpp"
 
 #include <imgui/imgui.h>
+#include <string>
 
 static const char* typedPkgIDToString(Tox_Netprof_Packet_Type type, uint8_t id) {
 	// pain
@@ -69,7 +70,11 @@ void ToxNetprofUI::tick(float time_delta) {
 
 	_time_since_last_add += time_delta;
 	if (_time_since_last_add >= _value_add_interval) {
-		_time_since_last_add = 0.f; // very loose
+		if (_time_since_last_add >= 20.f * _value_add_interval) {
+			_time_since_last_add = 0.f; // cut our losses
+		} else {
+			_time_since_last_add -= _value_add_interval;
+		}
 
 		if (_udp_tctx.empty()) {
 			_udp_tctx.push_back(0.f);
@@ -107,9 +112,6 @@ void ToxNetprofUI::tick(float time_delta) {
 			_udp_tbrx_prev = new_value;
 		}
 
-		if (_udp_tbrx.empty()) {
-		}
-
 		// TODO: limit
 		while (_udp_tctx.size() > 5*60) {
 			_udp_tctx.erase(_udp_tctx.begin());
@@ -125,6 +127,22 @@ void ToxNetprofUI::tick(float time_delta) {
 
 		while (_udp_tbrx.size() > 5*60) {
 			_udp_tbrx.erase(_udp_tbrx.begin());
+		}
+
+		_udp_tbtx_avg = 0.f;
+		if (!_udp_tbtx.empty()) {
+			for (const auto bytes : _udp_tbtx) {
+				_udp_tbtx_avg += bytes;
+			}
+			_udp_tbtx_avg /= (_udp_tbtx.size() * _value_add_interval);
+		}
+
+		_udp_tbrx_avg = 0.f;
+		if (!_udp_tbrx.empty()) {
+			for (const auto bytes : _udp_tbrx) {
+				_udp_tbrx_avg += bytes;
+			}
+			_udp_tbrx_avg /= (_udp_tbrx.size() * _value_add_interval);
 		}
 	}
 }
@@ -290,8 +308,26 @@ float ToxNetprofUI::render(float time_delta) {
 				const float line_height = ImGui::GetTextLineHeight();
 				ImGui::PlotHistogram("udp total packets sent##histograms", _udp_tctx.data(), _udp_tctx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
 				ImGui::PlotHistogram("udp total packets received##histograms", _udp_tcrx.data(), _udp_tcrx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
-				ImGui::PlotHistogram("udp total bytes sent##histograms", _udp_tbtx.data(), _udp_tbtx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
-				ImGui::PlotHistogram("udp total bytes received##histograms", _udp_tbrx.data(), _udp_tbrx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
+
+				std::string udp_tbtx_avg_str {"avg " + std::to_string(_udp_tbtx_avg) + " B/s"};
+				ImGui::PlotHistogram(
+					"udp total bytes sent##histograms",
+					_udp_tbtx.data(), _udp_tbtx.size(),
+					0,
+					udp_tbtx_avg_str.c_str(),
+					0.f, FLT_MAX,
+					{0, 3*line_height}
+				);
+
+				std::string udp_tbrx_avg_str {"avg " + std::to_string(_udp_tbrx_avg) + " B/s"};
+				ImGui::PlotHistogram(
+					"udp total bytes received##histograms",
+					_udp_tbrx.data(), _udp_tbrx.size(),
+					0,
+					udp_tbrx_avg_str.c_str(),
+					0.f, FLT_MAX,
+					{0, 3*line_height}
+				);
 			} else {
 				ImGui::TextUnformatted("logging disabled!");
 				if (ImGui::Button("enable")) {
