@@ -32,7 +32,8 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG f8f8d87bfaf3d8557a5c13e0072964a537569b6c # tip 02-01-2025 - android cam fix
 		#GIT_TAG 22422f7748d5128135995ed34c8f8012861c7332 # tip 07-01-2025 (3.1.8)
 		#GIT_TAG 191a6417d581b79cab5698dee84554ea64b5ac61 # tip 14-01-2025 - hotplug asan crash fix
-		GIT_TAG 355f69ebfe7a5f44a28e10569589a1d300aad2b5 # tip 15-01-2024 - more recent for continous tray testing
+		#GIT_TAG 355f69ebfe7a5f44a28e10569589a1d300aad2b5 # tip 15-01-2024 - more recent for continous tray testing
+		GIT_TAG 90b2e2527eeb6614cedd15f61062f62680252be6 # tip 20-01-2024 - tray supposetly fixed
 
 		FIND_PACKAGE_ARGS # for the future
 	)
