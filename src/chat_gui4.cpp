@@ -899,22 +899,46 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 				ImGui::EndChild();
 
 				if (ImGui::BeginChild("text_input", {-150, 0})) {
-					static bool evil_enter_looses_focus_hack = false;
-					if (evil_enter_looses_focus_hack) {
-						ImGui::SetKeyboardFocusHere();
-						evil_enter_looses_focus_hack = false;
-					}
-
 					constexpr ImGuiInputTextFlags input_flags =
-						ImGuiInputTextFlags_EnterReturnsTrue |
 						//ImGuiInputTextFlags_AllowTabInput |
 						ImGuiInputTextFlags_NoHorizontalScroll |
-						ImGuiInputTextFlags_CtrlEnterForNewLine;
+						ImGuiInputTextFlags_CallbackCharFilter;
 
-					if (ImGui::InputTextMultiline("##text_input", &_text_input_buffer, {-0.001f, -0.001f}, input_flags)) {
+					bool text_input_validate {false};
+					ImGui::InputTextMultiline(
+						"##text_input",
+						&_text_input_buffer,
+						{-0.001f, -0.001f},
+						input_flags,
+						+[](ImGuiInputTextCallbackData* data) -> int {
+							// ignore unrelated callbacks
+							if ((data->EventFlag & ImGuiInputTextFlags_CallbackCharFilter) == 0) {
+								return 0;
+							}
+
+
+							// we let everything through, except enter without shift, in which case we signal outside
+							if (
+								data->EventChar == '\n' &&
+								!ImGui::GetIO().KeyShift &&
+								ImGui::IsKeyPressed(ImGuiKey_Enter) // also needs to be a key press, not a paste
+							) {
+								*reinterpret_cast<bool*>(data->UserData) = true;
+								return 1;
+							}
+
+							return 0;
+						},
+						&text_input_validate
+					);
+					if (text_input_validate) {
 						_rmm.sendText(*_selected_contact, _text_input_buffer);
-						_text_input_buffer.clear();
-						evil_enter_looses_focus_hack = true;
+						_text_input_buffer = "";
+						if (ImGuiInputTextState* input_state = ImGui::GetInputTextState(ImGui::GetItemID())) {
+							//input_state->ReloadUserBufAndSelectAll();
+							input_state->ReloadUserBufAndMoveToEnd();
+						}
+						ImGui::SetKeyboardFocusHere(-1);
 					}
 
 					// welcome to linux
