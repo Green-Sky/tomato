@@ -9,6 +9,7 @@
 #include "./frame_streams/sdl/sdl_video_frame_stream2.hpp"
 
 #include <imgui/imgui.h>
+#include <implot.h>
 
 #include <SDL3/SDL.h>
 
@@ -123,6 +124,7 @@ MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme
 				g_provideInstance("ImGuiMemUserData", ImGui::GetVersion(), "host", user_data);
 			}
 		}
+		g_provideInstance<ImPlotContext>("ImPlotContext", IMPLOT_VERSION, "host", ImPlot::GetCurrentContext());
 
 		g_provideInstance<TextureUploaderI>("TextureUploaderI", "host", &sdlrtu);
 	}

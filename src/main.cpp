@@ -4,6 +4,7 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_sdl3.h>
 #include <imgui/backends/imgui_impl_sdlrenderer3.h>
+#include <implot.h>
 
 #include "./theme.hpp"
 #include "./chat_gui/theme.hpp"
@@ -87,6 +88,7 @@ int main(int argc, char** argv) {
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImPlot::CreateContext();
 
 	// TODO: test android behaviour
 	float display_scale = SDL_GetWindowDisplayScale(window.get());
@@ -238,6 +240,7 @@ int main(int argc, char** argv) {
 
 	ImGui_ImplSDLRenderer3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
+	ImPlot::DestroyContext();
 	ImGui::DestroyContext();
 
 	renderer.reset();

@@ -1,7 +1,12 @@
 #include "./tox_netprof_ui.hpp"
 
 #include <imgui/imgui.h>
+#include <implot.h>
+
 #include <string>
+#include <cmath>
+
+#include "./string_formatter_utils.hpp"
 
 static const char* typedPkgIDToString(Tox_Netprof_Packet_Type type, uint8_t id) {
 	// pain
@@ -76,24 +81,6 @@ void ToxNetprofUI::tick(float time_delta) {
 			_time_since_last_add -= _value_add_interval;
 		}
 
-		if (_udp_tctx.empty()) {
-			_udp_tctx.push_back(0.f);
-			_udp_tctx_prev = _tpi.toxNetprofGetPacketTotalCount(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_SENT);
-		} else {
-			const auto new_value = _tpi.toxNetprofGetPacketTotalCount(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_SENT);
-			_udp_tctx.push_back(new_value - _udp_tctx_prev);
-			_udp_tctx_prev = new_value;
-		}
-
-		if (_udp_tcrx.empty()) {
-			_udp_tcrx.push_back(0.f);
-			_udp_tcrx_prev = _tpi.toxNetprofGetPacketTotalCount(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_RECV);
-		} else {
-			const auto new_value = _tpi.toxNetprofGetPacketTotalCount(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_RECV);
-			_udp_tcrx.push_back(new_value - _udp_tcrx_prev);
-			_udp_tcrx_prev = new_value;
-		}
-
 		if (_udp_tbtx.empty()) {
 			_udp_tbtx.push_back(0.f);
 			_udp_tbtx_prev = _tpi.toxNetprofGetPacketTotalBytes(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_SENT);
@@ -113,14 +100,6 @@ void ToxNetprofUI::tick(float time_delta) {
 		}
 
 		// TODO: limit
-		while (_udp_tctx.size() > 5*60) {
-			_udp_tctx.erase(_udp_tctx.begin());
-		}
-
-		while (_udp_tcrx.size() > 5*60) {
-			_udp_tcrx.erase(_udp_tcrx.begin());
-		}
-
 		while (_udp_tbtx.size() > 5*60) {
 			_udp_tbtx.erase(_udp_tbtx.begin());
 		}
@@ -303,31 +282,54 @@ float ToxNetprofUI::render(float time_delta) {
 	}
 
 	if (_show_window_histo) {
-		if (ImGui::Begin("Tox Netprof histograms", &_show_window_histo)) {
-			if (_enabled) {
-				const float line_height = ImGui::GetTextLineHeight();
-				ImGui::PlotHistogram("udp total packets sent##histograms", _udp_tctx.data(), _udp_tctx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
-				ImGui::PlotHistogram("udp total packets received##histograms", _udp_tcrx.data(), _udp_tcrx.size(), 0, nullptr, 0.f, FLT_MAX, {0, 3*line_height});
+		if (ImGui::Begin("Tox Netprof graph", &_show_window_histo)) {
+			if (_enabled && ImPlot::BeginPlot("##plot")) {
+				ImPlot::SetupAxes(nullptr, "bytes", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
 
-				std::string udp_tbtx_avg_str {"avg " + std::to_string(_udp_tbtx_avg) + " B/s"};
-				ImGui::PlotHistogram(
-					"udp total bytes sent##histograms",
-					_udp_tbtx.data(), _udp_tbtx.size(),
-					0,
-					udp_tbtx_avg_str.c_str(),
-					0.f, FLT_MAX,
-					{0, 3*line_height}
+				ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.f, INFINITY);
+
+				// TODO: bytes tick interval of 1024 (or smaller like multiples of 2)
+				ImPlot::SetupAxisFormat(
+					ImAxis_Y1,
+					// TODO: extract
+					+[](double value, char* buff, int size, void*) -> int {
+						if (value < 0) {
+							return 0;
+						}
+
+						const char* byte_suffix = "???";
+						int64_t byte_divider = sizeToHumanReadable(value, byte_suffix);
+
+						return snprintf(buff, size, "%g %s/s", value/byte_divider, byte_suffix);
+					},
+					nullptr
 				);
 
-				std::string udp_tbrx_avg_str {"avg " + std::to_string(_udp_tbrx_avg) + " B/s"};
-				ImGui::PlotHistogram(
-					"udp total bytes received##histograms",
-					_udp_tbrx.data(), _udp_tbrx.size(),
-					0,
-					udp_tbrx_avg_str.c_str(),
-					0.f, FLT_MAX,
-					{0, 3*line_height}
-				);
+				{
+					ImPlot::PlotLine(
+						"udp tx/s",
+						_udp_tbtx.data(), _udp_tbtx.size(),
+						_value_add_interval // normalize to /s
+					);
+					auto item_color = ImPlot::GetLastItemColor();
+					item_color.w *= 0.5f;
+					ImPlot::SetNextLineStyle(item_color);
+					ImPlot::PlotInfLines("udp tx avg", &_udp_tbtx_avg, 1, ImPlotInfLinesFlags_Horizontal);
+				}
+
+				{
+					ImPlot::PlotLine(
+						"udp rx/s",
+						_udp_tbrx.data(), _udp_tbrx.size(),
+						_value_add_interval // normalize to /s
+					);
+					auto item_color = ImPlot::GetLastItemColor();
+					item_color.w *= 0.5f;
+					ImPlot::SetNextLineStyle(item_color);
+					ImPlot::PlotInfLines("udp rx avg", &_udp_tbrx_avg, 1, ImPlotInfLinesFlags_Horizontal);
+				}
+
+				ImPlot::EndPlot();
 			} else {
 				ImGui::TextUnformatted("logging disabled!");
 				if (ImGui::Button("enable")) {

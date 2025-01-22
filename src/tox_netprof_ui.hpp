@@ -34,12 +34,8 @@ class ToxNetprofUI {
 	std::map<uint8_t, float> _tcp_brx_heat;
 
 	// histogram totals
-	uint64_t _udp_tctx_prev;
-	uint64_t _udp_tcrx_prev;
 	uint64_t _udp_tbtx_prev;
 	uint64_t _udp_tbrx_prev;
-	std::vector<float> _udp_tctx;
-	std::vector<float> _udp_tcrx;
 	std::vector<float> _udp_tbtx;
 	std::vector<float> _udp_tbrx;
 

@@ -1,6 +1,7 @@
 #include "./tox_dht_cap_histo.hpp"
 
 #include <imgui/imgui.h>
+#include <implot.h>
 
 void ToxDHTCapHisto::tick(float time_delta) {
 	if (!_enabled) {
@@ -54,8 +55,19 @@ void ToxDHTCapHisto::render(void) {
 
 	if (_show_window) {
 		if (ImGui::Begin("Tox DHT announce capability histogram", &_show_window)) {
-			if (_enabled) {
-				ImGui::PlotHistogram("##histogram", _ratios.data(), _ratios.size(), 0, nullptr, 0.f, 1.f, {-1, -1});
+			if (_enabled && ImPlot::BeginPlot("##caphisto")) {
+				ImPlot::SetupAxis(ImAxis_X1, "seconds", ImPlotAxisFlags_AutoFit);
+				ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 1, ImPlotCond_Always);
+
+				// TODO: fix colors
+
+				ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+				ImPlot::PlotShaded("##ratio_shade", _ratios.data(), _ratios.size());
+				ImPlot::PopStyleVar();
+
+				ImPlot::PlotLine("##ratio", _ratios.data(), _ratios.size());
+
+				ImPlot::EndPlot();
 			} else {
 				ImGui::TextUnformatted("logging disabled!");
 				if (ImGui::Button("enable")) {

@@ -74,6 +74,7 @@ target_sources(tomato PUBLIC
 	./sys_tray.hpp
 	./sys_tray.cpp
 
+	./string_formatter_utils.hpp
 	./chat_gui/theme.hpp
 	./chat_gui/theme.cpp
 	./chat_gui/icons/direct.hpp
@@ -182,6 +183,7 @@ target_link_libraries(tomato PUBLIC
 	imgui
 	imgui_backend_sdl3
 	imgui_backend_sdlrenderer3
+	implot
 
 	stb_image
 	stb_image_write

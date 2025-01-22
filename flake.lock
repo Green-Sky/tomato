@@ -18,6 +18,23 @@
         "type": "github"
       }
     },
+    "implot": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1737544983,
+        "narHash": "sha256-/hYfmkUa5zRb2iQHdw0FhNPBaUHqzEhA0lHDeNE8bkU=",
+        "owner": "epezent",
+        "repo": "implot",
+        "rev": "47522f47054d33178e7defa780042bd2a06b09f9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "epezent",
+        "repo": "implot",
+        "rev": "47522f47054d33178e7defa780042bd2a06b09f9",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1720691131,
@@ -54,6 +71,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "implot": "implot",
         "nixpkgs": "nixpkgs",
         "nlohmann-json": "nlohmann-json",
         "sdl3": "sdl3",

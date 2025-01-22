@@ -18,6 +18,7 @@ add_subdirectory(./solanaceae_tox)
 
 add_subdirectory(./sdl)
 add_subdirectory(./imgui)
+add_subdirectory(./implot)
 
 add_subdirectory(./stb)
 add_subdirectory(./libwebp)

@@ -20,9 +20,13 @@
       url = "github:libsdl-org/SDL_image/6f4584340b9b78542d11bf0232a1a0862de1f0a9";
       flake = false;
     };
+    implot = {
+      url = "github:epezent/implot/47522f47054d33178e7defa780042bd2a06b09f9";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image }:
+  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image, implot }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
@@ -91,13 +95,14 @@
           #"-DCMAKE_C_FLAGS:STRING=-Og"
           #"-DCMAKE_CXX_FLAGS:STRING=-Og"
 
-          "-DFETCHCONTENT_SOURCE_DIR_JSON=${nlohmann-json}" # we care about the version
           # TODO: use package instead
+          "-DFETCHCONTENT_SOURCE_DIR_JSON=${nlohmann-json}" # we care about the version
           "-DFETCHCONTENT_SOURCE_DIR_ZSTD=${pkgs.zstd.src}" # we dont care about the version (we use 1.4.x features)
           "-DFETCHCONTENT_SOURCE_DIR_LIBWEBP=${pkgs.libwebp.src}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3_IMAGE=${sdl3_image}"
           "-DSDLIMAGE_JXL=ON"
+          "-DFETCHCONTENT_SOURCE_DIR_IMPLOT=${implot}" # could use pkgs.implot.src for outdated version
         ];
 
         # TODO: replace with install command
