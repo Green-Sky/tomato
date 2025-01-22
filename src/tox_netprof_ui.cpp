@@ -184,12 +184,13 @@ float ToxNetprofUI::render(float time_delta) {
 			static float decay_rate = 3.f;
 			ImGui::SliderFloat("heat decay (/s)", &decay_rate, 0.f, 50.0f);
 
-			// type (udp/tcp), id/name, count tx, count rx, bytes tx, bytes rx
-			if (ImGui::BeginTable("per packet", 6, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+			// type (udp/tcp), id/name, avg size, count tx, count rx, bytes tx, bytes rx
+			if (ImGui::BeginTable("per packet", 7, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
 
 				ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
 				ImGui::TableSetupColumn("type");
 				ImGui::TableSetupColumn("pkt type");
+				ImGui::TableSetupColumn("avg size");
 				ImGui::TableSetupColumn("count tx");
 				ImGui::TableSetupColumn("count rx");
 				ImGui::TableSetupColumn("bytes tx");
@@ -227,6 +228,7 @@ float ToxNetprofUI::render(float time_delta) {
 				};
 
 				for (size_t i = 0; i < 0xff; i++) {
+					// FIXME: netprof sums up a range on 0x10, even for udp
 					if (i == 0x10) {
 						continue;
 					}
@@ -237,19 +239,25 @@ float ToxNetprofUI::render(float time_delta) {
 						continue; // skip empty
 					}
 
+					const auto bytes_sent = _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_UDP, i, TOX_NETPROF_DIRECTION_SENT);
+					const auto bytes_received = _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_UDP, i, TOX_NETPROF_DIRECTION_RECV);
+
 					ImGui::TableNextColumn();
 					ImGui::TextUnformatted("UDP");
 
 					ImGui::TableNextColumn();
 					ImGui::Text("%02zx(%s)", i, typedPkgIDToString(TOX_NETPROF_PACKET_TYPE_UDP, i));
 
+					ImGui::TableNextColumn();
+					ImGui::Text("%g", double(bytes_sent+bytes_received) / double(count_sent+count_received));
+
 					value_fn(i, count_sent, _udp_ctx_prev, _udp_ctx_heat);
 
 					value_fn(i, count_received, _udp_crx_prev, _udp_crx_heat);
 
-					value_fn(i, _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_UDP, i, TOX_NETPROF_DIRECTION_SENT), _udp_btx_prev, _udp_btx_heat, 0.005f);
+					value_fn(i, bytes_sent, _udp_btx_prev, _udp_btx_heat, 0.005f);
 
-					value_fn(i, _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_UDP, i, TOX_NETPROF_DIRECTION_RECV), _udp_brx_prev, _udp_brx_heat, 0.005f);
+					value_fn(i, bytes_received, _udp_brx_prev, _udp_brx_heat, 0.005f);
 				}
 
 				for (size_t i = 0; i <= 0x10; i++) {
@@ -260,19 +268,25 @@ float ToxNetprofUI::render(float time_delta) {
 						continue; // skip empty
 					}
 
+					const auto bytes_sent = _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_TCP, i, TOX_NETPROF_DIRECTION_SENT);
+					const auto bytes_received = _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_TCP, i, TOX_NETPROF_DIRECTION_RECV);
+
 					ImGui::TableNextColumn();
 					ImGui::TextUnformatted("TCP");
 
 					ImGui::TableNextColumn();
 					ImGui::Text("%02zx(%s)", i, typedPkgIDToString(TOX_NETPROF_PACKET_TYPE_TCP, i));
 
+					ImGui::TableNextColumn();
+					ImGui::Text("%g", double(bytes_sent+bytes_received) / double(count_sent+count_received));
+
 					value_fn(i, count_sent, _tcp_ctx_prev, _tcp_ctx_heat);
 
 					value_fn(i, count_received, _tcp_crx_prev, _tcp_crx_heat);
 
-					value_fn(i, _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_TCP, i, TOX_NETPROF_DIRECTION_SENT), _tcp_btx_prev, _tcp_btx_heat, 0.005f);
+					value_fn(i, bytes_sent, _tcp_btx_prev, _tcp_btx_heat, 0.005f);
 
-					value_fn(i, _tpi.toxNetprofGetPacketIdBytes(TOX_NETPROF_PACKET_TYPE_TCP, i, TOX_NETPROF_DIRECTION_RECV), _tcp_brx_prev, _tcp_brx_heat, 0.005f);
+					value_fn(i, bytes_received, _tcp_brx_prev, _tcp_brx_heat, 0.005f);
 				}
 
 				ImGui::EndTable();
@@ -284,7 +298,7 @@ float ToxNetprofUI::render(float time_delta) {
 	if (_show_window_histo) {
 		if (ImGui::Begin("Tox Netprof graph", &_show_window_histo)) {
 			if (_enabled && ImPlot::BeginPlot("##plot")) {
-				ImPlot::SetupAxes(nullptr, "bytes", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+				ImPlot::SetupAxes(nullptr, "bytes/second", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
 
 				ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.f, INFINITY);
 
