@@ -82,15 +82,25 @@ int main(int argc, char** argv) {
 		std::cerr << "SDL_CreateRenderer failed (" << SDL_GetError() << ")\n";
 		return 1;
 	}
-	SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_ADAPTIVE);
 
-	std::cout << "SDL Renderer: " << SDL_GetRendererName(renderer.get()) << "\n";
+	//SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_ADAPTIVE);
+	SDL_SetRenderVSync(renderer.get(), SDL_RENDERER_VSYNC_DISABLED);
+
+	{
+		std::cout << "SDL Renderer: '" << SDL_GetRendererName(renderer.get());
+
+		int vsync {SDL_RENDERER_VSYNC_DISABLED};
+		if (SDL_GetRenderVSync(renderer.get(), &vsync)) {
+			std::cout << "' vsync: " << vsync << "\n";
+		} else {
+			std::cout << "'\n";
+		}
+	}
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImPlot::CreateContext();
 
-	// TODO: test android behaviour
 	float display_scale = SDL_GetWindowDisplayScale(window.get());
 	if (display_scale < 0.001f) {
 		// error?
@@ -161,6 +171,8 @@ int main(int argc, char** argv) {
 
 		// can do both in the same loop
 		if (render) {
+			const auto render_start_time = std::chrono::steady_clock::now();
+
 			ImGui_ImplSDLRenderer3_NewFrame();
 			ImGui_ImplSDL3_NewFrame();
 			ImGui::NewFrame();
@@ -175,63 +187,47 @@ int main(int argc, char** argv) {
 			ImGui::Render();
 			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer.get());
 
+			// TODO: time mesurements and dynamically reduce fps if present takes long
 			SDL_RenderPresent(renderer.get());
 			// clearing after present is (should) more performant, but first frame is a mess
 			SDL_SetRenderDrawColor(renderer.get(), 0x10, 0x10, 0x10, SDL_ALPHA_OPAQUE);
 			SDL_RenderClear(renderer.get());
 
+			const auto render_end_time = std::chrono::steady_clock::now();
+
+			float render_duration = std::chrono::duration<float, std::chrono::seconds::period>(render_end_time - render_start_time).count();
+			if (render_duration > 0.1666f) { // ~60fps
+				std::cerr << "MAIN warning: render took very long: " << render_duration << "s\n";
+			}
+
 			last_time_render = new_time;
 		}
 
-#if 1
 		if (render || tick) {
 			// why is windows like this
 			//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
 			SDL_Delay(1); // yield for 1ms
 		} else {
-
-	#if 0
-			// pretty hacky and spins if close to next update
-			// if next loop >= 1ms away, wait 1ms
-			if (time_delta_tick+0.001f < screen->nextTick() && time_delta_render+0.001f < screen->nextRender()) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
-			}
-	#else
-			// dynamic sleep, sleeps the reminder till next update
-			//std::this_thread::sleep_for(std::chrono::duration<float, std::chrono::seconds::period>(
-				//std::min<float>(
-					//screen->nextTick() - time_delta_tick,
-					//screen->nextRender() - time_delta_render
-				//)
-			//));
-
 			const float min_delay =
 				std::min<float>(
 					std::min<float>(
 						screen->nextTick() - time_delta_tick,
 						screen->nextRender() - time_delta_render
 					),
-					0.25f // dont sleep too long
+					0.5f // dont sleep too long
 				) * 1000.f;
 
-			if (min_delay > 0.f) {
-				SDL_Delay(uint32_t(min_delay));
+			// mix both worlds to try to reasonable improve responsivenes
+			if (min_delay > 200.f) {
+				SDL_Delay(uint32_t(min_delay - 200.f));
+			} else if (min_delay > 0.f) {
+				// you are annoyingly in efficent
+				SDL_WaitEventTimeout(nullptr, int32_t(min_delay));
 			}
 
 			// better in theory, but consumes more cpu on linux for some reason
-			//SDL_WaitEventTimeout(nullptr, int32_t(
-				//std::min<float>(
-					//screen->nextTick() - time_delta_tick,
-					//screen->nextRender() - time_delta_render
-				//) * 1000.f
-			//));
-	#endif
+			//SDL_WaitEventTimeout(nullptr, int32_t(min_delay));
 		}
-#else
-		// why is windows like this
-		//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield for 1ms
-		SDL_Delay(1); // yield for 1ms
-#endif
 	}
 
 	// TODO: use scope for the unique ptrs
