@@ -279,9 +279,7 @@ jobs:
         path: |
           ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64.zip
 
-  release:
-    if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) }}
-
+  dumpsyms:
     runs-on: ubuntu-latest
 
     needs:
@@ -311,11 +309,77 @@ jobs:
           echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
         fi
 
+    - name: Install Dependencies
+      run: sudo apt update && sudo apt -y install unar
+
+    - name: Install dump_syms
+      run: |
+        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mozilla/dump_syms/releases/download/v2.3.4/dump_syms-installer.sh | sh
+
     - name: Download artifacts
       id: download-artifact
       uses: actions/download-artifact@v4
       with:
         path: ./artifacts/
+
+    - name: Dump symbols
+      shell: bash
+      run: |
+        mkdir ./artifacts/extract
+
+        echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu20.04-x86_64/*)
+        dump_syms -s tomato-dev-ubuntu20.04-x86_64-sym ./artifacts/extract/tomato
+        rm -rf ./artifacts/extract/*
+
+        echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64/*)
+        dump_syms -s tomato-dev-Windows-msvc-x86_64-sym ./artifacts/extract/tomato.pdb
+        rm -rf ./artifacts/extract/*
+
+    - name: Compress symbol stores
+      shell: bash
+      run: |
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu20.04-x86_64-symbol_store.tar.gz -C ./tomato-dev-ubuntu20.04-x86_64-sym .
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz -C ./tomato-dev-Windows-msvc-x86_64-sym .
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-symbol_stores
+        path: |
+          ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu20.04-x86_64-symbol_store.tar.gz
+          ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz
+
+  release:
+    if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) }}
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - linux-ubuntu
+      - android
+      - windows
+      - windows-asan
+      - dumpsyms
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      # taken from llama.cpp
+      run: |
+        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
+          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        else
+          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
+          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
+        fi
 
     - name: Create release
       env:
