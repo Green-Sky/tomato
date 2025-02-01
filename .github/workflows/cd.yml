@@ -163,7 +163,7 @@ jobs:
     - name: Install Dependencies
       env:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows breakpad[tools]:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static
 
     # setup vs env
     - uses: ilammy/msvc-dev-cmd@v1
@@ -197,6 +197,13 @@ jobs:
       shell: powershell
       run: |
         Remove-Item "${{github.workspace}}/build/bin/*.ilk"
+
+    - name: Dump breakpad sym files
+      shell: powershell
+      run: |
+        ls C:/vcpkg/installed/x64-windows/tools/
+        ls C:/vcpkg/installed/x64-windows/tools/breakpad/
+        C:/vcpkg/installed/x64-windows/tools/breakpad/dump_syms.exe ${{github.workspace}}/build/bin/tomato.pdb > ${{github.workspace}}/build/bin/tomato.pdb.sym
 
     - name: Compress artifacts
       shell: powershell
