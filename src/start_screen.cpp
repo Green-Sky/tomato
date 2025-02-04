@@ -13,6 +13,8 @@
 #include <memory>
 #include <filesystem>
 #include <fstream>
+#include <exception>
+#include <stdexcept>
 
 StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
 	bool config_loaded {false};
@@ -301,9 +303,23 @@ Screen* StartScreen::render(float, bool&) {
 		}
 	} else {
 		if (ImGui::Button("proceed", {TEXT_PROCEED_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f})) {
+			_error_string.clear();
 
-			auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
-			return new_screen.release();
+			try {
+				auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
+				if (!new_screen) {
+					throw std::runtime_error("failed to init main screen.");
+				}
+				return new_screen.release();
+			} catch (const std::exception& e) {
+				_error_string = std::string{"ToxCore/MainScreen creation failed with: "} + e.what();
+			} catch (...) {
+				_error_string = "ToxCore/MainScreen creation failed with unknown error";
+			}
+		}
+
+		if (!_error_string.empty()) {
+			ImGui::TextColored({1.f, 0.5f, 0.5f, 1.f}, "%s", _error_string.c_str());
 		}
 	}
 

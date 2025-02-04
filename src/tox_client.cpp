@@ -55,7 +55,7 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 						profile_data.data(),
 						nullptr // TODO: error checking
 					)) {
-						throw std::runtime_error("FAILED to decrypt save file!!!!");
+						throw std::runtime_error("failed to decrypt save file!");
 					}
 					eee(_tox_profile_password);
 				}
@@ -69,12 +69,12 @@ ToxClient::ToxClient(std::string_view save_path, std::string_view save_password)
 
 	tox_options_set_experimental_groups_persistence(options, true);
 
-	TOX_ERR_NEW err_new;
+	Tox_Err_New err_new;
 	_tox = tox_new(options, &err_new);
 	tox_options_free(options);
 	if (err_new != TOX_ERR_NEW_OK) {
 		std::cerr << "tox_new failed with error code " << err_new << "\n";
-		throw std::runtime_error{"tox failed"};
+		throw std::runtime_error{std::string{"toxcore creation failed with '"} + tox_err_new_to_string(err_new) + "'"};
 	}
 
 	// no callbacks, use events

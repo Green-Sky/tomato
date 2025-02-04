@@ -30,6 +30,8 @@ struct StartScreen final : public Screen {
 	std::string _tox_profile_path {"unnamed-tomato.tox"};
 	std::vector<std::string> queued_plugin_paths;
 
+	std::string _error_string;
+
 	StartScreen(void) = delete;
 	StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme);
 	~StartScreen(void) = default;
