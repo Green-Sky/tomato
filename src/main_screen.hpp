@@ -119,7 +119,7 @@ struct MainScreen final : public Screen {
 
 	std::vector<std::string> _dopped_files;
 
-	MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins);
+	MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins);
 	~MainScreen(void);
 
 	bool handleEvent(SDL_Event& e) override;

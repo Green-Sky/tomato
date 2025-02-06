@@ -33,14 +33,14 @@ static std::unique_ptr<SystemTray> constructSystemTray(SimpleConfigModel& conf, 
 	}
 }
 
-MainScreen::MainScreen(SimpleConfigModel&& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
+MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
-	conf(std::move(conf_)),
+	conf(conf_),
 	rmm(cr),
 	msnj{cr, os, {}, {}},
 	mts(rmm),
 	sm(os),
-	tc(save_path, save_password),
+	tc(conf, save_path, save_password),
 	tel(tc, std::cout),
 	tpi(tc.getTox()),
 	ad(tc),
