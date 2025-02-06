@@ -1092,6 +1092,8 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		return;
 	}
 
+	const bool local_have_all = o.all_of<ObjComp::F::TagLocalHaveAll>();
+
 	ImGui::BeginGroup();
 
 #if 0
@@ -1115,7 +1117,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		// TODO: missing other states
 		ImGui::TextUnformatted("running");
 	}
-	if (o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+	if (local_have_all) {
 		ImGui::SameLine();
 		ImGui::TextUnformatted("(have all)");
 	}
@@ -1123,7 +1125,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// if in offered state
 	// paused, never started
 	if (
-		!o.all_of<ObjComp::F::TagLocalHaveAll>() &&
+		!local_have_all &&
 		//reg.all_of<Message::Components::Transfer::TagReceiving>(e) &&
 		o.all_of<ObjComp::Ephemeral::File::TagTransferPaused>() &&
 		// TODO: how does restarting a broken/incomplete transfer look like?
@@ -1154,7 +1156,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 	// hacky
 	const auto* fts = o.try_get<ObjComp::Ephemeral::File::TransferStats>();
 	if (fts != nullptr && o.any_of<ObjComp::F::SingleInfo, ObjComp::F::CollectionInfo>()) {
-		const bool upload = o.all_of<ObjComp::F::TagLocalHaveAll>() && fts->total_down <= 0;
+		const bool upload = local_have_all && fts->total_down <= 0;
 
 		const int64_t total_size =
 			o.all_of<ObjComp::F::SingleInfo>() ?
@@ -1210,8 +1212,11 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
 		}
 
+		if (local_have_all) {
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, _theme.getColor<ThemeCol_Contact::ft_have_all>());
+		}
 		if (
-			(!upload && !o.all_of<ObjComp::F::TagLocalHaveAll>() && o.all_of<ObjComp::F::LocalHaveBitset>()) ||
+			(!upload && !local_have_all && o.all_of<ObjComp::F::LocalHaveBitset>()) ||
 			(upload && o.all_of<ObjComp::F::RemoteHaveBitset>())
 		) {
 			ImGui::BeginGroup();
@@ -1260,6 +1265,9 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				{-FLT_MIN, TEXT_BASE_HEIGHT},
 				overlay_buf
 			);
+		}
+		if (local_have_all) {
+			ImGui::PopStyleColor();
 		}
 	} else {
 		// infinite scrolling progressbar fallback
@@ -1382,7 +1390,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			ImGui::Separator();
 
 			// TODO: better way to dif up/down
-			if (!o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+			if (!local_have_all) {
 				if (ImGui::BeginMenu("dowload priority")) {
 					using Priority = ObjComp::Ephemeral::File::DownloadPriority::Priority;
 					auto& p_comp = o.get_or_emplace<ObjComp::Ephemeral::File::DownloadPriority>();
@@ -1420,7 +1428,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				ImGui::Separator();
 			}
 
-			if (ImGui::BeginMenu("forward", o.all_of<ObjComp::F::TagLocalHaveAll>())) {
+			if (ImGui::BeginMenu("forward", local_have_all)) {
 				for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
 					// filter
 					if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {

@@ -370,7 +370,7 @@ Screen* StartScreen::render(float, bool&) {
 					if (ImGui::Checkbox("local discovery", &value)) {
 						_conf.set("tox", "local_discovery_enabled", value);
 					}
-					ImGui::SetItemTooltip("Perform broadcasts in your local networks to fine other peers.\nOnly meaningful if udp is enabled.");
+					ImGui::SetItemTooltip("Perform broadcasts in your local networks to find other peers.\nOnly meaningful if udp is enabled.");
 				}
 
 				ImGui::SeparatorText("tcp relay server");

@@ -53,6 +53,9 @@ Theme getDefaultThemeDark(void) {
 
 	t.setColor<ThemeCol_Contact::icon_backdrop			>({0.0f, 0.0f, 0.0f, 0.4f});
 
+	// TODO: add base ft? -> PlotHistogram
+	t.setColor<ThemeCol_Contact::ft_have_all			>({0.35f, 0.84f, 0.22f, 1.0f});
+
 	return t;
 }
 

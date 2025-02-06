@@ -18,6 +18,8 @@ enum class ThemeCol_Contact {
 	unread_muted,
 
 	icon_backdrop,
+
+	ft_have_all,
 };
 
 void renderAvatar(
