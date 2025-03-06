@@ -1,6 +1,7 @@
 #include "./tox_av_voip_model.hpp"
 
 #include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/contact/contact_store_i.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
 #include <solanaceae/util/time.hpp>
 
@@ -410,7 +411,7 @@ void ToxAVVoIPModel::handleEvent(const Events::FriendCall& e) {
 	// (or rejected...)
 
 	const auto session_contact = _tcm.getContactFriend(e.friend_number);
-	if (!_cr.valid(session_contact)) {
+	if (!static_cast<bool>(session_contact)) {
 		return;
 	}
 
@@ -428,7 +429,7 @@ void ToxAVVoIPModel::handleEvent(const Events::FriendCall& e) {
 
 void ToxAVVoIPModel::handleEvent(const Events::FriendCallState& e) {
 	const auto session_contact = _tcm.getContactFriend(e.friend_number);
-	if (!_cr.valid(session_contact)) {
+	if (!static_cast<bool>(session_contact)) {
 		return;
 	}
 
@@ -486,8 +487,8 @@ void ToxAVVoIPModel::handleEvent(const Events::FriendCallState& e) {
 	}
 }
 
-ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm) :
-	_os(os), _av(av), _av_sr(_av.newSubRef(this)), _cr(cr), _tcm(tcm)
+ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, ContactStore4I& cs, ToxContactModel2& tcm) :
+	_os(os), _av(av), _av_sr(_av.newSubRef(this)), _cs(cs), _tcm(tcm)
 {
 	_av_sr
 		.subscribe(ToxAV_Event::friend_call)
@@ -502,8 +503,10 @@ ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& c
 
 	// attach to all tox friend contacts
 
-	for (const auto& [cv, _] : _cr.view<Contact::Components::ToxFriendPersistent>().each()) {
-		_cr.emplace<VoIPModelI*>(cv, this);
+	auto& cr = _cs.registry();
+
+	for (const auto& [cv, _] : cr.view<Contact::Components::ToxFriendPersistent>().each()) {
+		cr.emplace<VoIPModelI*>(cv, this);
 	}
 	// TODO: events
 }
@@ -535,12 +538,14 @@ void ToxAVVoIPModel::tick(void) {
 	}
 }
 
-ObjectHandle ToxAVVoIPModel::enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults) {
-	if (!_cr.all_of<Contact::Components::ToxFriendEphemeral>(c)) {
+ObjectHandle ToxAVVoIPModel::enter(const Contact4 c, const Components::VoIP::DefaultConfig& defaults) {
+	const auto& cr = _cs.registry();
+
+	if (!cr.all_of<Contact::Components::ToxFriendEphemeral>(c)) {
 		return {};
 	}
 
-	const auto friend_number = _cr.get<Contact::Components::ToxFriendEphemeral>(c).friend_number;
+	const auto friend_number = cr.get<Contact::Components::ToxFriendEphemeral>(c).friend_number;
 
 	const auto err = _av.toxavCall(friend_number, 0, 0);
 	if (err != TOXAV_ERR_CALL_OK) {
@@ -579,12 +584,14 @@ bool ToxAVVoIPModel::accept(ObjectHandle session, const Components::VoIP::Defaul
 		return false;
 	}
 
+	const auto& cr = _cs.registry();
+
 	const auto session_contact = session.get<Components::VoIP::SessionContact>().c;
-	if (!_cr.all_of<Contact::Components::ToxFriendEphemeral>(session_contact)) {
+	if (!cr.all_of<Contact::Components::ToxFriendEphemeral>(session_contact)) {
 		return false;
 	}
 
-	const auto friend_number = _cr.get<Contact::Components::ToxFriendEphemeral>(session_contact).friend_number;
+	const auto friend_number = cr.get<Contact::Components::ToxFriendEphemeral>(session_contact).friend_number;
 	auto err = _av.toxavAnswer(friend_number, 0, 0);
 	if (err != TOXAV_ERR_ANSWER_OK) {
 		std::cerr << "TOXAVVOIP error: ansering call failed: " << err << "\n";
@@ -649,12 +656,14 @@ bool ToxAVVoIPModel::leave(ObjectHandle session) {
 		return false;
 	}
 
+	const auto& cr = _cs.registry();
+
 	const auto session_contact = session.get<Components::VoIP::SessionContact>().c;
-	if (!_cr.all_of<Contact::Components::ToxFriendEphemeral>(session_contact)) {
+	if (!cr.all_of<Contact::Components::ToxFriendEphemeral>(session_contact)) {
 		return false;
 	}
 
-	const auto friend_number = _cr.get<Contact::Components::ToxFriendEphemeral>(session_contact).friend_number;
+	const auto friend_number = cr.get<Contact::Components::ToxFriendEphemeral>(session_contact).friend_number;
 	// check error? (we delete anyway)
 	_av.toxavCallControl(friend_number, Toxav_Call_Control::TOXAV_CALL_CONTROL_CANCEL);
 

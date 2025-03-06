@@ -1,7 +1,7 @@
 #pragma once
 
 #include <solanaceae/object_store/fwd.hpp>
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 #include "./frame_streams/voip_model.hpp"
 #include "./tox_av.hpp"
@@ -19,7 +19,7 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	ObjectStore2& _os;
 	ToxAVI& _av;
 	ToxAVI::SubscriptionReference _av_sr;
-	Contact3Registry& _cr;
+	ContactStore4I& _cs;
 	ToxContactModel2& _tcm;
 
 	uint64_t _pad0;
@@ -63,14 +63,14 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	void handleEvent(const Events::FriendCallState&);
 
 	public:
-		ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, Contact3Registry& cr, ToxContactModel2& tcm);
+		ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, ContactStore4I& cs, ToxContactModel2& tcm);
 		~ToxAVVoIPModel(void);
 
 		// handle events coming from toxav thread(s)
 		void tick(void);
 
 	public: // voip model
-		ObjectHandle enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults) override;
+		ObjectHandle enter(const Contact4 c, const Components::VoIP::DefaultConfig& defaults) override;
 		bool accept(ObjectHandle session, const Components::VoIP::DefaultConfig& defaults) override;
 		bool leave(ObjectHandle session) override;
 
