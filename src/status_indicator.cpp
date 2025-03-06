@@ -1,5 +1,7 @@
 #include "./status_indicator.hpp"
 
+#include <solanaceae/contact/contact_store_i.hpp>
+
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/message3/components.hpp>
 
@@ -36,12 +38,12 @@ void StatusIndicator::updateState(State state) {
 
 StatusIndicator::StatusIndicator(
 	RegistryMessageModelI& rmm,
-	Contact3Registry& cr,
+	ContactStore4I& cs,
 	SDL_Window* main_window,
 	SystemTray* tray
 ) :
 	_rmm(rmm),
-	_cr(cr),
+	_cs(cs),
 	_main_window(main_window),
 	_tray(tray)
 {
@@ -55,7 +57,7 @@ void StatusIndicator::render(float delta) {
 		_cooldown = 1.f; // once a second
 
 		bool has_unread = false;
-		for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
+		for (const auto& c : _cs.registry().view<Contact::Components::TagBig>()) {
 			// maybe cache mm?
 			if (const auto* mm = _rmm.get(c); mm != nullptr) {
 				if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {

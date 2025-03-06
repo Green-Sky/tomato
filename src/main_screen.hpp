@@ -4,7 +4,7 @@
 
 #include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/util/simple_config_model.hpp>
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/contact_store_impl.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/message3/registry_message_model_impl.hpp>
 #include <solanaceae/message3/message_time_sort.hpp>
@@ -60,7 +60,7 @@ struct MainScreen final : public Screen {
 	ObjectStore2 os;
 
 	SimpleConfigModel conf;
-	Contact3Registry cr;
+	ContactStore4Impl cs;
 	RegistryMessageModelImpl rmm;
 	MessageSerializerNJ msnj;
 	MessageTimeSort mts;

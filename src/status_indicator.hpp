@@ -10,7 +10,7 @@
 
 class StatusIndicator {
 	RegistryMessageModelI& _rmm;
-	Contact3Registry& _cr;
+	ContactStore4I& _cs;
 
 	SDL_Window* _main_window;
 	SystemTray* _tray;
@@ -28,7 +28,7 @@ class StatusIndicator {
 	public:
 		StatusIndicator(
 			RegistryMessageModelI& rmm,
-			Contact3Registry& cr,
+			ContactStore4I& cs,
 			SDL_Window* main_window,
 			SystemTray* tray = nullptr
 		);

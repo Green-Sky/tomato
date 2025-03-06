@@ -4,7 +4,7 @@
 
 #include "./theme.hpp"
 
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 
 enum class ThemeCol_Contact {
 	request_incoming,
@@ -25,7 +25,7 @@ enum class ThemeCol_Contact {
 void renderAvatar(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
-	const Contact3Handle c,
+	const ContactHandle4 c,
 	ImVec2 box
 );
 
@@ -39,7 +39,7 @@ void renderAvatar(
 bool renderContactBig(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
-	const Contact3Handle c,
+	const ContactHandle4 c,
 	int line_height = 3,
 	const bool unread = false,
 	const bool selectable = false,

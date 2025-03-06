@@ -1,16 +1,20 @@
 #pragma once
 
 #include <solanaceae/object_store/fwd.hpp>
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 #include <solanaceae/util/bitset.hpp>
 
 #include "./texture_cache.hpp"
+
+#include <entt/entity/entity.hpp>
+#include <entt/entity/registry.hpp>
+#include <entt/entity/handle.hpp>
 
 #include <optional>
 
 struct ObjectContactSub final {
 	ObjectHandle o;
-	Contact3 c{entt::null};
+	Contact4 c{entt::null};
 };
 
 template<>

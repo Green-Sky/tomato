@@ -3,6 +3,7 @@
 #include <solanaceae/util/time.hpp>
 
 #include <solanaceae/toxcore/tox_interface.hpp>
+#include <solanaceae/contact/contact_store_i.hpp>
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
@@ -27,12 +28,12 @@ namespace Contact::Components {
 } // Contact::Components
 
 ToxFriendFauxOfflineMessaging::ToxFriendFauxOfflineMessaging(
-	Contact3Registry& cr,
+	ContactStore4I& cs,
 	RegistryMessageModelI& rmm,
 	ToxContactModel2& tcm,
 	ToxI& t,
 	ToxEventProviderI& tep
-) : _cr(cr), _rmm(rmm), _tcm(tcm), _t(t), _tep_sr(tep.newSubRef(this)) {
+) : _cs(cs), _rmm(rmm), _tcm(tcm), _t(t), _tep_sr(tep.newSubRef(this)) {
 	_tep_sr.subscribe(Tox_Event_Type::TOX_EVENT_FRIEND_CONNECTION_STATUS);
 }
 
@@ -47,36 +48,40 @@ float ToxFriendFauxOfflineMessaging::tick(float time_delta) {
 
 	const uint64_t ts_now = getTimeMS();
 
+	auto& cr = _cs.registry();
+
 	// check ALL
 	// for each online tox friend
 	uint64_t min_next_attempt_ts {std::numeric_limits<uint64_t>::max()};
-	_cr.view<Contact::Components::ToxFriendEphemeral, Contact::Components::ConnectionState>()
-	.each([this, &min_next_attempt_ts, ts_now](const Contact3 c, const auto& tfe, const auto& cs) {
+	cr.view<Contact::Components::ToxFriendEphemeral, Contact::Components::ConnectionState>()
+	.each([this, &cr, &min_next_attempt_ts, ts_now](const Contact4 c, const auto& tfe, const auto& cs) {
 		if (cs.state == Contact::Components::ConnectionState::disconnected) {
 			// cleanup
-			if (_cr.all_of<Contact::Components::NextSendAttempt>(c)) {
-				_cr.remove<Contact::Components::NextSendAttempt>(c);
+			if (cr.all_of<Contact::Components::NextSendAttempt>(c)) {
+				// TODO: figure out if we want to throw update here
+				cr.remove<Contact::Components::NextSendAttempt>(c);
 				auto* mr = static_cast<const RegistryMessageModelI&>(_rmm).get(c);
 				if (mr != nullptr) {
 					mr->storage<Message::Components::LastSendAttempt>().clear();
 				}
 			}
 		} else {
-			if (!_cr.all_of<Contact::Components::NextSendAttempt>(c)) {
+			if (!cr.all_of<Contact::Components::NextSendAttempt>(c)) {
 				if (false) { // has unsent messages
-					const auto& nsa = _cr.emplace<Contact::Components::NextSendAttempt>(c, ts_now + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
+					const auto& nsa = cr.emplace<Contact::Components::NextSendAttempt>(c, ts_now + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
 					min_next_attempt_ts = std::min(min_next_attempt_ts, nsa.ts);
 				}
 			} else {
 				auto ret = doFriendMessageCheck(c, tfe);
 				if (ret == dfmc_Ret::SENT_THIS_TICK) {
-					const auto ts = _cr.get<Contact::Components::NextSendAttempt>(c).ts = ts_now + uint64_t(_delay_inbetween*1000);
+					const auto ts = cr.get<Contact::Components::NextSendAttempt>(c).ts = ts_now + uint64_t(_delay_inbetween*1000);
 					min_next_attempt_ts = std::min(min_next_attempt_ts, ts);
 				} else if (ret == dfmc_Ret::TOO_SOON) {
 					// TODO: set to _delay_inbetween? prob expensive for no good reason
-					min_next_attempt_ts = std::min(min_next_attempt_ts, _cr.get<Contact::Components::NextSendAttempt>(c).ts);
+					min_next_attempt_ts = std::min(min_next_attempt_ts, cr.get<Contact::Components::NextSendAttempt>(c).ts);
 				} else {
-					_cr.remove<Contact::Components::NextSendAttempt>(c);
+					// TODO: figure out if we want to throw update here
+					cr.remove<Contact::Components::NextSendAttempt>(c);
 				}
 			}
 		}
@@ -96,7 +101,7 @@ float ToxFriendFauxOfflineMessaging::tick(float time_delta) {
 	return _interval_timer;
 }
 
-ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact3 c, const Contact::Components::ToxFriendEphemeral& tfe) {
+ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendMessageCheck(const Contact4 c, const Contact::Components::ToxFriendEphemeral& tfe) {
 	// walk all messages and check if
 	// unacked message
 	// timeouts for exising unacked messages expired (send)
@@ -109,11 +114,13 @@ ToxFriendFauxOfflineMessaging::dfmc_Ret ToxFriendFauxOfflineMessaging::doFriendM
 
 	const uint64_t ts_now = getTimeMS();
 
-	if (!_cr.all_of<Contact::Components::Self>(c)) {
+	const auto& cr = _cs.registry();
+
+	if (!cr.all_of<Contact::Components::Self>(c)) {
 		return dfmc_Ret::NO_MSG; // error
 	}
 
-	const auto self_c = _cr.get<Contact::Components::Self>(c).self;
+	const auto self_c = cr.get<Contact::Components::Self>(c).self;
 
 	// filter for unconfirmed messages
 
@@ -222,7 +229,8 @@ bool ToxFriendFauxOfflineMessaging::onToxEvent(const Tox_Event_Friend_Connection
 		return false;
 	}
 
-	_cr.emplace_or_replace<Contact::Components::NextSendAttempt>(c, getTimeMS() + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
+	// TODO: should we throw update?
+	_cs.registry().emplace_or_replace<Contact::Components::NextSendAttempt>(c, getTimeMS() + uint64_t(_delay_after_cc*1000)); // wait before first message is sent
 
 	_interval_timer = 0.f;
 

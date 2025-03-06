@@ -2,7 +2,7 @@
 
 #include <solanaceae/toxcore/tox_event_interface.hpp>
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 
 // fwd
@@ -14,7 +14,7 @@ namespace Contact::Components {
 // resends unconfirmed messages.
 // timers get reset on connection changes, and send order is preserved.
 class ToxFriendFauxOfflineMessaging : public ToxEventI {
-	Contact3Registry& _cr;
+	ContactStore4I& _cs;
 	RegistryMessageModelI& _rmm;
 	ToxContactModel2& _tcm;
 	ToxI& _t;
@@ -29,7 +29,7 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 
 	public:
 		ToxFriendFauxOfflineMessaging(
-			Contact3Registry& cr,
+			ContactStore4I& cs,
 			RegistryMessageModelI& rmm,
 			ToxContactModel2& tcm,
 			ToxI& t,
@@ -47,7 +47,7 @@ class ToxFriendFauxOfflineMessaging : public ToxEventI {
 		// only called for online friends
 		// returns true if a message was sent
 		// dont call this too often
-		dfmc_Ret doFriendMessageCheck(const Contact3 c, const Contact::Components::ToxFriendEphemeral& tfe);
+		dfmc_Ret doFriendMessageCheck(const Contact4 c, const Contact::Components::ToxFriendEphemeral& tfe);
 
 	protected:
 		bool onToxEvent(const Tox_Event_Friend_Connection_Status* e) override;

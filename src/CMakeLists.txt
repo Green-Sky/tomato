@@ -167,6 +167,7 @@ target_compile_features(tomato PUBLIC cxx_std_17)
 target_link_libraries(tomato PUBLIC
 	solanaceae_util
 	solanaceae_contact
+	solanaceae_contact_impl
 	solanaceae_message3
 	solanaceae_message_serializer
 

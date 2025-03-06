@@ -2,7 +2,7 @@
 
 #include <solanaceae/object_store/meta_components_file.hpp>
 
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 
 #include <entt/container/dense_map.hpp>
 
@@ -13,7 +13,7 @@ namespace ObjectStore::Components {
 		namespace File {
 
 			struct TransferStatsSeparated {
-				entt::dense_map<Contact3, TransferStats> stats;
+				entt::dense_map<Contact4, TransferStats> stats;
 			};
 
 		} // File

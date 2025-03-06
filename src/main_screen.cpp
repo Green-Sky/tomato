@@ -36,33 +36,33 @@ static std::unique_ptr<SystemTray> constructSystemTray(SimpleConfigModel& conf, 
 MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, Theme& theme_, std::string save_path, std::string save_password, std::string new_username, std::vector<std::string> plugins) :
 	renderer(renderer_),
 	conf(conf_),
-	rmm(cr),
-	msnj{cr, os, {}, {}},
+	rmm(cs),
+	msnj{cs, os, {}, {}},
 	mts(rmm),
 	sm(os),
 	tc(conf, save_path, save_password),
 	tel(tc, std::cout),
 	tpi(tc.getTox()),
 	ad(tc),
-	tcm(cr, tc, tc),
-	tmm(rmm, cr, tcm, tc, tc),
-	ttm(rmm, cr, tcm, tc, tc, os),
-	tffom(cr, rmm, tcm, tc, tc),
+	tcm(cs, tc, tc),
+	tmm(rmm, cs, tcm, tc, tc),
+	ttm(rmm, cs, tcm, tc, tc, os),
+	tffom(cs, rmm, tcm, tc, tc),
 #if TOMATO_TOX_AV
 	tav(tc.getTox()),
-	tavvoip(os, tav, cr, tcm),
+	tavvoip(os, tav, cs, tcm),
 #endif
 	theme(theme_),
 	mmil(rmm),
-	tam(/*rmm, */ os, cr, conf),
+	tam(/*rmm, */ os, cs, conf),
 	sdlrtu(renderer_),
-	tal(cr),
+	tal(cs),
 	contact_tc(tal, sdlrtu),
 	mil(),
 	msg_tc(mil, sdlrtu),
 	st(constructSystemTray(conf, SDL_GetRenderWindow(renderer_))),
-	si(rmm, cr, SDL_GetRenderWindow(renderer_), st.get()),
-	cg(conf, os, rmm, cr, sdlrtu, contact_tc, msg_tc, theme),
+	si(rmm, cs, SDL_GetRenderWindow(renderer_), st.get()),
+	cg(conf, os, rmm, cs, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
 	osui(os),
 	tuiu(tc, conf, &tpi),
@@ -95,7 +95,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 		g_provideInstance<ObjectStore2>("ObjectStore2", "host", &os);
 
 		g_provideInstance<ConfigModelI>("ConfigModelI", "host", &conf);
-		g_provideInstance<Contact3Registry>("Contact3Registry", "1", "host", &cr);
+		g_provideInstance<ContactStore4I>("ContactStore4I", "host", &cs);
 		g_provideInstance<RegistryMessageModelI>("RegistryMessageModelI", "host", &rmm);
 		g_provideInstance<MessageSerializerNJ>("MessageSerializerNJ", "host", &msnj);
 
@@ -386,12 +386,13 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	// TODO: move this somewhere else!!!
 	// needs both tal and tc <.<
-	if (!cr.storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
-		std::vector<Contact3> to_purge;
-		cr.view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact3 c) {
+	// TODO: move this code to events
+	if (!cs.registry().storage<Contact::Components::TagAvatarInvalidate>().empty()) { // handle force-reloads for avatars
+		std::vector<Contact4> to_purge;
+		cs.registry().view<Contact::Components::TagAvatarInvalidate>().each([&to_purge](const Contact4 c) {
 			to_purge.push_back(c);
 		});
-		cr.remove<Contact::Components::TagAvatarInvalidate>(to_purge.cbegin(), to_purge.cend());
+		cs.registry().remove<Contact::Components::TagAvatarInvalidate>(to_purge.cbegin(), to_purge.cend());
 		contact_tc.invalidate(to_purge);
 	}
 	// ACTUALLY NOT IF RENDERED, MOVED LOGIC TO ABOVE

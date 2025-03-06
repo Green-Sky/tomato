@@ -1,11 +1,15 @@
 #include "./chat_gui4.hpp"
 
+#include <solanaceae/util/utils.hpp>
+
+#include <solanaceae/contact/contact_store_i.hpp>
+#include <solanaceae/contact/contact_model4.hpp>
+
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/tox_messages/msg_components.hpp>
 #include <solanaceae/tox_messages/obj_components.hpp>
 #include <solanaceae/object_store/meta_components_file.hpp>
 #include <solanaceae/contact/components.hpp>
-#include <solanaceae/util/utils.hpp>
 
 #include "./frame_streams/voip_model.hpp"
 
@@ -182,7 +186,7 @@ ChatGui4::ChatGui4(
 	ConfigModelI& conf,
 	ObjectStore2& os,
 	RegistryMessageModelI& rmm,
-	Contact3Registry& cr,
+	ContactStore4I& cs,
 	TextureUploaderI& tu,
 	ContactTextureCache& contact_tc,
 	MessageTextureCache& msg_tc,
@@ -192,7 +196,7 @@ ChatGui4::ChatGui4(
 	_os(os),
 	_os_sr(_os.newSubRef(this)),
 	_rmm(rmm),
-	_cr(cr),
+	_cs(cs),
 	_contact_tc(contact_tc),
 	_msg_tc(msg_tc),
 	_b_tc(_bil, tu),
@@ -250,22 +254,23 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 		ImGui::SameLine();
 
 		if (_selected_contact) {
+			auto& cr = _cs.registry();
 			const std::string chat_label = "chat " + std::to_string(entt::to_integral(*_selected_contact));
 
-			const std::vector<Contact3>* sub_contacts = nullptr;
-			if (_cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
-				sub_contacts = &_cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
+			const std::vector<Contact4>* sub_contacts = nullptr;
+			if (cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
+				sub_contacts = &cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
 			}
 
-			const bool highlight_private {!_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact)};
+			const bool highlight_private {!cr.all_of<Contact::Components::TagPrivate>(*_selected_contact)};
 
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
 				if (ImGui::BeginMenuBar()) {
 					// check if contact has voip model
 					// use activesessioncomp instead?
-					if (_cr.all_of<VoIPModelI*>(*_selected_contact)) {
+					if (cr.all_of<VoIPModelI*>(*_selected_contact)) {
 						if (ImGui::BeginMenu("VoIP")) {
-							auto* voip_model = _cr.get<VoIPModelI*>(*_selected_contact);
+							auto* voip_model = cr.get<VoIPModelI*>(*_selected_contact);
 
 							std::vector<ObjectHandle> contact_sessions;
 							std::vector<ObjectHandle> acceptable_sessions;
@@ -362,9 +367,9 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 						ImGui::SeparatorText("tox");
 
 						// TODO: cheese it and rename to copy id?
-						if (_cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
+						if (cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
 							if (ImGui::MenuItem("copy ngc chatid")) {
-								const auto& chat_id = _cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
+								const auto& chat_id = cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
 								const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
 								ImGui::SetClipboardText(chat_id_str.c_str());
 							}
@@ -375,10 +380,10 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					ImGui::EndMenuBar();
 				}
 
-				renderContactBig(_theme, _contact_tc, {_cr, *_selected_contact}, 3, false, false, false);
+				renderContactBig(_theme, _contact_tc, {cr, *_selected_contact}, 3, false, false, false);
 				ImGui::Separator();
 
-				if (sub_contacts != nullptr && !_cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && _cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
+				if (sub_contacts != nullptr && !cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
 					if (!sub_contacts->empty()) {
 						if (ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
 							ImGui::Text("subs: %zu", sub_contacts->size());
@@ -386,8 +391,8 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							for (const auto& c : *sub_contacts) {
 								// TODO: can a sub be selected? no
 								//if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
-								if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1)) {
-									_text_input_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+								if (renderContactBig(_theme, _contact_tc, {cr, c}, 1)) {
+									_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 								}
 							}
 						}
@@ -396,14 +401,14 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					}
 				}
 
-				const bool request_incoming = _cr.all_of<Contact::Components::RequestIncoming>(*_selected_contact);
-				const bool request_outgoing = _cr.all_of<Contact::Components::TagRequestOutgoing>(*_selected_contact);
+				const bool request_incoming = cr.all_of<Contact::Components::RequestIncoming>(*_selected_contact);
+				const bool request_outgoing = cr.all_of<Contact::Components::TagRequestOutgoing>(*_selected_contact);
 				if (request_incoming || request_outgoing) {
 					// TODO: theming
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.90f, 0.70f, 0.00f, 0.32f});
 					if (ImGui::BeginChild("request", {0, TEXT_BASE_HEIGHT*6.1f}, true, ImGuiWindowFlags_NoScrollbar)) {
 						if (request_incoming) {
-							const auto& ri = _cr.get<Contact::Components::RequestIncoming>(*_selected_contact);
+							const auto& ri = cr.get<Contact::Components::RequestIncoming>(*_selected_contact);
 							ImGui::TextUnformatted("You got a request to add this contact.");
 
 							static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
@@ -423,7 +428,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							}
 
 							if (ImGui::Button("Accept")) {
-								_cr.get<Contact::Components::ContactModel>(*_selected_contact)->acceptRequest(*_selected_contact, self_name, password);
+								cr.get<Contact::Components::ContactModel>(*_selected_contact)->acceptRequest(*_selected_contact, self_name, password);
 								password.clear();
 							}
 							ImGui::SameLine();
@@ -540,11 +545,11 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							// name
 							if (ImGui::TableNextColumn()) {
 								const float img_y {TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2};
-								renderAvatar(_theme, _contact_tc, {_cr, c_from.c}, {img_y, img_y});
+								renderAvatar(_theme, _contact_tc, {cr, c_from.c}, {img_y, img_y});
 								ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
 
-								if (_cr.all_of<Contact::Components::Name>(c_from.c)) {
-									ImGui::TextUnformatted(_cr.get<Contact::Components::Name>(c_from.c).name.c_str());
+								if (cr.all_of<Contact::Components::Name>(c_from.c)) {
+									ImGui::TextUnformatted(cr.get<Contact::Components::Name>(c_from.c).name.c_str());
 								} else {
 									ImGui::TextUnformatted("<unk>");
 								}
@@ -581,7 +586,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 								}
 
 								// highlight self
-								if (_cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
+								if (cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
 									ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.20f));
 									ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
 								} else {
@@ -593,7 +598,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 								std::optional<ImVec4> row_bg;
 
 								// private group message
-								if (highlight_private && _cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
+								if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
 									const ImVec4 priv_msg_hi_col = ImVec4(0.5f, 0.2f, 0.5f, 0.35f);
 									ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
 									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
@@ -652,13 +657,13 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 
 										size_t other_contacts {0};
 										for (const auto& [c, syned_ts] : list) {
-											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+											if (cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 												//synced_by_text += "\n sself(!)"; // makes no sense
 												continue;
-											} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+											} else if (cr.all_of<Contact::Components::TagSelfWeak>(c)) {
 												synced_by_text += "\n wself"; // TODO: add name?
 											} else {
-												synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+												synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>");
 											}
 											other_contacts += 1;
 											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
@@ -694,13 +699,13 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 										const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 										for (const auto& [c, syned_ts] : list) {
-											if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+											if (cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 												//synced_by_text += "\n sself(!)"; // makes no sense
 												continue;
-											} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+											} else if (cr.all_of<Contact::Components::TagSelfWeak>(c)) {
 												synced_by_text += "\n wself";
 											} else {
-												synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+												synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>");
 											}
 											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
 											synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
@@ -786,15 +791,15 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 									_rmm.throwEventConstruct(cg_view.end);
 								} // else? we do nothing?
 							} else {
-								bool begin_created {false};
+								bool begincreated {false};
 								if (!static_cast<bool>(cg_view.begin)) {
 									cg_view.begin = {msg_reg, msg_reg.create()};
-									begin_created = true;
+									begincreated = true;
 								}
-								bool end_created {false};
+								bool endcreated {false};
 								if (!static_cast<bool>(cg_view.end)) {
 									cg_view.end = {msg_reg, msg_reg.create()};
-									end_created = true;
+									endcreated = true;
 								}
 								cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
 								cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
@@ -803,7 +808,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 									auto& old_begin_ts = cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts;
 									if (old_begin_ts != message_view_newest.get<Message::Components::Timestamp>().ts) {
 										old_begin_ts = message_view_newest.get<Message::Components::Timestamp>().ts;
-										if (begin_created) {
+										if (begincreated) {
 											std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
 											_rmm.throwEventConstruct(cg_view.begin);
 										} else {
@@ -817,7 +822,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 									auto& old_end_ts = cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts;
 									if (old_end_ts != message_view_oldest.get<Message::Components::Timestamp>().ts) {
 										old_end_ts = message_view_oldest.get<Message::Components::Timestamp>().ts;
-										if (end_created) {
+										if (endcreated) {
 											std::cout << "CG: created view end ts with " << old_end_ts << "\n";
 											_rmm.throwEventConstruct(cg_view.end);
 										} else {
@@ -990,7 +995,7 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	);
 	if (ImGui::BeginPopupContextItem("##text")) {
 		if (ImGui::MenuItem("quote")) {
-			//text_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+			//text_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 			if (!_text_input_buffer.empty()) {
 				_text_input_buffer += "\n";
 			}
@@ -1050,7 +1055,7 @@ void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 
 	if (ImGui::BeginPopupContextItem("##text")) {
 		if (ImGui::MenuItem("quote")) {
-			//text_buffer.insert(0, (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+			//text_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 			if (!_text_input_buffer.empty()) {
 				_text_input_buffer += "\n";
 			}
@@ -1429,15 +1434,16 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 			}
 
 			if (ImGui::BeginMenu("forward", local_have_all)) {
-				for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
+				auto& cr = _cs.registry();
+				for (const auto& c : cr.view<Contact::Components::TagBig>()) {
 					// filter
-					if (_cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
+					if (cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
 						continue;
 					}
 					// TODO: check for contact capability
 					// or just error popup?/noti/toast
 
-					if (renderContactBig(_theme, _contact_tc, {_cr, c}, 1, false, true, false)) {
+					if (renderContactBig(_theme, _contact_tc, {cr, c}, 1, false, true, false)) {
 						// TODO: try object interface first instead, then fall back to send with SingleInfoLocal
 						//_rmm.sendFileObj(c, o);
 						std::filesystem::path path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
@@ -1530,17 +1536,19 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 		ImGui::TextDisabled("msgid:%u", reg.get<Message::Components::ToxGroupMessageID>(e).id);
 	}
 
+	const auto& cr = _cs.registry();
+
 	if (reg.all_of<Message::Components::SyncedBy>(e)) {
 		std::string synced_by_text {"syncedBy:"};
 		const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 		for (const auto& [c, syned_ts] : reg.get<Message::Components::SyncedBy>(e).ts) {
-			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+			if (cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 				synced_by_text += "\n sself";
-			} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+			} else if (cr.all_of<Contact::Components::TagSelfWeak>(c)) {
 				synced_by_text += "\n wself";
 			} else {
-				synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+				synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>");
 			}
 			const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
 			synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
@@ -1555,12 +1563,12 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 		const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
 
 		for (const auto& [c, syned_ts] : reg.get<Message::Components::ReceivedBy>(e).ts) {
-			if (_cr.all_of<Contact::Components::TagSelfStrong>(c)) {
+			if (cr.all_of<Contact::Components::TagSelfStrong>(c)) {
 				synced_by_text += "\n sself"; // required (except when synced externally)
-			} else if (_cr.all_of<Contact::Components::TagSelfWeak>(c)) {
+			} else if (cr.all_of<Contact::Components::TagSelfWeak>(c)) {
 				synced_by_text += "\n wself";
 			} else {
-				synced_by_text += "\n >" + (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name : "<unk>");
+				synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>");
 			}
 			const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
 			synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
@@ -1572,8 +1580,9 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 
 void ChatGui4::renderContactList(void) {
 	if (ImGui::BeginChild("contacts", {TEXT_BASE_WIDTH*35, 0})) {
+		auto& cr = _cs.registry();
 		//for (const auto& c : _cm.getBigContacts()) {
-		for (const auto& c : _cr.view<Contact::Components::TagBig>()) {
+		for (const auto& c : cr.view<Contact::Components::TagBig>()) {
 			const bool selected = _selected_contact.has_value() && *_selected_contact == c;
 
 			// TODO: is there a better way?
@@ -1585,7 +1594,7 @@ void ChatGui4::renderContactList(void) {
 				}
 			}
 
-			if (renderContactBig(_theme, _contact_tc, {_cr, c}, 2, has_unread, true, selected)) {
+			if (renderContactBig(_theme, _contact_tc, {cr, c}, 2, has_unread, true, selected)) {
 				_selected_contact = c;
 			}
 		}
@@ -1593,10 +1602,12 @@ void ChatGui4::renderContactList(void) {
 	ImGui::EndChild();
 }
 
-bool ChatGui4::renderContactListContactSmall(const Contact3 c, const bool selected) const {
+bool ChatGui4::renderContactListContactSmall(const Contact4 c, const bool selected) const {
 	std::string label;
 
-	label += (_cr.all_of<Contact::Components::Name>(c) ? _cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>");
+	const auto& cr = _cs.registry();
+
+	label += (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name.c_str() : "<unk>");
 	label += "###";
 	label += std::to_string(entt::to_integral(c));
 

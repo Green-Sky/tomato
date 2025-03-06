@@ -1,7 +1,12 @@
 #pragma once
 
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 #include <solanaceae/object_store/fwd.hpp>
+
+#include <entt/entity/registry.hpp>
+#include <entt/entity/handle.hpp>
+
+#include <vector>
 
 struct VoIPModelI;
 
@@ -11,7 +16,7 @@ namespace Components::VoIP {
 
 	// getting called or invited by
 	struct Incoming {
-		Contact3 c{entt::null};
+		Contact4 c{entt::null};
 	};
 
 	struct DefaultConfig {
@@ -37,7 +42,7 @@ namespace Components::VoIP {
 	};
 
 	struct SessionContact {
-		Contact3 c{entt::null};
+		Contact4 c{entt::null};
 	};
 
 	struct StreamSources {
@@ -65,7 +70,7 @@ struct VoIPModelI {
 	// - default stream sources/sinks ?
 	// - enable a/v ? -> done on connecting to sources
 	// returns object tieing together the VoIP session
-	virtual ObjectHandle enter(const Contact3 c, const Components::VoIP::DefaultConfig& defaults = {true, true, true, true}) { (void)c,(void)defaults; return {}; }
+	virtual ObjectHandle enter(const Contact4 c, const Components::VoIP::DefaultConfig& defaults = {true, true, true, true}) { (void)c,(void)defaults; return {}; }
 
 	// accept/join an invite to a session
 	virtual bool accept(ObjectHandle session, const Components::VoIP::DefaultConfig& defaults = {true, true, true, true}) { (void)session,(void)defaults; return false; }

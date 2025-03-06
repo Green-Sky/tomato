@@ -4,10 +4,12 @@
 #include "./image_loader_qoi.hpp"
 #include "./image_loader_webp.hpp"
 #include "./image_loader_sdl_image.hpp"
-#include "texture_uploader.hpp"
 
+#include <solanaceae/contact/contact_store_i.hpp>
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
+
+#include <entt/entity/registry.hpp>
 
 #include <sodium/crypto_hash_sha256.h>
 
@@ -16,7 +18,7 @@
 #include <cassert>
 #include <vector>
 
-ToxAvatarLoader::ToxAvatarLoader(Contact3Registry& cr) : _cr(cr) {
+ToxAvatarLoader::ToxAvatarLoader(ContactStore4I& cs) : _cs(cs) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
@@ -115,13 +117,14 @@ static std::vector<uint8_t> generateToxIdenticon(const ToxKey& key) {
 	return pixels;
 }
 
-TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
-	if (!_cr.valid(c)) {
+TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact4 c) {
+	const auto& cr = _cs.registry();
+	if (!cr.valid(c)) {
 		return {std::nullopt};
 	}
 
-	if (_cr.all_of<Contact::Components::AvatarMemory>(c)) {
-		const auto& a_m = _cr.get<Contact::Components::AvatarMemory>(c);
+	if (cr.all_of<Contact::Components::AvatarMemory>(c)) {
+		const auto& a_m = cr.get<Contact::Components::AvatarMemory>(c);
 
 		TextureEntry new_entry;
 		new_entry.timestamp_last_rendered = getTimeMS();
@@ -139,8 +142,8 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 		return {new_entry};
 	}
 
-	if (_cr.all_of<Contact::Components::AvatarFile>(c)) {
-		const auto& a_f = _cr.get<Contact::Components::AvatarFile>(c);
+	if (cr.all_of<Contact::Components::AvatarFile>(c)) {
+		const auto& a_f = cr.get<Contact::Components::AvatarFile>(c);
 
 		std::ifstream file(a_f.file_path, std::ios::binary);
 		if (file.is_open()) {
@@ -180,7 +183,7 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 		}
 	} // continues if loading img fails
 
-	if (!_cr.any_of<
+	if (!cr.any_of<
 		Contact::Components::ToxFriendPersistent,
 		Contact::Components::ToxGroupPersistent,
 		Contact::Components::ToxGroupPeerPersistent,
@@ -190,16 +193,16 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact3 c) {
 	}
 
 	std::vector<uint8_t> pixels;
-	if (_cr.all_of<Contact::Components::ToxFriendPersistent>(c)) {
-		pixels = generateToxIdenticon(_cr.get<Contact::Components::ToxFriendPersistent>(c).key);
-	} else if (_cr.all_of<Contact::Components::ToxGroupPersistent>(c)) {
-		pixels = generateToxIdenticon(_cr.get<Contact::Components::ToxGroupPersistent>(c).chat_id);
-	} else if (_cr.all_of<Contact::Components::ToxGroupPeerPersistent>(c)) {
-		pixels = generateToxIdenticon(_cr.get<Contact::Components::ToxGroupPeerPersistent>(c).peer_key);
-	} else if (_cr.all_of<Contact::Components::ID>(c)) {
+	if (cr.all_of<Contact::Components::ToxFriendPersistent>(c)) {
+		pixels = generateToxIdenticon(cr.get<Contact::Components::ToxFriendPersistent>(c).key);
+	} else if (cr.all_of<Contact::Components::ToxGroupPersistent>(c)) {
+		pixels = generateToxIdenticon(cr.get<Contact::Components::ToxGroupPersistent>(c).chat_id);
+	} else if (cr.all_of<Contact::Components::ToxGroupPeerPersistent>(c)) {
+		pixels = generateToxIdenticon(cr.get<Contact::Components::ToxGroupPeerPersistent>(c).peer_key);
+	} else if (cr.all_of<Contact::Components::ID>(c)) {
 		// TODO: should we really use toxidenticons for other protocols?
 		// (this is required for self)
-		auto id_copy = _cr.get<Contact::Components::ID>(c).data;
+		auto id_copy = cr.get<Contact::Components::ID>(c).data;
 		id_copy.resize(32);
 		pixels = generateToxIdenticon(id_copy);
 	}

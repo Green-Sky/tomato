@@ -18,7 +18,7 @@
 void renderAvatar(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
-	const Contact3Handle c,
+	const ContactHandle4 c,
 	ImVec2 box
 ) {
 	// deploy dummy of same size and check visibility
@@ -53,7 +53,7 @@ void renderAvatar(
 bool renderContactBig(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
-	const Contact3Handle c,
+	const ContactHandle4 c,
 	int line_height,
 	const bool unread,
 	const bool selectable,

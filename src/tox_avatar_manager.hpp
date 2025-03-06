@@ -1,7 +1,7 @@
 #pragma once
 
 #include <solanaceae/object_store/object_store.hpp>
-#include <solanaceae/contact/contact_model3.hpp>
+#include <solanaceae/contact/fwd.hpp>
 
 #include <string>
 #include <vector>
@@ -15,7 +15,7 @@ struct ToxKey;
 class ToxAvatarManager : public ObjectStoreEventI {
 	ObjectStore2& _os;
 	ObjectStore2::SubscriptionReference _os_sr;
-	Contact3Registry& _cr;
+	ContactStore4I& _cs;
 	ConfigModelI& _conf;
 
 	struct AcceptEntry {
@@ -27,7 +27,7 @@ class ToxAvatarManager : public ObjectStoreEventI {
 	public:
 		ToxAvatarManager(
 			ObjectStore2& os,
-			Contact3Registry& cr,
+			ContactStore4I& cs,
 			ConfigModelI& conf
 		);
 
@@ -36,8 +36,8 @@ class ToxAvatarManager : public ObjectStoreEventI {
 	protected:
 		// TODO: become backend and work in objects instead
 		std::string getAvatarPath(const ToxKey& key) const;
-		void addAvatarFileToContact(const Contact3 c, const ToxKey& key);
-		void clearAvatarFromContact(const Contact3 c);
+		void addAvatarFileToContact(const Contact4 c, const ToxKey& key);
+		void clearAvatarFromContact(const Contact4 c);
 		void checkObj(ObjectHandle o);
 
 	protected: // os

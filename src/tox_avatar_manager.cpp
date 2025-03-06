@@ -4,6 +4,8 @@
 
 #include <solanaceae/util/config_model.hpp>
 
+#include <solanaceae/contact/contact_store_i.hpp>
+
 //#include <solanaceae/message3/components.hpp>
 #include <solanaceae/object_store/meta_components_file.hpp>
 // for comp transfer tox filekind (TODO: generalize -> content system?)
@@ -29,11 +31,10 @@ namespace Components {
 }
 
 ToxAvatarManager::ToxAvatarManager(
-	//RegistryMessageModel& rmm,
 	ObjectStore2& os,
-	Contact3Registry& cr,
+	ContactStore4I& cs,
 	ConfigModelI& conf
-) : /*_rmm(rmm)*/ _os(os), _os_sr(_os.newSubRef(this)), _cr(cr), _conf(conf) {
+) : _os(os), _os_sr(_os.newSubRef(this)), _cs(cs), _conf(conf) {
 	_os_sr
 		.subscribe(ObjectStore_Event::object_construct)
 		.subscribe(ObjectStore_Event::object_update)
@@ -53,11 +54,11 @@ ToxAvatarManager::ToxAvatarManager(
 	{ // scan tox contacts for cached avatars
 		// old sts says pubkey.png
 
-		_cr.view<Contact::Components::ToxFriendPersistent>().each([this](auto c, const Contact::Components::ToxFriendPersistent& tox_pers) {
+		_cs.registry().view<Contact::Components::ToxFriendPersistent>().each([this](auto c, const Contact::Components::ToxFriendPersistent& tox_pers) {
 			addAvatarFileToContact(c, tox_pers.key);
 		});
 
-		_cr.view<Contact::Components::ToxGroupPersistent>().each([this](auto c, const Contact::Components::ToxGroupPersistent& tox_pers) {
+		_cs.registry().view<Contact::Components::ToxGroupPersistent>().each([this](auto c, const Contact::Components::ToxGroupPersistent& tox_pers) {
 			addAvatarFileToContact(c, tox_pers.chat_id);
 		});
 
@@ -92,20 +93,25 @@ std::string ToxAvatarManager::getAvatarPath(const ToxKey& key) const {
 	return file_path.generic_u8string();
 }
 
-void ToxAvatarManager::addAvatarFileToContact(const Contact3 c, const ToxKey& key) {
+void ToxAvatarManager::addAvatarFileToContact(const Contact4 c, const ToxKey& key) {
 	const auto file_path = getAvatarPath(key);
 	if (std::filesystem::is_regular_file(file_path)) {
 		// avatar file png file exists
-		_cr.emplace_or_replace<Contact::Components::AvatarFile>(c, file_path);
-		_cr.emplace_or_replace<Contact::Components::TagAvatarInvalidate>(c);
+		_cs.registry().emplace_or_replace<Contact::Components::AvatarFile>(c, file_path);
+		_cs.registry().emplace_or_replace<Contact::Components::TagAvatarInvalidate>(c);
+
+		_cs.throwEventUpdate(c);
 	}
 }
 
-void ToxAvatarManager::clearAvatarFromContact(const Contact3 c) {
-	if (_cr.all_of<Contact::Components::AvatarFile>(c)) {
-		std::filesystem::remove(_cr.get<Contact::Components::AvatarFile>(c).file_path);
-		_cr.remove<Contact::Components::AvatarFile>(c);
-		_cr.emplace_or_replace<Contact::Components::TagAvatarInvalidate>(c);
+void ToxAvatarManager::clearAvatarFromContact(const Contact4 c) {
+	auto& cr = _cs.registry();
+	if (cr.all_of<Contact::Components::AvatarFile>(c)) {
+		std::filesystem::remove(cr.get<Contact::Components::AvatarFile>(c).file_path);
+		cr.remove<Contact::Components::AvatarFile>(c);
+		cr.emplace_or_replace<Contact::Components::TagAvatarInvalidate>(c);
+
+		_cs.throwEventUpdate(c);
 	}
 }
 

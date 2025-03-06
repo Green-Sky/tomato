@@ -28,7 +28,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	ObjectStore2& _os;
 	ObjectStoreEventProviderI::SubscriptionReference _os_sr;
 	RegistryMessageModelI& _rmm;
-	Contact3Registry& _cr;
+	ContactStore4I& _cs;
 
 	ContactTextureCache& _contact_tc;
 	MessageTextureCache& _msg_tc;
@@ -41,7 +41,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	SendImagePopup _sip;
 
 	// TODO: refactor this to allow multiple open contacts
-	std::optional<Contact3> _selected_contact;
+	std::optional<Contact4> _selected_contact;
 
 	// TODO: per contact
 	std::string _text_input_buffer;
@@ -63,7 +63,7 @@ class ChatGui4 : public ObjectStoreEventI {
 			ConfigModelI& conf,
 			ObjectStore2& os,
 			RegistryMessageModelI& rmm,
-			Contact3Registry& cr,
+			ContactStore4I& cs,
 			TextureUploaderI& tu,
 			ContactTextureCache& contact_tc,
 			MessageTextureCache& msg_tc,
@@ -84,7 +84,7 @@ class ChatGui4 : public ObjectStoreEventI {
 		void renderMessageExtra(Message3Registry& reg, const Message3 e);
 
 		void renderContactList(void);
-		bool renderContactListContactSmall(const Contact3 c, const bool selected) const;
+		bool renderContactListContactSmall(const Contact4 c, const bool selected) const;
 		//bool renderSubContactListContact(const Contact3 c, const bool selected) const;
 
 		void pasteFile(const char* mime_type);
