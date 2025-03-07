@@ -109,6 +109,9 @@ struct ToxAVI : public ToxAVEventProviderI {
 	ToxAVI(Tox* tox);
 	virtual ~ToxAVI(void);
 
+	// NOTE: interval timers are only interesting for receiving streams
+	// if we are only sending, it will always report 195ms
+
 	// interface
 	// if iterate is called on a different thread, it will fire events there
 	uint32_t toxavIterationInterval(void) const;

@@ -10,6 +10,7 @@
 #include <variant>
 #include <deque>
 #include <mutex>
+#include <atomic>
 
 // fwd
 struct ToxAVCallAudioSink;
@@ -24,7 +25,7 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 
 	uint64_t _pad0;
 	// these events need to be worked on the main thread instead
-	// TODO: replac ewith lockless queue
+	// TODO: replace with lockless queue
 	std::deque<
 	std::variant<
 		Events::FriendCall,
@@ -42,6 +43,11 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	std::mutex _video_sinks_mutex;
 	uint64_t _pad3;
 
+	// filled with min() in video_thread_tick()
+	// ms, 10sec means none
+	std::atomic<uint64_t> _video_recent_interval{10'000'000};
+	uint64_t _pad4;
+
 	// for faster lookup
 	std::unordered_map<uint32_t, ObjectHandle> _audio_sources;
 	std::unordered_map<uint32_t, ObjectHandle> _video_sources;
@@ -54,8 +60,7 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 
 	void destroySession(ObjectHandle session);
 
-	// TODO: this needs to move to the toxav thread
-	// we could use "events" as pre/post audio/video iterate...
+	// we use "events" as pre/post audio/video iterate...
 	void audio_thread_tick(void);
 	void video_thread_tick(void);
 
@@ -67,7 +72,7 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 		~ToxAVVoIPModel(void);
 
 		// handle events coming from toxav thread(s)
-		void tick(void);
+		float tick(void);
 
 	public: // voip model
 		ObjectHandle enter(const Contact4 c, const Components::VoIP::DefaultConfig& defaults) override;

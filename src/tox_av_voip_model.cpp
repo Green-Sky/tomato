@@ -104,6 +104,7 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 
 	uint32_t _fid;
 	std::shared_ptr<stream_type> _writer;
+	uint64_t _last_ts {0};
 
 	ToxAVCallVideoSink(ToxAVI& toxav, uint32_t fid) : _toxav(toxav), _fid(fid) {}
 	~ToxAVCallVideoSink(void) {
@@ -139,6 +140,7 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 
 		if (sub == _writer) {
 			_writer = nullptr;
+			_last_ts = 0;
 
 			/*auto err = */_toxav.toxavVideoSetBitRate(_fid, 0);
 			// print warning? on error?
@@ -350,7 +352,7 @@ void ToxAVVoIPModel::audio_thread_tick(void) {
 			//*   `((sample rate) * (audio length) / 1000)`, where audio length can be
 			//*   2.5, 5, 10, 20, 40 or 60 milliseconds.
 
-			// we likely needs to subdivide/repackage
+			// we likely need to subdivide/repackage
 			// frame size should be an option exposed to the user
 			// with 10ms as a default ?
 			// the larger the frame size, the less overhead but the more delay
@@ -372,7 +374,7 @@ void ToxAVVoIPModel::audio_thread_tick(void) {
 void ToxAVVoIPModel::video_thread_tick(void) {
 	//for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
 	std::lock_guard lg{_video_sinks_mutex};
-	for (const auto* vsink : _video_sinks) {
+	for (auto* vsink : _video_sinks) {
 		if (!vsink->_writer) {
 			continue;
 		}
@@ -388,6 +390,15 @@ void ToxAVVoIPModel::video_thread_tick(void) {
 				// wtf?
 				continue;
 			}
+
+			// interval estimate based on 2 frames
+			if (vsink->_last_ts != 0 && vsink->_last_ts < new_frame.timestampUS) {
+				const auto interval_us = new_frame.timestampUS - vsink->_last_ts;
+				if (_video_recent_interval > interval_us) {
+					_video_recent_interval = interval_us;
+				}
+			}
+			vsink->_last_ts = new_frame.timestampUS;
 
 			// conversion is done in the sink's stream
 			SDL_Surface* surf = new_frame.surface.get();
@@ -519,7 +530,7 @@ ToxAVVoIPModel::~ToxAVVoIPModel(void) {
 	}
 }
 
-void ToxAVVoIPModel::tick(void) {
+float ToxAVVoIPModel::tick(void) {
 	std::lock_guard lg{_e_queue_mutex};
 	while (!_e_queue.empty()) {
 		const auto& e_var = _e_queue.front();
@@ -536,6 +547,14 @@ void ToxAVVoIPModel::tick(void) {
 
 		_e_queue.pop_front();
 	}
+
+	// TODO: audio (ez, just do 60ms if sending audio)
+	auto interval = _video_recent_interval/1'000'000.f;
+
+	// funky if tickrate momentarily higher than frame rate
+	_video_recent_interval = 10'000'000;
+
+	return interval;
 }
 
 ObjectHandle ToxAVVoIPModel::enter(const Contact4 c, const Components::VoIP::DefaultConfig& defaults) {

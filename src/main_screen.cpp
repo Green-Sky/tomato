@@ -647,7 +647,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	//const float av_interval = std::pow(tav.toxavIterationInterval(), 1.18)/1000.f;
 	const float av_interval = tav.toxavIterationInterval()/1000.f;
 
-	tavvoip.tick();
+	const float av_voip_interval = tavvoip.tick();
 #endif
 
 	tcm.iterate(time_delta); // compute
@@ -693,6 +693,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	_min_tick_interval = std::min<float>(
 		_min_tick_interval,
 		av_interval
+	);
+	_min_tick_interval = std::min<float>(
+		_min_tick_interval,
+		av_voip_interval
 	);
 #endif
 
