@@ -23,6 +23,10 @@ SDLVideo2InputDevice::SDLVideo2InputDevice(const SDL_CameraID dev) : _dev(dev) {
 }
 
 SDLVideo2InputDevice::~SDLVideo2InputDevice(void) {
+	if (_thread.joinable()) {
+		assert(_ref == 0);
+		_thread.join();
+	}
 }
 
 std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(void) {

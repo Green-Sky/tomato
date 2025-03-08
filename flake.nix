@@ -48,7 +48,7 @@
           patchelf
         ];
 
-        # for some reason, buildInputs performs some magic an converts them to build dependencies, not runtime dependencies
+        # for some reason, buildInputs performs some magic and converts them to build dependencies, not runtime dependencies
         # also, non static dependencies (?? how to ensure ??)
         dlopenBuildInputs = with pkgs; [
           dbus
