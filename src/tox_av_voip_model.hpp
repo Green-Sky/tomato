@@ -44,8 +44,7 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 	uint64_t _pad3;
 
 	// filled with min() in video_thread_tick()
-	// ms, 10sec means none
-	std::atomic<uint64_t> _video_recent_interval{10'000'000};
+	std::atomic<uint64_t> _video_send_time_until_next_frame{2'000};
 	uint64_t _pad4;
 
 	// for faster lookup

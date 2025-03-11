@@ -105,6 +105,8 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 	uint32_t _fid;
 	std::shared_ptr<stream_type> _writer;
 	uint64_t _last_ts {0};
+	uint64_t _interval {0}; // in ts time
+	uint64_t _last_time {0}; // in ms unix (ts might have funny offsets)
 
 	ToxAVCallVideoSink(ToxAVI& toxav, uint32_t fid) : _toxav(toxav), _fid(fid) {}
 	~ToxAVCallVideoSink(void) {
@@ -372,7 +374,11 @@ void ToxAVVoIPModel::audio_thread_tick(void) {
 }
 
 void ToxAVVoIPModel::video_thread_tick(void) {
-	//for (const auto& [oc, vsink] : _os.registry().view<ToxAVCallVideoSink*>().each()) {
+	const auto current_time = getTimeMS();
+
+	// ms
+	uint64_t time_until_next_frame{2'000}; // we default to 2sec idle
+
 	std::lock_guard lg{_video_sinks_mutex};
 	for (auto* vsink : _video_sinks) {
 		if (!vsink->_writer) {
@@ -394,11 +400,10 @@ void ToxAVVoIPModel::video_thread_tick(void) {
 			// interval estimate based on 2 frames
 			if (vsink->_last_ts != 0 && vsink->_last_ts < new_frame.timestampUS) {
 				const auto interval_us = new_frame.timestampUS - vsink->_last_ts;
-				if (_video_recent_interval > interval_us) {
-					_video_recent_interval = interval_us;
-				}
+				vsink->_interval = interval_us;
 			}
 			vsink->_last_ts = new_frame.timestampUS;
+			vsink->_last_time = current_time;
 
 			// conversion is done in the sink's stream
 			SDL_Surface* surf = new_frame.surface.get();
@@ -414,7 +419,40 @@ void ToxAVVoIPModel::video_thread_tick(void) {
 			);
 			SDL_UnlockSurface(surf);
 		}
+
+		const auto interval_ms = vsink->_interval/1000;
+		const auto last_time = vsink->_last_time;
+
+		if (
+			interval_ms > 0 && // have interval mesure
+			last_time <= current_time // not over due
+		) {
+			const auto time_since_last = current_time - last_time;
+
+			if (time_since_last <= interval_ms) {
+				time_until_next_frame = std::min(time_until_next_frame, interval_ms - time_since_last);
+			//} else if (time_since_last <= interval_ms + interval_ms/4) {
+			//    // we probably overshot, but we give it a 5ms grace time
+			//    time_until_next_frame = 0; // is min
+#if 0 // this mostly works, but might be too aggressive
+			} else if (time_since_last <= interval_ms*3) {
+				// we probably overshot, but we give a 3 interval grace period
+				time_until_next_frame = 0; // is min
+#endif
+#if 1 // good enough and safe
+			} else if (time_since_last <= interval_ms*10) {
+				// we might be dropping here, but we still report interval time, just in case
+				time_until_next_frame = std::min(time_until_next_frame, interval_ms);
+#endif
+			//} else {
+				//// ... fallback to normal interval?
+				// no, dont actually, if this sink stops receiving frames, we should ignore it
+				//time_until_next_frame = vsink->_interval;
+			}
+		}
 	}
+
+	_video_send_time_until_next_frame = time_until_next_frame;
 }
 
 void ToxAVVoIPModel::handleEvent(const Events::FriendCall& e) {
@@ -548,11 +586,8 @@ float ToxAVVoIPModel::tick(void) {
 		_e_queue.pop_front();
 	}
 
-	// TODO: audio (ez, just do 60ms if sending audio)
-	auto interval = _video_recent_interval/1'000'000.f;
-
-	// funky if tickrate momentarily higher than frame rate
-	_video_recent_interval = 10'000'000;
+	// TODO: audio (ez, just do 20ms if sending audio)
+	auto interval = _video_send_time_until_next_frame/1'000.f;
 
 	return interval;
 }
