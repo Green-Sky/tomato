@@ -1,7 +1,7 @@
 #include "./tox_av_voip_model.hpp"
 
 #include <solanaceae/object_store/object_store.hpp>
-#include <solanaceae/contact/contact_store_i.hpp>
+#include <solanaceae/contact/contact_store_events.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
 #include <solanaceae/util/time.hpp>
 
@@ -431,23 +431,9 @@ void ToxAVVoIPModel::video_thread_tick(void) {
 
 			if (time_since_last <= interval_ms) {
 				time_until_next_frame = std::min(time_until_next_frame, interval_ms - time_since_last);
-			//} else if (time_since_last <= interval_ms + interval_ms/4) {
-			//    // we probably overshot, but we give it a 5ms grace time
-			//    time_until_next_frame = 0; // is min
-#if 0 // this mostly works, but might be too aggressive
-			} else if (time_since_last <= interval_ms*3) {
-				// we probably overshot, but we give a 3 interval grace period
-				time_until_next_frame = 0; // is min
-#endif
-#if 1 // good enough and safe
 			} else if (time_since_last <= interval_ms*10) {
 				// we might be dropping here, but we still report interval time, just in case
 				time_until_next_frame = std::min(time_until_next_frame, interval_ms);
-#endif
-			//} else {
-				//// ... fallback to normal interval?
-				// no, dont actually, if this sink stops receiving frames, we should ignore it
-				//time_until_next_frame = vsink->_interval;
 			}
 		}
 	}
@@ -537,7 +523,7 @@ void ToxAVVoIPModel::handleEvent(const Events::FriendCallState& e) {
 }
 
 ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, ContactStore4I& cs, ToxContactModel2& tcm) :
-	_os(os), _av(av), _av_sr(_av.newSubRef(this)), _cs(cs), _tcm(tcm)
+	_os(os), _av(av), _av_sr(_av.newSubRef(this)), _cs(cs), _cs_sr(_cs.newSubRef(this)), _tcm(tcm)
 {
 	_av_sr
 		.subscribe(ToxAV_Event::friend_call)
@@ -550,14 +536,18 @@ ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, ContactStore4I& cs,
 		.subscribe(ToxAV_Event::iterate_video)
 	;
 
-	// attach to all tox friend contacts
+	{ // attach to all tox friend contacts
+		auto& cr = _cs.registry();
 
-	auto& cr = _cs.registry();
-
-	for (const auto& [cv, _] : cr.view<Contact::Components::ToxFriendPersistent>().each()) {
-		cr.emplace<VoIPModelI*>(cv, this);
+		for (const auto& [cv, _] : cr.view<Contact::Components::ToxFriendPersistent>().each()) {
+			cr.emplace_or_replace<VoIPModelI*>(cv, this);
+		}
 	}
-	// TODO: events
+
+	_cs_sr
+		.subscribe(ContactStore4_Event::contact_construct)
+		.subscribe(ContactStore4_Event::contact_update)
+	;
 }
 
 ToxAVVoIPModel::~ToxAVVoIPModel(void) {
@@ -845,6 +835,37 @@ bool ToxAVVoIPModel::onEvent(const Events::IterateAudio&) {
 
 bool ToxAVVoIPModel::onEvent(const Events::IterateVideo&) {
 	video_thread_tick();
+	return false;
+}
+
+bool ToxAVVoIPModel::onEvent(const ContactStore::Events::Contact4Construct& e) {
+	if (!e.e.all_of<Contact::Components::ToxFriendPersistent>()) {
+		return false;
+	}
+
+	assert(!e.e.any_of<VoIPModelI*>());
+
+	e.e.emplace_or_replace<VoIPModelI*>(this);
+
+	return false;
+}
+
+bool ToxAVVoIPModel::onEvent(const ContactStore::Events::Contact4Update& e) {
+	if (!e.e.all_of<Contact::Components::ToxFriendPersistent>()) {
+		return false;
+	}
+
+	if (e.e.all_of<VoIPModelI*>()) {
+		return false;
+	}
+
+	e.e.emplace<VoIPModelI*>(this);
+
+	return false;
+}
+
+bool ToxAVVoIPModel::onEvent(const ContactStore::Events::Contact4Destory&) {
+	// tox already notifies us via a coll state
 	return false;
 }
 

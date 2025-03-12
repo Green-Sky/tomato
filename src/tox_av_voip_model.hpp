@@ -1,7 +1,7 @@
 #pragma once
 
 #include <solanaceae/object_store/fwd.hpp>
-#include <solanaceae/contact/fwd.hpp>
+#include <solanaceae/contact/contact_store_i.hpp>
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 #include "./frame_streams/voip_model.hpp"
 #include "./tox_av.hpp"
@@ -16,11 +16,12 @@
 struct ToxAVCallAudioSink;
 struct ToxAVCallVideoSink;
 
-class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
+class ToxAVVoIPModel : protected ToxAVEventI, protected ContactStore4EventI, public VoIPModelI {
 	ObjectStore2& _os;
 	ToxAVI& _av;
 	ToxAVI::SubscriptionReference _av_sr;
 	ContactStore4I& _cs;
+	ContactStore4I::SubscriptionReference _cs_sr;
 	ToxContactModel2& _tcm;
 
 	uint64_t _pad0;
@@ -87,5 +88,10 @@ class ToxAVVoIPModel : protected ToxAVEventI, public VoIPModelI {
 		bool onEvent(const Events::FriendVideoFrame&) override;
 		bool onEvent(const Events::IterateAudio&) override;
 		bool onEvent(const Events::IterateVideo&) override;
+
+	protected: // contact events
+		bool onEvent(const ContactStore::Events::Contact4Construct&) override;
+		bool onEvent(const ContactStore::Events::Contact4Update&) override;
+		bool onEvent(const ContactStore::Events::Contact4Destory&) override;
 };
 
