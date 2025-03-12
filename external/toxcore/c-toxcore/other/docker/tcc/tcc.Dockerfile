@@ -33,9 +33,9 @@ RUN tcc \
  $(pkg-config --cflags --libs libsodium opus vpx) \
  && ./send_message_test | grep 'tox clients connected'
 
-COPY other/make_single_file /work/other/
+COPY other/deploy/single-file/make_single_file /work/
 RUN \
- other/make_single_file -core \
+ ./make_single_file -core \
    auto_tests/auto_test_support.c \
    auto_tests/send_message_test.c \
    testing/misc_tools.c | \
@@ -47,7 +47,7 @@ RUN \
  && ./send_message_test | grep 'tox clients connected'
 
 RUN \
- other/make_single_file \
+ ./make_single_file \
    auto_tests/auto_test_support.c \
    auto_tests/toxav_basic_test.c \
    testing/misc_tools.c | \

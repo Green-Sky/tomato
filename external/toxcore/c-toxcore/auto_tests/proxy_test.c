@@ -60,7 +60,7 @@ int main(int argc, char **argv)
         c_sleep(100);
     }
 
-    const uint16_t tcp_port = 8082;
+    const uint16_t tcp_port = 7082;
     uint32_t index[] = { 1, 2, 3, 4 };
 
     struct Tox_Options *tox_options = tox_options_new(nullptr);
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     // tox3 has UDP disabled and connects to tox1 via an HTTP proxy
     tox_options_set_udp_enabled(tox_options, false);
     tox_options_set_proxy_host(tox_options, "127.0.0.1");
-    tox_options_set_proxy_port(tox_options, 8080);
+    tox_options_set_proxy_port(tox_options, 7080);
     tox_options_set_proxy_type(tox_options, TOX_PROXY_TYPE_HTTP);
 
     Tox *tox3 = tox_new_log(tox_options, nullptr, &index[2]);
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     // tox4 has UDP disabled and connects to tox1 via a SOCKS5 proxy
     tox_options_set_udp_enabled(tox_options, false);
     tox_options_set_proxy_host(tox_options, "127.0.0.1");
-    tox_options_set_proxy_port(tox_options, 8081);
+    tox_options_set_proxy_port(tox_options, 7081);
     tox_options_set_proxy_type(tox_options, TOX_PROXY_TYPE_SOCKS5);
 
     Tox *tox4 = tox_new_log(tox_options, nullptr, &index[3]);

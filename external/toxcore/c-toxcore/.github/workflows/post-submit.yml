@@ -5,15 +5,19 @@ on:
     branches: [master]
 
 jobs:
-  build-alpine-s390x:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [alpine-s390x, freebsd]
+    runs-on: ubuntu-22.04
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Docker Build
         uses: docker/build-push-action@v5
         with:
-          file: other/docker/alpine-s390x/Dockerfile
+          file: other/docker/${{ matrix.tool }}/${{ matrix.tool }}.Dockerfile
 
   docker-coverage:
     runs-on: ubuntu-latest

@@ -6,11 +6,13 @@ workflows:
   circleci:
     jobs:
       - bazel-asan
-      - bazel-dbg
-      - bazel-opt
+      - bazel-debug
+      - bazel-msan
+      - bazel-release
       - clang-analyze
       - cpplint
       - static-analysis
+      - cimple
       - cimplefmt
       - generate-events
 
@@ -18,31 +20,45 @@ jobs:
   bazel-asan:
     working_directory: /tmp/cirrus-ci-build
     docker:
-      - image: toxchat/toktok-stack:latest-asan
+      - image: toxchat/toktok-stack:latest
 
     steps:
       - checkout
-      - run: .circleci/bazel-test
+      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+          --build_tag_filters=-haskell,-fuzz-test
+          --test_tag_filters=-haskell,-fuzz-test
           //c-toxcore/...
 
-  bazel-dbg:
+  bazel-debug:
     working_directory: /tmp/cirrus-ci-build
     docker:
-      - image: toxchat/toktok-stack:latest-debug
+      - image: toxchat/toktok-stack:latest
 
     steps:
       - checkout
-      - run: .circleci/bazel-test
+      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+          --build_tag_filters=-haskell
+          --test_tag_filters=-haskell
           //c-toxcore/...
 
-  bazel-opt:
+  bazel-msan:
     working_directory: /tmp/cirrus-ci-build
     docker:
-      - image: toxchat/toktok-stack:latest-release
+      - image: toxchat/toktok-stack:latest
 
     steps:
       - checkout
-      - run: .circleci/bazel-test
+      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+          //c-toxcore/auto_tests:lossless_packet_test
+
+  bazel-release:
+    working_directory: /tmp/cirrus-ci-build
+    docker:
+      - image: toxchat/toktok-stack:latest
+
+    steps:
+      - checkout
+      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
           //c-toxcore/...
 
   static-analysis:
@@ -105,6 +121,23 @@ jobs:
       - checkout
       - run: git submodule update --init --recursive
       - run: other/analysis/run-cpplint
+
+  cimple:
+    working_directory: /tmp/cirrus-ci-build
+    docker:
+      - image: toxchat/toktok-stack:latest-release
+
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: /src/workspace/tools/inject-repo c-toxcore
+      - run: cd /src/workspace &&
+          bazel test
+            -k
+            --build_tag_filters=haskell
+            --test_tag_filters=haskell
+            --
+            //c-toxcore/...
 
   cimplefmt:
     working_directory: ~/work

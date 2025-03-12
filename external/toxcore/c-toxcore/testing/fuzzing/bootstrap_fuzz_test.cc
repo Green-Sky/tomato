@@ -109,7 +109,7 @@ void TestBootstrap(Fuzz_Data &input)
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
             const char *message, void *user_data) {
             // Log to stdout.
-            if (Fuzz_Data::DEBUG) {
+            if (Fuzz_Data::FUZZ_DEBUG) {
                 std::printf("[tox1] %c %s:%d(%s): %s\n", tox_log_level_name(level), file, line,
                     func, message);
             }
@@ -161,6 +161,7 @@ void TestBootstrap(Fuzz_Data &input)
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
+    size_t input_size = input.size();
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
@@ -170,6 +171,11 @@ void TestBootstrap(Fuzz_Data &input)
         // Move the clock forward a decent amount so all the time-based checks
         // trigger more quickly.
         sys.clock += 200;
+
+        // If no input was consumed, something went wrong.
+        assert(input_size != input.size());
+
+        input_size = input.size();
     }
 
     tox_dispatch_free(dispatch);

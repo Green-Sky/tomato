@@ -1,6 +1,10 @@
 #!/bin/sh
 
-set -eux
+set -eux -o pipefail
+
+WORKSPACE_ROOT=$(bazel info workspace)
+
+cd "$WORKSPACE_ROOT"
 
 bazel test --config=asan-libfuzzer //c-toxcore/testing/fuzzing:protodump_reduce_test
 

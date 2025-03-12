@@ -1,5 +1,4 @@
-FROM toxchat/c-toxcore:sources AS sources
-FROM alpine:3.19.0
+FROM alpine:3.21.0
 
 RUN ["apk", "add", "--no-cache", \
  "bash", \
@@ -15,7 +14,7 @@ RUN ["apk", "add", "--no-cache", \
  "python3"]
 
 WORKDIR /work
-COPY --from=sources /src/ /work/
+COPY . /work/
 
 COPY toxcore/BUILD.bazel /work/toxcore/
 COPY other/docker/modules/check /work/other/docker/modules/

@@ -595,6 +595,8 @@ int main(int argc, char *argv[])
             last_lan_discovery = mono_time_get(mono_time);
         }
 
+        do_gca(mono_time, group_announce);
+
         if (enable_tcp_relay) {
             do_tcp_server(tcp_server, mono_time);
         }

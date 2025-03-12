@@ -236,7 +236,7 @@ int read_tcp_packet(
  * return -1 on failure.
  */
 non_null()
-static uint16_t read_tcp_length(const Logger *logger, const Memory *mem, const Network *ns, Socket sock, const IP_Port *ip_port)
+static uint16_t read_tcp_length(const Logger *logger, const Network *ns, Socket sock, const IP_Port *ip_port)
 {
     const uint16_t count = net_socket_data_recv_buffer(ns, sock);
 
@@ -275,7 +275,7 @@ int read_packet_tcp_secure_connection(
     uint16_t max_len, const IP_Port *ip_port)
 {
     if (*next_packet_length == 0) {
-        const uint16_t len = read_tcp_length(logger, mem, ns, sock, ip_port);
+        const uint16_t len = read_tcp_length(logger, ns, sock, ip_port);
 
         if (len == (uint16_t) -1) {
             return -1;

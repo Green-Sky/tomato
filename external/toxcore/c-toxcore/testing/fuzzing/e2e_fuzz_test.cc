@@ -5,7 +5,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <fstream>
 #include <vector>
 
 #include "../../toxcore/crypto_core.h"
@@ -144,7 +143,7 @@ void TestEndToEnd(Fuzz_Data &input)
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
             const char *message, void *user_data) {
             // Log to stdout.
-            if (Fuzz_Data::DEBUG) {
+            if (Fuzz_Data::FUZZ_DEBUG) {
                 std::printf("[tox1] %c %s:%d(%s): %s\n", tox_log_level_name(level), file, line,
                     func, message);
             }

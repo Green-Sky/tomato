@@ -8,6 +8,7 @@
 // - Proper logging.
 // - Proper error handling in general.
 // - Support both websocket and regular GET requests on /.
+// - Write logs in the standard Tox format.
 //
 // Copyright 2022-2025 The TokTok team.
 // Copyright 2021 Michael.liu.
@@ -22,6 +23,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"regexp"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -31,10 +35,12 @@ var (
 	targetAddr = flag.String("t", "127.0.0.1:5900", "tcp service address")
 )
 
+// Should be enough to fit any Tox TCP packets.
+const bufferSize = 2048
+
 var upgrader = websocket.Upgrader{
-	// Should be enough to fit any Tox TCP packets.
-	ReadBufferSize:  2048,
-	WriteBufferSize: 2048,
+	ReadBufferSize:  bufferSize,
+	WriteBufferSize: bufferSize,
 	Subprotocols:    []string{"binary"},
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -42,7 +48,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func forwardTCP(wsconn *websocket.Conn, conn net.Conn) {
-	var tcpbuffer [2048]byte
+	var tcpbuffer [bufferSize]byte
 	defer wsconn.Close()
 	defer conn.Close()
 	for {
@@ -97,7 +103,52 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type logEntry struct {
+	time    string
+	file    string
+	line    string
+	message string
+}
+
+type logWriter struct{}
+
+// Write implements the io.Writer interface.
+//
+// This parses the Go log format and outputs it as the standard Tox format.
+//
+// Go format:
+// "15:02:46.433968 websockify.go:106: Starting up websockify endpoint\n"
+//
+// Standard Tox format:
+// "[15:02:46.433 UTC] (websockify) websockify.go:106 : Debug: Starting up websockify endpoint"
+func (writer *logWriter) Write(bytes []byte) (int, error) {
+	// Parse the Go log format (skipping the last 3 digits of the microseconds).
+	re := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\.\d{3})\d{3} ([^:]+):(\d+): (.*)$`)
+	matches := re.FindStringSubmatch(strings.TrimSuffix(string(bytes), "\n"))
+	if len(matches) != 5 {
+		// If the log format doesn't match, just print it as is.
+		fmt.Fprintf(os.Stderr, "%s (unparsed)", string(bytes))
+		return len(bytes), nil
+	}
+
+	// Extract the log fields.
+	entry := logEntry{
+		time:    matches[1],
+		file:    matches[2],
+		line:    matches[3],
+		message: matches[4],
+	}
+
+	// Print the Go log format in the standard Tox format to stderr.
+	fmt.Fprintf(os.Stderr, "[%s UTC] (websockify) %s:%s : Debug: %s\n", entry.time, entry.file, entry.line, entry.message)
+
+	return len(bytes), nil
+}
+
 func main() {
+	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC | log.Lmicroseconds)
+	log.SetOutput(new(logWriter))
+
 	flag.Parse()
 	log.Println("Starting up websockify endpoint")
 

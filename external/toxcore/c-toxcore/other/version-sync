@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -eu
 
@@ -13,25 +13,31 @@ update() {
   file="$SOURCE_DIR/$1"
   expr="$2"
 
-  sed -e "$expr" "$file" > "$file.updated-version"
+  sed -e "$expr" "$file" >"$file.updated-version"
   if diff "$file" "$file.updated-version"; then
     rm "$file.updated-version"
   else
     # use cat > and rm instead of move to keep file permissions
-    cat "$file.updated-version" > "$file"
+    cat "$file.updated-version" >"$file"
     rm "$file.updated-version"
   fi
 }
 
-update 'configure.ac' 's/AC_INIT(\[tox\], \[.*\])/AC_INIT([tox], ['$VER'])/'
+update 'configure.ac' 's/AC_INIT(\[tox\], \[.*\])/AC_INIT([tox], ['"$VER"'])/'
 
-update 'toxcore/tox.api.h' 's/\(const VERSION_MAJOR *= \).*;/\1'$MAJOR';/'
-update 'toxcore/tox.api.h' 's/\(const VERSION_MINOR *= \).*;/\1'$MINOR';/'
-update 'toxcore/tox.api.h' 's/\(const VERSION_PATCH *= \).*;/\1'$PATCH';/'
+update 'toxcore/tox.h' 's/\(#define TOX_VERSION_MAJOR *\).*/\1'"$MAJOR"'/'
+update 'toxcore/tox.h' 's/\(#define TOX_VERSION_MINOR *\).*/\1'"$MINOR"'/'
+update 'toxcore/tox.h' 's/\(#define TOX_VERSION_PATCH *\).*/\1'"$PATCH"'/'
 
-update 'CMakeLists.txt' 's/\(PROJECT_VERSION_MAJOR "\).*"/\1'$MAJOR'"/'
-update 'CMakeLists.txt' 's/\(PROJECT_VERSION_MINOR "\).*"/\1'$MINOR'"/'
-update 'CMakeLists.txt' 's/\(PROJECT_VERSION_PATCH "\).*"/\1'$PATCH'"/'
+update 'CMakeLists.txt' 's/\(PROJECT_VERSION_MAJOR "\).*"/\1'"$MAJOR"'"/'
+update 'CMakeLists.txt' 's/\(PROJECT_VERSION_MINOR "\).*"/\1'"$MINOR"'"/'
+update 'CMakeLists.txt' 's/\(PROJECT_VERSION_PATCH "\).*"/\1'"$PATCH"'"/'
+
+update 'other/docker/pkgsrc/pkgsrc.Dockerfile' 's/\(COPY . \/work\/c-toxcore-\).*/\1'"$VER"'/'
+update 'other/docker/pkgsrc/pkgsrc.Dockerfile' 's/\(tar", "zcf", "c-toxcore.tar.gz", "c-toxcore-\).*/\1'"$VER"'"]/'
+
+update 'other/docker/pkgsrc/pkgsrc.patch' 's/\(+DISTNAME=\ttoxcore-\).*/\1'"$VER"'/'
+update 'other/docker/pkgsrc/pkgsrc.patch' 's/\(+lib\/libtoxcore.so.\).*/\1'"$MINOR.$PATCH.0"'/'
 
 #
 # calculating the SO version
@@ -64,14 +70,14 @@ update 'CMakeLists.txt' 's/\(PROJECT_VERSION_PATCH "\).*"/\1'$PATCH'"/'
 # this must be constant starting from the 1.0 release
 LAST_SOMAJOR=2
 
-if [ $MAJOR -eq 0 ]; then
+if [ "$MAJOR" -eq 0 ]; then
   SOMAJOR=$MINOR
   SOMINOR=$PATCH
 
   # update lastmajor above
-  update 'other/version-sync' 's/^\(LAST_SOMAJOR=\).*/\1'$SOMAJOR'/'
+  update 'other/version-sync' 's/^\(LAST_SOMAJOR=\).*/\1'"$SOMAJOR"'/'
 else
-  SOMAJOR=$(expr $MAJOR + $LAST_SOMAJOR)
+  SOMAJOR=$(("$MAJOR" + "$LAST_SOMAJOR"))
   SOMINOR=$MINOR
 fi
 
@@ -115,16 +121,16 @@ fi
 # <=> major.minor.patch
 #
 
-if [ $MAJOR -eq 0 ]; then
-  LIBTOOL_CURRENT=$(expr $SOMAJOR + $SOMINOR)
+if [ "$MAJOR" -eq 0 ]; then
+  LIBTOOL_CURRENT=$(("$SOMAJOR" + "$SOMINOR"))
   LIBTOOL_AGE=$SOMINOR
   LIBTOOL_REVISION=0
 else
-  LIBTOOL_CURRENT=$(expr $SOMAJOR + $SOMINOR)
+  LIBTOOL_CURRENT=$(("$SOMAJOR" + "$SOMINOR"))
   LIBTOOL_AGE=$SOMINOR
   LIBTOOL_REVISION=$PATCH
 fi
 
-update 'so.version' 's/^\(CURRENT=\).*/\1'$LIBTOOL_CURRENT'/'
-update 'so.version' 's/^\(AGE=\).*/\1'$LIBTOOL_AGE'/'
-update 'so.version' 's/^\(REVISION=\).*/\1'$LIBTOOL_REVISION'/'
+update 'so.version' 's/^\(CURRENT=\).*/\1'"$LIBTOOL_CURRENT"'/'
+update 'so.version' 's/^\(AGE=\).*/\1'"$LIBTOOL_AGE"'/'
+update 'so.version' 's/^\(REVISION=\).*/\1'"$LIBTOOL_REVISION"'/'

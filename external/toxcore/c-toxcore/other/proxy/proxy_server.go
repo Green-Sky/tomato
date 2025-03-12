@@ -15,8 +15,8 @@ import (
 
 const (
 	debug      = false
-	httpAddr   = ":8080"
-	socks5Addr = ":8081"
+	httpAddr   = ":7080"
+	socks5Addr = ":7081"
 )
 
 func handleTunneling(w http.ResponseWriter, r *http.Request) {

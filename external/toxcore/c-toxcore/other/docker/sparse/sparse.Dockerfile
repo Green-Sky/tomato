@@ -27,8 +27,8 @@ RUN make install -j4 PREFIX=/usr/local
 
 WORKDIR /work/c-toxcore
 COPY --from=sources /src/ /work/c-toxcore
-#COPY other/make_single_file /work/c-toxcore/other/
-#RUN other/make_single_file auto_tests/tox_new_test.c > crash.c
+#COPY other/deploy/single-file/make_single_file /work/c-toxcore/
+#RUN ./make_single_file auto_tests/tox_new_test.c > crash.c
 #RUN sparsec $(pkg-config --cflags --libs libsodium opus vpx) crash.c
 
 COPY other/docker/sparse/Makefile /work/c-toxcore/

@@ -98,6 +98,17 @@ int crypto_hash_sha512(unsigned char *out, const unsigned char *in,
 {
     return 0;
 }
+int crypto_pwhash_scryptsalsa208sha256(unsigned char *const out,
+                                       unsigned long long outlen,
+                                       const char *const passwd,
+                                       unsigned long long passwdlen,
+                                       const unsigned char *const salt,
+                                       unsigned long long opslimit,
+                                       size_t memlimit)
+{
+    memset(out, 0, outlen);
+    return 0;
+}
 void randombytes(unsigned char *const buf, const unsigned long long buf_len)
 {
     memset(buf, 0, buf_len);
