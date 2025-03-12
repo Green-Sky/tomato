@@ -1,76 +1,8 @@
 ---
-bazel-opt_task:
-  timeout_in: 10m
-  container:
-    image: toxchat/toktok-stack:latest-release
-    cpu: 8
-    memory: 2G
-  configure_script:
-    - git submodule update --init --recursive
-    - /src/workspace/tools/inject-repo c-toxcore
-  test_all_script:
-    - cd /src/workspace && tools/retry 5 bazel
-        test -k
-        --build_tag_filters=-haskell
-        --test_tag_filters=-haskell
-        --
-        //c-toxcore/...
-        -//c-toxcore/auto_tests:tcp_relay_test # Cirrus doesn't allow external network connections.
-
-bazel-dbg_task:
-  timeout_in: 10m
-  container:
-    image: toxchat/toktok-stack:latest-debug
-    cpu: 8
-    memory: 2G
-  configure_script:
-    - git submodule update --init --recursive
-    - /src/workspace/tools/inject-repo c-toxcore
-  test_all_script:
-    - cd /src/workspace && tools/retry 5 bazel
-        test -k
-        --build_tag_filters=-haskell
-        --test_tag_filters=-haskell
-        --
-        //c-toxcore/...
-        -//c-toxcore/auto_tests:tcp_relay_test # Cirrus doesn't allow external network connections.
-
-bazel-msan_task:
-  timeout_in: 10m
-  container:
-    image: toxchat/toktok-stack:latest-msan
-    cpu: 4
-    memory: 2G
-  configure_script:
-    - git submodule update --init --recursive
-    - /src/workspace/tools/inject-repo c-toxcore
-  test_all_script:
-    - cd /src/workspace && tools/retry 5 bazel
-        test -k
-        --
-        //c-toxcore/auto_tests:lossless_packet_test
-
-cimple_task:
-  timeout_in: 5m
-  container:
-    image: toxchat/toktok-stack:latest-release
-    cpu: 2
-    memory: 4G
-  configure_script:
-    - git submodule update --init --recursive
-    - /src/workspace/tools/inject-repo c-toxcore
-  test_all_script:
-    - cd /src/workspace && bazel
-        test -k
-        --build_tag_filters=haskell
-        --test_tag_filters=haskell
-        --
-        //c-toxcore/...
-
 freebsd_task:
   timeout_in: 5m
   freebsd_instance:
-    image_family: freebsd-14-1
+    image_family: freebsd-14-2
   configure_script:
     - PAGER=cat ASSUME_ALWAYS_YES=YES pkg install
         cmake
@@ -87,7 +19,7 @@ freebsd_task:
   test_all_script:
     - |
       # TODO(iphydf): Investigate FreeBSD failures on these tests.
-      sed -Ei -e '/\(dht_getnodes_api\)/s/^/#/' auto_tests/CMakeLists.txt
+      sed -Ei -e '/\(dht_nodes_response_api\)/s/^/#/' auto_tests/CMakeLists.txt
       cmake . \
         -DMIN_LOGGER_LEVEL=TRACE \
         -DMUST_BUILD_TOXAV=ON \

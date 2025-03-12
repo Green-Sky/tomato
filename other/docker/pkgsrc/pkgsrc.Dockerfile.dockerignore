@@ -21,3 +21,4 @@
 !other/pkgconfig/*
 !other/rpm/*
 !so.version
+!other/docker/pkgsrc/pkgsrc.patch

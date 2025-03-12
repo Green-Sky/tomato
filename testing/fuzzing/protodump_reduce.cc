@@ -11,7 +11,7 @@
 
 namespace {
 
-constexpr bool PROTODUMP_DEBUG = Fuzz_Data::DEBUG;
+constexpr bool PROTODUMP_DEBUG = Fuzz_Data::FUZZ_DEBUG;
 
 void setup_callbacks(Tox_Dispatch *dispatch)
 {

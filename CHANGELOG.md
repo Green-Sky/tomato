@@ -1,6 +1,41 @@
+<a name="v0.2.21-rc.1"></a>
 
+## v0.2.21-rc.1 (2025-02-24)
 
-## v0.2.20
+### Release notes
+
+Pre-release for toxcore. Primarily, we now have an experimental network profiling callback.
+
+#### Features
+
+- Add a Makefile for the single file deploy build. ([432ab60c](https://github.com/TokTok/c-toxcore/commit/432ab60c0023e3eb2f02db3d54d7d3aec94c4098))
+- Implement Tox network profiler ([80fabd4a](https://github.com/TokTok/c-toxcore/commit/80fabd4a72921c555a0e931ce593b216f086733c))
+- Add `to_string` functions for toxencryptsave errors. ([d10c966b](https://github.com/TokTok/c-toxcore/commit/d10c966b9985ea1fd479bcb8496a3663d21db0ab))
+- implement the last 2 missing network struct functions and make use of them ([ac812871](https://github.com/TokTok/c-toxcore/commit/ac812871a2ec42c37dd7f73bf0f7a6734dfc0bf2))
+- Add option to disable DNS lookups in toxcore. ([819aa2b2](https://github.com/TokTok/c-toxcore/commit/819aa2b26182f703855b09ad3dd618786a64c6cb))
+- **net:** add missing connect to network struct ([2e94da60](https://github.com/TokTok/c-toxcore/commit/2e94da60d098329b2b78a881865f7602b3ff2728))
+
+#### Performance
+
+- Use stack allocation for strerror rendering. ([f1991aaa](https://github.com/TokTok/c-toxcore/commit/f1991aaa02978a3cb866826d2a5f24ac1e2fdd16))
+
+#### Bug Fixes
+
+- ip to string function not accepting tcp families ([26a991ed](https://github.com/TokTok/c-toxcore/commit/26a991ed2beeb52750258bf43406f039838f439a))
+- run `do_gca` also in bootstrap nodes ([9f723f89](https://github.com/TokTok/c-toxcore/commit/9f723f891d3761d317eaaafa82ece42f5a1b0e96))
+- Don't crash on malloc failures in `bin_unpack.` ([edb4dfc4](https://github.com/TokTok/c-toxcore/commit/edb4dfc4869bdd1d1048c88842f9e1ae8bcd3c85))
+- Fake broadcast address for 127.x.x.x ([d9b8fa60](https://github.com/TokTok/c-toxcore/commit/d9b8fa6098de6c074038b6664d2572627540b148))
+- Avoid `memcpy`-ing structs into onion ping id data. ([3cfe41c7](https://github.com/TokTok/c-toxcore/commit/3cfe41c758791ac1a9006ee2241a4fbd8c16db7a))
+- Add more information on why the frame was not sent. ([e32ac001](https://github.com/TokTok/c-toxcore/commit/e32ac0019388a5eaaaa91fcf84c1650c8a87f9c5))
+- Allow TCP connections to fail `connect` calls. ([ab887003](https://github.com/TokTok/c-toxcore/commit/ab8870036879e766111d6c854408fdee6018f5ed))
+- Allow peers to reconnect to group chats using a password ([fc065060](https://github.com/TokTok/c-toxcore/commit/fc0650601c163f9e035de2fce3cc58fab1ad9615))
+- reduce memory usage in group chats by 75% Significantly reduced the memory usage of groups since all message slots are preallocated for every peer for send and receive buffers of buffer size (hundreds of MiB peak when save contained alot of peers to try to connect to) ([11ab1d2a](https://github.com/TokTok/c-toxcore/commit/11ab1d2a7232eee19b51ce126ccce267d6578903))
+- friend requests with very long messages are no longer dropped ([93aafd78](https://github.com/TokTok/c-toxcore/commit/93aafd78c1ff74ed994426cbe07f031795923d3c))
+- windows use of REUSEADDR ([0ac23cee](https://github.com/TokTok/c-toxcore/commit/0ac23cee035cd1b66d81d2603b2464426a32fce7))
+
+<a name="v0.2.20"></a>
+
+## v0.2.20 (2024-11-11)
 
 ### Merged PRs:
 
@@ -30,7 +65,21 @@
 - [#2692](https://github.com/TokTok/c-toxcore/pull/2692) refactor: Make tox-bootstrapd use bool instead of int
 - [#2651](https://github.com/TokTok/c-toxcore/pull/2651) refactor: Make ToxAV independent of toxcore internals.
 
-## v0.2.19
+#### Bug Fixes
+
+- Add missing free in `dht_get_nodes_response` event. ([3acef4bf](https://github.com/TokTok/c-toxcore/commit/3acef4bf0441214e232d2bd55126d6268b079f33))
+- `friend_connections` leak on allocation failure clean up when it only contains connections in the NONE state ([5f88a084](https://github.com/TokTok/c-toxcore/commit/5f88a084e8c67ea8d8aa733cbb57aabb5082e6d3))
+- wrong comment for closelist ([6d27a1ae](https://github.com/TokTok/c-toxcore/commit/6d27a1ae178edc4c2ebb8768bb3c455a6baac467))
+- events leak that can occur if allocation fails rare in practice, found by fuzzing ([40676284](https://github.com/TokTok/c-toxcore/commit/4067628450744bb17b8ada1a11ad35480a386012))
+- Return an error instead of crashing on nullptr args in NGC. ([9610ac31](https://github.com/TokTok/c-toxcore/commit/9610ac31c5f00f24f137478819d67e3eda832bec))
+- Use Opus in the CBR mode ([03e9fbf3](https://github.com/TokTok/c-toxcore/commit/03e9fbf3703e430d21138c4f69e9ac7dbefb7564))
+- toxav rtp temp buffer allocation size was too large and cast from 32bit to 16bit, causing a overflow and making the allocated size too small ([671b1f92](https://github.com/TokTok/c-toxcore/commit/671b1f92332a8314dccf76d5df93c0b6c1230636))
+- Memory leak in the bootstrap daemon ([5344d7f8](https://github.com/TokTok/c-toxcore/commit/5344d7f84d060311f2147b343cdd3fd4c433d7dd))
+- **toxav:** pass video bit rate as kbit Previously we unintentionally made it Mbit. ([55752a2e](https://github.com/TokTok/c-toxcore/commit/55752a2e2ef894bfa6d7a2a21a0278e3f2bede7d))
+
+<a name="v0.2.19"></a>
+
+## v0.2.19 (2024-03-27)
 
 ### Merged PRs:
 
@@ -296,7 +345,76 @@
 - [#2014](https://github.com/TokTok/c-toxcore/issues/2014) Add sodium autotools CI build
 - [#1144](https://github.com/TokTok/c-toxcore/issues/1144) DHT_bootstrap should not link against misc_tools
 
-## v0.2.18
+#### Bug Fixes
+
+- flaky tcp test This only fixes the symptoms, not the real problem. Sometimes or consistently on some platforms a socket might need a moment before it can be written to. ([b03b5712](https://github.com/TokTok/c-toxcore/commit/b03b5712720de9a9901ea12fd741f177327a7021))
+- Disable IPv6 in Windows cross-compilation tests ([b3c3c49d](https://github.com/TokTok/c-toxcore/commit/b3c3c49d26c0cf2b91b9ec69f9a3f932ab9f2d6d))
+- Test the current Windows Dockerfile, not an old Dockerhub image ([dfb9a0b0](https://github.com/TokTok/c-toxcore/commit/dfb9a0b02bd16db24cdae2c0af799129cadb1024))
+- Remove unnecessary wsock32 dependency on Windows ([e519f799](https://github.com/TokTok/c-toxcore/commit/e519f7998b75ed3701f6b9d6d9cc7cadc428686c))
+- Correct type for conference offline peer numbers. ([be82a3ea](https://github.com/TokTok/c-toxcore/commit/be82a3ea303466797c63018e7a1fb04891e59fee))
+- `save_compatibility_test` failing on big-endian systems ([9a8dfa06](https://github.com/TokTok/c-toxcore/commit/9a8dfa06abafdac2c478e5c7339d9f9fbb1ab4a2))
+- Don't serve files from websockify. ([86f5e555](https://github.com/TokTok/c-toxcore/commit/86f5e55578b13fe44b6822b97a63e9ecd2b63db0))
+- Correctly pass extended public keys to group moderation code. ([710eb674](https://github.com/TokTok/c-toxcore/commit/710eb674a50f17201bb7556d389d82d2133d98de))
+- Pass array, not array pointer, to `memcmp`. ([c71567dc](https://github.com/TokTok/c-toxcore/commit/c71567dc18515f69111c5af7902bc0357f0cd9ea))
+- Correct a few potential null derefs in bootstrap daemon. ([08d3393d](https://github.com/TokTok/c-toxcore/commit/08d3393def4578fc94076e3a25258a809e4b87e7))
+- Add missing memunlock of local variable when it goes out of scope. ([b9877b32](https://github.com/TokTok/c-toxcore/commit/b9877b32b0bda719eea19e931f04bac2c96a9ab4))
+- Zero out stack-allocated secret key before return. ([dab5fe44](https://github.com/TokTok/c-toxcore/commit/dab5fe44b9070a406a36011df12840fe9e295ff0))
+- Fix some false positive from PVS Studio. ([9fe18b17](https://github.com/TokTok/c-toxcore/commit/9fe18b176fb661142c8565d691c5ad9e60125873))
+- Don't use `memcmp` to compare `IP_Port`s. ([39aadf89](https://github.com/TokTok/c-toxcore/commit/39aadf8922cc9276cf7f612cb2eb9b243b363210))
+- partially fix a bug that prevented group part messages from sending. ([d94246a9](https://github.com/TokTok/c-toxcore/commit/d94246a9061e2af7c02c4edc94156f5e8148bd9a))
+- a few off by one errors in group autotests ([203e1af8](https://github.com/TokTok/c-toxcore/commit/203e1af81e48909f0a6647fcbe6fc5d4764187bd))
+- dont resolve to ipv6 addresses when its disabled ([001d00ab](https://github.com/TokTok/c-toxcore/commit/001d00ab30a7ec3771babb82bdbf90401a468497))
+- Make all the fuzzers work again, and add a test for protodump. ([4cea4f9c](https://github.com/TokTok/c-toxcore/commit/4cea4f9ca457f4122db2c0912b155d8b451f7aa5))
+- Remove fatal error for non-erroneous case ([87bcc432](https://github.com/TokTok/c-toxcore/commit/87bcc4322d50d2ae7714e734b6468ef43dd818a7))
+- Make sure there's enough space for CONSUME1 in fuzzers. ([812f931d](https://github.com/TokTok/c-toxcore/commit/812f931d5f082f1dd58d4ced54ac088dd5da40cf))
+- issues with packet broadcast error reporting ([072e3beb](https://github.com/TokTok/c-toxcore/commit/072e3beb3f41ab9ed7c26a7eb2c44fa1c509db48))
+- don't pass garbage data buffer to packet send functions ([ebc96438](https://github.com/TokTok/c-toxcore/commit/ebc964386285f44ab3e0284c4192a5d8e2fe252c))
+- Use QueryPerformanceCounter on windows for monotonic time. ([82d82656](https://github.com/TokTok/c-toxcore/commit/82d8265688a3eb13aa045b5d15723ff0ae84461e))
+- unpack enum function names in event impl generator ([41dfb1c1](https://github.com/TokTok/c-toxcore/commit/41dfb1c1c050d9f31ae616af68960fbcce576c13))
+- Correct a use-after-free and fix some memory leaks. ([425216d9](https://github.com/TokTok/c-toxcore/commit/425216d9eca8b3c2afd48e52c04c6226b920303a))
+- also Install header for private/experimental API functions with autotools ([66453439](https://github.com/TokTok/c-toxcore/commit/66453439acf79a35eb46fe66a1c72595e7d0c9ca))
+- Enable debug flag for ubsan. ([39833691](https://github.com/TokTok/c-toxcore/commit/3983369103d3dc13ced13803a97783b6376459bf))
+- Add missing `htons` call when adding configured TCP relay. ([d1e850c5](https://github.com/TokTok/c-toxcore/commit/d1e850c56c71d6b592a6b28d9319b59d3ed5cc1d))
+- Fix memory leak in the error path of loading savedata. ([94cf9d1f](https://github.com/TokTok/c-toxcore/commit/94cf9d1f360ad6339cb8ed87cef651d7ff02e3be))
+- always respond to version packets with toxcore version ([06d949a7](https://github.com/TokTok/c-toxcore/commit/06d949a70196e6add3d3dd29de27072b6d048908))
+- Ensure we have allocators available for the error paths. ([24b54722](https://github.com/TokTok/c-toxcore/commit/24b54722aed65b02f1e921f08f8d31d68f92a45a))
+- Add missing `#include <array>`. ([7469a529](https://github.com/TokTok/c-toxcore/commit/7469a529b126995199ef819d23e484b25895b7f8))
+- `resolve_bootstrap_node()` not checking `net_getipport()` returned count correctly doc: improve inline docu of return of `net_getipport` ([88ffd1a6](https://github.com/TokTok/c-toxcore/commit/88ffd1a6495aa59dcd7144b552a91df0bdb5b6d9))
+- expand asserts in `fuzz_support.cc` ([d222d708](https://github.com/TokTok/c-toxcore/commit/d222d708b5756a496917f9b7e713a8bc678334f3))
+- #1144 by forcing `misc_tools` to be a static lib ([e1c38b40](https://github.com/TokTok/c-toxcore/commit/e1c38b40d6133c22eea8eba8d79d91f8705a6b3a), closes [#1144](https://github.com/TokTok/c-toxcore/issues/1144))
+- TCC doesn't now that abort() never returns ([ce36741c](https://github.com/TokTok/c-toxcore/commit/ce36741c65585c91bb718cbfad8fccf177bb6110))
+- tcc needs integer as VLA size ([d5de4dc8](https://github.com/TokTok/c-toxcore/commit/d5de4dc8788e1db136fea7f11e56b08a1cd7e09b))
+- missmatch between declaration and definition ([26ce30d8](https://github.com/TokTok/c-toxcore/commit/26ce30d8524c178797babaae42e16da4a20c338d))
+- potential endless loop under extremely high load ([ad2375ff](https://github.com/TokTok/c-toxcore/commit/ad2375ffe9cfcf5a7bd50bd15deeb598b14f45aa))
+- update Python path for AppVeyor ([de975320](https://github.com/TokTok/c-toxcore/commit/de97532064354fb4d24ad74957046c5a6c56d3c5))
+- missing net to host conversion of port in logging in `group_chat.c` ([7dfa935a](https://github.com/TokTok/c-toxcore/commit/7dfa935ac8f1c176d9b14c52064a9c9191137981))
+- missing net to host conversion of port in logging ([8054854b](https://github.com/TokTok/c-toxcore/commit/8054854b583c4c11c7ceafae4ab2e0e0150c8115))
+- unlock correct `dht_friend` ([306693ab](https://github.com/TokTok/c-toxcore/commit/306693aba33505438e4379a27b94607427d23cd3))
+- **ci:** window builds now build in parallel ([acdc6738](https://github.com/TokTok/c-toxcore/commit/acdc67387b3dc25de8b618430374d0336feabc2f))
+- **test:** tests use ipv6 by default, even with `USE_IPV6` set to 0 ([d3b935f6](https://github.com/TokTok/c-toxcore/commit/d3b935f63f43f9136c7dfa5b11f724a52ae7a4d2))
+
+#### Features
+
+- add message IDs to private group messages ([7b1db6ad](https://github.com/TokTok/c-toxcore/commit/7b1db6adc1d4244aa1ed02b51609d20fba13b90e))
+- Check hashes of Windows dependencies when cross-compiling ([e742dedd](https://github.com/TokTok/c-toxcore/commit/e742deddfff13485d2ac3456c26802dc5ac0d2e7))
+- Build the fun utils when cross-compiling to Windows ([1be311e5](https://github.com/TokTok/c-toxcore/commit/1be311e51fda9d7b8c8b4d64aec20a38b3d38313))
+- Generate .def, .exp and .lib files when building for Windows ([c4fa8f7f](https://github.com/TokTok/c-toxcore/commit/c4fa8f7fb14a45203731f01d46c91d7c20d194d6))
+- Let CMake create the dll instead of doing so ourselves ([74bbac53](https://github.com/TokTok/c-toxcore/commit/74bbac5363172c21fd0e60aa74947aecc2a4df22))
+- Harden Windows cross-compilation ([246642e9](https://github.com/TokTok/c-toxcore/commit/246642e9aec5b26ca4ea6c28af5e8bb9237fa6d3))
+- Add `dht_get_nodes_response` event to the events system. ([16809dc3](https://github.com/TokTok/c-toxcore/commit/16809dc36e82e9fb01f83ecdbff0331386cc13ad))
+- add ngc events ([8c35e0fe](https://github.com/TokTok/c-toxcore/commit/8c35e0fefbe84858f4d1ec63ecb451d830dea025))
+- Add `to_string` functions for all public enums. ([5f863a54](https://github.com/TokTok/c-toxcore/commit/5f863a54928cee153f2d2f1acfa79dcf6ac0bcd4))
+- Enable ubsan on bootstrap nodes. ([90f74968](https://github.com/TokTok/c-toxcore/commit/90f749681954fca1cc17097593eb274ec383ef4b))
+- allow for larger incoming NGC packets ([cd34b60f](https://github.com/TokTok/c-toxcore/commit/cd34b60f0fdd648a0c813d20aee731ef1d98779f))
+
+#### Performance
+
+- Slightly reduce bandwidth usage when there are few nodes. ([028b017d](https://github.com/TokTok/c-toxcore/commit/028b017d7920a7b0ebe738cb72f163989cc284c8))
+- Add a KVM FreeBSD build on cirrus ci. ([83efb173](https://github.com/TokTok/c-toxcore/commit/83efb17367a852c56f8525c9e0275f05dbe896fa))
+
+<a name="v0.2.18"></a>
+
+## v0.2.18 (2022-04-18)
 
 ### Merged PRs:
 
@@ -410,7 +528,33 @@
 - [#2012](https://github.com/TokTok/c-toxcore/issues/2012) Support building a DLL on Windows
 - [#907](https://github.com/TokTok/c-toxcore/issues/907) use dll  abnormal  System.AccessViolationException win7 x32 but x64 no problem
 
-## v0.2.17
+#### Bug Fixes
+
+- remove the assert because buffer can be larger than `UINT16_MAX.` ([6b0d1151](https://github.com/TokTok/c-toxcore/commit/6b0d1151ac813170fe9aba1f90e0791c05e53399))
+- Fix potential array out-of-bounds in DHT random node retrieval. ([d78ee9b1](https://github.com/TokTok/c-toxcore/commit/d78ee9b12e876604712db68746fc6ddf0a4691e0))
+- Allow onion paths to be built from more random nodes. ([5073882e](https://github.com/TokTok/c-toxcore/commit/5073882e0f0ea114e4f0efe719a72ecf7b168926))
+- really fix overrun added in e49a477a ([417d28d4](https://github.com/TokTok/c-toxcore/commit/417d28d439e344a21e1e7fbad55354c4c8bcb05b))
+- Format IP as string again in error log. ([d0728560](https://github.com/TokTok/c-toxcore/commit/d0728560bc308fe2ef5320d12c3e6021f13cc5d7))
+- Fix a stack overflow triggered by small DHT packets. ([7a4cc107](https://github.com/TokTok/c-toxcore/commit/7a4cc107c0d9a30b97a53d584c3ab5e3d84a3b47))
+- Don't crash if RNG init failed. ([ddda6055](https://github.com/TokTok/c-toxcore/commit/ddda605509091bb0c0a8e79680f42d80ae91a2b8))
+- fix typo in git command in INSTALL.md ([3cc72f5f](https://github.com/TokTok/c-toxcore/commit/3cc72f5f577c7a4bbe1ea913ae4ec82a758bf18c))
+- Correct calculation of packet sent time ([c38f21f8](https://github.com/TokTok/c-toxcore/commit/c38f21f8884f1ddcd0e93168918c27a08fca8659))
+- Eliminate memory leak in toxav. ([28623dcf](https://github.com/TokTok/c-toxcore/commit/28623dcfa979bacbbf338eb5ac32ae71fd9c4984))
+- Allow port range in `DHT_bootstrap.c.` ([001aa634](https://github.com/TokTok/c-toxcore/commit/001aa63401821920695e03a69141587c5067082b))
+
+#### Features
+
+- add forwarding and announce request handling ([e49a477a](https://github.com/TokTok/c-toxcore/commit/e49a477a845bfa5fa5dacc7c65f8e0bd38098cb2))
+- Add support for custom random number generator. ([cc31ff07](https://github.com/TokTok/c-toxcore/commit/cc31ff07fabda4dde59c201c0a5bd47b8af00498))
+- Allow custom network functions. ([f39aac09](https://github.com/TokTok/c-toxcore/commit/f39aac09e614f9b3dfcdbcc2b217ede99bff846f))
+
+#### Performance
+
+- Make time move a lot faster in fuzzing runs. ([e4558a28](https://github.com/TokTok/c-toxcore/commit/e4558a287cd7c8dd3215204aeb25e3df4142cd91))
+
+<a name="v0.2.17"></a>
+
+## v0.2.17 (2022-03-06)
 
 ### Merged PRs:
 
@@ -473,7 +617,16 @@
 - [#647](https://github.com/TokTok/c-toxcore/issues/647) `tox_bootstrap` should return an error on unrecoverable `getnodes` failure
 - [#169](https://github.com/TokTok/c-toxcore/issues/169) Get rid of TOX_USER_STATUS_BUSY + 1
 
-## v0.2.16
+#### Bug Fixes
+
+- Report failure to DHT bootstrap back to the client. ([2ce6f5b1](https://github.com/TokTok/c-toxcore/commit/2ce6f5b1694b12a34dea52bf90a7b2e691df4ded))
+- Null function pointer dereference. ([b8ce394e](https://github.com/TokTok/c-toxcore/commit/b8ce394e643dad38e067b44e1e8062eaf18b0e86))
+- out-of-memory condition by corrupted save file ([fff2b1c4](https://github.com/TokTok/c-toxcore/commit/fff2b1c4e7aae88b90dc26bf1cc71388243e5b62))
+- memory leak during conference load ([12dbafbd](https://github.com/TokTok/c-toxcore/commit/12dbafbd188a64356c07c97f7841016b5c300715))
+
+<a name="v0.2.16"></a>
+
+## v0.2.16 (2022-02-18)
 
 ### Merged PRs:
 
@@ -542,7 +695,28 @@
 - [#236](https://github.com/TokTok/c-toxcore/issues/236) Tox file transfers do not use available bandwidth
 - [#128](https://github.com/TokTok/c-toxcore/issues/128) Toxcore should provide an easy, local method for making sure Travis checks will pass
 
-## v0.2.15
+#### Bug Fixes
+
+- properly deallocate frozen peers ([fde2a7d1](https://github.com/TokTok/c-toxcore/commit/fde2a7d16d9b47d1dea7038080371edb486a608d))
+- Fix return type of functions returning `uint64_t.` ([598a365e](https://github.com/TokTok/c-toxcore/commit/598a365e1f8334b909734e8e2281e2b63dcda023))
+- remove bogus asserts in fuzzer harness ([acf85eee](https://github.com/TokTok/c-toxcore/commit/acf85eee465e44dde6d9dab746d02a721cc5268f))
+- syntax error introduced in 8bf37994fd12acec9e3010437502f478399b99b4 ([d429d357](https://github.com/TokTok/c-toxcore/commit/d429d35756c4552a7087b963832a6f6b80bf5af7))
+- add msgpack dependency to fuzzer build ([7e1aa442](https://github.com/TokTok/c-toxcore/commit/7e1aa442ef3a965afafee799551755f9b43589ed))
+- Fix Conan build link failures ([b64825b3](https://github.com/TokTok/c-toxcore/commit/b64825b3894cd11f8d6be25792c92b75144f4b9a))
+
+#### Performance
+
+- Reduce minimal encoding size of packed events. ([a3cd1102](https://github.com/TokTok/c-toxcore/commit/a3cd1102f77884f3e384715a5d4efd38d48aaac7))
+
+#### Features
+
+- Add unpacker functions for events structures. ([cb8b9bba](https://github.com/TokTok/c-toxcore/commit/cb8b9bbabfc8b669226cddcbe985b82909fdad22))
+- Add binary packing functions for tox events. ([0a2190f2](https://github.com/TokTok/c-toxcore/commit/0a2190f28cad0beadb9d9b4b1da2d7f538ca9d7d))
+- Add async event handling (callbacks) code. ([de4af4c2](https://github.com/TokTok/c-toxcore/commit/de4af4c2703228bdeb5468be1d9d6771092b2dad))
+
+<a name="v0.2.15"></a>
+
+## v0.2.15 (2022-02-06)
 
 ### Merged PRs:
 
@@ -550,7 +724,14 @@
 - [#1983](https://github.com/TokTok/c-toxcore/pull/1983) chore: Release 0.2.15
 - [#1980](https://github.com/TokTok/c-toxcore/pull/1980) fix: Reduce logging verbosity in TCP server.
 
-## v0.2.14
+#### Bug Fixes
+
+- Reduce logging verbosity even more. ([79eb17ae](https://github.com/TokTok/c-toxcore/commit/79eb17aeac5f55ec866e2c52b3023fa5a971bfc4))
+- Reduce logging verbosity in TCP server. ([fedcdea9](https://github.com/TokTok/c-toxcore/commit/fedcdea95a2d1b97ee99d19c67cac4174f1dc945))
+
+<a name="v0.2.14"></a>
+
+## v0.2.14 (2022-02-05)
 
 ### Merged PRs:
 
@@ -727,7 +908,26 @@
 - [#106](https://github.com/TokTok/c-toxcore/issues/106) Sometimes Toxcore reports the wrong connection status for both the DHT, and friends.
 - [#85](https://github.com/TokTok/c-toxcore/issues/85) Reproducible Builds // OBS a bad Idea
 
-## v0.2.13
+#### Features
+
+- Add WASM build for toxcore and websocket bootstrap node. ([71965a0f](https://github.com/TokTok/c-toxcore/commit/71965a0f3b52b4e26a52128a0c98947c2276f15b))
+
+#### Bug Fixes
+
+- Fix bootstrap on emscripten/wasm. ([727982d2](https://github.com/TokTok/c-toxcore/commit/727982d2f953ae4aa91c0b0a5cc9369ccde1bfbb))
+- Fix `toxav_basic_test` buffer overflow. ([28b5e512](https://github.com/TokTok/c-toxcore/commit/28b5e512a2487f215aac215a43d542c601c2022d))
+- don't count filetransfer as sending until accepted ([2073d02c](https://github.com/TokTok/c-toxcore/commit/2073d02c33a2bc8478099c66985f2a69854ecaf5))
+- Fix some uninitialised memory errors found by valgrind and msan. ([4a2cb37e](https://github.com/TokTok/c-toxcore/commit/4a2cb37e4bc2749d275da7a7516905d93bd61fd6))
+- use correct sample size in `toxav_basic_test` ([d2bf7247](https://github.com/TokTok/c-toxcore/commit/d2bf72479cad275cf2b685304483a0bdde7b2385))
+- Fixed uninitialised value copy. ([e30266f1](https://github.com/TokTok/c-toxcore/commit/e30266f1ce7538d932a92514f29e1233d68ee337))
+
+#### Performance
+
+- improve speed of cracker.c ([828312c2](https://github.com/TokTok/c-toxcore/commit/828312c2f9bbbbfb7084aa63374d573f2ac87e00))
+
+<a name="v0.2.13"></a>
+
+## v0.2.13 (2021-12-06)
 
 ### Merged PRs:
 
@@ -788,7 +988,13 @@
 - [#1149](https://github.com/TokTok/c-toxcore/issues/1149) uTox aborts on toxcore restart
 - [#886](https://github.com/TokTok/c-toxcore/issues/886) Maybe need to set the stacksize for musl-libc
 
-## v0.2.12
+#### Performance
+
+- reduce calling into `Mono_Time` in DHT ([0c320462](https://github.com/TokTok/c-toxcore/commit/0c320462d713b2741045e56df4487cfad559c05e))
+
+<a name="v0.2.12"></a>
+
+## v0.2.12 (2020-05-01)
 
 ### Merged PRs:
 
@@ -834,7 +1040,9 @@
 - [#1353](https://github.com/TokTok/c-toxcore/issues/1353) libtoxdns.a and libtoxav.a
 - [#86](https://github.com/TokTok/c-toxcore/issues/86) Freenet as Offline Messaging Backend
 
-## v0.2.11
+<a name="v0.2.11"></a>
+
+## v0.2.11 (2020-03-22)
 
 ### Merged PRs:
 
@@ -894,7 +1102,9 @@
 - [#1274](https://github.com/TokTok/c-toxcore/issues/1274) build error
 - [#850](https://github.com/TokTok/c-toxcore/issues/850) GPG App Usage
 
-## v0.2.10
+<a name="v0.2.10"></a>
+
+## v0.2.10 (2019-05-30)
 
 ### Merged PRs:
 
@@ -918,7 +1128,9 @@
 - [#1261](https://github.com/TokTok/c-toxcore/issues/1261) Bump so version
 - [#1116](https://github.com/TokTok/c-toxcore/issues/1116) Message length is too large log spam
 
-## v0.2.9
+<a name="v0.2.9"></a>
+
+## v0.2.9 (2019-01-12)
 
 ### Merged PRs:
 
@@ -987,7 +1199,9 @@
 - [#548](https://github.com/TokTok/c-toxcore/issues/548) toxcore removes message receipts and filetransfers from memory, when client has short network outage
 - [#375](https://github.com/TokTok/c-toxcore/issues/375) Invalid bit rate prevents call
 
-## v0.2.8
+<a name="v0.2.8"></a>
+
+## v0.2.8 (2018-10-07)
 
 ### Merged PRs:
 
@@ -1042,7 +1256,9 @@
 - [#960](https://github.com/TokTok/c-toxcore/issues/960) Persistent groups don't work properly when using toxync bot
 - [#838](https://github.com/TokTok/c-toxcore/issues/838) How to get groupchat identifier?
 
-## v0.2.7
+<a name="v0.2.7"></a>
+
+## v0.2.7 (2018-08-30)
 
 ### Merged PRs:
 
@@ -1091,7 +1307,9 @@
 - [#1114](https://github.com/TokTok/c-toxcore/issues/1114) Segfault on group quit, free of invalid audio_decoder
 - [#1105](https://github.com/TokTok/c-toxcore/issues/1105) Sodium.h missing?
 
-## v0.2.6
+<a name="v0.2.6"></a>
+
+## v0.2.6 (2018-08-16)
 
 ### Merged PRs:
 
@@ -1130,7 +1348,9 @@
 - [#1036](https://github.com/TokTok/c-toxcore/pull/1036) Add deprecation notice to some UPPER_CASE enums.
 - [#1016](https://github.com/TokTok/c-toxcore/pull/1016) Split out conference type (text/av) from identifier.
 
-## v0.2.5
+<a name="v0.2.5"></a>
+
+## v0.2.5 (2018-08-08)
 
 ### Merged PRs:
 
@@ -1159,7 +1379,9 @@
 - [#1028](https://github.com/TokTok/c-toxcore/issues/1028) qTox crashes 1-2 times a day after update to 0.2.4
 - [#1002](https://github.com/TokTok/c-toxcore/issues/1002) Implement an abstraction over pthread and windows thread synchronisation primitives
 
-## v0.2.4
+<a name="v0.2.4"></a>
+
+## v0.2.4 (2018-07-20)
 
 ### Merged PRs:
 
@@ -1231,7 +1453,9 @@
 - [#450](https://github.com/TokTok/c-toxcore/issues/450) Run format-test earlier in the build
 - [#429](https://github.com/TokTok/c-toxcore/issues/429) Cannot build on Windows using MinGW
 
-## v0.2.3
+<a name="v0.2.3"></a>
+
+## v0.2.3 (2018-06-25)
 
 ### Merged PRs:
 
@@ -1287,7 +1511,9 @@
 - [#879](https://github.com/TokTok/c-toxcore/issues/879) DHT_bootstrap asserts due to no default logger
 - [#868](https://github.com/TokTok/c-toxcore/issues/868) A tox_friend_connection_status event often occurs
 
-## v0.2.2
+<a name="v0.2.2"></a>
+
+## v0.2.2 (2018-04-17)
 
 ### Merged PRs:
 
@@ -1312,7 +1538,9 @@
 - [#873](https://github.com/TokTok/c-toxcore/issues/873) Onion vulnerability
 - [#786](https://github.com/TokTok/c-toxcore/issues/786) Make format strings msvc/mingw-happy
 
-## v0.2.1
+<a name="v0.2.1"></a>
+
+## v0.2.1 (2018-03-10)
 
 ### Merged PRs:
 
@@ -1323,7 +1551,9 @@
 - [#831](https://github.com/TokTok/c-toxcore/pull/831) Don't throw away rtp packets from old Toxcore
 - [#828](https://github.com/TokTok/c-toxcore/pull/828) Make file transfers 50% faster.
 
-## v0.2.0
+<a name="v0.2.0"></a>
+
+## v0.2.0 (2018-02-28)
 
 ### Merged PRs:
 
@@ -1478,7 +1708,9 @@
 - [#383](https://github.com/TokTok/c-toxcore/issues/383) TODO: add cmake instructions in README.md
 - [#42](https://github.com/TokTok/c-toxcore/issues/42) Remove ToxDNS and related stuff from toxcore
 
-## v0.1.11
+<a name="v0.1.11"></a>
+
+## v0.1.11 (2017-12-27)
 
 ### Merged PRs:
 
@@ -1509,7 +1741,9 @@
 - [#240](https://github.com/TokTok/c-toxcore/issues/240) Tox doesn't reconnect after internet connection interruption
 - [#237](https://github.com/TokTok/c-toxcore/issues/237) Contacts are shown offline when they are online
 
-## v0.1.10
+<a name="v0.1.10"></a>
+
+## v0.1.10 (2017-08-16)
 
 ### Merged PRs:
 
@@ -1517,7 +1751,9 @@
 - [#564](https://github.com/TokTok/c-toxcore/pull/564) Fix Windows build
 - [#542](https://github.com/TokTok/c-toxcore/pull/542) Save bandwidth by moderating onion pinging
 
-## v0.1.9
+<a name="v0.1.9"></a>
+
+## v0.1.9 (2017-06-06)
 
 ### Merged PRs:
 
@@ -1548,7 +1784,9 @@
 
 - [#482](https://github.com/TokTok/c-toxcore/issues/482) CMake can't detect and compile ToxAV on OSX
 
-## v0.1.8
+<a name="v0.1.8"></a>
+
+## v0.1.8 (2017-04-28)
 
 ### Merged PRs:
 
@@ -1570,7 +1808,9 @@
 - [#456](https://github.com/TokTok/c-toxcore/issues/456) Tox.h doesn't expose the size of the nospam.
 - [#411](https://github.com/TokTok/c-toxcore/issues/411) Reduce CTest timeout to 2 minutes
 
-## v0.1.7
+<a name="v0.1.7"></a>
+
+## v0.1.7 (2017-03-26)
 
 ### Merged PRs:
 
@@ -1597,7 +1837,9 @@
 - [#494](https://github.com/TokTok/c-toxcore/issues/494) Format networking code introduced by #461
 - [#474](https://github.com/TokTok/c-toxcore/issues/474) TOX_VERSION_PATCH isn't in sync with the version
 
-## v0.1.6
+<a name="v0.1.6"></a>
+
+## v0.1.6 (2017-01-27)
 
 ### Merged PRs:
 
@@ -1614,7 +1856,9 @@
 - [#457](https://github.com/TokTok/c-toxcore/issues/457) EPOLLRDHUP not defined in android ndk on lower API that 21
 - [#415](https://github.com/TokTok/c-toxcore/issues/415) Set up a native windows build on appveyor
 
-## v0.1.5
+<a name="v0.1.5"></a>
+
+## v0.1.5 (2017-01-19)
 
 ### Merged PRs:
 
@@ -1633,7 +1877,9 @@
 
 - [#413](https://github.com/TokTok/c-toxcore/issues/413) Support C compilation with `-std=c99` in autotools
 
-## v0.1.4
+<a name="v0.1.4"></a>
+
+## v0.1.4 (2017-01-13)
 
 ### Merged PRs:
 
@@ -1664,7 +1910,9 @@
 - [#364](https://github.com/TokTok/c-toxcore/issues/364) Delete misc_tools.h after replacing its use by qsort.
 - [#363](https://github.com/TokTok/c-toxcore/issues/363) Test against NaCl in addition to libsodium on Travis.
 
-## v0.1.3
+<a name="v0.1.3"></a>
+
+## v0.1.3 (2017-01-06)
 
 ### Merged PRs:
 
@@ -1686,7 +1934,9 @@
 - [#347](https://github.com/TokTok/c-toxcore/issues/347) Implement our own secure `memcmp` and `memzero` if libsodium isn't available
 - [#319](https://github.com/TokTok/c-toxcore/issues/319) toxcore installs `DHT_bootstrap` even though `--disable-daemon` is passed to `./configure`
 
-## v0.1.2
+<a name="v0.1.2"></a>
+
+## v0.1.2 (2016-12-23)
 
 ### Merged PRs:
 
@@ -1705,7 +1955,9 @@
 - [#342](https://github.com/TokTok/c-toxcore/issues/342) Wrap all libsodium functions we use in toxcore in `crypto_core`.
 - [#278](https://github.com/TokTok/c-toxcore/issues/278) ToxAV use-after-free bug
 
-## v0.1.1
+<a name="v0.1.1"></a>
+
+## v0.1.1 (2016-12-17)
 
 ### Merged PRs:
 
@@ -1722,7 +1974,9 @@
 - [#327](https://github.com/TokTok/c-toxcore/issues/327) The `TOX_VERSION_REQUIRE` macro is broken.
 - [#221](https://github.com/TokTok/c-toxcore/issues/221) Option to disable local peer detection
 
-## v0.1.0
+<a name="v0.1.0"></a>
+
+## v0.1.0 (2016-12-14)
 
 ### Merged PRs:
 
@@ -1753,7 +2007,9 @@
 - [#266](https://github.com/TokTok/c-toxcore/issues/266) Support all levels listed in TOX_DHT_NAT_LEVEL
 - [#216](https://github.com/TokTok/c-toxcore/issues/216) When v0.1 release?
 
-## v0.0.5
+<a name="v0.0.5"></a>
+
+## v0.0.5 (2016-11-25)
 
 ### Merged PRs:
 
@@ -1776,7 +2032,9 @@
 - [#215](https://github.com/TokTok/c-toxcore/issues/215) The current tox save format is non-portable
 - [#205](https://github.com/TokTok/c-toxcore/issues/205) nospam value is reversed in array returned by `tox_self_get_address()`
 
-## v0.0.4
+<a name="v0.0.4"></a>
+
+## v0.0.4 (2016-11-14)
 
 ### Merged PRs:
 
@@ -1791,7 +2049,9 @@
 - [#248](https://github.com/TokTok/c-toxcore/pull/248) Remove new_nonce function in favour of random_nonce.
 - [#224](https://github.com/TokTok/c-toxcore/pull/224) Add DHT_create_packet, an abstraction for DHT RPC packets
 
-## v0.0.3
+<a name="v0.0.3"></a>
+
+## v0.0.3 (2016-11-07)
 
 ### Merged PRs:
 
@@ -1816,7 +2076,9 @@
 
 - [#40](https://github.com/TokTok/c-toxcore/issues/40) Stateless callbacks in toxcore's public API
 
-## v0.0.2
+<a name="v0.0.2"></a>
+
+## v0.0.2 (2016-10-30)
 
 ### Merged PRs:
 
@@ -1843,7 +2105,9 @@
 
 - [#201](https://github.com/TokTok/c-toxcore/issues/201) Logging callback was broken
 
-## v0.0.1
+<a name="v0.0.1"></a>
+
+## v0.0.1 (2016-10-01)
 
 ### Merged PRs:
 
@@ -1965,3 +2229,9 @@
 - [#9](https://github.com/TokTok/c-toxcore/issues/9) Fix the failing test
 - [#8](https://github.com/TokTok/c-toxcore/issues/8) Toxcore should make more liberal use of assertions
 - [#4](https://github.com/TokTok/c-toxcore/issues/4) Integrate hstox tests with toxcore Travis build
+
+#### Bug Fixes
+
+- replace memset with `sodium_memzero` for sensitive data ([23b0c9cd](https://github.com/TokTok/c-toxcore/commit/23b0c9cdedae01b09055a0476823e225680d3930))
+- compare sensitive data with `sodium_memcmp` fix: make `increment_nonce` & `increment_nonce_number` independent of user-controlled input fix: make `crypto_core` more stable agains null ptr dereference ([ed3a794c](https://github.com/TokTok/c-toxcore/commit/ed3a794c9bf6380801ee21c816505f457b6a1348))
+- bad memset length in `ip_init()` ([f267266b](https://github.com/TokTok/c-toxcore/commit/f267266bf611570c6e79dfb800e97396151ff870))

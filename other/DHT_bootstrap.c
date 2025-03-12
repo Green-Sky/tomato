@@ -262,6 +262,8 @@ int main(int argc, char *argv[])
             last_lan_discovery = mono_time_get(mono_time);
         }
 
+        do_gca(mono_time, gc_announces_list);
+
 #ifdef TCP_RELAY_ENABLED
         do_tcp_server(tcp_s, mono_time);
 #endif

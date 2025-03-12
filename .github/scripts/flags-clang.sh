@@ -69,6 +69,8 @@ add_cxx_flag -Wno-c99-extensions
 add_cxx_flag -Wno-old-style-cast
 # GTest does this.
 add_cxx_flag -Wno-global-constructors
+# Needed for some fuzzers.
+add_cxx_flag -Wno-exit-time-destructors
 
 # Downgrade to warning so we still see it.
 add_flag -Wno-error=unreachable-code

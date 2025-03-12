@@ -1,11 +1,20 @@
 # Derived from: https://google.github.io/clusterfuzzlite/running-clusterfuzzlite/github-actions/
 
 name: ClusterFuzzLite batch fuzzing
+
 on:
   schedule:
     - cron: '0 6,8 * * *'  # Run twice a day at low activity times
   workflow_dispatch:       # Manual trigger for testing
+    inputs:
+      fuzz-seconds:
+        description: 'Number of seconds to fuzz (total, not per test)'
+        required: false
+        type: number
+        default: 3600
+
 permissions: read-all
+
 jobs:
   BatchFuzzing:
     runs-on: ubuntu-latest
@@ -27,7 +36,8 @@ jobs:
       uses: google/clusterfuzzlite/actions/run_fuzzers@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        fuzz-seconds: 3600 # 60min
+        # 1 hour on schedule, configurable on manual trigger.
+        fuzz-seconds: ${{ github.event.inputs.fuzz-seconds || 3600 }}
         mode: 'batch'
         sanitizer: ${{ matrix.sanitizer }}
         # Optional but recommended: For storing certain artifacts from fuzzing.

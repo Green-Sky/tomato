@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tool: [autotools, clang-tidy, compcert, cppcheck, doxygen, goblint, infer, freebsd, misra, modules, pkgsrc, rpm, slimcc, sparse, tcc, tokstyle]
+        tool: [autotools, clang-tidy, compcert, cppcheck, doxygen, goblint, infer, misra, modules, pkgsrc, rpm, slimcc, sparse, tcc, tokstyle]
     runs-on: ubuntu-22.04
     steps:
       - name: Set up Docker Buildx
@@ -59,17 +59,6 @@ jobs:
           submodules: recursive
       - name: Build, test, and upload coverage
         run: other/docker/coverage/run
-
-  build-android:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - run: .github/scripts/cmake-android armeabi-v7a
-      - run: .github/scripts/cmake-android arm64-v8a
-      - run: .github/scripts/cmake-android x86
-      - run: .github/scripts/cmake-android x86_64
 
   build-macos:
     runs-on: macos-latest
@@ -132,7 +121,7 @@ jobs:
 
           run: |
             # TODO(iphydf): Investigate NetBSD failures on these tests.
-            sed -Ei -e '/\((TCP|dht_getnodes_api)\)/s/^/#/' auto_tests/CMakeLists.txt
+            sed -Ei -e '/\((TCP|dht_nodes_response_api)\)/s/^/#/' auto_tests/CMakeLists.txt
             cmake . \
               -DMIN_LOGGER_LEVEL=TRACE \
               -DMUST_BUILD_TOXAV=ON \
@@ -171,7 +160,7 @@ jobs:
 
           run: |
             # TODO(iphydf): Investigate FreeBSD failures on these tests.
-            sed -Ei -e '/\(dht_getnodes_api\)/s/^/#/' auto_tests/CMakeLists.txt
+            sed -Ei -e '/\(dht_nodes_response_api\)/s/^/#/' auto_tests/CMakeLists.txt
             cmake . \
               -DMIN_LOGGER_LEVEL=TRACE \
               -DMUST_BUILD_TOXAV=ON \

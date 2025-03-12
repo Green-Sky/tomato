@@ -5,21 +5,21 @@
 #ifndef C_TOXCORE_TESTING_FUZZING_FUZZ_SUPPORT_H
 #define C_TOXCORE_TESTING_FUZZING_FUZZ_SUPPORT_H
 
+#include <array>
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <memory>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "../../toxcore/tox.h"
 #include "../../toxcore/tox_private.h"
 
 struct Fuzz_Data {
-    static constexpr bool DEBUG = false;
+    static constexpr bool FUZZ_DEBUG = false;
     static constexpr std::size_t TRACE_TRAP = -1;  // 579;
 
 private:
@@ -47,7 +47,7 @@ public:
             // Special case because memcpy causes UB for bool (which can't be
             // anything other than 0 or 1).
             const bool val = fd.data_[0];
-            if (DEBUG) {
+            if (FUZZ_DEBUG) {
                 std::printf("consume@%zu(%s): bool %s\n", fd.pos(), func, val ? "true" : "false");
             }
             ++fd.data_;
@@ -74,7 +74,7 @@ public:
     const uint8_t *consume(const char *func, std::size_t count)
     {
         const uint8_t *val = data_;
-        if (DEBUG) {
+        if (FUZZ_DEBUG) {
             if (pos() == TRACE_TRAP) {
                 __asm__("int $3");
             }
@@ -256,6 +256,38 @@ struct Null_System : System {
     Null_System();
 };
 
+template <typename V>
+class int_map {
+public:
+    struct iterator {
+        std::pair<uint16_t, V> pair;
+
+        bool operator==(const iterator &rhs) const { return pair.first == rhs.pair.first; }
+        bool operator!=(const iterator &rhs) const { return pair.first != rhs.pair.first; }
+
+        std::pair<uint16_t, V> operator*() const { return pair; }
+        const std::pair<uint16_t, V> *operator->() const { return &pair; }
+    };
+
+    int_map() = default;
+    ~int_map() = default;
+
+    iterator find(uint16_t key) const
+    {
+        if (!values[key]) {
+            return end();
+        }
+        return {{key, values[key]}};
+    }
+
+    iterator end() const { return {{static_cast<uint16_t>(values.size()), nullptr}}; }
+
+    void emplace(uint16_t key, V value) { values[key] = value; }
+
+private:
+    std::array<V, UINT16_MAX> values;
+};
+
 /**
  * A Tox_System implementation that records all I/O but does not actually
  * perform any real I/O. Everything inside this system is hermetic in-process
@@ -266,7 +298,7 @@ struct Null_System : System {
  * initialised with the same seed will be identical (same keys, etc.).
  */
 struct Record_System : System {
-    static constexpr bool DEBUG = Fuzz_Data::DEBUG;
+    static constexpr bool FUZZ_DEBUG = Fuzz_Data::FUZZ_DEBUG;
 
     /** @brief State shared between all tox instances. */
     struct Global {
@@ -280,7 +312,7 @@ struct Record_System : System {
          * toxcore sends packets to itself sometimes when doing onion routing
          * with only 2 nodes in the network.
          */
-        std::unordered_map<uint16_t, Record_System *> bound;
+        int_map<Record_System *> bound;
     };
 
     Global &global_;
@@ -300,7 +332,7 @@ struct Record_System : System {
 
     void push(bool byte)
     {
-        if (DEBUG) {
+        if (FUZZ_DEBUG) {
             if (recording_.size() == Fuzz_Data::TRACE_TRAP) {
                 __asm__("int $3");
             }
@@ -312,7 +344,7 @@ struct Record_System : System {
 
     void push(uint8_t byte)
     {
-        if (DEBUG) {
+        if (FUZZ_DEBUG) {
             if (recording_.size() == Fuzz_Data::TRACE_TRAP) {
                 __asm__("int $3");
             }
@@ -323,7 +355,7 @@ struct Record_System : System {
 
     void push(const uint8_t *bytes, std::size_t size)
     {
-        if (DEBUG) {
+        if (FUZZ_DEBUG) {
             if (recording_.size() == Fuzz_Data::TRACE_TRAP) {
                 __asm__("int $3");
             }
@@ -352,7 +384,7 @@ private:
  * everything down drastically. It's useful while developing the fuzzer and the
  * protodump program.
  */
-extern const bool DEBUG;
+extern const bool FUZZ_DEBUG;
 
 inline constexpr char tox_log_level_name(Tox_Log_Level level)
 {

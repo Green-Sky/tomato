@@ -6,10 +6,10 @@
 #
 # Example:
 #
-#   other/make_single_file auto_tests/toxav_basic_test.c auto_tests/auto_test_support.c testing/misc_tools.c | \
+#   other/deploy/single-file/make_single_file auto_tests/toxav_basic_test.c auto_tests/auto_test_support.c testing/misc_tools.c | \
 #     tcc -o toxav_basic_test - $(pkg-config --cflags --libs libsodium opus vpx)
 #
-#   other/make_single_file -core auto_tests/send_message_test.c auto_tests/auto_test_support.c testing/misc_tools.c | \
+#   other/deploy/single-file/make_single_file -core auto_tests/send_message_test.c auto_tests/auto_test_support.c testing/misc_tools.c | \
 #     tcc -o send_message_test - $(pkg-config --cflags --libs libsodium)
 
 use strict;
@@ -45,15 +45,16 @@ sub emit {
    }
 }
 
+my @core = (<toxcore/*.c>, <toxcore/*/*.c>, <toxencryptsave/*.c>, <third_party/cmp/*.c>);
 if (@ARGV and $ARGV[0] eq "-core") {
    shift @ARGV;
-   for my $fn (<toxcore/*.c>, <toxcore/*/*.c>, <third_party/cmp/*.c>) {
-      emit(abs_path $fn);
-   }
+   emit(abs_path $_) for @core;
 } else {
-   for my $fn (<toxav/*.c>, <toxcore/*.c>, <toxcore/*/*.c>, <toxencryptsave/*.c>, <third_party/cmp/*.c>) {
-      emit(abs_path $fn);
+   if (@ARGV and $ARGV[0] eq "-av") {
+      # Ignore -av, it's the default.
+      shift @ARGV;
    }
+   emit(abs_path $_) for (<toxav/*.c>, @core);
 }
 
 emit(abs_path $_) for @ARGV;

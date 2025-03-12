@@ -20,6 +20,10 @@
 #include "net_profile.h"
 #include "network.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*** Crypto payloads. */
 
 /*** Ranges. */
@@ -421,5 +425,9 @@ void kill_net_crypto(Net_Crypto *c);
  */
 non_null()
 const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_NET_CRYPTO_H */

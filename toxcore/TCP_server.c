@@ -920,7 +920,7 @@ static int accept_connection(TCP_Server *tcp_server, Socket sock)
 }
 
 non_null()
-static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, Family family, uint16_t port)
+static Socket new_listening_tcp_socket(const Logger *logger, const Memory *mem, const Network *ns, Family family, uint16_t port)
 {
     const Socket sock = net_socket(ns, family, TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
@@ -942,10 +942,9 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, 
     ok = ok && bind_to_port(ns, sock, family, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
 
     if (!ok) {
-        char *const error = net_new_strerror(net_error());
+        Net_Strerror error_str;
         LOGGER_WARNING(logger, "could not bind to TCP port %d (family = %d): %s",
-                       port, family.value, error != nullptr ? error : "(null)");
-        net_kill_strerror(error);
+                       port, family.value, net_strerror(net_error(), &error_str));
         kill_sock(ns, sock);
         return net_invalid_socket();
     }
@@ -1015,7 +1014,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     const Family family = ipv6_enabled ? net_family_ipv6() : net_family_ipv4();
 
     for (uint32_t i = 0; i < num_sockets; ++i) {
-        const Socket sock = new_listening_tcp_socket(logger, ns, family, ports[i]);
+        const Socket sock = new_listening_tcp_socket(logger, mem, ns, family, ports[i]);
 
         if (!sock_valid(sock)) {
             continue;

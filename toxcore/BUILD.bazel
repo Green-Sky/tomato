@@ -6,6 +6,8 @@ exports_files(
         "tox.h",
         "tox_dispatch.h",
         "tox_events.h",
+        "tox_log_level.h",
+        "tox_options.h",
         "tox_private.h",
     ],
     visibility = ["//c-toxcore:__subpackages__"],
@@ -192,6 +194,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":mem",
         "//c-toxcore/third_party:cmp",
     ],
 )
@@ -204,6 +207,7 @@ cc_test(
         ":bin_pack",
         ":bin_unpack",
         ":logger",
+        ":mem",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -766,6 +770,23 @@ cc_library(
     ],
 )
 
+cc_fuzz_test(
+    name = "net_crypto_fuzz_test",
+    size = "small",
+    testonly = True,
+    srcs = ["net_crypto_fuzz_test.cc"],
+    corpus = ["//tools/toktok-fuzzer/corpus:net_crypto_fuzz_test"],
+    deps = [
+        ":DHT",
+        ":TCP_client",
+        ":mem_test_util",
+        ":net_crypto",
+        ":network",
+        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/fuzzing:fuzz_tox",
+    ],
+)
+
 cc_library(
     name = "onion_announce",
     srcs = ["onion_announce.c"],
@@ -1071,6 +1092,25 @@ cc_library(
 )
 
 cc_library(
+    name = "tox_options",
+    srcs = ["tox_options.c"],
+    hdrs = ["tox_options.h"],
+    copts = ["-UTOX_HIDE_DEPRECATED"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_log_level",
+    ],
+)
+
+cc_library(
+    name = "tox_log_level",
+    srcs = ["tox_log_level.c"],
+    hdrs = ["tox_log_level.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+)
+
+cc_library(
     name = "tox",
     srcs = [
         "tox.c",
@@ -1102,6 +1142,8 @@ cc_library(
         ":network",
         ":onion_client",
         ":state",
+        ":tox_log_level",
+        ":tox_options",
         ":util",
         "//c-toxcore/toxencryptsave:defines",
         "@pthread",
@@ -1115,6 +1157,8 @@ cc_test(
     deps = [
         ":crypto_core",
         ":tox",
+        ":tox_log_level",
+        ":tox_options",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
