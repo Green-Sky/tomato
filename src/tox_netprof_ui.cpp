@@ -14,8 +14,8 @@ static const char* typedPkgIDToString(Tox_Netprof_Packet_Type type, uint8_t id) 
 		switch (id) {
 			case TOX_NETPROF_PACKET_ID_ZERO: return "Ping request";
 			case TOX_NETPROF_PACKET_ID_ONE: return "Ping response";
-			case TOX_NETPROF_PACKET_ID_TWO: return "Get nodes request";
-			case TOX_NETPROF_PACKET_ID_FOUR: return "Send nodes response";
+			case TOX_NETPROF_PACKET_ID_TWO: return "Nodes request";
+			case TOX_NETPROF_PACKET_ID_FOUR: return "Nodes response";
 			case TOX_NETPROF_PACKET_ID_COOKIE_REQUEST: return "Cookie request";
 			case TOX_NETPROF_PACKET_ID_COOKIE_RESPONSE: return "Cookie response";
 			case TOX_NETPROF_PACKET_ID_CRYPTO_HS: return "Crypto handshake";
@@ -55,7 +55,7 @@ static const char* typedPkgIDToString(Tox_Netprof_Packet_Type type, uint8_t id) 
 			case TOX_NETPROF_PACKET_ID_TWO: return "Connection notification";
 			case TOX_NETPROF_PACKET_ID_TCP_DISCONNECT: return "disconnect notification";
 			case TOX_NETPROF_PACKET_ID_FOUR: return "Ping packet";
-			case TOX_NETPROF_PACKET_ID_TCP_PONG: return "pong packet";
+			case TOX_NETPROF_PACKET_ID_TCP_PONG: return "Pong packet";
 			case TOX_NETPROF_PACKET_ID_TCP_OOB_SEND: return "out-of-band send";
 			case TOX_NETPROF_PACKET_ID_TCP_OOB_RECV: return "out-of-band receive";
 			case TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST: return "onion request";
