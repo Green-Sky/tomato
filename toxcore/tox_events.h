@@ -410,7 +410,7 @@ typedef enum Tox_Event_Type {
     TOX_EVENT_GROUP_JOIN_FAIL               = 37,
     TOX_EVENT_GROUP_MODERATION              = 38,
 
-    TOX_EVENT_DHT_GET_NODES_RESPONSE        = 39,
+    TOX_EVENT_DHT_NODES_RESPONSE            = 39,
 
     TOX_EVENT_INVALID                       = 255,
 } Tox_Event_Type;

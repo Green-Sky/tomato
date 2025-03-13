@@ -601,7 +601,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Ev
             break;
         }
 
-        case TOX_EVENT_DHT_GET_NODES_RESPONSE: {
+        case TOX_EVENT_DHT_NODES_RESPONSE: {
             if (dispatch->dht_nodes_response_callback != nullptr) {
                 dispatch->dht_nodes_response_callback(event->data.dht_nodes_response, user_data);
             }
