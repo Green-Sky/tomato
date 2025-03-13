@@ -122,7 +122,7 @@ static bool tox_event_dht_nodes_response_unpack_into(
 const Tox_Event_Dht_Nodes_Response *tox_event_get_dht_nodes_response(
     const Tox_Event *event)
 {
-    return event->type == TOX_EVENT_DHT_GET_NODES_RESPONSE ? event->data.dht_nodes_response : nullptr;
+    return event->type == TOX_EVENT_DHT_NODES_RESPONSE ? event->data.dht_nodes_response : nullptr;
 }
 
 Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_new(const Memory *mem)
@@ -156,7 +156,7 @@ static Tox_Event_Dht_Nodes_Response *tox_events_add_dht_nodes_response(Tox_Event
     }
 
     Tox_Event event;
-    event.type = TOX_EVENT_DHT_GET_NODES_RESPONSE;
+    event.type = TOX_EVENT_DHT_NODES_RESPONSE;
     event.data.dht_nodes_response = dht_nodes_response;
 
     if (!tox_events_add(events, &event)) {
