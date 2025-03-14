@@ -21,17 +21,17 @@
     "implot": {
       "flake": false,
       "locked": {
-        "lastModified": 1737544983,
-        "narHash": "sha256-/hYfmkUa5zRb2iQHdw0FhNPBaUHqzEhA0lHDeNE8bkU=",
+        "lastModified": 1741197716,
+        "narHash": "sha256-rNiD7GXc2F3KWhCAMdAI2j2+ECn2VTlZ7bng5lfiVoo=",
         "owner": "epezent",
         "repo": "implot",
-        "rev": "47522f47054d33178e7defa780042bd2a06b09f9",
+        "rev": "193b9d8f92c4a437e84182b171f1ae266e72321f",
         "type": "github"
       },
       "original": {
         "owner": "epezent",
         "repo": "implot",
-        "rev": "47522f47054d33178e7defa780042bd2a06b09f9",
+        "rev": "193b9d8f92c4a437e84182b171f1ae266e72321f",
         "type": "github"
       }
     },

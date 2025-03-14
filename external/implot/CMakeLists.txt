@@ -5,7 +5,8 @@ include(FetchContent)
 if (NOT TARGET implot)
 	FetchContent_Declare(implot
 		GIT_REPOSITORY https://github.com/epezent/implot.git
-		GIT_TAG 47522f47054d33178e7defa780042bd2a06b09f9 # 22-01-2025
+		#GIT_TAG 47522f47054d33178e7defa780042bd2a06b09f9 # 22-01-2025
+		GIT_TAG 193b9d8f92c4a437e84182b171f1ae266e72321f # 05-03-2025
 		EXCLUDE_FROM_ALL
 		CONFIGURE_COMMAND "" # no cmake
 	)

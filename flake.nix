@@ -21,7 +21,7 @@
       flake = false;
     };
     implot = {
-      url = "github:epezent/implot/47522f47054d33178e7defa780042bd2a06b09f9";
+      url = "github:epezent/implot/193b9d8f92c4a437e84182b171f1ae266e72321f";
       flake = false;
     };
   };
