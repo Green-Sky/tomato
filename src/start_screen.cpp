@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <imgui/imgui.h>
+#include <imgui/misc/freetype/imgui_freetype.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
 #include <cctype>
@@ -105,6 +106,10 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		fontcfg.OversampleH = 2;
 		fontcfg.OversampleV = 1;
 		fontcfg.MergeMode = false;
+#if defined(IMGUI_ENABLE_FREETYPE) && defined(IMGUI_ENABLE_FREETYPE_PLUTOSVG)
+		std::cout << "Font: enabling freetype color loading\n";
+		fontcfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+#endif
 
 		for (const auto [font_path, should_load] : _conf.entries_bool("ImGuiFonts", "fonts")) {
 			if (!should_load) {

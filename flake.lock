@@ -68,12 +68,32 @@
         "type": "github"
       }
     },
+    "plutosvg": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1740306654,
+        "narHash": "sha256-radjL0bP+JPDk7FQ/qSOIxlokhwQ78fO52/S5V6rAmk=",
+        "ref": "refs/tags/v0.0.6",
+        "rev": "c5388fa96feca1f1376a3d0485d5e35159452707",
+        "revCount": 111,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/sammycage/plutosvg"
+      },
+      "original": {
+        "ref": "refs/tags/v0.0.6",
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/sammycage/plutosvg"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
         "implot": "implot",
         "nixpkgs": "nixpkgs",
         "nlohmann-json": "nlohmann-json",
+        "plutosvg": "plutosvg",
         "sdl3": "sdl3",
         "sdl3_image": "sdl3_image"
       }

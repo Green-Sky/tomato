@@ -17,6 +17,8 @@ add_subdirectory(./solanaceae_toxcore)
 add_subdirectory(./solanaceae_tox)
 
 add_subdirectory(./sdl)
+add_subdirectory(./freetype)
+add_subdirectory(./plutosvg)
 add_subdirectory(./imgui)
 add_subdirectory(./implot)
 

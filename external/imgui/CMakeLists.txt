@@ -21,6 +21,22 @@ add_library(imgui
 target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)
 target_compile_features(imgui PUBLIC cxx_std_11)
 
+if (TARGET Freetype::Freetype)
+	message(STATUS "Freetype detected, enabling support in imgui")
+	target_sources(imgui PUBLIC
+		imgui/misc/freetype/imgui_freetype.h
+		imgui/misc/freetype/imgui_freetype.cpp
+	)
+	target_link_libraries(imgui PUBLIC Freetype::Freetype) # public in case of static
+	target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
+
+	if (TARGET plutosvg::plutosvg)
+		message(STATUS "plutosvg detected, enabling support in imgui")
+		target_link_libraries(imgui PUBLIC plutosvg::plutosvg) # public in case of static
+		target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG)
+	endif()
+endif()
+
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/imgui") # im sad
 

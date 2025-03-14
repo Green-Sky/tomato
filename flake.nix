@@ -20,13 +20,17 @@
       url = "github:libsdl-org/SDL_image/4ff27afa450eabd2a827e49ed86fab9e3bf826c5";
       flake = false;
     };
+    plutosvg = {
+      url = "git+https://github.com/sammycage/plutosvg?submodules=1&ref=refs/tags/v0.0.6";
+      flake = false;
+    };
     implot = {
       url = "github:epezent/implot/193b9d8f92c4a437e84182b171f1ae266e72321f";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image, implot }:
+  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image, plutosvg, implot }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
@@ -85,6 +89,8 @@
           libsodium
           libopus
           libvpx
+
+          freetype
         ] ++ self.packages.${system}.default.dlopenBuildInputs;
 
         cmakeFlags = [
@@ -102,6 +108,7 @@
           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3_IMAGE=${sdl3_image}"
           "-DSDLIMAGE_JXL=ON"
+          "-DFETCHCONTENT_SOURCE_DIR_PLUTOSVG=${plutosvg}" # not in pkgs
           "-DFETCHCONTENT_SOURCE_DIR_IMPLOT=${implot}" # could use pkgs.implot.src for outdated version
         ];
 
