@@ -102,7 +102,7 @@ jobs:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
       #run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
-      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} libsodium opus libvpx libpng libjpeg-turbo
+      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} libsodium opus libvpx libpng libjpeg-turbo freetype
 
     # vcpkg scripts root /usr/local/share/vcpkg/scripts
     - name: Configure CMake
@@ -163,7 +163,7 @@ jobs:
     - name: Install Dependencies
       env:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static freetype:x64-windows-static
 
     # setup vs env
     - uses: ilammy/msvc-dev-cmd@v1
@@ -231,7 +231,7 @@ jobs:
     - name: Install Dependencies
       env:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static freetype:x64-windows-static
 
 
     # setup vs env
