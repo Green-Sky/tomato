@@ -14,6 +14,7 @@
 #include "./bitset_image_loader.hpp"
 #include "./chat_gui/file_selector.hpp"
 #include "./chat_gui/send_image_popup.hpp"
+#include "./chat_gui/image_viewer_popup.hpp"
 
 #include <entt/container/dense_map.hpp>
 
@@ -39,6 +40,7 @@ class ChatGui4 : public ObjectStoreEventI {
 
 	FileSelector _fss;
 	SendImagePopup _sip;
+	ImageViewerPopup _ivp;
 
 	// TODO: refactor this to allow multiple open contacts
 	std::optional<Contact4> _selected_contact;

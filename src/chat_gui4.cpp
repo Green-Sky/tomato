@@ -201,7 +201,8 @@ ChatGui4::ChatGui4(
 	_msg_tc(msg_tc),
 	_b_tc(_bil, tu),
 	_theme(theme),
-	_sip(tu)
+	_sip(tu),
+	_ivp(_msg_tc)
 {
 	_os_sr.subscribe(ObjectStore_Event::object_update);
 }
@@ -220,6 +221,7 @@ ChatGui4::~ChatGui4(void) {
 float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused) {
 	_fss.render();
 	_sip.render(time_delta);
+	_ivp.render(time_delta);
 	_b_tc.update();
 	_b_tc.workLoadQueue();
 
@@ -1330,7 +1332,9 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				{0.5f, 0.5f, 0.5f, 0.8f} // border
 			);
 
-			// TODO: clickable to open in internal image viewer
+			if (ImGui::IsItemClicked()) {
+				_ivp.view(Message3Handle{reg, e});
+			}
 		}
 	} else if (o.all_of<ObjComp::F::SingleInfo>()) { // only show info if not inlined image
 		// just filename
