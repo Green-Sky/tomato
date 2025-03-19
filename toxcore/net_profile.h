@@ -15,6 +15,10 @@
 #include "logger.h"
 #include "mem.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* The max number of packet ID's (must fit inside one byte) */
 #define NET_PROF_MAX_PACKET_IDS 256
 
@@ -69,5 +73,9 @@ Net_Profile *netprof_new(const Logger *log, const Memory *mem);
  */
 non_null(1) nullable(2)
 void netprof_kill(const Memory *mem, Net_Profile *net_profile);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif  /* C_TOXCORE_TOXCORE_NET_PROFILE_H */
