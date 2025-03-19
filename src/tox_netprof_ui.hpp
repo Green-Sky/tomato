@@ -11,7 +11,7 @@ class ToxNetprofUI {
 
 	bool _enabled {true};
 	bool _show_window_table {false};
-	bool _show_window_histo {false};
+	bool _show_window_graph {false};
 
 	// table delta
 	std::map<uint8_t, uint64_t> _udp_ctx_prev;
@@ -33,14 +33,22 @@ class ToxNetprofUI {
 	std::map<uint8_t, float> _tcp_btx_heat;
 	std::map<uint8_t, float> _tcp_brx_heat;
 
-	// histogram totals
+	// graph totals
 	uint64_t _udp_tbtx_prev;
 	uint64_t _udp_tbrx_prev;
 	std::vector<float> _udp_tbtx;
 	std::vector<float> _udp_tbrx;
 
+	uint64_t _tcp_tbtx_prev;
+	uint64_t _tcp_tbrx_prev;
+	std::vector<float> _tcp_tbtx;
+	std::vector<float> _tcp_tbrx;
+
 	float _udp_tbtx_avg {0.f};
 	float _udp_tbrx_avg {0.f};
+
+	float _tcp_tbtx_avg {0.f};
+	float _tcp_tbrx_avg {0.f};
 
 	const float _value_add_interval {1.f}; // every second
 	float _time_since_last_add {0.f};

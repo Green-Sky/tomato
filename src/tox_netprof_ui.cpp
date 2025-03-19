@@ -81,48 +81,61 @@ void ToxNetprofUI::tick(float time_delta) {
 			_time_since_last_add -= _value_add_interval;
 		}
 
-		if (_udp_tbtx.empty()) {
-			_udp_tbtx.push_back(0.f);
-			_udp_tbtx_prev = _tpi.toxNetprofGetPacketTotalBytes(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_SENT);
-		} else {
-			const auto new_value = _tpi.toxNetprofGetPacketTotalBytes(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_SENT);
-			_udp_tbtx.push_back(new_value - _udp_tbtx_prev);
-			_udp_tbtx_prev = new_value;
-		}
-
-		if (_udp_tbrx.empty()) {
-			_udp_tbrx.push_back(0.f);
-			_udp_tbrx_prev = _tpi.toxNetprofGetPacketTotalBytes(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_RECV);
-		} else {
-			const auto new_value = _tpi.toxNetprofGetPacketTotalBytes(TOX_NETPROF_PACKET_TYPE_UDP, TOX_NETPROF_DIRECTION_RECV);
-			_udp_tbrx.push_back(new_value - _udp_tbrx_prev);
-			_udp_tbrx_prev = new_value;
-		}
-
-		// TODO: limit
-		while (_udp_tbtx.size() > 5*60) {
-			_udp_tbtx.erase(_udp_tbtx.begin());
-		}
-
-		while (_udp_tbrx.size() > 5*60) {
-			_udp_tbrx.erase(_udp_tbrx.begin());
-		}
-
-		_udp_tbtx_avg = 0.f;
-		if (!_udp_tbtx.empty()) {
-			for (const auto bytes : _udp_tbtx) {
-				_udp_tbtx_avg += bytes;
+		const auto queue_update = [this](auto& vec, auto& prev, auto& avg, const auto type, const auto dir) {
+			if (vec.empty()) {
+				vec.push_back(0.f);
+				prev = _tpi.toxNetprofGetPacketTotalBytes(type, dir);
+			} else {
+				const auto new_value = _tpi.toxNetprofGetPacketTotalBytes(type, dir);
+				vec.push_back(new_value - prev);
+				prev = new_value;
 			}
-			_udp_tbtx_avg /= (_udp_tbtx.size() * _value_add_interval);
-		}
 
-		_udp_tbrx_avg = 0.f;
-		if (!_udp_tbrx.empty()) {
-			for (const auto bytes : _udp_tbrx) {
-				_udp_tbrx_avg += bytes;
+			// TODO: limit
+			while (vec.size() > 5*60) {
+				vec.erase(vec.begin());
 			}
-			_udp_tbrx_avg /= (_udp_tbrx.size() * _value_add_interval);
-		}
+
+			avg = 0.f;
+			if (!vec.empty()) {
+				for (const auto bytes : vec) {
+					avg += bytes;
+				}
+				avg /= (vec.size() * _value_add_interval);
+			}
+		};
+
+		queue_update(
+			_udp_tbtx,
+			_udp_tbtx_prev,
+			_udp_tbtx_avg,
+			TOX_NETPROF_PACKET_TYPE_UDP,
+			TOX_NETPROF_DIRECTION_SENT
+		);
+
+		queue_update(
+			_udp_tbrx,
+			_udp_tbrx_prev,
+			_udp_tbrx_avg,
+			TOX_NETPROF_PACKET_TYPE_UDP,
+			TOX_NETPROF_DIRECTION_RECV
+		);
+
+		queue_update(
+			_tcp_tbtx,
+			_tcp_tbtx_prev,
+			_tcp_tbtx_avg,
+			TOX_NETPROF_PACKET_TYPE_TCP,
+			TOX_NETPROF_DIRECTION_SENT
+		);
+
+		queue_update(
+			_tcp_tbrx,
+			_tcp_tbrx_prev,
+			_tcp_tbrx_avg,
+			TOX_NETPROF_PACKET_TYPE_TCP,
+			TOX_NETPROF_DIRECTION_RECV
+		);
 	}
 }
 
@@ -138,10 +151,10 @@ float ToxNetprofUI::render(float time_delta) {
 						_show_window_table = !_show_window_table;
 					}
 
-					ImGui::Checkbox("histogram logging", &_enabled);
+					ImGui::Checkbox("graph logging", &_enabled);
 
-					if (ImGui::MenuItem("Netprof histograms", nullptr, _show_window_histo)) {
-						_show_window_histo = !_show_window_histo;
+					if (ImGui::MenuItem("Netprof graph", nullptr, _show_window_graph)) {
+						_show_window_graph = !_show_window_graph;
 					}
 
 					ImGui::EndMenu();
@@ -295,8 +308,8 @@ float ToxNetprofUI::render(float time_delta) {
 		ImGui::End();
 	}
 
-	if (_show_window_histo) {
-		if (ImGui::Begin("Tox Netprof graph", &_show_window_histo)) {
+	if (_show_window_graph) {
+		if (ImGui::Begin("Tox Netprof graph", &_show_window_graph)) {
 			if (_enabled && ImPlot::BeginPlot("##plot")) {
 				ImPlot::SetupAxes(nullptr, "bytes/second", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
 
@@ -341,6 +354,30 @@ float ToxNetprofUI::render(float time_delta) {
 					item_color.w *= 0.5f;
 					ImPlot::SetNextLineStyle(item_color);
 					ImPlot::PlotInfLines("udp rx avg", &_udp_tbrx_avg, 1, ImPlotInfLinesFlags_Horizontal);
+				}
+
+				{
+					ImPlot::PlotLine(
+						"tcp tx/s",
+						_tcp_tbtx.data(), _tcp_tbtx.size(),
+						_value_add_interval // normalize to /s
+					);
+					auto item_color = ImPlot::GetLastItemColor();
+					item_color.w *= 0.5f;
+					ImPlot::SetNextLineStyle(item_color);
+					ImPlot::PlotInfLines("tcp tx avg", &_tcp_tbtx_avg, 1, ImPlotInfLinesFlags_Horizontal);
+				}
+
+				{
+					ImPlot::PlotLine(
+						"tcp rx/s",
+						_tcp_tbrx.data(), _tcp_tbrx.size(),
+						_value_add_interval // normalize to /s
+					);
+					auto item_color = ImPlot::GetLastItemColor();
+					item_color.w *= 0.5f;
+					ImPlot::SetNextLineStyle(item_color);
+					ImPlot::PlotInfLines("tcp rx avg", &_tcp_tbrx_avg, 1, ImPlotInfLinesFlags_Horizontal);
 				}
 
 				ImPlot::EndPlot();
