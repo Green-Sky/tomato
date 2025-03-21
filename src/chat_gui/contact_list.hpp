@@ -46,3 +46,19 @@ bool renderContactBig(
 	const bool selected = false
 );
 
+using contact_sparse_set = entt::basic_sparse_set<Contact4>;
+using contact_runtime_view = entt::basic_runtime_view<contact_sparse_set>;
+using contact_const_runtime_view = entt::basic_runtime_view<const contact_sparse_set>;
+
+// returns true if contact was selected
+bool renderContactList(
+	ContactRegistry4& cr,
+	RegistryMessageModelI& rmm,
+	const Theme& th,
+	ContactTextureCache& contact_tc,
+	const contact_const_runtime_view& view,
+
+	// in/out
+	ContactHandle4& selected_c
+);
+

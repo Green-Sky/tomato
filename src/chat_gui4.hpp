@@ -42,6 +42,10 @@ class ChatGui4 : public ObjectStoreEventI {
 	SendImagePopup _sip;
 	ImageViewerPopup _ivp;
 
+	// set to true if not hovered
+	// TODO: add timer?
+	bool _contact_list_sortable {false};
+
 	// TODO: refactor this to allow multiple open contacts
 	std::optional<Contact4> _selected_contact;
 
@@ -77,6 +81,9 @@ class ChatGui4 : public ObjectStoreEventI {
 		float render(float time_delta, bool window_hidden, bool window_focused);
 
 	public:
+		void sendFilePath(Contact4 c, std::string_view file_path);
+		void sendFileList(Contact4 c, const std::vector<std::string_view>& list);
+
 		void sendFilePath(std::string_view file_path);
 		void sendFileList(const std::vector<std::string_view>& list);
 

@@ -1,11 +1,14 @@
 #include "./contact_list.hpp"
 
 #include <solanaceae/contact/components.hpp>
+#include <solanaceae/message3/components.hpp>
 #include <solanaceae/util/utils.hpp>
 #include <solanaceae/util/time.hpp>
 
 #include <imgui/imgui.h>
 //#include <imgui/imgui_internal.h>
+
+#include <entt/entity/runtime_view.hpp>
 
 #include "./icons/direct.hpp"
 #include "./icons/cloud.hpp"
@@ -310,5 +313,38 @@ bool renderContactBig(
 
 	ImGui::EndGroup();
 	return got_selected;
+}
+
+bool renderContactList(
+	ContactRegistry4& cr,
+	RegistryMessageModelI& rmm,
+	const Theme& th,
+	ContactTextureCache& contact_tc,
+	const contact_const_runtime_view& view,
+
+	// in/out
+	ContactHandle4& selected_c
+) {
+	bool selection_changed {false};
+	for (const Contact4 cv : view) {
+		ContactHandle4 c{cr, cv};
+		const bool selected = selected_c == c;
+
+		// TODO: is there a better way?
+		// maybe cache mm?
+		bool has_unread = false;
+		if (const auto* mm = rmm.get(c); mm != nullptr) {
+			if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
+				has_unread = true;
+			}
+		}
+
+		// TODO: expose line_height
+		if (renderContactBig(th, contact_tc, c, 2, has_unread, true, selected)) {
+			selected_c = c;
+			selection_changed = true;
+		}
+	}
+	return selection_changed;
 }
 

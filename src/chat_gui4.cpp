@@ -17,6 +17,7 @@
 #include <solanaceae/tox_contacts/components.hpp>
 
 #include <entt/entity/entity.hpp>
+#include <entt/entity/runtime_view.hpp>
 
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
@@ -43,6 +44,7 @@
 #include <string>
 #include <variant>
 
+// TODO: split into msg and c
 namespace Components {
 
 	struct UnreadFade {
@@ -59,6 +61,9 @@ namespace Components {
 		int tm_hour {0};
 		int tm_min {0};
 	};
+
+	// empty contact comp that is sorted in the set for displaying
+	struct ContactSortTag {};
 
 } // Components
 
@@ -253,6 +258,58 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 		}
 
 		renderContactList();
+		if (_contact_list_sortable) {
+			// TODO: extract this; with timer and events to dirty
+			// !! events !!
+			auto& cr = _cs.registry();
+
+			// first: make sure every cantact we want to have in the list has the tag
+			// do we pass exclusion to the list widget, or update sort comp? - the later
+			// TODO: re do from sratch every time?
+			//cr.clear<Components::ContactSortTag>();
+			for (const auto cv : cr.view<Contact::Components::TagBig>()) {
+				(void)cr.get_or_emplace<Components::ContactSortTag>(cv);
+			}
+
+			// second: sort
+			cr.sort<Components::ContactSortTag>(
+				[&](const Contact4 lhs, const Contact4 rhs) -> bool {
+					// TODO: custom sort rules, order
+
+					// - groups (> privates)
+					if (cr.all_of<Contact::Components::TagGroup>(lhs) && !cr.all_of<Contact::Components::TagGroup>(rhs)) {
+						return true;
+					} else if (!cr.all_of<Contact::Components::TagGroup>(lhs) && cr.all_of<Contact::Components::TagGroup>(rhs)) {
+						return false;
+					}
+
+					// - activity (exists)
+					if (cr.all_of<Contact::Components::LastActivity>(lhs) && !cr.all_of<Contact::Components::LastActivity>(rhs)) {
+						return true;
+					} else if (!cr.all_of<Contact::Components::LastActivity>(lhs) && cr.all_of<Contact::Components::LastActivity>(rhs)) {
+						return false;
+					}
+					// else - we can assume both have or dont have LastActivity
+
+					// - activity new > old
+					if (cr.all_of<Contact::Components::LastActivity>(lhs)) {
+						const auto l = cr.get<Contact::Components::LastActivity>(lhs).ts;
+						const auto r = cr.get<Contact::Components::LastActivity>(rhs).ts;
+						if (l > r) {
+							return true;
+						} else if (l < r) {
+							return false;
+						}
+					}
+
+					// - first seen new > old
+					// TODO: implement
+
+					return false;
+				},
+				entt::insertion_sort{} // o(n) in 99% of cases
+			);
+		}
 		ImGui::SameLine();
 
 		if (_selected_contact) {
@@ -968,10 +1025,72 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 	return 1000.f; // TODO: higher min fps?
 }
 
-void ChatGui4::sendFilePath(std::string_view file_path) {
+void ChatGui4::sendFilePath(Contact4 c, std::string_view file_path) {
+	if (c == entt::null) {
+		return;
+	}
+
 	const auto path = std::filesystem::path(file_path);
-	if (_selected_contact && std::filesystem::is_regular_file(path)) {
-		_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
+	if (!std::filesystem::is_regular_file(path)) {
+		return;
+	}
+
+	_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
+}
+
+void ChatGui4::sendFileList(Contact4 c, const std::vector<std::string_view>& list) {
+	// TODO: file collection sip
+	if (list.size() > 1) {
+		for (const auto it : list) {
+			sendFilePath(c, it);
+		}
+	} else if (list.size() == 1) {
+		const auto path = std::filesystem::path(list.front());
+		if (std::filesystem::is_regular_file(path)) {
+			if (!_sip.sendFilePath(
+				list.front(),
+				[this, c](const auto& img_data, const auto file_ext) {
+					// create file name
+					// TODO: only create file if changed or from memory
+					// TODO: move this into sip
+					std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
+					{
+						const auto now = std::chrono::system_clock::now();
+						const auto ctime = std::chrono::system_clock::to_time_t(now);
+						tmp_file_name
+							<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
+							<< "."
+							<< std::setfill('0') << std::setw(3)
+							<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
+							<< file_ext
+						;
+					}
+
+					std::cout << "tmp image path " << tmp_file_name.str() << "\n";
+
+					const std::filesystem::path tmp_send_file_path = "tmp_send_files";
+					std::filesystem::create_directories(tmp_send_file_path);
+					const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
+
+					std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
+						.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
+
+					_rmm.sendFilePath(c, tmp_file_name.str(), tmp_file_path.generic_u8string());
+				},
+				[](){}
+			)) {
+				// if sip fails to open the file
+				sendFilePath(c, list.front());
+			}
+		} else {
+			// if not file (???)
+		}
+	}
+}
+
+void ChatGui4::sendFilePath(std::string_view file_path) {
+	if (_selected_contact) {
+		sendFilePath(*_selected_contact, file_path);
 	}
 }
 
@@ -1584,23 +1703,22 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 
 void ChatGui4::renderContactList(void) {
 	if (ImGui::BeginChild("contacts", {TEXT_BASE_WIDTH*35, 0})) {
+		_contact_list_sortable = !ImGui::IsWindowHovered();
+
 		auto& cr = _cs.registry();
-		//for (const auto& c : _cm.getBigContacts()) {
-		for (const auto& c : cr.view<Contact::Components::TagBig>()) {
-			const bool selected = _selected_contact.has_value() && *_selected_contact == c;
-
-			// TODO: is there a better way?
-			// maybe cache mm?
-			bool has_unread = false;
-			if (const auto* mm = _rmm.get(c); mm != nullptr) {
-				if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
-					has_unread = true;
-				}
-			}
-
-			if (renderContactBig(_theme, _contact_tc, {cr, c}, 2, has_unread, true, selected)) {
-				_selected_contact = c;
-			}
+		ContactHandle4 selected_contact{};
+		if (_selected_contact.has_value()) {
+			selected_contact = {cr, *_selected_contact};
+		}
+		if (::renderContactList(
+			cr,
+			_rmm,
+			_theme,
+			_contact_tc,
+			contact_const_runtime_view{}.iterate(cr.storage<Components::ContactSortTag>()),
+			selected_contact
+		)) {
+			_selected_contact = selected_contact.entity();
 		}
 	}
 	ImGui::EndChild();
@@ -1730,53 +1848,11 @@ void ChatGui4::pasteFile(const char* mime_type) {
 }
 
 void ChatGui4::sendFileList(const std::vector<std::string_view>& list) {
-	// TODO: file collection sip
-	if (list.size() > 1) {
-		for (const auto it : list) {
-			sendFilePath(it);
-		}
-	} else if (list.size() == 1) {
-		const auto path = std::filesystem::path(list.front());
-		if (std::filesystem::is_regular_file(path)) {
-			if (!_sip.sendFilePath(
-				list.front(),
-				[this](const auto& img_data, const auto file_ext) {
-					// create file name
-					// TODO: only create file if changed or from memory
-					// TODO: move this into sip
-					std::ostringstream tmp_file_name {"tomato_Image_", std::ios_base::ate};
-					{
-						const auto now = std::chrono::system_clock::now();
-						const auto ctime = std::chrono::system_clock::to_time_t(now);
-						tmp_file_name
-							<< std::put_time(std::localtime(&ctime), "%F_%H-%M-%S")
-							<< "."
-							<< std::setfill('0') << std::setw(3)
-							<< std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())).count()
-							<< file_ext
-						;
-					}
-
-					std::cout << "tmp image path " << tmp_file_name.str() << "\n";
-
-					const std::filesystem::path tmp_send_file_path = "tmp_send_files";
-					std::filesystem::create_directories(tmp_send_file_path);
-					const auto tmp_file_path = tmp_send_file_path / tmp_file_name.str();
-
-					std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
-						.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
-
-					_rmm.sendFilePath(*_selected_contact, tmp_file_name.str(), tmp_file_path.generic_u8string());
-				},
-				[](){}
-			)) {
-				// if sip fails to open the file
-				sendFilePath(list.front());
-			}
-		} else {
-			// if not file (???)
-		}
+	if (!_selected_contact) {
+		return;
 	}
+
+	sendFileList(*_selected_contact, list);
 }
 
 bool ChatGui4::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
