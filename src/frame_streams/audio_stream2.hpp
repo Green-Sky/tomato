@@ -35,5 +35,15 @@ struct AudioFrame2 {
 	}
 };
 
+template<>
+constexpr bool frameHasBytes<AudioFrame2>(void) {
+	return true;
+}
+
+template<>
+inline uint64_t frameGetBytes(const AudioFrame2& frame) {
+	return frame.getSpan().size * sizeof(int16_t);
+}
+
 using AudioFrame2Stream2I = FrameStream2I<AudioFrame2>;
 

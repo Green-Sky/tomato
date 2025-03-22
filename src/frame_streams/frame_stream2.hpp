@@ -45,3 +45,21 @@ struct FrameStream2SinkI {
 	virtual bool unsubscribe(const std::shared_ptr<FrameStream2I<FrameType>>& sub) = 0;
 };
 
+// typed config
+// overload for your frame types
+
+template<typename FrameType>
+constexpr bool frameHasTimestamp(void) { return false; }
+
+template<typename FrameType>
+constexpr uint64_t frameGetTimestampDivision(void) = delete;
+
+template<typename FrameType>
+uint64_t frameGetTimestamp(const FrameType&) = delete;
+
+template<typename FrameType>
+constexpr bool frameHasBytes(void) { return false; }
+
+template<typename FrameType>
+uint64_t frameGetBytes(const FrameType&) = delete;
+

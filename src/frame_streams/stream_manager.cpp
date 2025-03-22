@@ -113,6 +113,8 @@ bool StreamManager::disconnectAll(Object o) {
 
 // do we need the time delta?
 float StreamManager::tick(float) {
+	float interval_min {2.01f};
+
 	// pump all mainthread connections
 	for (auto it = _connections.begin(); it != _connections.end();) {
 		auto& con = **it;
@@ -125,6 +127,10 @@ float StreamManager::tick(float) {
 
 		if (con.on_main_thread) {
 			con.pump_fn(con);
+			const float con_interval = con.interval_avg;
+			if (con_interval > 0.f) {
+				interval_min = std::min(interval_min, con_interval);
+			}
 		}
 
 		if (con.stop && (con.finished || con.on_main_thread)) {
@@ -139,8 +145,7 @@ float StreamManager::tick(float) {
 		}
 	}
 
-	// return min over intervals instead
-	return 2.f; // TODO: 2sec makes mainthread connections unusable
+	return interval_min;
 }
 
 bool StreamManager::onEvent(const ObjectStore::Events::ObjectConstruct& e) {

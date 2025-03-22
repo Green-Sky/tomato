@@ -2,6 +2,7 @@
 
 #include <solanaceae/object_store/fwd.hpp>
 #include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/util/time.hpp>
 
 #include <entt/core/type_info.hpp>
 
@@ -78,7 +79,16 @@ class StreamManager : protected ObjectStoreEventI {
 		std::thread pump_thread;
 
 		// frame interval counters and estimates
-		// TODO
+		std::atomic<float> interval_avg {0.f}; // s
+		std::atomic<uint64_t> frames_total{0};
+		std::atomic<uint64_t> bytes_total{0}; // if it can be mesured
+
+		// moving avg
+		std::atomic<float> bytes_per_sec{0};
+
+		// temps for mesuring
+		uint64_t _last_ts {0}; // frame format OR ms if frame has no ts
+
 
 		Connection(void) = default;
 		Connection(
@@ -193,19 +203,60 @@ bool StreamManager::connect(Object src, Object sink, bool threaded) {
 		h_src,
 		h_sink,
 		std::move(our_data),
-		[](Connection& con) -> void {
+		[](Connection& con) -> void { // pump
 			// there might be more stored
 			for (size_t i = 0; i < 64; i++) {
 				auto new_frame_opt = static_cast<inlineData*>(con.data.get())->reader->pop();
 				// TODO: frame interval estimates
 				if (new_frame_opt.has_value()) {
+					con.frames_total++;
+
+					// TODO: opt-in ?
+					float delta{0.f}; // s
+					uint64_t ts{0};
+					if constexpr (frameHasTimestamp<FrameType>()) {
+						ts = frameGetTimestamp(new_frame_opt.value());
+					} else {
+						ts = getTimeMS(); // fallback
+					}
+
+					if (con._last_ts != 0 && ts > con._last_ts) {
+						// normalize to seconds
+						if constexpr (frameHasTimestamp<FrameType>()) {
+							delta = float(ts - con._last_ts) / frameGetTimestampDivision<FrameType>();
+						} else {
+							delta = float(ts - con._last_ts) / 1000.f; // fallback
+						}
+
+						if (con.interval_avg == 0.f) {
+							con.interval_avg = delta;
+						} else {
+							con.interval_avg = con.interval_avg*0.95f + delta*0.05f;
+						}
+					}
+					con._last_ts = ts;
+
+					if constexpr (frameHasBytes<FrameType>()) {
+						// we need to always run this, timing stuff below might not
+						const auto bytes = frameGetBytes(new_frame_opt.value());
+						con.bytes_total += bytes;
+
+						if (delta > 0.f) {
+							if (con.bytes_per_sec == 0.f) {
+								con.bytes_per_sec = bytes/delta;
+							} else {
+								con.bytes_per_sec = con.bytes_per_sec*0.95f + (bytes/delta)*0.05f;
+							}
+						}
+					}
+
 					static_cast<inlineData*>(con.data.get())->writer->push(new_frame_opt.value());
 				} else {
 					break;
 				}
 			}
 		},
-		[](Connection& con) -> void {
+		[](Connection& con) -> void { // disco
 			auto* src_stream_ptr = con.src.try_get<Components::FrameStream2Source<FrameType>>();
 			if (src_stream_ptr != nullptr) {
 				(*src_stream_ptr)->unsubscribe(static_cast<inlineData*>(con.data.get())->reader);

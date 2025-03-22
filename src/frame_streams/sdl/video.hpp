@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../frame_stream2.hpp"
+
 #include <SDL3/SDL.h>
 
 #include <cstdint>
@@ -38,4 +40,48 @@ struct SDLVideoFrame {
 	}
 	SDLVideoFrame& operator=(const SDLVideoFrame& other) = delete;
 };
+
+template<>
+constexpr bool frameHasTimestamp<SDLVideoFrame>(void) {
+	return true;
+}
+
+template<>
+constexpr uint64_t frameGetTimestampDivision<SDLVideoFrame>(void) {
+	// microseconds
+	// technically sdl would provide them in nanoseconds... but we cut them down
+	return 1'000*1'000;
+}
+
+template<>
+inline uint64_t frameGetTimestamp(const SDLVideoFrame& frame) {
+	return frame.timestampUS;
+}
+
+template<>
+constexpr bool frameHasBytes<SDLVideoFrame>(void) {
+	return true;
+}
+
+// TODO: test how performant this call is
+template<>
+inline uint64_t frameGetBytes(const SDLVideoFrame& frame) {
+	if (!frame.surface) {
+		return 0;
+	}
+
+	const auto* surf = frame.surface.get();
+
+	if (surf->format == SDL_PIXELFORMAT_MJPG) {
+		// mjpg is special, since it is compressed
+		return surf->pitch;
+	}
+
+	const auto* details = SDL_GetPixelFormatDetails(surf->format);
+	if (details == nullptr) {
+		return 0;
+	}
+
+	return details->bytes_per_pixel * surf->w * surf->h;
+}
 

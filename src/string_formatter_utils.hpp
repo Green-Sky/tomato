@@ -5,7 +5,7 @@
 #include <array>
 
 // returns divider and places static suffix string into suffix_out
-static int64_t sizeToHumanReadable(int64_t file_size, const char*& suffix_out) {
+static inline int64_t sizeToHumanReadable(int64_t file_size, const char*& suffix_out) {
 	static const char* suffix_arr[] {
 		"Bytes",
 		"KiB",
@@ -27,7 +27,7 @@ static int64_t sizeToHumanReadable(int64_t file_size, const char*& suffix_out) {
 }
 
 // returns divider and places static suffix string into suffix_out
-static int64_t durationToHumanReadable(int64_t t, const char*& suffix_out) {
+static inline int64_t durationToHumanReadable(int64_t t, const char*& suffix_out) {
 	static const char* suffix_arr[] {
 		"ms",
 		"s",

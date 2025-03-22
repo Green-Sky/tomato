@@ -2,9 +2,12 @@
 
 #include <solanaceae/object_store/object_store.hpp>
 
+#include "./string_formatter_utils.hpp"
+
 #include <imgui/imgui.h>
 
 #include <string>
+#include <cinttypes>
 
 StreamManagerUI::StreamManagerUI(ObjectStore2& os, StreamManager& sm) : _os(os), _sm(sm) {
 }
@@ -193,6 +196,7 @@ void StreamManagerUI::render(void) {
 					const auto& con = _sm._connections[i];
 					//ImGui::Text("con %d->%d", entt::to_integral(entt::to_entity(con->src.entity())), entt::to_integral(entt::to_entity(con->sink.entity())));
 
+					ImGui::BeginGroup(); // TODO: make group hover work
 					ImGui::PushID(i);
 
 					ImGui::TableNextColumn();
@@ -224,6 +228,27 @@ void StreamManagerUI::render(void) {
 					);
 
 					ImGui::PopID();
+					ImGui::EndGroup(); // TODO: make group hover work
+					if (ImGui::BeginItemTooltip()) {
+						uint64_t bytes_total = con->bytes_total;
+						float bytes_per_sec = con->bytes_per_sec;
+
+						const char* bytes_total_suffix = "???";
+						int64_t bytes_total_divider = sizeToHumanReadable(bytes_total, bytes_total_suffix);
+
+						const char* bytes_ps_suffix = "???";
+						int64_t bytes_ps_divider = sizeToHumanReadable(bytes_per_sec, bytes_ps_suffix);
+
+						ImGui::Text(
+							"interval: ~%.2fms (%.2ffps)\n"
+							"frames total: %" PRIu64 "\n"
+							"bytes total: %.2f%s (avg ~%.1f%s/s)",
+							con->interval_avg*1000.f, 1.f/con->interval_avg,
+							(uint64_t)con->frames_total,
+							bytes_total/float(bytes_total_divider), bytes_total_suffix, bytes_per_sec/bytes_ps_divider, bytes_ps_suffix
+						);
+						ImGui::EndTooltip();
+					}
 				}
 				ImGui::EndTable();
 			}
