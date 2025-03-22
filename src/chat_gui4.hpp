@@ -15,6 +15,7 @@
 #include "./chat_gui/file_selector.hpp"
 #include "./chat_gui/send_image_popup.hpp"
 #include "./chat_gui/image_viewer_popup.hpp"
+#include "./chat_gui/contact_list_sorter.hpp"
 
 #include <entt/container/dense_map.hpp>
 
@@ -41,9 +42,9 @@ class ChatGui4 : public ObjectStoreEventI {
 	FileSelector _fss;
 	SendImagePopup _sip;
 	ImageViewerPopup _ivp;
+	ContactListSorter _cls;
 
 	// set to true if not hovered
-	// TODO: add timer?
 	bool _contact_list_sortable {false};
 
 	// TODO: refactor this to allow multiple open contacts
