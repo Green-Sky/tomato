@@ -675,8 +675,8 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	}
 
 	_min_tick_interval = std::min<float>(
-		// HACK: pow by 1.6 to increase 50 -> ~500 (~522)
-		// and it does not change 1
+		// HACK: pow by 1.6 to increase 50 -> ~500 (~523)
+		// and it keeps 1
 		std::pow(tc.toxIterationInterval(), 1.6f)/1000.f,
 		pm_interval
 	);

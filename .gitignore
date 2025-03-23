@@ -24,3 +24,14 @@ CMakeCache.txt
 
 *.tox
 imgui.ini
+
+*.wad
+
+heaptrack/
+crashes/
+
+test_message_store/
+test2_message_store/
+tmp_avatar_dir/
+tmp_save_dir/
+tmp_send_files/
