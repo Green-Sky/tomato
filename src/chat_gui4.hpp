@@ -89,6 +89,7 @@ class ChatGui4 : public ObjectStoreEventI {
 		void sendFileList(const std::vector<std::string_view>& list);
 
 	private:
+		void renderChatLog(Contact4 c, bool window_focused, const std::vector<Contact4>* sub_contacts);
 		void renderMessageBodyText(Message3Registry& reg, const Message3 e);
 		void renderMessageBodyFile(Message3Registry& reg, const Message3 e);
 		void renderMessageExtra(Message3Registry& reg, const Message3 e);

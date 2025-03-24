@@ -271,7 +271,6 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 				sub_contacts = &cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
 			}
 
-			const bool highlight_private {!cr.all_of<Contact::Components::TagPrivate>(*_selected_contact)};
 
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
 				if (ImGui::BeginMenuBar()) {
@@ -457,37 +456,10 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					//auto a_max = ImGui::GetContentRegionAvail();
 					//ImGui::GetWindowDrawList()->AddImage(0, p_min, {p_min.x+a_max.x, p_min.y+a_max.y});
 
+					// do systems TODO: extract
 					auto* msg_reg_ptr = _rmm.get(*_selected_contact);
-
-					constexpr ImGuiTableFlags table_flags =
-						ImGuiTableFlags_BordersInnerV |
-						ImGuiTableFlags_RowBg |
-						ImGuiTableFlags_SizingFixedFit
-					;
-					if (msg_reg_ptr != nullptr && ImGui::BeginTable("chat_table", 5, table_flags)) {
-						ImGui::TableSetupColumn("name", 0, TEXT_BASE_WIDTH * 16.f);
-						ImGui::TableSetupColumn("message", ImGuiTableColumnFlags_WidthStretch);
-						ImGui::TableSetupColumn("delivered/read");
-						ImGui::TableSetupColumn("timestamp");
-						ImGui::TableSetupColumn("extra_info", _show_chat_extra_info ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_Disabled);
-
-						Message3Handle message_view_oldest; // oldest visible message
-						Message3Handle message_view_newest; // last visible message
-
-						// very hacky, and we have variable hight entries
-						//ImGuiListClipper clipper;
-
-						// fake empty placeholders
-						// TODO: save/calc height for each row
-						//  - use number of lines for text
-						//  - save img dims (capped)
-						//  - other static sizes
-						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
-						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
-
-						Message3Registry& msg_reg = *msg_reg_ptr;
-
-						// do systems TODO: extract
+					if (msg_reg_ptr != nullptr) {
+						auto& msg_reg = *msg_reg_ptr;
 						if (window_focused) { // fade system
 							std::vector<Message3> to_remove;
 							msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
@@ -500,356 +472,8 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							});
 							msg_reg.remove<Message::Components::TagUnread, Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
 						}
-
-						//auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
-						//tmp_view.use<Message::Components::Timestamp>();
-						//tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
-						//) {
-						//uint64_t prev_ts {0};
-						Components::ConvertedTimeCache prev_time {};
-						auto tmp_view = msg_reg.view<Message::Components::Timestamp>();
-						for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
-							const Message3 e = *view_it;
-
-							// manually filter ("reverse" iteration <.<)
-							if (!msg_reg.all_of<Message::Components::ContactFrom, Message::Components::ContactTo>(e)) {
-								continue;
-							}
-
-							Message::Components::ContactFrom& c_from = msg_reg.get<Message::Components::ContactFrom>(e);
-							Message::Components::ContactTo& c_to = msg_reg.get<Message::Components::ContactTo>(e);
-							Message::Components::Timestamp ts = tmp_view.get<Message::Components::Timestamp>(e);
-
-
-							// TODO: why?
-							ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
-
-							if (msg_reg.all_of<Components::ConvertedTimeCache>(e)) { // check if date changed
-								// TODO: move conversion up?
-								const auto& next_time = msg_reg.get<Components::ConvertedTimeCache>(e);
-								if (
-									prev_time.tm_yday != next_time.tm_yday ||
-									prev_time.tm_year != next_time.tm_year // making sure
-								) {
-									// name
-									if (ImGui::TableNextColumn()) {
-										//ImGui::TextDisabled("---");
-									}
-									// msg
-									if (ImGui::TableNextColumn()) {
-										ImGui::TextDisabled("DATE CHANGED from %d.%d.%d to %d.%d.%d",
-											1900+prev_time.tm_year, 1+prev_time.tm_mon, prev_time.tm_mday,
-											1900+next_time.tm_year, 1+next_time.tm_mon, next_time.tm_mday
-										);
-									}
-									ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
-								}
-
-								prev_time = next_time;
-							}
-
-
-							ImGui::PushID(entt::to_integral(e));
-
-							// name
-							if (ImGui::TableNextColumn()) {
-								const float img_y {TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2};
-								renderAvatar(_theme, _contact_tc, {cr, c_from.c}, {img_y, img_y});
-								ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
-
-								if (cr.all_of<Contact::Components::Name>(c_from.c)) {
-									ImGui::TextUnformatted(cr.get<Contact::Components::Name>(c_from.c).name.c_str());
-								} else {
-									ImGui::TextUnformatted("<unk>");
-								}
-
-								// use username as visibility test
-								if (ImGui::IsItemVisible()) {
-									if (msg_reg.all_of<Message::Components::TagUnread>(e)) {
-										if (!msg_reg.all_of<Components::UnreadFade>(e)) {
-											if (msg_reg.all_of<Message::Components::Read>(e)) {
-												// skip fade, we might get here by merging
-												msg_reg.remove<Message::Components::TagUnread>(e);
-											} else {
-												// get time now
-												const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-												msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
-												msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
-											}
-											_rmm.throwEventUpdate(msg_reg, e);
-										} else if (window_focused) {
-											// remove unread early, when we focus the window
-											msg_reg.remove<Message::Components::TagUnread>(e);
-											_rmm.throwEventUpdate(msg_reg, e);
-										}
-									}
-
-									// track view
-									if (!static_cast<bool>(message_view_oldest)) {
-										message_view_oldest = {msg_reg, e};
-										message_view_newest = {msg_reg, e};
-									} else if (static_cast<bool>(message_view_newest)) {
-										// update to latest
-										message_view_newest = {msg_reg, e};
-									}
-								}
-
-								// highlight self
-								if (cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
-									ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.20f));
-									ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-								} else {
-									//based on power level?
-									//ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.65f));
-									//ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-								}
-
-								std::optional<ImVec4> row_bg;
-
-								// private group message
-								if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
-									const ImVec4 priv_msg_hi_col = ImVec4(0.5f, 0.2f, 0.5f, 0.35f);
-									ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
-									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
-									row_bg = priv_msg_hi_col;
-								}
-
-								// fade
-								if (msg_reg.all_of<Components::UnreadFade>(e)) {
-									ImVec4 hi_color = ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogramHovered);
-									hi_color.w = 0.8f;
-									const ImVec4 orig_color = row_bg.value_or(ImGui::GetStyleColorVec4(ImGuiCol_TableRowBg)); // imgui defaults to 0,0,0,0
-									const float fade_frac = msg_reg.get<Components::UnreadFade>(e).fade;
-
-									ImVec4 res_color{
-										lerp(orig_color.x, hi_color.x, fade_frac),
-										lerp(orig_color.y, hi_color.y, fade_frac),
-										lerp(orig_color.z, hi_color.z, fade_frac),
-										lerp(orig_color.w, hi_color.w, fade_frac),
-									};
-
-									ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(res_color));
-								}
-							}
-
-							// content (msgtext/file)
-							ImGui::TableNextColumn();
-							if (msg_reg.all_of<Message::Components::MessageText>(e)) {
-								renderMessageBodyText(msg_reg, e);
-							} else if (msg_reg.any_of<Message::Components::MessageFileObject>(e)) {
-								renderMessageBodyFile(msg_reg, e);
-							} else {
-								ImGui::TextDisabled("---");
-							}
-
-							// remote received and read state
-							if (ImGui::TableNextColumn()) {
-								// TODO: theming for hardcoded values
-
-								if (!msg_reg.all_of<Message::Components::ReceivedBy>(e)) {
-									// TODO: dedup?
-									ImGui::TextDisabled("_");
-								} else {
-									const auto& list = msg_reg.get<Message::Components::ReceivedBy>(e).ts;
-									// wrongly assumes contacts never get removed from a group
-									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
-										// if partically delivered
-										ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "d");
-									} else {
-										// if fully delivered
-										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "D");
-									}
-
-									if (ImGui::BeginItemTooltip()) {
-										std::string synced_by_text {"delivery confirmed by:"};
-										const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
-
-										size_t other_contacts {0};
-										for (const auto& [c, syned_ts] : list) {
-											if (cr.all_of<Contact::Components::TagSelfStrong>(c)) {
-												//synced_by_text += "\n sself(!)"; // makes no sense
-												continue;
-											} else if (cr.all_of<Contact::Components::TagSelfWeak>(c)) {
-												synced_by_text += "\n wself"; // TODO: add name?
-											} else {
-												synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>");
-											}
-											other_contacts += 1;
-											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
-											synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
-										}
-
-										if (other_contacts > 0) {
-											ImGui::Text("%s", synced_by_text.c_str());
-										} else {
-											ImGui::TextUnformatted("no delivery confirmation");
-										}
-
-										ImGui::EndTooltip();
-									}
-								}
-
-								ImGui::SameLine();
-
-								// TODO: dedup
-								if (msg_reg.all_of<Message::Components::ReadBy>(e)) {
-									const auto list = msg_reg.get<Message::Components::ReadBy>(e).ts;
-									// wrongly assumes contacts never get removed from a group
-									if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
-										// if partially read
-										ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "r");
-									} else {
-										// if fully read
-										ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "R");
-									}
-
-									if (ImGui::BeginItemTooltip()) {
-										std::string synced_by_text {"read confirmed by:"};
-										const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
-
-										for (const auto& [c, syned_ts] : list) {
-											if (cr.all_of<Contact::Components::TagSelfStrong>(c)) {
-												//synced_by_text += "\n sself(!)"; // makes no sense
-												continue;
-											} else if (cr.all_of<Contact::Components::TagSelfWeak>(c)) {
-												synced_by_text += "\n wself";
-											} else {
-												synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>");
-											}
-											const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
-											synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
-										}
-
-										ImGui::Text("%s", synced_by_text.c_str());
-
-										ImGui::EndTooltip();
-									}
-								} else {
-									ImGui::TextDisabled("_");
-								}
-							}
-
-							// ts
-							if (ImGui::TableNextColumn()) {
-								if (!msg_reg.all_of<Components::ConvertedTimeCache>(e)) {
-									auto time = std::chrono::system_clock::to_time_t(
-										std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::milliseconds{ts.ts}}
-									);
-									auto localtime = std::localtime(&time);
-									msg_reg.emplace<Components::ConvertedTimeCache>(
-										e,
-										localtime->tm_year,
-										localtime->tm_yday,
-										localtime->tm_mon,
-										localtime->tm_mday,
-										localtime->tm_hour,
-										localtime->tm_min
-									);
-								}
-								const auto& ctc = msg_reg.get<Components::ConvertedTimeCache>(e);
-
-								ImGui::Text("%.2d:%.2d", ctc.tm_hour, ctc.tm_min);
-							}
-
-							// extra
-							if (ImGui::TableNextColumn()) {
-								renderMessageExtra(msg_reg, e);
-							}
-
-							ImGui::PopID(); // ent
-						}
-
-						// fake empty placeholders
-						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
-						//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
-
-						{ // update view cursers
-							if (!msg_reg.ctx().contains<Context::CGView>()) {
-								msg_reg.ctx().emplace<Context::CGView>();
-							}
-
-							auto& cg_view = msg_reg.ctx().get<Context::CGView>();
-
-							// any message in view
-							if (!static_cast<bool>(message_view_oldest)) {
-								// no message in view, we setup a view at current time, so the next frags are loaded
-								if (!static_cast<bool>(cg_view.begin) || !static_cast<bool>(cg_view.end)) {
-									// fix invalid state
-									if (static_cast<bool>(cg_view.begin)) {
-										cg_view.begin.destroy();
-										_rmm.throwEventDestroy(cg_view.begin);
-									}
-									if (static_cast<bool>(cg_view.end)) {
-										cg_view.end.destroy();
-										_rmm.throwEventDestroy(cg_view.end);
-									}
-
-									// create new
-									cg_view.begin = {msg_reg, msg_reg.create()};
-									cg_view.end = {msg_reg, msg_reg.create()};
-
-									cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
-									cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
-
-									cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts = getTimeMS();
-									cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts = getTimeMS();
-
-									std::cout << "CG: created view FRONT begin ts\n";
-									_rmm.throwEventConstruct(cg_view.begin);
-									std::cout << "CG: created view FRONT end ts\n";
-									_rmm.throwEventConstruct(cg_view.end);
-								} // else? we do nothing?
-							} else {
-								bool begincreated {false};
-								if (!static_cast<bool>(cg_view.begin)) {
-									cg_view.begin = {msg_reg, msg_reg.create()};
-									begincreated = true;
-								}
-								bool endcreated {false};
-								if (!static_cast<bool>(cg_view.end)) {
-									cg_view.end = {msg_reg, msg_reg.create()};
-									endcreated = true;
-								}
-								cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
-								cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
-
-								{
-									auto& old_begin_ts = cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts;
-									if (old_begin_ts != message_view_newest.get<Message::Components::Timestamp>().ts) {
-										old_begin_ts = message_view_newest.get<Message::Components::Timestamp>().ts;
-										if (begincreated) {
-											std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
-											_rmm.throwEventConstruct(cg_view.begin);
-										} else {
-											//std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
-											_rmm.throwEventUpdate(cg_view.begin);
-										}
-									}
-								}
-
-								{
-									auto& old_end_ts = cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts;
-									if (old_end_ts != message_view_oldest.get<Message::Components::Timestamp>().ts) {
-										old_end_ts = message_view_oldest.get<Message::Components::Timestamp>().ts;
-										if (endcreated) {
-											std::cout << "CG: created view end ts with " << old_end_ts << "\n";
-											_rmm.throwEventConstruct(cg_view.end);
-										} else {
-											//std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
-											_rmm.throwEventUpdate(cg_view.end);
-										}
-									}
-								}
-							}
-						}
-
-						ImGui::EndTable();
 					}
-
-
-					if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
-						ImGui::SetScrollHereY(1.f);
-					}
+					renderChatLog(*_selected_contact, window_focused, sub_contacts);
 				}
 				ImGui::EndChild();
 
@@ -1041,6 +665,392 @@ void ChatGui4::sendFileList(Contact4 c, const std::vector<std::string_view>& lis
 void ChatGui4::sendFilePath(std::string_view file_path) {
 	if (_selected_contact) {
 		sendFilePath(*_selected_contact, file_path);
+	}
+}
+
+void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<Contact4>* sub_contacts) {
+	auto* msg_reg_ptr = _rmm.get(c);
+
+	constexpr ImGuiTableFlags table_flags =
+		ImGuiTableFlags_BordersInnerV |
+		ImGuiTableFlags_RowBg |
+		ImGuiTableFlags_SizingFixedFit
+	;
+	if (msg_reg_ptr != nullptr && ImGui::BeginTable("chat_table", 5, table_flags)) {
+		ImGui::TableSetupColumn("name", 0, TEXT_BASE_WIDTH * 16.f);
+		ImGui::TableSetupColumn("message", ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableSetupColumn("delivered/read");
+		ImGui::TableSetupColumn("timestamp");
+		ImGui::TableSetupColumn("extra_info", _show_chat_extra_info ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_Disabled);
+
+		Message3Handle message_view_oldest; // oldest visible message
+		Message3Handle message_view_newest; // last visible message
+
+		// very hacky, and we have variable hight entries
+		//ImGuiListClipper clipper;
+
+		// fake empty placeholders
+		// TODO: save/calc height for each row
+		//  - use number of lines for text
+		//  - save img dims (capped)
+		//  - other static sizes
+		//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+		//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+
+		Message3Registry& msg_reg = *msg_reg_ptr;
+		const auto& cr = _cs.registry();
+
+		const bool highlight_private {!cr.all_of<Contact::Components::TagPrivate>(*_selected_contact)};
+
+		//auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
+		//tmp_view.use<Message::Components::Timestamp>();
+		//tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
+		//) {
+		//uint64_t prev_ts {0};
+		Components::ConvertedTimeCache prev_time {};
+		auto tmp_view = msg_reg.view<Message::Components::Timestamp>();
+		for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
+			const Message3 e = *view_it;
+
+			// manually filter ("reverse" iteration <.<)
+			if (!msg_reg.all_of<Message::Components::ContactFrom, Message::Components::ContactTo>(e)) {
+				continue;
+			}
+
+			Message::Components::ContactFrom& c_from = msg_reg.get<Message::Components::ContactFrom>(e);
+			Message::Components::ContactTo& c_to = msg_reg.get<Message::Components::ContactTo>(e);
+			Message::Components::Timestamp ts = tmp_view.get<Message::Components::Timestamp>(e);
+
+
+			// TODO: why?
+			ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+
+			if (msg_reg.all_of<Components::ConvertedTimeCache>(e)) { // check if date changed
+				// TODO: move conversion up?
+				const auto& next_time = msg_reg.get<Components::ConvertedTimeCache>(e);
+				if (
+					prev_time.tm_yday != next_time.tm_yday ||
+					prev_time.tm_year != next_time.tm_year // making sure
+				) {
+					// name
+					if (ImGui::TableNextColumn()) {
+						//ImGui::TextDisabled("---");
+					}
+					// msg
+					if (ImGui::TableNextColumn()) {
+						ImGui::TextDisabled("DATE CHANGED from %d.%d.%d to %d.%d.%d",
+							1900+prev_time.tm_year, 1+prev_time.tm_mon, prev_time.tm_mday,
+							1900+next_time.tm_year, 1+next_time.tm_mon, next_time.tm_mday
+						);
+					}
+					ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+				}
+
+				prev_time = next_time;
+			}
+
+
+			ImGui::PushID(entt::to_integral(e));
+
+			// name
+			if (ImGui::TableNextColumn()) {
+				const float img_y {TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2};
+				renderAvatar(_theme, _contact_tc, _cs.contactHandle(c_from.c), {img_y, img_y});
+				ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
+
+				if (cr.all_of<Contact::Components::Name>(c_from.c)) {
+					ImGui::TextUnformatted(cr.get<Contact::Components::Name>(c_from.c).name.c_str());
+				} else {
+					ImGui::TextUnformatted("<unk>");
+				}
+
+				// use username as visibility test
+				if (ImGui::IsItemVisible()) {
+					if (msg_reg.all_of<Message::Components::TagUnread>(e)) {
+						if (!msg_reg.all_of<Components::UnreadFade>(e)) {
+							if (msg_reg.all_of<Message::Components::Read>(e)) {
+								// skip fade, we might get here by merging
+								msg_reg.remove<Message::Components::TagUnread>(e);
+							} else {
+								// get time now
+								const uint64_t ts_now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+								msg_reg.emplace_or_replace<Message::Components::Read>(e, ts_now);
+								msg_reg.emplace_or_replace<Components::UnreadFade>(e, 1.f);
+							}
+							_rmm.throwEventUpdate(msg_reg, e);
+						} else if (window_focused) {
+							// remove unread early, when we focus the window
+							msg_reg.remove<Message::Components::TagUnread>(e);
+							_rmm.throwEventUpdate(msg_reg, e);
+						}
+					}
+
+					// track view
+					if (!static_cast<bool>(message_view_oldest)) {
+						message_view_oldest = {msg_reg, e};
+						message_view_newest = {msg_reg, e};
+					} else if (static_cast<bool>(message_view_newest)) {
+						// update to latest
+						message_view_newest = {msg_reg, e};
+					}
+				}
+
+				// highlight self
+				if (cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
+					ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.20f));
+					ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+				} else {
+					//based on power level?
+					//ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.65f));
+					//ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+				}
+
+				std::optional<ImVec4> row_bg;
+
+
+				// private group message
+				if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
+					const ImVec4 priv_msg_hi_col = ImVec4(0.5f, 0.2f, 0.5f, 0.35f);
+					ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
+					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
+					row_bg = priv_msg_hi_col;
+				}
+
+				// fade
+				if (msg_reg.all_of<Components::UnreadFade>(e)) {
+					ImVec4 hi_color = ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogramHovered);
+					hi_color.w = 0.8f;
+					const ImVec4 orig_color = row_bg.value_or(ImGui::GetStyleColorVec4(ImGuiCol_TableRowBg)); // imgui defaults to 0,0,0,0
+					const float fade_frac = msg_reg.get<Components::UnreadFade>(e).fade;
+
+					ImVec4 res_color{
+						lerp(orig_color.x, hi_color.x, fade_frac),
+						lerp(orig_color.y, hi_color.y, fade_frac),
+						lerp(orig_color.z, hi_color.z, fade_frac),
+						lerp(orig_color.w, hi_color.w, fade_frac),
+					};
+
+					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(res_color));
+				}
+			}
+
+			// content (msgtext/file)
+			ImGui::TableNextColumn();
+			if (msg_reg.all_of<Message::Components::MessageText>(e)) {
+				renderMessageBodyText(msg_reg, e);
+			} else if (msg_reg.any_of<Message::Components::MessageFileObject>(e)) {
+				renderMessageBodyFile(msg_reg, e);
+			} else {
+				ImGui::TextDisabled("---");
+			}
+
+			// remote received and read state
+			if (ImGui::TableNextColumn()) {
+				// TODO: theming for hardcoded values
+
+				if (!msg_reg.all_of<Message::Components::ReceivedBy>(e)) {
+					// TODO: dedup?
+					ImGui::TextDisabled("_");
+				} else {
+					const auto& list = msg_reg.get<Message::Components::ReceivedBy>(e).ts;
+					// wrongly assumes contacts never get removed from a group
+					if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
+						// if partically delivered
+						ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "d");
+					} else {
+						// if fully delivered
+						ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "D");
+					}
+
+					if (ImGui::BeginItemTooltip()) {
+						std::string synced_by_text {"delivery confirmed by:"};
+						const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
+
+						size_t other_contacts {0};
+						for (const auto& [cd, syned_ts] : list) {
+							if (cr.all_of<Contact::Components::TagSelfStrong>(cd)) {
+								//synced_by_text += "\n sself(!)"; // makes no sense
+								continue;
+							} else if (cr.all_of<Contact::Components::TagSelfWeak>(cd)) {
+								synced_by_text += "\n wself"; // TODO: add name?
+							} else {
+								synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(cd) ? cr.get<Contact::Components::Name>(cd).name : "<unk>");
+							}
+							other_contacts += 1;
+							const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
+							synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
+						}
+
+						if (other_contacts > 0) {
+							ImGui::Text("%s", synced_by_text.c_str());
+						} else {
+							ImGui::TextUnformatted("no delivery confirmation");
+						}
+
+						ImGui::EndTooltip();
+					}
+				}
+
+				ImGui::SameLine();
+
+				// TODO: dedup
+				if (msg_reg.all_of<Message::Components::ReadBy>(e)) {
+					const auto list = msg_reg.get<Message::Components::ReadBy>(e).ts;
+					// wrongly assumes contacts never get removed from a group
+					if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
+						// if partially read
+						ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "r");
+					} else {
+						// if fully read
+						ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "R");
+					}
+
+					if (ImGui::BeginItemTooltip()) {
+						std::string synced_by_text {"read confirmed by:"};
+						const int64_t now_ts_s = int64_t(getTimeMS() / 1000u);
+
+						for (const auto& [cd, syned_ts] : list) {
+							if (cr.all_of<Contact::Components::TagSelfStrong>(cd)) {
+								//synced_by_text += "\n sself(!)"; // makes no sense
+								continue;
+							} else if (cr.all_of<Contact::Components::TagSelfWeak>(cd)) {
+								synced_by_text += "\n wself";
+							} else {
+								synced_by_text += "\n >" + (cr.all_of<Contact::Components::Name>(cd) ? cr.get<Contact::Components::Name>(cd).name : "<unk>");
+							}
+							const int64_t seconds_ago = (int64_t(syned_ts / 1000u) - now_ts_s) * -1;
+							synced_by_text += " (" + std::to_string(seconds_ago) + "sec ago)";
+						}
+
+						ImGui::Text("%s", synced_by_text.c_str());
+
+						ImGui::EndTooltip();
+					}
+				} else {
+					ImGui::TextDisabled("_");
+				}
+			}
+
+			// ts
+			if (ImGui::TableNextColumn()) {
+				if (!msg_reg.all_of<Components::ConvertedTimeCache>(e)) {
+					auto time = std::chrono::system_clock::to_time_t(
+						std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::milliseconds{ts.ts}}
+					);
+					auto localtime = std::localtime(&time);
+					msg_reg.emplace<Components::ConvertedTimeCache>(
+						e,
+						localtime->tm_year,
+						localtime->tm_yday,
+						localtime->tm_mon,
+						localtime->tm_mday,
+						localtime->tm_hour,
+						localtime->tm_min
+					);
+				}
+				const auto& ctc = msg_reg.get<Components::ConvertedTimeCache>(e);
+
+				ImGui::Text("%.2d:%.2d", ctc.tm_hour, ctc.tm_min);
+			}
+
+			// extra
+			if (ImGui::TableNextColumn()) {
+				renderMessageExtra(msg_reg, e);
+			}
+
+			ImGui::PopID(); // ent
+		}
+
+		// fake empty placeholders
+		//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+		//ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
+
+		{ // update view cursers
+			if (!msg_reg.ctx().contains<Context::CGView>()) {
+				msg_reg.ctx().emplace<Context::CGView>();
+			}
+
+			auto& cg_view = msg_reg.ctx().get<Context::CGView>();
+
+			// any message in view
+			if (!static_cast<bool>(message_view_oldest)) {
+				// no message in view, we setup a view at current time, so the next frags are loaded
+				if (!static_cast<bool>(cg_view.begin) || !static_cast<bool>(cg_view.end)) {
+					// fix invalid state
+					if (static_cast<bool>(cg_view.begin)) {
+						cg_view.begin.destroy();
+						_rmm.throwEventDestroy(cg_view.begin);
+					}
+					if (static_cast<bool>(cg_view.end)) {
+						cg_view.end.destroy();
+						_rmm.throwEventDestroy(cg_view.end);
+					}
+
+					// create new
+					cg_view.begin = {msg_reg, msg_reg.create()};
+					cg_view.end = {msg_reg, msg_reg.create()};
+
+					cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
+					cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
+
+					cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts = getTimeMS();
+					cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts = getTimeMS();
+
+					std::cout << "CG: created view FRONT begin ts\n";
+					_rmm.throwEventConstruct(cg_view.begin);
+					std::cout << "CG: created view FRONT end ts\n";
+					_rmm.throwEventConstruct(cg_view.end);
+				} // else? we do nothing?
+			} else {
+				bool begincreated {false};
+				if (!static_cast<bool>(cg_view.begin)) {
+					cg_view.begin = {msg_reg, msg_reg.create()};
+					begincreated = true;
+				}
+				bool endcreated {false};
+				if (!static_cast<bool>(cg_view.end)) {
+					cg_view.end = {msg_reg, msg_reg.create()};
+					endcreated = true;
+				}
+				cg_view.begin.emplace_or_replace<Message::Components::ViewCurserBegin>(cg_view.end);
+				cg_view.end.emplace_or_replace<Message::Components::ViewCurserEnd>(cg_view.begin);
+
+				{
+					auto& old_begin_ts = cg_view.begin.get_or_emplace<Message::Components::Timestamp>().ts;
+					if (old_begin_ts != message_view_newest.get<Message::Components::Timestamp>().ts) {
+						old_begin_ts = message_view_newest.get<Message::Components::Timestamp>().ts;
+						if (begincreated) {
+							std::cout << "CG: created view begin ts with " << old_begin_ts << "\n";
+							_rmm.throwEventConstruct(cg_view.begin);
+						} else {
+							//std::cout << "CG: updated view begin ts to " << old_begin_ts << "\n";
+							_rmm.throwEventUpdate(cg_view.begin);
+						}
+					}
+				}
+
+				{
+					auto& old_end_ts = cg_view.end.get_or_emplace<Message::Components::Timestamp>().ts;
+					if (old_end_ts != message_view_oldest.get<Message::Components::Timestamp>().ts) {
+						old_end_ts = message_view_oldest.get<Message::Components::Timestamp>().ts;
+						if (endcreated) {
+							std::cout << "CG: created view end ts with " << old_end_ts << "\n";
+							_rmm.throwEventConstruct(cg_view.end);
+						} else {
+							//std::cout << "CG: updated view end ts to " << old_end_ts << "\n";
+							_rmm.throwEventUpdate(cg_view.end);
+						}
+					}
+				}
+			}
+		}
+
+		ImGui::EndTable();
+	}
+
+	// follow if at bottom (this is a frame delayed, but thats just how it works)
+	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+		ImGui::SetScrollHereY(1.f);
 	}
 }
 
