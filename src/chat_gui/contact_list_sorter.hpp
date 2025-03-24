@@ -30,6 +30,7 @@ class ContactListSorter : public ContactStore4EventI {
 		ContactStore4I::SubscriptionReference _cs_sr;
 		std::vector<comperator_fn> _sort_stack;
 
+		uint64_t _last_sort {0};
 		bool _dirty {true};
 		// TODO: timer, to guarantie a sort ever X seconds?
 		// (turns out we dont throw on new messages <.<)

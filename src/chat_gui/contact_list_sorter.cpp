@@ -2,6 +2,8 @@
 
 #include <solanaceae/contact/components.hpp>
 
+#include <solanaceae/util/time.hpp>
+
 ContactListSorter::comperator_fn ContactListSorter::getSortGroupsOverPrivates(void) {
 	return [](const ContactRegistry4& cr, const Contact4 lhs, const Contact4 rhs) -> std::optional<bool> {
 
@@ -97,8 +99,8 @@ ContactListSorter::~ContactListSorter(void) {
 }
 
 void ContactListSorter::sort(void) {
-	// TODO: timer
-	if (!_dirty) {
+	const uint64_t now = getTimeMS();
+	if ((now > _last_sort && now - _last_sort < 1000*29) && !_dirty) {
 		return;
 	}
 
@@ -119,6 +121,7 @@ void ContactListSorter::sort(void) {
 		entt::insertion_sort{} // o(n) in >90% of cases
 	);
 
+	_last_sort = now;
 	_dirty = false;
 }
 
