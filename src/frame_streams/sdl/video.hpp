@@ -5,6 +5,7 @@
 #include <SDL3/SDL.h>
 
 #include <cstdint>
+#include <cassert>
 #include <memory>
 
 // https://youtu.be/71Iw4Q74OaE
@@ -36,6 +37,7 @@ struct SDLVideoFrame {
 				SDL_DuplicateSurface(other.surface.get()),
 				&SDL_DestroySurface
 			};
+			assert(surface);
 		}
 	}
 	SDLVideoFrame& operator=(const SDLVideoFrame& other) = delete;

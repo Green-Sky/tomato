@@ -50,12 +50,19 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 		// choose a good spec, large res but <= 1080p
 		int speccount {0};
 		SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(_dev, &speccount);
-		if (specs != nullptr) {
+		if (specs != nullptr && speccount > 0) {
 			spec = *specs[speccount-1]; // start with last, as its usually the smallest
-			for (int spec_i = 1; spec_i < speccount; spec_i++) {
+			for (int spec_i = 0; spec_i < speccount; spec_i++) {
 				if (specs[spec_i]->height > 1080) {
 					continue;
 				}
+
+				if (spec.format == SDL_PIXELFORMAT_MJPG && spec.format != specs[spec_i]->format) {
+					// we hard prefer anything else over mjpg
+					spec = *specs[spec_i];
+					continue;
+				}
+
 				if (spec.height > specs[spec_i]->height) {
 					continue;
 				}
@@ -67,14 +74,17 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 					continue;
 				}
 
+				// HACK: prefer nv12 over yuy2, SDL has sse2 optimized conversion for our usecase
 				if (spec.format == SDL_PIXELFORMAT_NV12 && specs[spec_i]->format == SDL_PIXELFORMAT_YUY2) {
-					// HACK: prefer nv12 over yuy2
 					continue;
 				}
 
 				// seems to be better
 				spec = *specs[spec_i];
 			}
+
+		}
+		if (specs != nullptr) {
 			SDL_free(specs);
 		}
 

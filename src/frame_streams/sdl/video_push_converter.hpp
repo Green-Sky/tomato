@@ -18,6 +18,7 @@ struct PushConversionVideoStream : public RealStream {
 	~PushConversionVideoStream(void) {}
 
 	bool push(const SDLVideoFrame& value) override {
+		assert(value.surface);
 		SDL_Surface* surf = value.surface.get();
 		if (surf->format != _forced_format) {
 			//std::cerr << "PCVS: need to convert from " << SDL_GetPixelFormatName(surf->format) << " to " << SDL_GetPixelFormatName(_forced_format) << "\n";
