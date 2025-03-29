@@ -525,9 +525,10 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 						if (!ImGui::IsItemFocused()) {
 							ImGui::SetKeyboardFocusHere(-1);
 						}
-						const char* primary_text = SDL_GetPrimarySelectionText();
+						char* primary_text = SDL_GetPrimarySelectionText();
 						if (primary_text != nullptr) {
 							ImGui::GetIO().AddInputCharactersUTF8(primary_text);
+							SDL_free(primary_text);
 						}
 					}
 				}
