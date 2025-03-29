@@ -64,17 +64,22 @@ jobs:
     strategy:
       matrix:
         platform:
-          - vcpkg_toolkit: arm-neon-android
+          - vcpkg_toolkit: arm-neon-android-23
             ndk_abi: armeabi-v7a
-          - vcpkg_toolkit: arm64-android
+          - vcpkg_toolkit: arm64-android-23
             ndk_abi: arm64-v8a
-          - vcpkg_toolkit: x64-android
+          - vcpkg_toolkit: x64-android-23
             ndk_abi: x86_64
 
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+
+    - uses: actions/checkout@v4
+      with:
+        repository: 'Green-Sky/vcpkg_android_triplets'
+        path: 'vcpkg_android_triplets'
 
     - uses: nttld/setup-ndk@v1
       id: setup_ndk
@@ -101,8 +106,7 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{steps.setup_ndk.outputs.ndk-path}}
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-      #run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} --overlay-ports=vcpkg/ports libsodium opus libvpx libpng libjpeg-turbo
-      run: vcpkg install --triplet ${{matrix.platform.vcpkg_toolkit}} libsodium opus libvpx libpng libjpeg-turbo freetype
+      run: vcpkg install --overlay-triplets=vcpkg_android_triplets --triplet ${{matrix.platform.vcpkg_toolkit}} libsodium opus libvpx libpng libjpeg-turbo freetype
 
     # vcpkg scripts root /usr/local/share/vcpkg/scripts
     - name: Configure CMake

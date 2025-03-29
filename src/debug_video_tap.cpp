@@ -45,7 +45,7 @@ struct DebugVideoTapSink : public FrameStream2SinkI<SDLVideoFrame> {
 			float _v_interval_avg {0.f}; // s
 		} view;
 
-		std::shared_ptr<PushConversionVideoStream<LockedFrameStream2<SDLVideoFrame>>> stream;
+		std::shared_ptr<FrameStream2I<SDLVideoFrame>> stream;
 	};
 	std::vector<Writer> _writers;
 
