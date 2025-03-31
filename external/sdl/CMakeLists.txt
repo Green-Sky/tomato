@@ -35,7 +35,8 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG 355f69ebfe7a5f44a28e10569589a1d300aad2b5 # tip 15-01-2025 - more recent for continous tray testing
 		#GIT_TAG 90b2e2527eeb6614cedd15f61062f62680252be6 # tip 20-01-2025 - tray supposetly fixed
 		#GIT_TAG b5c3eab6b447111d3c7879bb547b80fb4abd9063 # tip 07-02-2025 (3.2.4)
-		GIT_TAG f6864924f76e1a0b4abaefc76ae2ed22b1a8916e # tip 05-03-2025 (3.2.8)
+		#GIT_TAG f6864924f76e1a0b4abaefc76ae2ed22b1a8916e # tip 05-03-2025 (3.2.8)
+		GIT_TAG 877399b2b2cf21e67554ed9046410f268ce1d1b2 # 3.2.10
 
 		FIND_PACKAGE_ARGS # for the future
 	)
