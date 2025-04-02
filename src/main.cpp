@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 	}
 
 
-	SDL_SetAppMetadata("tomato", "0.0.0-wip", nullptr);
+	SDL_SetAppMetadata("tomato", "0.0.4-wip", nullptr);
 
 #ifdef __ANDROID__
 	// change current working dir to internal storage
