@@ -7,7 +7,7 @@
 #include <atomic>
 #include <thread>
 
-// tips: you can force a SDL vido driver by setting an env:
+// tips: you can force a SDL video driver by setting an env:
 // SDL_CAMERA_DRIVER=v4l2
 // SDL_CAMERA_DRIVER=pipewire
 // etc.
@@ -24,7 +24,7 @@ struct SDLVideo2InputDevice : public FrameStream2MultiSource<SDLVideoFrame> {
 	SDLVideo2InputDevice(const SDL_CameraID dev);
 	virtual ~SDLVideo2InputDevice(void);
 
-	// we hook int multi source
+	// we hook into multi source
 	std::shared_ptr<FrameStream2I<SDLVideoFrame>> subscribe(void) override;
 	bool unsubscribe(const std::shared_ptr<FrameStream2I<SDLVideoFrame>>& sub) override;
 };

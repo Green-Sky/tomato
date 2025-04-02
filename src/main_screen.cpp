@@ -69,7 +69,8 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	tdch(tpi),
 	tnui(tpi),
 	smui(os, sm),
-	dvt(os, sm, sdlrtu)
+	dvt(os, sm, sdlrtu),
+	sdlvis(os)
 {
 	tel.subscribeAll();
 
@@ -201,63 +202,6 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	} else {
 		std::cerr << "MS warning: no sdl audio: " << SDL_GetError() << "\n";
 	}
-
-	if (SDL_InitSubSystem(SDL_INIT_CAMERA)) {
-		std::cout << "MS: SDL Camera Driver: " << SDL_GetCurrentCameraDriver() << "\n";
-
-		int devcount {0};
-		SDL_CameraID *devices = SDL_GetCameras(&devcount);
-
-		std::cout << "MS: found cameras:\n";
-		if (devices != nullptr) {
-			ObjectHandle last_src{};
-			for (int i = 0; i < devcount; i++) {
-				const SDL_CameraID device = devices[i];
-
-				const char *name = SDL_GetCameraName(device);
-				std::cout << "  - Camera #" << i << ": " << name << "\n";
-
-				int speccount {0};
-				SDL_CameraSpec** specs = SDL_GetCameraSupportedFormats(device, &speccount);
-				if (specs == nullptr) {
-					std::cout << "    - no supported spec\n";
-				} else {
-					for (int spec_i = 0; spec_i < speccount; spec_i++) {
-						std::cout << "    - " << specs[spec_i]->width << "x" << specs[spec_i]->height << "@" << float(specs[spec_i]->framerate_numerator)/specs[spec_i]->framerate_denominator << "fps " << SDL_GetPixelFormatName(specs[spec_i]->format) << "\n";
-
-					}
-					SDL_free(specs);
-
-					// create sink for device
-					ObjectHandle vsrc {os.registry(), os.registry().create()};
-					try {
-						vsrc.emplace<Components::FrameStream2Source<SDLVideoFrame>>(
-							std::make_unique<SDLVideo2InputDevice>(device)
-						);
-
-						vsrc.emplace<Components::StreamSource>(Components::StreamSource::create<SDLVideoFrame>("SDL Video '" + std::string(name) + "'"));
-						//vsrc.emplace<Components::TagDefaultTarget>();
-
-						os.throwEventConstruct(vsrc);
-						last_src = vsrc;
-					} catch (...) {
-						std::cerr << "MS error: failed constructing video input source\n";
-						os.registry().destroy(vsrc);
-					}
-				}
-			}
-
-			//if (static_cast<bool>(last_src)) {
-			//    last_src.emplace<Components::TagDefaultTarget>();
-			//}
-
-			SDL_free(devices);
-		} else {
-			std::cout << "  none\n";
-		}
-	} else {
-		std::cerr << "MS warning: no sdl camera: " << SDL_GetError() << "\n";
-	}
 }
 
 MainScreen::~MainScreen(void) {
@@ -359,6 +303,10 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 	) {
 		_render_interval = 1.f/60.f; // TODO: magic
 		_time_since_event = 0.f;
+	}
+
+	if (sdlvis.handleEvent(e)) {
+		return true;
 	}
 
 	return false;

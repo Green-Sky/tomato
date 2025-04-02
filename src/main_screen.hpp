@@ -45,6 +45,8 @@
 #include "./tox_av_voip_model.hpp"
 #endif
 
+#include "./frame_streams/sdl/sdl_video_input_service.hpp"
+
 #include <string>
 #include <iostream>
 #include <chrono>
@@ -103,6 +105,7 @@ struct MainScreen final : public Screen {
 	ToxNetprofUI tnui;
 	StreamManagerUI smui;
 	DebugVideoTap dvt;
+	SDLVideoInputService sdlvis;
 
 	PluginManager pm; // last, so it gets destroyed first
 

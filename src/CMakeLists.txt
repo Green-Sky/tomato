@@ -137,6 +137,8 @@ target_sources(tomato PUBLIC
 	./frame_streams/sdl/video_push_converter.hpp
 	./frame_streams/sdl/sdl_video_frame_stream2.hpp
 	./frame_streams/sdl/sdl_video_frame_stream2.cpp
+	./frame_streams/sdl/sdl_video_input_service.hpp
+	./frame_streams/sdl/sdl_video_input_service.cpp
 
 	./stream_manager_ui.hpp
 	./stream_manager_ui.cpp
