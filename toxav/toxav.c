@@ -24,18 +24,7 @@
 #include "../toxcore/tox_struct.h"  // IWYU pragma: keep
 #include "../toxcore/util.h"
 
-// TODO(zoff99): don't hardcode this, let the application choose it
-// VPX Info: Time to spend encoding, in microseconds (it's a *soft* deadline)
-#define WANTED_MAX_ENCODER_FPS 40
-#define MAX_ENCODE_TIME_US (1000000 / WANTED_MAX_ENCODER_FPS) // to allow x fps
-
 #define VIDEO_SEND_X_KEYFRAMES_FIRST 7 // force the first n frames to be keyframes!
-
-/*
- * VPX_DL_REALTIME       (1)       deadline parameter analogous to VPx REALTIME mode.
- * VPX_DL_GOOD_QUALITY   (1000000) deadline parameter analogous to VPx GOOD QUALITY mode.
- * VPX_DL_BEST_QUALITY   (0)       deadline parameter analogous to VPx BEST QUALITY mode.
- */
 
 // iteration interval that is used when no call is active
 #define IDLE_ITERATION_INTERVAL_MS 200
@@ -1055,6 +1044,7 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
         goto RETURN;
     }
 
+    // we start with I-frames (full frames) and then switch to normal mode later
     if (call->video_rtp->ssrc < VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // Key frame flag for first frames
         vpx_encode_flags = VPX_EFLAG_FORCE_KF;
@@ -1069,25 +1059,35 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
         ++call->video_rtp->ssrc;
     }
 
-    // we start with I-frames (full frames) and then switch to normal mode later
-
     {   /* Encode */
         vpx_image_t img;
-        img.w = 0;
-        img.h = 0;
-        img.d_w = 0;
-        img.d_h = 0;
-        vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0);
+        // TODO(Green-Sky): figure out stride_align
+        // TODO(Green-Sky): check memory alignment?
+        if (vpx_img_wrap(&img, VPX_IMG_FMT_I420, width, height, 0, (uint8_t *)y) != nullptr) {
+            // vpx_img_wrap assumes contigues memory, so we fix that
+            img.planes[VPX_PLANE_U] = (uint8_t *)u;
+            img.planes[VPX_PLANE_V] = (uint8_t *)v;
+        } else {
+            // call to wrap failed, falling back to copy
+            img.w = 0;
+            img.h = 0;
+            img.d_w = 0;
+            img.d_h = 0;
+            vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0);
 
-        /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
-         * http://fourcc.org/yuv.php#IYUV
-         */
-        memcpy(img.planes[VPX_PLANE_Y], y, width * height);
-        memcpy(img.planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
-        memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
+            /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
+             * http://fourcc.org/yuv.php#IYUV
+             */
+            memcpy(img.planes[VPX_PLANE_Y], y, width * height);
+            memcpy(img.planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
+            memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
+        }
+
+        // TODO(zoff99): don't hardcode this, let the application choose it
+        const vpx_enc_deadline_t deadline = VPX_DL_REALTIME;
 
         const vpx_codec_err_t vrc = vpx_codec_encode(call->video->encoder, &img,
-                                    call->video->frame_counter, 1, vpx_encode_flags, MAX_ENCODE_TIME_US);
+                                    call->video->frame_counter, 1, vpx_encode_flags, deadline);
 
         vpx_img_free(&img);
 
@@ -1304,14 +1304,11 @@ static bool audio_bit_rate_invalid(uint32_t bit_rate)
 
 static bool video_bit_rate_invalid(uint32_t bit_rate)
 {
-    /* https://www.webmproject.org/docs/webm-sdk/structvpx__codec__enc__cfg.html shows the following:
-     * unsigned int rc_target_bitrate
-     * the range of uint varies from platform to platform
-     * though, uint32_t should be large enough to store bitrates,
-     * we may want to prevent from passing overflowed bitrates to libvpx
-     * more in detail, it's the case where bit_rate is larger than uint, but smaller than uint32_t
+    /* Cap the target rate to 1000 Mbps to avoid some integer overflows in
+     * target bandwidth calculations.
+     * https://github.com/webmproject/libvpx/blob/027bbee30a0103b99d86327b48d29567fed11688/vp8/vp8_cx_iface.c#L350-L352
      */
-    return bit_rate > UINT32_MAX;
+    return bit_rate > 1000000;
 }
 
 static bool invoke_call_state_callback(ToxAV *av, uint32_t friend_number, uint32_t state)
