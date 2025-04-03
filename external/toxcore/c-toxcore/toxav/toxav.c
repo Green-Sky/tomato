@@ -1084,7 +1084,7 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
         }
 
         // TODO(zoff99): don't hardcode this, let the application choose it
-        const vpx_enc_deadline_t deadline = VPX_DL_REALTIME;
+        const unsigned long deadline = VPX_DL_REALTIME;
 
         const vpx_codec_err_t vrc = vpx_codec_encode(call->video->encoder, &img,
                                     call->video->frame_counter, 1, vpx_encode_flags, deadline);
