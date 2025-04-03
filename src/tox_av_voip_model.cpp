@@ -367,7 +367,7 @@ void ToxAVVoIPModel::audio_thread_tick(void) {
 				new_frame.sample_rate
 			);
 			if (err != TOXAV_ERR_SEND_FRAME_OK) {
-				std::cerr << "DTC: failed to send audio frame " << err << "\n";
+				std::cerr << "TAVVOIP: failed to send audio frame " << err << "\n";
 			}
 		}
 	}
@@ -732,7 +732,11 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendAudioBitrate&) {
 	return false;
 }
 
-bool ToxAVVoIPModel::onEvent(const Events::FriendVideoBitrate&) {
+bool ToxAVVoIPModel::onEvent(const Events::FriendVideoBitrate& e) {
+	std::cout << "TAVVOIP: event suggests new video bitrate: " << e.video_bit_rate << " for " << e.friend_number << "\n";
+
+	//_video_sinks.front()->_video_bitrate
+
 	// TODO: use this info
 	return false;
 }
