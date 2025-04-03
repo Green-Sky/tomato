@@ -358,6 +358,10 @@ cc_library(
     name = "net_profile",
     srcs = ["net_profile.c"],
     hdrs = ["net_profile.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/testing/fuzzing:__pkg__",
+    ],
     deps = [
         ":attributes",
         ":ccompat",
@@ -555,6 +559,7 @@ cc_fuzz_test(
     deps = [
         ":DHT",
         ":mem_test_util",
+        ":net_profile",
         "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
@@ -781,6 +786,7 @@ cc_fuzz_test(
         ":TCP_client",
         ":mem_test_util",
         ":net_crypto",
+        ":net_profile",
         ":network",
         "//c-toxcore/testing/fuzzing:fuzz_support",
         "//c-toxcore/testing/fuzzing:fuzz_tox",

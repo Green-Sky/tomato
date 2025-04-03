@@ -71,6 +71,7 @@ extra_data = {
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
         "//c-toxcore/toxcore:net_crypto",
+        "//c-toxcore/toxcore:net_profile",
         "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:onion",
         "//c-toxcore/toxcore:onion_announce",
