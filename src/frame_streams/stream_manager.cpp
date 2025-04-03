@@ -86,7 +86,7 @@ bool StreamManager::connect(Object src, Object sink, bool threaded) {
 bool StreamManager::disconnect(Object src, Object sink) {
 	auto res = std::find_if(
 		_connections.cbegin(), _connections.cend(),
-		[&](const auto& a) { return a->src == src && a->sink == sink; }
+		[src, sink](const auto& a) { return a->src == src && a->sink == sink; }
 	);
 	if (res == _connections.cend()) {
 		// not found

@@ -190,7 +190,8 @@ float DebugVideoTap::render(void) {
 		std::string window_title {"DebugVideoTap #"};
 		window_title += std::to_string(view._id);
 		ImGui::SetNextWindowSize({400, 420}, ImGuiCond_Appearing);
-		if (ImGui::Begin(window_title.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar)) {
+		bool window_open = true;
+		if (ImGui::Begin(window_title.c_str(), &window_open, ImGuiWindowFlags_NoScrollbar)) {
 			while (auto new_frame_opt = stream->pop()) {
 				// timing
 				if (view._v_last_ts == 0) {
@@ -208,40 +209,25 @@ float DebugVideoTap::render(void) {
 				}
 
 				SDL_Surface* new_frame_surf = new_frame_opt.value().surface.get();
-
-				SDL_Surface* converted_surf = new_frame_surf;
-				//if (new_frame_surf->format != SDL_PIXELFORMAT_RGBA32) {
-				//    // we need to convert
-				//    //std::cerr << "DVT: need to convert\n";
-				//    converted_surf = SDL_ConvertSurfaceAndColorspace(new_frame_surf, SDL_PIXELFORMAT_RGBA32, nullptr, SDL_COLORSPACE_RGB_DEFAULT, 0);
-				//    assert(converted_surf->format == SDL_PIXELFORMAT_RGBA32);
-				//}
-
-				SDL_LockSurface(converted_surf);
-				if (view._tex == 0 || (int)view._tex_w != converted_surf->w || (int)view._tex_h != converted_surf->h) {
+				SDL_LockSurface(new_frame_surf);
+				if (view._tex == 0 || (int)view._tex_w != new_frame_surf->w || (int)view._tex_h != new_frame_surf->h) {
 					_tu.destroy(view._tex);
 					view._tex = _tu.upload(
-						static_cast<const uint8_t*>(converted_surf->pixels),
-						converted_surf->w,
-						converted_surf->h,
+						static_cast<const uint8_t*>(new_frame_surf->pixels),
+						new_frame_surf->w,
+						new_frame_surf->h,
 						TextureUploaderI::IYUV, // forced conversion
 						TextureUploaderI::LINEAR,
 						TextureUploaderI::STREAMING
 					);
 
-					view._tex_w = converted_surf->w;
-					view._tex_h = converted_surf->h;
+					view._tex_w = new_frame_surf->w;
+					view._tex_h = new_frame_surf->h;
 				} else {
 					//_tu.update(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 4);
-					_tu.update(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 3/2);
-					//_tu.updateRGBA(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 4);
+					_tu.update(view._tex, static_cast<const uint8_t*>(new_frame_surf->pixels), new_frame_surf->w * new_frame_surf->h * 3/2);
 				}
-				SDL_UnlockSurface(converted_surf);
-
-				//if (new_frame_surf != converted_surf) {
-				//    // clean up temp
-				//    SDL_DestroySurface(converted_surf);
-				//}
+				SDL_UnlockSurface(new_frame_surf);
 			}
 
 			ImGui::Checkbox("mirror ", &view._mirror);
@@ -264,6 +250,15 @@ float DebugVideoTap::render(void) {
 			}
 		}
 		ImGui::End();
+
+		if (!window_open) {
+			_sm.forEachConnectedExt(_tap, [this, stream_ptr = stream.get()](ObjectHandle o, const void*, const void* writer) {
+				// very hacky
+				if (writer == stream_ptr) {
+					_sm.disconnect(o, _tap);
+				}
+			});
+		}
 	}
 
 	return min_interval;

@@ -56,6 +56,16 @@ struct ToxAVCallAudioSink : public FrameStream2SinkI<AudioFrame2> {
 		}
 	}
 
+	bool setBitrate(uint64_t rate) {
+		// TODO: prevent disable active?
+		auto err = _toxav.toxavAudioSetBitRate(_fid, rate);
+		if (err == TOXAV_ERR_BIT_RATE_SET_OK) {
+			_audio_bitrate = rate;
+			return true;
+		}
+		return false;
+	}
+
 	// sink
 	std::shared_ptr<FrameStream2I<AudioFrame2>> subscribe(void) override {
 		if (_writer) {
@@ -114,6 +124,16 @@ struct ToxAVCallVideoSink : public FrameStream2SinkI<SDLVideoFrame> {
 			_writer = nullptr;
 			_toxav.toxavVideoSetBitRate(_fid, 0);
 		}
+	}
+
+	bool setBitrate(uint64_t rate) {
+		// TODO: prevent disable active?
+		auto err = _toxav.toxavVideoSetBitRate(_fid, rate);
+		if (err == TOXAV_ERR_BIT_RATE_SET_OK) {
+			_video_bitrate = rate;
+			return true;
+		}
+		return false;
 	}
 
 	// sink
@@ -187,6 +207,7 @@ void ToxAVVoIPModel::addAudioSink(ObjectHandle session, uint32_t friend_number) 
 
 	auto new_asink = std::make_unique<ToxAVCallAudioSink>(_av, friend_number);
 	auto* new_asink_ptr = new_asink.get();
+	outgoing_audio.emplace<Components::Bitrate>(new_asink_ptr->_audio_bitrate);
 	outgoing_audio.emplace<ToxAVCallAudioSink*>(new_asink_ptr);
 	outgoing_audio.emplace<Components::FrameStream2Sink<AudioFrame2>>(std::move(new_asink));
 	outgoing_audio.emplace<Components::StreamSink>(Components::StreamSink::create<AudioFrame2>("ToxAV Friend Call Outgoing Audio"));
@@ -240,6 +261,7 @@ void ToxAVVoIPModel::addVideoSink(ObjectHandle session, uint32_t friend_number) 
 
 	auto new_vsink = std::make_unique<ToxAVCallVideoSink>(_av, friend_number);
 	auto* new_vsink_ptr = new_vsink.get();
+	outgoing_video.emplace<Components::Bitrate>(new_vsink_ptr->_video_bitrate);
 	outgoing_video.emplace<ToxAVCallVideoSink*>(new_vsink_ptr);
 	outgoing_video.emplace<Components::FrameStream2Sink<SDLVideoFrame>>(std::move(new_vsink));
 	outgoing_video.emplace<Components::StreamSink>(Components::StreamSink::create<SDLVideoFrame>("ToxAV Friend Call Outgoing Video"));
@@ -523,7 +545,7 @@ void ToxAVVoIPModel::handleEvent(const Events::FriendCallState& e) {
 }
 
 ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, ContactStore4I& cs, ToxContactModel2& tcm) :
-	_os(os), _av(av), _av_sr(_av.newSubRef(this)), _cs(cs), _cs_sr(_cs.newSubRef(this)), _tcm(tcm)
+	_os(os), _os_sr(_os.newSubRef(this)), _av(av), _av_sr(_av.newSubRef(this)), _cs(cs), _cs_sr(_cs.newSubRef(this)), _tcm(tcm)
 {
 	_av_sr
 		.subscribe(ToxAV_Event::friend_call)
@@ -547,6 +569,10 @@ ToxAVVoIPModel::ToxAVVoIPModel(ObjectStore2& os, ToxAVI& av, ContactStore4I& cs,
 	_cs_sr
 		.subscribe(ContactStore4_Event::contact_construct)
 		.subscribe(ContactStore4_Event::contact_update)
+	;
+
+	_os_sr
+		.subscribe(ObjectStore_Event::object_update)
 	;
 }
 
@@ -873,3 +899,32 @@ bool ToxAVVoIPModel::onEvent(const ContactStore::Events::Contact4Destory&) {
 	return false;
 }
 
+bool ToxAVVoIPModel::onEvent(const ObjectStore::Events::ObjectConstruct&) {
+	return false;
+}
+
+bool ToxAVVoIPModel::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
+	if (e.e.all_of<ToxAVCallVideoSink*>()) {
+		auto& rate = e.e.get_or_emplace<Components::Bitrate>().rate;
+		if (rate <= 0) {
+			rate = 0;
+		}
+		if (!e.e.get<ToxAVCallVideoSink*>()->setBitrate(rate)) {
+			rate = e.e.get<ToxAVCallVideoSink*>()->_video_bitrate;
+		}
+	} else if (e.e.all_of<ToxAVCallAudioSink*>()) {
+		auto& rate = e.e.get_or_emplace<Components::Bitrate>().rate;
+		if (rate <= 0) {
+			rate = 0;
+		}
+		if (!e.e.get<ToxAVCallAudioSink*>()->setBitrate(rate)) {
+			rate = e.e.get<ToxAVCallAudioSink*>()->_audio_bitrate;
+		}
+	}
+
+	return false;
+}
+
+bool ToxAVVoIPModel::onEvent(const ObjectStore::Events::ObjectDestory&) {
+	return false;
+}

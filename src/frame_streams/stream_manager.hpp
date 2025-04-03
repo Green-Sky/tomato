@@ -52,6 +52,14 @@ namespace Components {
 	template<typename FrameType>
 	using FrameStream2Sink = std::unique_ptr<FrameStream2SinkI<FrameType>>;
 
+	// supported sources/sinks have this component
+	// to signal the backend sender/encoder a generic bitrate
+	// TODO: split into advanced encoder bitrate / target / range
+	struct Bitrate {
+		// in kilo bits per second
+		int64_t rate{0};
+	};
+
 } // Components
 
 
@@ -66,6 +74,8 @@ class StreamManager : protected ObjectStoreEventI {
 
 		struct Data {
 			virtual ~Data(void) {}
+			virtual const void* getReaderStream(void) = 0;
+			virtual const void* getWriterStream(void) = 0;
 		};
 		std::unique_ptr<Data> data; // stores reader writer type erased
 		std::function<void(Connection&)> pump_fn; // TODO: make it return next interval?
@@ -115,6 +125,29 @@ class StreamManager : protected ObjectStoreEventI {
 		bool connect(Object src, Object sink, bool threaded = true);
 		bool disconnect(Object src, Object sink);
 		bool disconnectAll(Object o);
+
+		template<typename FN>
+		void forEachConnected(ObjectHandle o, FN&& fn) {
+			for (const auto& con : _connections) {
+				if (con->src == o) {
+					fn(con->sink);
+				} else if (con->sink == o) {
+					fn(con->src);
+				}
+			}
+		}
+
+		template<typename FN>
+		void forEachConnectedExt(ObjectHandle o, FN&& fn) {
+			for (const auto& con : _connections) {
+				if (con->src == o) {
+					// TODO: very ugly
+					fn(con->sink, con->data.get()->getReaderStream(), con->data.get()->getWriterStream());
+				} else if (con->sink == o) {
+					fn(con->src, con->data.get()->getReaderStream(), con->data.get()->getWriterStream());
+				}
+			}
+		}
 
 		// do we need the time delta?
 		float tick(float);
@@ -183,9 +216,11 @@ bool StreamManager::connect(Object src, Object sink, bool threaded) {
 	auto& sink_stream = h_sink.get<Components::FrameStream2Sink<FrameType>>();
 
 	struct inlineData : public Connection::Data {
-		virtual ~inlineData(void) {}
+		~inlineData(void) {}
 		std::shared_ptr<FrameStream2I<FrameType>> reader;
 		std::shared_ptr<FrameStream2I<FrameType>> writer;
+		const void* getReaderStream(void) override { return reader.get(); }
+		const void* getWriterStream(void) override { return writer.get(); }
 	};
 
 	auto our_data = std::make_unique<inlineData>();
