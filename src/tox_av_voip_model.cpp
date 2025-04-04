@@ -759,11 +759,34 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendAudioBitrate&) {
 }
 
 bool ToxAVVoIPModel::onEvent(const Events::FriendVideoBitrate& e) {
-	std::cout << "TAVVOIP: event suggests new video bitrate: " << e.video_bit_rate << " for " << e.friend_number << "\n";
+	Object oo{entt::null};
+	{
+		std::lock_guard lg{_video_sinks_mutex};
 
-	//_video_sinks.front()->_video_bitrate
+		// find the sink
+		auto it = std::find_if(_video_sinks.cbegin(), _video_sinks.cend(), [e](const auto& a){ return a->_fid == e.friend_number; });
+		if (it == _video_sinks.cend()) {
+			return false;
+		}
 
-	// TODO: use this info
+		// TODO: unlock before search?
+		// find the object
+		for (auto&& [ov, tavcvs, bitrate] : _os.registry().view<ToxAVCallVideoSink*, Components::Bitrate>().each()) {
+			if (tavcvs != *it) {
+				continue;
+			}
+
+			// found it
+			oo = ov;
+
+			bitrate.rate = e.video_bit_rate;
+		}
+	}
+
+	if (_os.registry().valid(oo)) {
+		_os.throwEventUpdate(oo);
+	}
+
 	return false;
 }
 
