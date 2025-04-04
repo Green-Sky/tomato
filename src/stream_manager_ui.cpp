@@ -57,7 +57,16 @@ void StreamManagerUI::render(void) {
 					ImGui::PushID(entt::to_integral(oc));
 
 					ImGui::TableNextColumn();
-					ImGui::Text("%d", entt::to_integral(entt::to_entity(oc)));
+					{
+						std::string label = std::to_string(entt::to_integral(entt::to_entity(oc)));
+						if (ImGui::SmallButton(label.c_str())) {
+							ImGui::OpenPopup("src_settings");
+						}
+						if (ImGui::BeginPopup("src_settings")) {
+							ImGui::TextUnformatted("TODO");
+							ImGui::EndPopup();
+						}
+					}
 
 					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));
@@ -125,7 +134,23 @@ void StreamManagerUI::render(void) {
 					ImGui::PushID(entt::to_integral(oc));
 
 					ImGui::TableNextColumn();
-					ImGui::Text("%d", entt::to_integral(entt::to_entity(oc)));
+					{
+						std::string label = std::to_string(entt::to_integral(entt::to_entity(oc)));
+						if (ImGui::SmallButton(label.c_str())) {
+							ImGui::OpenPopup("sink_settings");
+						}
+						if (ImGui::BeginPopup("sink_settings")) {
+							if (auto* bitrate = _os.registry().try_get<Components::Bitrate>(oc); bitrate != nullptr) {
+								if (ImGui::BeginMenu("bitrate")) {
+									if (ImGui::InputScalar("rate", ImGuiDataType_S64, &bitrate->rate)) {
+										_os.throwEventUpdate(oc);
+									}
+									ImGui::EndMenu();
+								}
+							}
+							ImGui::EndPopup();
+						}
+					}
 
 					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));

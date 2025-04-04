@@ -910,7 +910,7 @@ bool ToxAVVoIPModel::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
 			rate = 0;
 		}
 		if (!e.e.get<ToxAVCallVideoSink*>()->setBitrate(rate)) {
-			rate = e.e.get<ToxAVCallVideoSink*>()->_video_bitrate;
+			rate = e.e.get<ToxAVCallVideoSink*>()->_video_bitrate; // reset
 		}
 	} else if (e.e.all_of<ToxAVCallAudioSink*>()) {
 		auto& rate = e.e.get_or_emplace<Components::Bitrate>().rate;
@@ -918,7 +918,7 @@ bool ToxAVVoIPModel::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
 			rate = 0;
 		}
 		if (!e.e.get<ToxAVCallAudioSink*>()->setBitrate(rate)) {
-			rate = e.e.get<ToxAVCallAudioSink*>()->_audio_bitrate;
+			rate = e.e.get<ToxAVCallAudioSink*>()->_audio_bitrate; // reset
 		}
 	}
 
