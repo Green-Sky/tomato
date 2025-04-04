@@ -37,6 +37,7 @@
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_netprof_ui.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
+#include "./frame_streams/sdl/sdl_video_input_service.hpp"
 #include "./stream_manager_ui.hpp"
 #include "./debug_video_tap.hpp"
 
@@ -44,8 +45,6 @@
 #include "./tox_av.hpp"
 #include "./tox_av_voip_model.hpp"
 #endif
-
-#include "./frame_streams/sdl/sdl_video_input_service.hpp"
 
 #include <string>
 #include <iostream>
@@ -67,6 +66,7 @@ struct MainScreen final : public Screen {
 	MessageSerializerNJ msnj;
 	MessageTimeSort mts;
 
+	SDLVideoInputService sdlvis; // sm ends the threads and closes the devices
 	StreamManager sm;
 
 	ToxClient tc;
@@ -105,7 +105,6 @@ struct MainScreen final : public Screen {
 	ToxNetprofUI tnui;
 	StreamManagerUI smui;
 	DebugVideoTap dvt;
-	SDLVideoInputService sdlvis;
 
 	PluginManager pm; // last, so it gets destroyed first
 

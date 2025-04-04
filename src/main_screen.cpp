@@ -39,6 +39,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	rmm(cs),
 	msnj{cs, os, {}, {}},
 	mts(rmm),
+	sdlvis(os),
 	sm(os),
 	tc(conf, save_path, save_password),
 	tel(tc, std::cout),
@@ -69,8 +70,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	tdch(tpi),
 	tnui(tpi),
 	smui(os, sm),
-	dvt(os, sm, sdlrtu),
-	sdlvis(os)
+	dvt(os, sm, sdlrtu)
 {
 	tel.subscribeAll();
 
