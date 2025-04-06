@@ -90,6 +90,8 @@
           libopus
           libvpx
 
+          zstd
+
           libwebp
 
           freetype
@@ -105,7 +107,6 @@
 
           # TODO: use package instead
           "-DFETCHCONTENT_SOURCE_DIR_JSON=${nlohmann-json}" # we care about the version
-          "-DFETCHCONTENT_SOURCE_DIR_ZSTD=${pkgs.zstd.src}" # we dont care about the version (we use 1.4.x features)
           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
           #"-DFETCHCONTENT_SOURCE_DIR_LIBWEBP=${pkgs.libwebp.src}"
           "-DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON"
