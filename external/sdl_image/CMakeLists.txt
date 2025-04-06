@@ -6,7 +6,7 @@ option(TOMATO_DEP_SDL_IMAGE_USE_SYSTEM "Prefer system provided SDL_image" OFF)
 
 if (TOMATO_DEP_SDL_IMAGE_USE_SYSTEM)
 	if (NOT TARGET SDL3_image::SDL3_image)
-		find_package(SDL3_image REQUIRED CONFIG GLOBAL QUIET)
+		find_package(SDL3_image CONFIG GLOBAL QUIET)
 	endif()
 
 	if (TARGET SDL3_image::SDL3_image)

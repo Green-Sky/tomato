@@ -1,8 +1,36 @@
-cmake_minimum_required(VERSION 3.14...3.24 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16...3.24 FATAL_ERROR)
 
 include(FetchContent)
 
-if (NOT TARGET libwebp)
+option(TOMATO_DEP_LIBWEBP_USE_SYSTEM "Prefer system provided libwebp" OFF)
+
+if (TOMATO_DEP_LIBWEBP_USE_SYSTEM)
+	if (NOT TARGET WebP::libwebpmux)
+		find_package(WebP CONFIG GLOBAL QUIET COMPONENTS webp webpdemux libwebpmux)
+	endif()
+
+	#if (NOT TARGET libwebp)
+	#    find_package(WebP GLOBAL)
+	#endif()
+
+	if (TARGET WebP::webp)
+		message(STATUS "found WebP::webp")
+	endif()
+	if (TARGET WebP::webpdemux)
+		message(STATUS "found WebP::webpdemux")
+	endif()
+	if (TARGET WebP::libwebpmux)
+		message(STATUS "found WebP::libwebpmux")
+	endif()
+
+	if (TARGET WebP::libwebpmux)
+		message(STATUS "found system libwebp")
+	else()
+		message(STATUS "system libwebp not found")
+	endif()
+endif()
+
+if (NOT TARGET WebP::libwebpmux)
 	set(WEBP_LINK_STATIC ON CACHE BOOL "" FORCE)
 	set(WEBP_BUILD_ANIM_UTILS OFF CACHE BOOL "" FORCE)
 	set(WEBP_BUILD_CWEBP OFF CACHE BOOL "" FORCE)
@@ -19,11 +47,13 @@ if (NOT TARGET libwebp)
 
 	FetchContent_Declare(libwebp
 		GIT_REPOSITORY https://github.com/webmproject/libwebp
-		GIT_TAG v1.4.0
+		GIT_TAG v1.5.0
 		FIND_PACKAGE_ARGS
 	)
 	FetchContent_MakeAvailable(libwebp)
-endif()
 
-#add_subdirectory(./libwebp EXCLUDE_FROM_ALL)
+	add_library(WebP::webp ALIAS webp)
+	add_library(WebP::webpdemux ALIAS webpdemux)
+	add_library(WebP::libwebpmux ALIAS libwebpmux)
+endif()
 
