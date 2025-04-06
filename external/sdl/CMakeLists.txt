@@ -2,10 +2,26 @@ cmake_minimum_required(VERSION 3.16...3.24 FATAL_ERROR)
 
 include(FetchContent)
 
+option(TOMATO_DEP_SDL_USE_SYSTEM "Prefer system provided SDL" OFF)
+
+if (TOMATO_DEP_SDL_USE_SYSTEM)
+	if (NOT TARGET SDL3::SDL3)
+		#find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+		find_package(SDL3 REQUIRED CONFIG GLOBAL QUIET)
+	endif()
+
+	if (TARGET SDL3::SDL3)
+		message(STATUS "found system SDL3")
+	else()
+		message(STATUS "system SDL3 not found")
+	endif()
+endif()
+
 if (NOT TARGET SDL3::SDL3)
+	message(STATUS "using bundled SDL3")
+	# bundle sdl static
 	set(SDL_SHARED OFF CACHE INTERNAL "")
 	set(SDL_STATIC ON CACHE INTERNAL "")
-	#TODO: pic ?
 	set(SDL_DISABLE_ANDROID_JAR OFF CACHE INTERNAL "")
 
 	FetchContent_Declare(SDL3

@@ -2,6 +2,26 @@ cmake_minimum_required(VERSION 3.16...3.24 FATAL_ERROR)
 
 include(FetchContent)
 
+option(TOMATO_DEP_SDL_IMAGE_USE_SYSTEM "Prefer system provided SDL_image" OFF)
+
+if (TOMATO_DEP_SDL_IMAGE_USE_SYSTEM)
+	if (NOT TARGET SDL3_image::SDL3_image)
+		find_package(SDL3_image REQUIRED CONFIG GLOBAL QUIET)
+	endif()
+
+	if (TARGET SDL3_image::SDL3_image)
+		message(STATUS "found system SDL3_image")
+	else()
+		message(STATUS "system SDL3_image not found")
+	endif()
+endif()
+
+if (SDLIMAGE_BACKEND_STB)
+	# mandatory security
+	# technically its only used if no proper libjpeg and libpng where found/configured
+	message(FATAL_ERROR "SDL3_image has the STBI backend enabled")
+endif()
+
 if (NOT TARGET SDL3_image::SDL3_image)
 	set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 	# TODO: make pr to make this an option
