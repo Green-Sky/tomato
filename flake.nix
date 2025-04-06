@@ -17,7 +17,7 @@
       flake = false;
     };
     sdl3_image = {
-      url = "github:libsdl-org/SDL_image/4ff27afa450eabd2a827e49ed86fab9e3bf826c5";
+      url = "github:libsdl-org/SDL_image/11154afb7855293159588b245b446a4ef09e574f";
       flake = false;
     };
     plutosvg = {
