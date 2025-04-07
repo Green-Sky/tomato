@@ -92,6 +92,13 @@ std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& inp
 	if (extra_options.count("quality")) {
 		quality = extra_options.at("quality");
 	}
+	bool lossless = false;
+	int compression_level = 6;
+	if (extra_options.count("compression_level")) {
+		// if compression_level is set, we assume lossless
+		lossless = true;
+		compression_level = extra_options.at("compression_level");
+	}
 
 	// start encoding
 
@@ -113,15 +120,20 @@ std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& inp
 		return {};
 	}
 
-	int prev_timestamp = 0;
-	for (const auto& frame : input_image.frames) {
-		WebPConfig config;
-		if (!WebPConfigPreset(&config, WebPPreset::WEBP_PRESET_DEFAULT, quality)) {
-			std::cerr << "IEWebP error: WebPConfigPreset()\n";
+	WebPConfig config;
+	if (!WebPConfigPreset(&config, WebPPreset::WEBP_PRESET_DEFAULT, quality)) {
+		std::cerr << "IEWebP error: WebPConfigPreset()\n";
+		return {};
+	}
+	if (lossless) {
+		if (!WebPConfigLosslessPreset(&config, compression_level)) {
+			std::cerr << "IEWebP error: WebPConfigLosslessPreset()\n";
 			return {};
 		}
-		//WebPConfigLosslessPreset(&config, 6); // 9 for max compression
+	}
 
+	int prev_timestamp = 0;
+	for (const auto& frame : input_image.frames) {
 		WebPPicture frame_webp;
 		if (!WebPPictureInit(&frame_webp)) {
 			std::cerr << "IEWebP error: WebPPictureInit()\n";
@@ -135,7 +147,7 @@ std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& inp
 		}
 
 		if (!WebPAnimEncoderAdd(enc.get(), &frame_webp, prev_timestamp, &config)) {
-			std::cerr << "IEWebP error: WebPAnimEncoderAdd()\n";
+			std::cerr << "IEWebP error: WebPAnimEncoderAdd(): " << frame_webp.error_code << "\n";
 			WebPPictureFree(&frame_webp);
 			return {};
 		}
