@@ -6,6 +6,7 @@ option(TOMATO_DEP_SDL_IMAGE_USE_SYSTEM "Prefer system provided SDL_image" OFF)
 
 if (TOMATO_DEP_SDL_IMAGE_USE_SYSTEM)
 	if (NOT TARGET SDL3_image::SDL3_image)
+		cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 		find_package(SDL3_image CONFIG GLOBAL QUIET)
 	endif()
 

@@ -6,6 +6,7 @@ option(TOMATO_DEP_SDL_USE_SYSTEM "Prefer system provided SDL" OFF)
 
 if (TOMATO_DEP_SDL_USE_SYSTEM)
 	if (NOT TARGET SDL3::SDL3)
+		cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 		#find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 		find_package(SDL3 CONFIG GLOBAL QUIET)
 	endif()

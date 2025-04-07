@@ -6,6 +6,7 @@ option(TOMATO_DEP_LIBWEBP_USE_SYSTEM "Prefer system provided libwebp" OFF)
 
 if (TOMATO_DEP_LIBWEBP_USE_SYSTEM)
 	if (NOT TARGET WebP::libwebpmux)
+		cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 		find_package(WebP CONFIG GLOBAL QUIET COMPONENTS webp webpdemux libwebpmux)
 	endif()
 
