@@ -6,7 +6,7 @@
   # $ nix bundle --bundler github:ralismark/nix-appimage 'git+file:///home/green/workspace/tox/tomato?submodules=1#'
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
     flake-utils.url = "github:numtide/flake-utils";
     nlohmann-json = {
       url = "github:nlohmann/json/v3.11.3"; # TODO: read version from file
@@ -80,7 +80,7 @@
           libjpeg
           libjxl
           libavif
-          #libwebp # still using our own loader
+          #libwebp # still using our own loader (probably will keep)
         ];
 
         buildInputs = with pkgs; [
