@@ -6,6 +6,11 @@
 #include <iostream>
 
 static std::optional<const char*> getExt(SDL_IOStream* ios) {
+	// blacklist:
+	// - tga
+	// - tiff
+	// - xcf
+
 	if (IMG_isAVIF(ios)) {
 		return "avif";
 	} else if (IMG_isCUR(ios)) {
@@ -30,10 +35,6 @@ static std::optional<const char*> getExt(SDL_IOStream* ios) {
 		return "pnm";
 	} else if (IMG_isSVG(ios)) {
 		return "svg";
-	} else if (IMG_isTIF(ios)) {
-		return "tiff";
-	} else if (IMG_isXCF(ios)) {
-		return "xcf";
 	} else if (IMG_isXPM(ios)) {
 		return "xpm";
 	} else if (IMG_isXV(ios)) {
@@ -52,14 +53,13 @@ ImageLoaderSDLImage::ImageInfo ImageLoaderSDLImage::loadInfoFromMemory(const uin
 
 	auto* ios = SDL_IOFromConstMem(data, data_size);
 
-	// we ignore tga
 	auto ext_opt = getExt(ios);
 	if (!ext_opt.has_value()) {
 		SDL_CloseIO(ios);
 		return res;
 	}
 
-	SDL_Surface* surf = IMG_Load_IO(ios, true);
+	SDL_Surface* surf = IMG_LoadTyped_IO(ios, true, ext_opt.value());
 	if (surf == nullptr) {
 		return res;
 	}
@@ -78,14 +78,13 @@ ImageLoaderSDLImage::ImageResult ImageLoaderSDLImage::loadFromMemoryRGBA(const u
 
 	auto* ios = SDL_IOFromConstMem(data, data_size);
 
-	// we ignore tga
 	auto ext_opt = getExt(ios);
 	if (!ext_opt.has_value()) {
 		SDL_CloseIO(ios);
 		return res;
 	}
 
-	IMG_Animation* anim = IMG_LoadAnimation_IO(ios, true);
+	IMG_Animation* anim = IMG_LoadAnimationTyped_IO(ios, true, ext_opt.value());
 	if (anim == nullptr) {
 		return res;
 	}
