@@ -194,6 +194,7 @@ target_link_libraries(tomato PUBLIC
 
 	stb_image
 	stb_image_write
+	WebP::webp
 	WebP::webpdemux
 	WebP::libwebpmux # the f why (needed for anim encode)
 	qoi
