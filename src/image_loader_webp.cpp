@@ -141,6 +141,9 @@ std::vector<uint8_t> ImageEncoderWebP::encodeToMemoryRGBA(const ImageResult& inp
 		}
 		frame_webp.width = input_image.width;
 		frame_webp.height = input_image.height;
+		if (lossless) {
+			frame_webp.use_argb = 1;
+		}
 		if (!WebPPictureImportRGBA(&frame_webp, frame.data.data(), 4*input_image.width)) {
 			std::cerr << "IEWebP error: WebPPictureImportRGBA()\n";
 			return {};
