@@ -1,0 +1,8 @@
+#pragma once
+
+#define TOMATO_VERSION_MAJOR @tomato_VERSION_MAJOR@
+#define TOMATO_VERSION_MINOR @tomato_VERSION_MINOR@
+#define TOMATO_VERSION_PATCH @tomato_VERSION_PATCH@
+
+#define TOMATO_VERSION_STR "@tomato_VERSION_MAJOR@.@tomato_VERSION_MINOR@.@tomato_VERSION_PATCH@"
+

@@ -169,6 +169,9 @@ if (TOMATO_TOX_AV)
 	target_compile_definitions(tomato PUBLIC TOMATO_TOX_AV)
 endif()
 
+configure_file(./version.hpp.in version.hpp @ONLY)
+target_include_directories(tomato PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+
 target_compile_features(tomato PUBLIC cxx_std_17)
 target_link_libraries(tomato PUBLIC
 	solanaceae_util

@@ -17,7 +17,8 @@ if(SdlAndroid_FOUND)
 
 
 	set(ANDROID_MANIFEST_PACKAGE "org.libsdl.app.tomato")
-	#set(generated_manifest_path "${CMAKE_CURRENT_BINARY_DIR}/android/${TEST}-src/AndroidManifest.xml")
+	set(generated_manifest_path "${CMAKE_CURRENT_BINARY_DIR}/android/app/AndroidManifest.xml")
+	configure_file("app/AndroidManifest.xml.in" generated_manifest_path @ONLY)
 	string(REPLACE "." "/" JAVA_PACKAGE_DIR "${ANDROID_MANIFEST_PACKAGE}")
 	#set(GENERATED_SRC_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/android/${TEST}-src")
 	#set(GENERATED_RES_FOLDER "${GENERATED_SRC_FOLDER}/res")
@@ -25,7 +26,7 @@ if(SdlAndroid_FOUND)
 	set(JAVA_PACKAGE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/app/java/${JAVA_PACKAGE_DIR}")
 
 	sdl_android_link_resources(tomato-apk-linked
-		MANIFEST "app/AndroidManifest.xml"
+		MANIFEST ${generated_manifest_path}
 		PACKAGE ${ANDROID_MANIFEST_PACKAGE}
 		RES_TARGETS tomato-resources
 		TARGET_SDK_VERSION 31

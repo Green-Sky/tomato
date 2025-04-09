@@ -6,6 +6,8 @@
 #include <imgui/backends/imgui_impl_sdlrenderer3.h>
 #include <implot.h>
 
+#include "version.hpp"
+
 #include "./theme.hpp"
 #include "./chat_gui/theme.hpp"
 
@@ -27,6 +29,8 @@
 int main(int argc, char** argv) {
 	runSysCheck();
 
+	std::cout << "tomato " TOMATO_VERSION_STR "\n";
+
 #ifdef TOMATO_BREAKPAD
 	// TODO: maybe run before sys check?
 	BREAKPAD_MAIN_INIT;
@@ -40,7 +44,7 @@ int main(int argc, char** argv) {
 	}
 
 
-	SDL_SetAppMetadata("tomato", "0.0.4-wip", nullptr);
+	SDL_SetAppMetadata("tomato", TOMATO_VERSION_STR, nullptr);
 
 #ifdef __ANDROID__
 	// change current working dir to internal storage
