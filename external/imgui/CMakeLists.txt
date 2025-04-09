@@ -24,7 +24,11 @@ target_compile_features(imgui PUBLIC cxx_std_11)
 if(DEFINED CMAKE_CXX_BYTE_ORDER)
 	if(CMAKE_CXX_BYTE_ORDER STREQUAL "BIG_ENDIAN")
 		# for opengl and sdlrenderer
-		target_compile_definitions(imgui PUBLIC IMGUI_USE_BGRA_PACKED_COLOR)
+		target_compile_definitions(imgui PUBLIC IM_COL32_R_SHIFT=24)
+		target_compile_definitions(imgui PUBLIC IM_COL32_G_SHIFT=16)
+		target_compile_definitions(imgui PUBLIC IM_COL32_B_SHIFT=8)
+		target_compile_definitions(imgui PUBLIC IM_COL32_A_SHIFT=0)
+		target_compile_definitions(imgui PUBLIC IM_COL32_A_MASK=0x000000ff)
 	endif()
 endif()
 
