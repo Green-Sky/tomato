@@ -26,7 +26,7 @@ if(DEFINED CMAKE_CXX_BYTE_ORDER)
 		# for opengl and sdlrenderer
 		target_compile_definitions(imgui PUBLIC IMGUI_USE_BGRA_PACKED_COLOR)
 	endif()
-else()
+endif()
 
 if (TARGET Freetype::Freetype)
 	message(STATUS "Freetype detected, enabling support in imgui")
