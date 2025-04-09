@@ -1336,11 +1336,12 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 				);
 
 				auto [id, img_width, img_height] = _b_tc.get(o);
-				ImGui::Image(
+				ImGui::ImageWithBg(
 					id,
 					bar_size,
 					{0.f, 0.f}, // default
 					{1.f, 1.f}, // default
+					{0.f, 0.f, 0.f, 0.f}, // sadly bg was moved before tint (???)
 					ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram)
 				);
 			}
