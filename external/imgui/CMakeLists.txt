@@ -21,6 +21,13 @@ add_library(imgui
 target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)
 target_compile_features(imgui PUBLIC cxx_std_11)
 
+if(DEFINED CMAKE_CXX_BYTE_ORDER)
+	if(CMAKE_CXX_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+		# for opengl and sdlrenderer
+		target_compile_definitions(imgui PUBLIC IMGUI_USE_BGRA_PACKED_COLOR)
+	endif()
+else()
+
 if (TARGET Freetype::Freetype)
 	message(STATUS "Freetype detected, enabling support in imgui")
 	target_sources(imgui PUBLIC
