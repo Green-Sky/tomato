@@ -17,8 +17,8 @@ if(SdlAndroid_FOUND)
 
 
 	set(ANDROID_MANIFEST_PACKAGE "org.libsdl.app.tomato")
-	set(generated_manifest_path "${CMAKE_CURRENT_BINARY_DIR}/android/app/AndroidManifest.xml")
-	configure_file("app/AndroidManifest.xml.in" generated_manifest_path @ONLY)
+	set(generated_manifest_path "${CMAKE_CURRENT_BINARY_DIR}/app/AndroidManifest.xml")
+	configure_file("app/AndroidManifest.xml.in" "${generated_manifest_path}" @ONLY)
 	string(REPLACE "." "/" JAVA_PACKAGE_DIR "${ANDROID_MANIFEST_PACKAGE}")
 	#set(GENERATED_SRC_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/android/${TEST}-src")
 	#set(GENERATED_RES_FOLDER "${GENERATED_SRC_FOLDER}/res")
