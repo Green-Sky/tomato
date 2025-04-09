@@ -105,22 +105,15 @@
           #"-DCMAKE_C_FLAGS:STRING=-Og"
           #"-DCMAKE_CXX_FLAGS:STRING=-Og"
 
-          # TODO: use package instead
           "-DFETCHCONTENT_SOURCE_DIR_JSON=${nlohmann-json}" # we care about the version
-          "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
-          #"-DFETCHCONTENT_SOURCE_DIR_LIBWEBP=${pkgs.libwebp.src}"
           "-DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON"
+          # TODO: use package instead
+          "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3_IMAGE=${sdl3_image}"
           "-DSDLIMAGE_JXL=ON"
           "-DFETCHCONTENT_SOURCE_DIR_PLUTOSVG=${plutosvg}" # not in pkgs
           "-DFETCHCONTENT_SOURCE_DIR_IMPLOT=${implot}" # could use pkgs.implot.src for outdated version
         ];
-
-        # TODO: replace with install command
-        installPhase = ''
-          mkdir -p $out/bin
-          mv bin/tomato $out/bin
-        '';
 
         dontStrip = true; # does nothing
 

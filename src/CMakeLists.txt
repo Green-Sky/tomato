@@ -221,3 +221,5 @@ target_link_libraries(test_frame_stream2_pop_reframer
 	solanaceae_util
 )
 
+install(TARGETS tomato)
+
