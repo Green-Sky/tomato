@@ -208,6 +208,8 @@ target_link_libraries(tomato PUBLIC
 
 set_target_properties(tomato PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+set_target_properties(tomato PROPERTIES VERSION "${tomato_VERSION_MAJOR}.${tomato_VERSION_MINOR}.${tomato_VERSION_PATCH}-${TOMATO_GIT_DEPTH}+git.${TOMATO_GIT_COMMIT}")
+
 ########################################
 
 add_executable(test_frame_stream2_pop_reframer EXCLUDE_FROM_ALL
