@@ -129,6 +129,9 @@ if(Git_FOUND)
     endif()
 endif()
 
+message(STATUS "tomato version: ")
+message(STATUS "${tomato_VERSION_MAJOR}.${tomato_VERSION_MINOR}.${tomato_VERSION_PATCH}-${TOMATO_GIT_DEPTH}+git.${TOMATO_GIT_COMMIT}")
+
 # cmake setup end
 
 add_subdirectory(./src)
