@@ -7,6 +7,8 @@ if (TOMATO_MAIN_SO)
 	target_compile_definitions(tomato PUBLIC TOMATO_MAIN_SO)
 else()
 	add_executable(tomato)
+
+	install(TARGETS tomato)
 endif()
 
 target_sources(tomato PUBLIC
@@ -220,6 +222,4 @@ add_executable(test_frame_stream2_pop_reframer EXCLUDE_FROM_ALL
 target_link_libraries(test_frame_stream2_pop_reframer
 	solanaceae_util
 )
-
-install(TARGETS tomato)
 
