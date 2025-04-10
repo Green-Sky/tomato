@@ -246,7 +246,7 @@ bool MainScreen::handleEvent(SDL_Event& e) {
 
 	if (
 		e.type == SDL_EVENT_WINDOW_SHOWN ||
-		//e.type == SDL_EVENT_WINDOW_RESTORED || // triggers on hide
+		e.type == SDL_EVENT_WINDOW_RESTORED || // required for android
 		e.type == SDL_EVENT_WINDOW_EXPOSED
 	) {
 		auto* window = SDL_GetWindowFromID(e.window.windowID);
