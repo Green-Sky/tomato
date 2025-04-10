@@ -29,7 +29,14 @@
 int main(int argc, char** argv) {
 	runSysCheck();
 
-	std::cout << "tomato " TOMATO_VERSION_STR "\n";
+	std::cout << "tomato " TOMATO_VERSION_STR;
+	if (TOMATO_GIT_DEPTH != 0) {
+		std::cout << "-" << TOMATO_GIT_DEPTH;
+	}
+	if (std::string_view{TOMATO_GIT_COMMIT} != "UNK") {
+		std::cout << "+git." << TOMATO_GIT_COMMIT;
+	}
+	std::cout << "\n";
 
 #ifdef TOMATO_BREAKPAD
 	// TODO: maybe run before sys check?

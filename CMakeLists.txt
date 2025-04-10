@@ -93,6 +93,42 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 	endif()
 endif()
 
+# TODO: move to cmake include (maybe function)
+set(TOMATO_GIT_DEPTH 0)
+set(TOMATO_GIT_COMMIT "UNK")
+
+find_package(Git QUIET)
+if(NOT Git_FOUND)
+    find_program(GIT_EXECUTABLE NAMES git git.exe)
+    if(GIT_EXECUTABLE)
+        set(Git_FOUND TRUE)
+        message(STATUS "Found Git: ${GIT_EXECUTABLE}")
+    endif()
+endif()
+
+if(Git_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_HEAD
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE RES
+    )
+    if (RES EQUAL 0)
+		set(TOMATO_GIT_COMMIT ${GIT_HEAD})
+    endif()
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_DEPTH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE RES
+    )
+    if (RES EQUAL 0)
+		set(TOMATO_GIT_DEPTH ${GIT_DEPTH})
+    endif()
+endif()
+
 # cmake setup end
 
 add_subdirectory(./src)
