@@ -205,6 +205,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 }
 
 MainScreen::~MainScreen(void) {
+	pm.stopAll();
 	// TODO: quit sdl audio
 }
 

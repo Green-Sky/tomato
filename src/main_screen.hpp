@@ -56,6 +56,8 @@ extern "C" {
 } // C
 
 struct MainScreen final : public Screen {
+	PluginManager pm; // first, so it gets destroyed last
+
 	SDL_Renderer* renderer;
 
 	ObjectStore2 os;
@@ -106,7 +108,6 @@ struct MainScreen final : public Screen {
 	StreamManagerUI smui;
 	DebugVideoTap dvt;
 
-	PluginManager pm; // last, so it gets destroyed first
 
 	bool _show_tool_style_editor {false};
 	bool _show_tool_metrics {false};
