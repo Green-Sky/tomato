@@ -2,9 +2,19 @@
 
 #include <filesystem>
 #include <functional>
+#include <optional>
+#include <future>
 
 struct FileSelector {
 	std::filesystem::path _current_file_path = std::filesystem::canonical(".") / ""; // add /
+
+	struct CachedData {
+		std::filesystem::path file_path; // can be used to check against current
+		std::vector<std::filesystem::directory_entry> dirs;
+		std::vector<std::filesystem::directory_entry> files;
+	};
+	std::optional<CachedData> _current_cache;
+	std::future<CachedData> _future_cache;
 
 	bool _open_popup {false};
 
@@ -16,6 +26,7 @@ struct FileSelector {
 
 	public:
 		FileSelector(void);
+		~FileSelector(void);
 
 		// TODO: supply hints
 		// HACK: until we supply hints, is_valid can modify

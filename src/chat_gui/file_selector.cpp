@@ -18,6 +18,12 @@ FileSelector::FileSelector(void) {
 	reset();
 }
 
+FileSelector::~FileSelector(void) {
+	if (_future_cache.valid()) {
+		_future_cache.get();
+	}
+}
+
 void FileSelector::requestFile(
 	std::function<bool(std::filesystem::path& path)>&& is_valid,
 	std::function<void(const std::filesystem::path& path)>&& on_choose,
@@ -101,140 +107,185 @@ void FileSelector::render(void) {
 			static const ImU32 dir_bg0_color = ImGui::GetColorU32(ImVec4(0.6, 0.6, 0.1, 0.15));
 			static const ImU32 dir_bg1_color = ImGui::GetColorU32(ImVec4(0.7, 0.7, 0.2, 0.15));
 
-			std::vector<std::filesystem::directory_entry> dirs;
-			std::vector<std::filesystem::directory_entry> files;
-			for (auto const& dir_entry : std::filesystem::directory_iterator(current_path)) {
-				if (dir_entry.is_directory()) {
-					dirs.push_back(dir_entry);
-				} else if (dir_entry.is_regular_file()) {
-					files.push_back(dir_entry);
+			bool start_new_collection_task {false};
+			if (_future_cache.valid()) {
+				if (_future_cache.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+					// data is ready
+					_current_cache = _future_cache.get();
+
+					// also queue a new one
+					start_new_collection_task = true;
 				}
+			} else {
+				start_new_collection_task = true;
 			}
 
-			try {
-				// do sorting here
-				// TODO: cache the result (lol)
-				if (ImGuiTableSortSpecs* sorts_specs = ImGui::TableGetSortSpecs(); sorts_specs != nullptr && sorts_specs->SpecsCount >= 1) {
-					switch (static_cast<SortID>(sorts_specs->Specs->ColumnUserID)) {
-						break; case SortID::name:
-							if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
-								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-									return a.path() < b.path();
-								});
-								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-									return a.path().filename() < b.path().filename();
-								});
-							} else {
-								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-									return a.path() > b.path();
-								});
-								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-									return a.path().filename() > b.path().filename();
-								});
-							}
-						break; case SortID::size:
-							if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
-								// TODO: sort dirs?
-								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-									return a.file_size() < b.file_size();
-								});
-							} else {
-								// TODO: sort dirs?
-								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-									return a.file_size() > b.file_size();
-								});
-							}
-						break; case SortID::date:
-							if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
-								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-									return a.last_write_time() < b.last_write_time();
-								});
-								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-									return a.last_write_time() < b.last_write_time();
-								});
-							} else {
-								std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
-									return a.last_write_time() > b.last_write_time();
-								});
-								std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
-									return a.last_write_time() > b.last_write_time();
-								});
-							}
-						break; default: ;
-					}
-				}
-			} catch (...) {
-				// we likely saw a file disapear
+			// check if cache still current
+			if (_current_cache.has_value() && _current_cache.value().file_path != current_path) {
+				// and drop it if not
+				_current_cache.reset();
 			}
 
-			for (auto const& dir_entry : dirs) {
-				if (ImGui::TableNextColumn()) {
-					if (tmp_id & 0x01) {
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, dir_bg0_color);
-					} else {
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, dir_bg1_color);
-					}
-					ImGui::PushID(tmp_id++);
-					if (ImGui::Selectable("D", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
-						_current_file_path = dir_entry.path() / "";
-					}
-					ImGui::PopID();
-				}
-
-				if (ImGui::TableNextColumn()) {
-					ImGui::TextUnformatted((dir_entry.path().filename().generic_u8string() + "/").c_str());
-				}
-
-				if (ImGui::TableNextColumn()) {
-					ImGui::TextDisabled("---");
-				}
-
-				if (ImGui::TableNextColumn()) {
-					const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-						dir_entry.last_write_time()
-						- decltype(dir_entry.last_write_time())::clock::now()
-						+ std::chrono::system_clock::now()
-					);
-					const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
-
-					const auto ltime = std::localtime(&ctime);
-					ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon + 1, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
-				}
-			}
-
-			// files
-			ImGuiListClipper files_clipper;
-			files_clipper.Begin(files.size());
-			while (files_clipper.Step()) {
-				for (int row = files_clipper.DisplayStart; row < files_clipper.DisplayEnd; row++) {
-					const auto& dir_entry = files.at(row);
-					if (ImGui::TableNextColumn()) {
-						ImGui::PushID(tmp_id++);
-						if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
-							_current_file_path = dir_entry.path();
+			if (start_new_collection_task) {
+				_future_cache = std::async(std::launch::async, [path = current_path, sorts_specs = ImGui::TableGetSortSpecs()](void) -> CachedData {
+					CachedData cd;
+					cd.file_path = path;
+					auto& dirs = cd.dirs;
+					auto& files = cd.files;
+					for (auto const& dir_entry : std::filesystem::directory_iterator(path)) {
+						if (dir_entry.is_directory()) {
+							dirs.push_back(dir_entry);
+						} else if (dir_entry.is_regular_file()) {
+							files.push_back(dir_entry);
 						}
-						ImGui::PopID();
 					}
 
-					if (ImGui::TableNextColumn()) {
-						ImGui::TextUnformatted(dir_entry.path().filename().generic_u8string().c_str());
+					try {
+						// do sorting here
+						if (sorts_specs != nullptr && sorts_specs->SpecsCount >= 1) {
+							switch (static_cast<SortID>(sorts_specs->Specs->ColumnUserID)) {
+								break; case SortID::name:
+									if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
+										std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+											return a.path() < b.path();
+										});
+										std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+											return a.path().filename() < b.path().filename();
+										});
+									} else {
+										std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+											return a.path() > b.path();
+										});
+										std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+											return a.path().filename() > b.path().filename();
+										});
+									}
+								break; case SortID::size:
+									if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
+										// TODO: sort dirs?
+										std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+											return a.file_size() < b.file_size();
+										});
+									} else {
+										// TODO: sort dirs?
+										std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+											return a.file_size() > b.file_size();
+										});
+									}
+								break; case SortID::date:
+									if (sorts_specs->Specs->SortDirection == ImGuiSortDirection_Descending) {
+										std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+											return a.last_write_time() < b.last_write_time();
+										});
+										std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+											return a.last_write_time() < b.last_write_time();
+										});
+									} else {
+										std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) -> bool {
+											return a.last_write_time() > b.last_write_time();
+										});
+										std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) -> bool {
+											return a.last_write_time() > b.last_write_time();
+										});
+									}
+								break; default: ;
+							}
+						}
+					} catch (...) {
+						// we likely saw a file disapear
 					}
 
-					if (ImGui::TableNextColumn()) {
-						ImGui::TextDisabled("%s", std::to_string(dir_entry.file_size()).c_str());
-					}
+					return cd;
+				});
+			}
 
-					if (ImGui::TableNextColumn()) {
-						const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-							dir_entry.last_write_time()
-							- decltype(dir_entry.last_write_time())::clock::now()
-							+ std::chrono::system_clock::now()
-						);
-						const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+			if (_current_cache.has_value()) {
+				const auto& dirs = _current_cache.value().dirs;
+				const auto& files = _current_cache.value().files;
 
-						const auto ltime = std::localtime(&ctime);
-						ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+				// dirs
+				ImGuiListClipper dirs_clipper;
+				dirs_clipper.Begin(dirs.size());
+				while (dirs_clipper.Step()) {
+					for (int row = dirs_clipper.DisplayStart; row < dirs_clipper.DisplayEnd; row++) {
+						const auto& dir_entry = dirs.at(row);
+						if (ImGui::TableNextColumn()) {
+							if (tmp_id & 0x01) {
+								ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, dir_bg0_color);
+							} else {
+								ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, dir_bg1_color);
+							}
+							ImGui::PushID(tmp_id++);
+							if (ImGui::Selectable("D", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
+								_current_file_path = dir_entry.path() / "";
+							}
+							ImGui::PopID();
+						}
+
+						if (ImGui::TableNextColumn()) {
+							ImGui::TextUnformatted((dir_entry.path().filename().generic_u8string() + "/").c_str());
+						}
+
+						if (ImGui::TableNextColumn()) {
+							ImGui::TextDisabled("---");
+						}
+
+						if (ImGui::TableNextColumn()) {
+							const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+								dir_entry.last_write_time()
+								- decltype(dir_entry.last_write_time())::clock::now()
+								+ std::chrono::system_clock::now()
+							);
+							const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+
+							const auto ltime = std::localtime(&ctime);
+							ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon + 1, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+						}
 					}
+				}
+
+				// files
+				ImGuiListClipper files_clipper;
+				files_clipper.Begin(files.size());
+				while (files_clipper.Step()) {
+					for (int row = files_clipper.DisplayStart; row < files_clipper.DisplayEnd; row++) {
+						const auto& file_entry = files.at(row);
+						if (ImGui::TableNextColumn()) {
+							ImGui::PushID(tmp_id++);
+							if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
+								_current_file_path = file_entry.path();
+							}
+							ImGui::PopID();
+						}
+
+						if (ImGui::TableNextColumn()) {
+							ImGui::TextUnformatted(file_entry.path().filename().generic_u8string().c_str());
+						}
+
+						if (ImGui::TableNextColumn()) {
+							ImGui::TextDisabled("%s", std::to_string(file_entry.file_size()).c_str());
+						}
+
+						if (ImGui::TableNextColumn()) {
+							const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+								file_entry.last_write_time()
+								- decltype(file_entry.last_write_time())::clock::now()
+								+ std::chrono::system_clock::now()
+							);
+							const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+
+							const auto ltime = std::localtime(&ctime);
+							ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+						}
+					}
+				}
+			} else {
+				// render loading placeholder
+				if (ImGui::TableNextColumn()) {
+					ImGui::TextUnformatted("-");
+				}
+				if (ImGui::TableNextColumn()) {
+					ImGui::TextUnformatted("... loading ...");
 				}
 			}
 

@@ -25,7 +25,9 @@ void ImageViewerPopup::render(float) {
 		ImGui::OpenPopup("Image##ImageViewerPopup");
 	}
 
-	if (!ImGui::BeginPopup("Image##ImageViewerPopup", ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+	// TODO: remplace with modal(?), pop up i limited to viewport in size
+	// or replace with fixed window where the image can be moved
+	if (!ImGui::BeginPopup("Image##ImageViewerPopup", ImGuiWindowFlags_NoDecoration)) {
 		_m = {}; // meh, event on close would be nice, but the reset is cheap
 		_scale = 1.f;
 		return;
