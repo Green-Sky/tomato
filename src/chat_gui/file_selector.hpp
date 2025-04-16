@@ -6,7 +6,7 @@
 #include <future>
 
 struct FileSelector {
-	std::filesystem::path _current_file_path = std::filesystem::canonical(".") / ""; // add /
+	std::filesystem::path _current_file_path;
 
 	struct CachedData {
 		std::filesystem::path file_path; // can be used to check against current
