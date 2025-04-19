@@ -138,15 +138,15 @@ void FileSelector::render(void) {
 					cd.file_path = path;
 					auto& dirs = cd.dirs;
 					auto& files = cd.files;
-					for (auto const& dir_entry : std::filesystem::directory_iterator(path)) {
-						if (dir_entry.is_directory()) {
-							dirs.push_back(dir_entry);
-						} else if (dir_entry.is_regular_file()) {
-							files.push_back(dir_entry);
-						}
-					}
-
 					try {
+						for (auto const& dir_entry : std::filesystem::directory_iterator(path)) {
+							if (dir_entry.is_directory()) {
+								dirs.push_back(dir_entry);
+							} else if (dir_entry.is_regular_file()) {
+								files.push_back(dir_entry);
+							}
+						}
+
 						// do sorting here
 						if (sorts_specs != nullptr && sorts_specs->SpecsCount >= 1) {
 							switch (static_cast<SortID>(sorts_specs->Specs->ColumnUserID)) {
@@ -197,8 +197,9 @@ void FileSelector::render(void) {
 								break; default: ;
 							}
 						}
-					} catch (...) {
+					} catch (std::filesystem::filesystem_error const& ex) {
 						// we likely saw a file disapear
+						std::cerr << "FS thread exception: " << ex.what() << "\n";
 					}
 
 					return cd;
