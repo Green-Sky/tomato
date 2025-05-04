@@ -2,6 +2,9 @@
 
 #include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/contact/fwd.hpp>
+#include <solanaceae/tox_contacts/tox_contact_model2.hpp>
+
+#include "./backends/std_fs.hpp"
 
 #include <string>
 #include <vector>
@@ -17,6 +20,9 @@ class ToxAvatarManager : public ObjectStoreEventI {
 	ObjectStore2::SubscriptionReference _os_sr;
 	ContactStore4I& _cs;
 	ConfigModelI& _conf;
+	ToxContactModel2& _tcm;
+
+	Backends::STDFS _sb_tcs;
 
 	struct AcceptEntry {
 		ObjectHandle m;
@@ -28,7 +34,8 @@ class ToxAvatarManager : public ObjectStoreEventI {
 		ToxAvatarManager(
 			ObjectStore2& os,
 			ContactStore4I& cs,
-			ConfigModelI& conf
+			ConfigModelI& conf,
+			ToxContactModel2& tcm
 		);
 
 		void iterate(void);
@@ -36,12 +43,15 @@ class ToxAvatarManager : public ObjectStoreEventI {
 	protected:
 		// TODO: become backend and work in objects instead
 		std::string getAvatarPath(const ToxKey& key) const;
+		std::string getAvatarFileName(const ToxKey& key) const;
 		void addAvatarFileToContact(const Contact4 c, const ToxKey& key);
 		void clearAvatarFromContact(const Contact4 c);
 		void checkObj(ObjectHandle o);
 
 	protected: // os
+		// on new obj, check for ToxTransferFriend and emplace own contact tracker
 		bool onEvent(const ObjectStore::Events::ObjectConstruct& e) override;
 		bool onEvent(const ObjectStore::Events::ObjectUpdate& e) override;
+		bool onEvent(const ObjectStore::Events::ObjectDestory& e) override;
 };
 

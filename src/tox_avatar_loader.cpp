@@ -8,6 +8,9 @@
 #include <solanaceae/contact/contact_store_i.hpp>
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/tox_contacts/components.hpp>
+#include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/object_store/meta_components_file.hpp>
+#include <solanaceae/file/file2.hpp>
 
 #include <entt/entity/registry.hpp>
 
@@ -18,7 +21,82 @@
 #include <cassert>
 #include <vector>
 
-ToxAvatarLoader::ToxAvatarLoader(ContactStore4I& cs) : _cs(cs) {
+ByteSpanWithOwnership ToxAvatarLoader::loadDataFromObj(Contact4 cv) {
+	auto c = _cs.contactHandle(cv);
+	auto o = _os.objectHandle(c.get<Contact::Components::AvatarObj>().obj);
+	if (!static_cast<bool>(o)) {
+		std::cerr << "TAL error: avatar object set, but invalid\n";
+		return ByteSpan{};
+	}
+
+	if (!o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+		return ByteSpan{}; // we dont have all data
+	}
+
+	if (!o.all_of<ObjComp::Ephemeral::BackendFile2, ObjComp::F::SingleInfo>()) {
+		std::cerr << "TAL error: object missing file backend/file info (?)\n";
+		return ByteSpan{};
+	}
+
+	// TODO: handle collections
+	const auto file_size = o.get<ObjComp::F::SingleInfo>().file_size;
+	if (file_size > 2*1024*1024) {
+		std::cerr << "TAL error: image file too large (" << file_size << " > 2MiB)\n";
+		return ByteSpan{};
+	}
+
+	auto* file_backend = o.get<ObjComp::Ephemeral::BackendFile2>().ptr;
+	if (file_backend == nullptr) {
+		std::cerr << "TAL error: object backend nullptr\n";
+		return ByteSpan{};
+	}
+
+	auto file2 = file_backend->file2(o, StorageBackendIFile2::FILE2_READ);
+	if (!file2 || !file2->isGood() || !file2->can_read) {
+		std::cerr << "TAL error: creating file2 from object via backendI\n";
+		return ByteSpan{};
+	}
+
+	auto read_data = file2->read(file_size, 0);
+	if (read_data.ptr == nullptr) {
+		std::cerr << "TAL error: reading from file2 returned nullptr\n";
+		return ByteSpan{};
+	}
+
+	if (read_data.size != file_size) {
+		std::cerr << "TAL error: reading from file2 size missmatch, should be " << file_size << ", is " << read_data.size << "\n";
+		return ByteSpan{};
+	}
+
+	return read_data;
+}
+
+ByteSpanWithOwnership ToxAvatarLoader::loadData(Contact4 cv) {
+	auto c = _cs.contactHandle(cv);
+	if (c.all_of<Contact::Components::AvatarFile>()) {
+		// TODO: factor out
+		const auto& a_f = c.get<Contact::Components::AvatarFile>();
+
+		std::vector<uint8_t> tmp_buffer;
+		std::ifstream file(a_f.file_path, std::ios::binary);
+		if (file.is_open()) {
+			tmp_buffer = std::vector<uint8_t>{};
+			while (file.good()) {
+				auto ch = file.get();
+				if (ch == EOF) {
+					break;
+				} else {
+					tmp_buffer.push_back(ch);
+				}
+			}
+		}
+		return tmp_buffer;
+	} else { // obj assumed
+		return loadDataFromObj(cv);
+	}
+}
+
+ToxAvatarLoader::ToxAvatarLoader(ContactStore4I& cs, ObjectStore2& os) : _cs(cs), _os(os) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
@@ -142,24 +220,13 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact4 c) {
 		return {new_entry};
 	}
 
-	if (cr.all_of<Contact::Components::AvatarFile>(c)) {
-		const auto& a_f = cr.get<Contact::Components::AvatarFile>(c);
+	if (cr.any_of<Contact::Components::AvatarFile, Contact::Components::AvatarObj>(c)) {
+		const auto tmp_buffer = loadData(c);
 
-		std::ifstream file(a_f.file_path, std::ios::binary);
-		if (file.is_open()) {
-			std::vector<uint8_t> tmp_buffer;
-			while (file.good()) {
-				auto ch = file.get();
-				if (ch == EOF) {
-					break;
-				} else {
-					tmp_buffer.push_back(ch);
-				}
-			}
-
+		if (!tmp_buffer.empty()) {
 			// try all loaders after another
 			for (auto& il : _image_loaders) {
-				auto res = il->loadFromMemoryRGBA(tmp_buffer.data(), tmp_buffer.size());
+				auto res = il->loadFromMemoryRGBA(tmp_buffer.ptr, tmp_buffer.size);
 				if (res.frames.empty() || res.height == 0 || res.width == 0) {
 					continue;
 				}
@@ -176,7 +243,11 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact4 c) {
 				new_entry.width = res.width;
 				new_entry.height = res.height;
 
-				std::cout << "TAL: loaded image file " << a_f.file_path << "\n";
+				if (cr.all_of<Contact::Components::AvatarFile>(c)) {
+					std::cout << "TAL: loaded image file " << cr.get<Contact::Components::AvatarFile>(c).file_path << "\n";
+				} else {
+					std::cout << "TAL: loaded image object " << entt::to_integral(cr.get<Contact::Components::AvatarObj>(c).obj) << "\n";
+				}
 
 				return {new_entry};
 			}

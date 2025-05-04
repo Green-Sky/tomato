@@ -30,6 +30,9 @@ target_sources(tomato PUBLIC
 	./main_screen.hpp
 	./main_screen.cpp
 
+	./backends/std_fs.hpp
+	./backends/std_fs.cpp
+
 	./tox_client.hpp
 	./tox_client.cpp
 	./auto_dirty.hpp
