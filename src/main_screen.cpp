@@ -55,7 +55,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 #endif
 	theme(theme_),
 	mmil(rmm),
-	tam(os, cs, conf, tcm),
+	tam(os, cs, conf),
 	sdlrtu(renderer_),
 	tal(cs, os),
 	contact_tc(tal, sdlrtu),

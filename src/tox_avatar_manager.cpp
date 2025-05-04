@@ -33,9 +33,8 @@ namespace Components {
 ToxAvatarManager::ToxAvatarManager(
 	ObjectStore2& os,
 	ContactStore4I& cs,
-	ConfigModelI& conf,
-	ToxContactModel2& tcm
-) : _os(os), _os_sr(_os.newSubRef(this)), _cs(cs), _conf(conf), _tcm(tcm), _sb_tcs(os) {
+	ConfigModelI& conf
+) : _os(os), _os_sr(_os.newSubRef(this)), _cs(cs), _conf(conf), _sb_tcs(os) {
 	_os_sr
 		.subscribe(ObjectStore_Event::object_construct)
 		.subscribe(ObjectStore_Event::object_update)

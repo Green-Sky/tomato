@@ -20,7 +20,6 @@ class ToxAvatarManager : public ObjectStoreEventI {
 	ObjectStore2::SubscriptionReference _os_sr;
 	ContactStore4I& _cs;
 	ConfigModelI& _conf;
-	ToxContactModel2& _tcm;
 
 	Backends::STDFS _sb_tcs;
 
@@ -34,8 +33,7 @@ class ToxAvatarManager : public ObjectStoreEventI {
 		ToxAvatarManager(
 			ObjectStore2& os,
 			ContactStore4I& cs,
-			ConfigModelI& conf,
-			ToxContactModel2& tcm
+			ConfigModelI& conf
 		);
 
 		void iterate(void);
