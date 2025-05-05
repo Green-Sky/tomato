@@ -54,6 +54,7 @@ ToxAvatarManager::ToxAvatarManager(
 	{ // scan tox contacts for cached avatars
 		// old sts says pubkey.png
 
+#if 0
 		_cs.registry().view<Contact::Components::ToxFriendPersistent>().each([this](auto c, const Contact::Components::ToxFriendPersistent& tox_pers) {
 			// try
 			addAvatarFileToContact(c, tox_pers.key);
@@ -63,6 +64,13 @@ ToxAvatarManager::ToxAvatarManager(
 			// try
 			addAvatarFileToContact(c, tox_pers.chat_id);
 		});
+#else
+		// HACK: assumed id is pubkey
+		_cs.registry().view<Contact::Components::ID>().each([this](auto c, const Contact::Components::ID& id) {
+			// try
+			addAvatarFileToContact(c, id.data);
+		});
+#endif
 
 		// TODO: also for group peers?
 		// TODO: conf?

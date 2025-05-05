@@ -2,7 +2,6 @@
 
 #include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/contact/fwd.hpp>
-#include <solanaceae/tox_contacts/tox_contact_model2.hpp>
 
 #include "./backends/std_fs.hpp"
 
