@@ -193,7 +193,7 @@ bool ToxAvatarSender::onEvent(const ContactStore::Events::Contact4Update& e) {
 			_queue.erase(it);
 		} else if (it->ls != current_state) {
 			// state changed, reset timer
-			it->timer = 21.33f;
+			it->timer = 61.33f;
 		}
 	} else if (e.e.get<Contact::Components::ConnectionState>().state != Contact::Components::ConnectionState::disconnected) {
 		addToQueue(e.e);

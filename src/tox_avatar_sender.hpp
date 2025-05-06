@@ -24,7 +24,7 @@ class ToxAvatarSender : public ContactStore4EventI, public RegistryMessageModelE
 	struct Entry {
 		ContactHandle4 c;
 		Contact::Components::ConnectionState::State ls;
-		float timer {23.122f};
+		float timer {62.122f};
 	};
 	std::vector<Entry> _queue;
 
