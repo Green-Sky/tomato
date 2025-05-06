@@ -2,6 +2,7 @@
 
 #include <solanaceae/object_store/object_store.hpp>
 #include <solanaceae/contact/fwd.hpp>
+#include <solanaceae/toxcore/tox_interface.hpp>
 
 #include "./backends/std_fs.hpp"
 
@@ -19,6 +20,7 @@ class ToxAvatarManager : public ObjectStoreEventI {
 	ObjectStore2::SubscriptionReference _os_sr;
 	ContactStore4I& _cs;
 	ConfigModelI& _conf;
+	ToxI& _t;
 
 	Backends::STDFS _sb_tcs;
 
@@ -32,7 +34,8 @@ class ToxAvatarManager : public ObjectStoreEventI {
 		ToxAvatarManager(
 			ObjectStore2& os,
 			ContactStore4I& cs,
-			ConfigModelI& conf
+			ConfigModelI& conf,
+			ToxI& t
 		);
 
 		void iterate(void);

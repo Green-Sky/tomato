@@ -69,6 +69,8 @@ target_sources(tomato PUBLIC
 
 	./tox_avatar_manager.hpp
 	./tox_avatar_manager.cpp
+	./tox_avatar_sender.hpp
+	./tox_avatar_sender.cpp
 
 	./media_meta_info_loader.hpp
 	./media_meta_info_loader.cpp

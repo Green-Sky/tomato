@@ -15,6 +15,7 @@
 #include <solanaceae/tox_contacts/components.hpp>
 
 #include <solanaceae/util/utils.hpp>
+#include <solanaceae/file/file2.hpp>
 
 #include <filesystem>
 #include <string_view>
@@ -33,8 +34,9 @@ namespace Components {
 ToxAvatarManager::ToxAvatarManager(
 	ObjectStore2& os,
 	ContactStore4I& cs,
-	ConfigModelI& conf
-) : _os(os), _os_sr(_os.newSubRef(this)), _cs(cs), _conf(conf), _sb_tcs(os) {
+	ConfigModelI& conf,
+	ToxI& t
+) : _os(os), _os_sr(_os.newSubRef(this)), _cs(cs), _conf(conf), _t(t), _sb_tcs(os) {
 	_os_sr
 		.subscribe(ObjectStore_Event::object_construct)
 		.subscribe(ObjectStore_Event::object_update)
@@ -125,6 +127,20 @@ void ToxAvatarManager::addAvatarFileToContact(const Contact4 c, const ToxKey& ke
 		getAvatarFileName(key),
 		std::filesystem::file_size(file_path)
 	);
+
+	{ // toxhash for tox file id, so the remote can optimize cached files
+		auto file = o.get<ObjComp::Ephemeral::BackendFile2>().ptr->file2(o, StorageBackendIFile2::FILE2_READ);
+		if (file) {
+			auto file_buf = file->read(o.get<ObjComp::F::SingleInfo>().file_size);
+			// HACK: tox interface needs bytespan
+			if (file_buf.isOwning()) {
+				o.emplace_or_replace<ObjComp::Tox::FileID>(_t.toxHash(file_buf._data_owner));
+			} else {
+				// TODO: tox bytespan !!
+				o.emplace_or_replace<ObjComp::Tox::FileID>(_t.toxHash(std::vector<uint8_t>(file_buf.cbegin(), file_buf.cend())));
+			}
+		}
+	}
 
 	_os.throwEventConstruct(o);
 

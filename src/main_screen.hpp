@@ -23,6 +23,7 @@
 
 #include "./media_meta_info_loader.hpp"
 #include "./tox_avatar_manager.hpp"
+#include "./tox_avatar_sender.hpp"
 
 #include "./sdlrenderer_texture_uploader.hpp"
 #include "./texture_cache.hpp"
@@ -88,6 +89,7 @@ struct MainScreen final : public Screen {
 
 	MediaMetaInfoLoader mmil;
 	ToxAvatarManager tam;
+	ToxAvatarSender tas;
 
 	SDLRendererTextureUploader sdlrtu;
 	//OpenGLTextureUploader ogltu;

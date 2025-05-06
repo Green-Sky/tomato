@@ -16,7 +16,7 @@ void FileSelector::reset(void) {
 
 FileSelector::FileSelector(void) {
 	try {
-		_current_file_path = std::filesystem::current_path();
+		_current_file_path = std::filesystem::current_path() / "";
 	} catch (std::filesystem::filesystem_error const& ex) {
 		std::cerr << "FS: exception creating _current_file_path: " << ex.what() << "\n";
 	}

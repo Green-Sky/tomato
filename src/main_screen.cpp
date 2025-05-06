@@ -55,7 +55,8 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 #endif
 	theme(theme_),
 	mmil(rmm),
-	tam(os, cs, conf),
+	tam(os, cs, conf, tc),
+	tas(os, cs, rmm),
 	sdlrtu(renderer_),
 	tal(cs, os),
 	contact_tc(tal, sdlrtu),
@@ -604,6 +605,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	const float fo_interval = tffom.tick(time_delta);
 
 	tam.iterate(); // compute
+	tas.iterate(time_delta);
 
 	const float pm_interval = pm.tick(time_delta); // compute
 
