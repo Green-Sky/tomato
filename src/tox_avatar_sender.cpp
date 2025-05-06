@@ -57,6 +57,7 @@ bool ToxAvatarSender::inQueue(ContactHandle4 c) const {
 
 void ToxAvatarSender::addToQueue(ContactHandle4 c) {
 	assert(!inQueue(c));
+	std::cout << "TAS: adding to queue " << entt::to_integral(c.entity()) << "\n";
 	_queue.push_back({
 		c,
 		c.get<Contact::Components::ConnectionState>().state
@@ -83,16 +84,24 @@ void ToxAvatarSender::sendAvatar(ContactHandle4 c) {
 	}
 
 	const auto ao = self_c.get<Contact::Components::AvatarObj>().obj;
-
-	// .... ?
-	// duplicate object?
-	// a single object can only ever be one transfer (meh)
-	// TODO: make object multi transfer-able (enforce)
 	auto self_o = _os.objectHandle(ao);
 	if (!static_cast<bool>(self_o)) {
 		std::cerr << "TAS error: self avatar obj not real?\n";
 		return;
 	}
+
+	if (self_o.all_of<ObjComp::F::SingleInfo>()) {
+		if (self_o.get<ObjComp::F::SingleInfo>().file_size > 64*1024) {
+			std::cerr << "TAS error: self avatar obj is too large\n";
+			return;
+		}
+	}
+
+	// .... ?
+	// duplicate object?
+	// a single object can only ever be one transfer (meh)
+	// TODO: make object multi transfer-able (enforce)
+
 	// TODO: move to tox avatar specific backend
 	// HACK: manual clone
 	// using self_o meta backend newObject() should emplace the file backend too
@@ -117,13 +126,13 @@ void ToxAvatarSender::sendAvatar(ContactHandle4 c) {
 
 	_os.throwEventConstruct(new_o); // ?
 
-	if (!_rmm.sendFileObj(c, new_o)) {
+	if (_rmm.sendFileObj(c, new_o)) {
+		c.emplace_or_replace<Components::TagAvatarOffered>();
+	} else {
 		std::cerr << "TAS error: failed to send avatar file obj\n";
 		_os.throwEventDestroy(new_o);
 		new_o.destroy();
 	}
-
-	c.emplace_or_replace<Components::TagAvatarOffered>();
 }
 
 ToxAvatarSender::ToxAvatarSender(ObjectStore2& os, ContactStore4I& cs, RegistryMessageModelI& rmm) :
@@ -190,8 +199,10 @@ bool ToxAvatarSender::onEvent(const ContactStore::Events::Contact4Update& e) {
 		// check if connections state changed and reset timer
 		const auto current_state = e.e.get<Contact::Components::ConnectionState>().state;
 		if (current_state == Contact::Components::ConnectionState::disconnected) {
+			std::cout << "TAS: removing from queue " << entt::to_integral(e.e.entity()) << "\n";
 			_queue.erase(it);
 		} else if (it->ls != current_state) {
+			std::cout << "TAS: resetting timer " << entt::to_integral(e.e.entity()) << "\n";
 			// state changed, reset timer
 			it->timer = 61.33f;
 		}
@@ -207,6 +218,7 @@ bool ToxAvatarSender::onEvent(const ContactStore::Events::Contact4Destory& e) {
 	// queue is assumed to be short
 	auto it = std::find_if(_queue.begin(), _queue.end(), [c = e.e](const Entry& en) { return en.c == c; });
 	if (it != _queue.end()) {
+		std::cout << "TAS: removing from queue " << entt::to_integral(e.e.entity()) << "\n";
 		_queue.erase(it);
 	}
 
