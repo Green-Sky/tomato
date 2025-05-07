@@ -21,7 +21,7 @@ jobs:
         submodules: recursive
 
     - name: Install Dependencies
-      run: sudo apt update && sudo apt -y install libsodium-dev cmake libxext-dev
+      run: sudo apt update && sudo apt -y install libsodium-dev cmake libx11-dev libxext-dev libxrandr-dev 
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
