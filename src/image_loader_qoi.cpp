@@ -137,11 +137,6 @@ std::vector<uint8_t> ImageEncoderQOI::encodeToMemoryRGBA(const ImageResult& inpu
 		return {};
 	}
 
-	if (input_image.frames.size() > 1) {
-		std::cerr << "IEQOI warning: image with animation, only first frame will be encoded!\n";
-		return {};
-	}
-
 	// TODO: look into RDO (eg https://github.com/richgel999/rdopng)
 	//int png_compression_level = 8;
 	//if (extra_options.count("png_compression_level")) {
@@ -154,21 +149,29 @@ std::vector<uint8_t> ImageEncoderQOI::encodeToMemoryRGBA(const ImageResult& inpu
 	desc.channels = 4;
 	desc.colorspace = QOI_SRGB; // TODO: decide
 
-	int out_len {0};
-	uint8_t* enc_data = static_cast<uint8_t*>(qoi_encode(
-		input_image.frames.front().data.data(),
-		&desc,
-		&out_len
-	));
+	std::vector<uint8_t> new_data;
+	for (const auto& frame : input_image.frames) {
+		int out_len {0};
+		uint8_t* enc_data = static_cast<uint8_t*>(qoi_encode(
+			frame.data.data(),
+			&desc,
+			&out_len
+		));
 
-	if (enc_data == nullptr) {
-		std::cerr << "IEQOI error: qoi_encode failed!\n";
-		return {};
+		if (enc_data == nullptr) {
+			std::cerr << "IEQOI error: qoi_encode failed!\n";
+			break;
+		}
+
+		// qoi_pipe like animation support. simple concatination of images
+		if (new_data.empty()) {
+			new_data = std::vector<uint8_t>(enc_data, enc_data+out_len);
+		} else {
+			new_data.insert(new_data.cend(), enc_data, enc_data+out_len);
+		}
+
+		free(enc_data); // TODO: a streaming encoder would be better
 	}
-
-	std::vector<uint8_t> new_data(enc_data, enc_data+out_len);
-
-	free(enc_data); // TODO: a streaming encoder would be better
 
 	return new_data;
 }
