@@ -23,7 +23,7 @@ jobs:
         fetch-depth: 0
 
     - name: Install Dependencies
-      run: sudo apt update && sudo apt -y install libsodium-dev cmake libvpx-dev libopus-dev
+      run: sudo apt update && sudo apt -y install libsodium-dev cmake libasound2-dev libpulse-dev libjack-dev libsndio-dev libpipewire-0.3-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev libvpx-dev libopus-dev liburing-dev
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON -DCMAKE_EXE_LINKER_FLAGS=-gz
