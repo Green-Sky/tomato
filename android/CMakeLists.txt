@@ -4,6 +4,7 @@ project(tomato_android)
 
 # here be dragons
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${SDL3_SOURCE_DIR}/cmake/android")
 
 find_package(SdlAndroid MODULE)
@@ -11,8 +12,18 @@ find_package(Java)
 find_package(SdlAndroidPlatform MODULE)
 # the existence of SDL3::Jar usually implies platform
 if(SdlAndroid_FOUND)
+	include(TomatoAndroidFunctions)
 	include(SdlAndroidFunctions)
-	sdl_create_android_debug_keystore(tomato-debug-keystore)
+
+	# TODO: make more generic
+	option(TOMATO_ANDROID_HAVE_DEBUG_KEYSTORE "we provide tomato-debug-keystore.keystore" OFF)
+	if (${TOMATO_ANDROID_HAVE_DEBUG_KEYSTORE})
+		tomato_load_android_keystore(tomato-debug-keystore)
+	else()
+		# fallback to generating a new keystore
+		sdl_create_android_debug_keystore(tomato-debug-keystore)
+	endif()
+
 	sdl_android_compile_resources(tomato-resources RESFOLDER app/res)
 
 
