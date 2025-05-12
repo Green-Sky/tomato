@@ -1,8 +1,10 @@
 #include "./image_loader_qoi.hpp"
 
 #include <qoi/qoi.h>
+#include <qoirdo.hpp>
 
 #include <cstdint>
+#include <mutex>
 #include <cassert>
 
 #include <iostream>
@@ -131,7 +133,7 @@ ImageLoaderQOI::ImageResult ImageLoaderQOI::loadFromMemoryRGBA(const uint8_t* da
 	return res;
 }
 
-std::vector<uint8_t> ImageEncoderQOI::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>&) {
+std::vector<uint8_t> ImageEncoderQOI::encodeToMemoryRGBA(const ImageResult& input_image, const std::map<std::string, float>& extra_options) {
 	if (input_image.frames.empty()) {
 		std::cerr << "IEQOI error: empty image\n";
 		return {};
@@ -143,34 +145,77 @@ std::vector<uint8_t> ImageEncoderQOI::encodeToMemoryRGBA(const ImageResult& inpu
 		//png_compression_level = extra_options.at("png_compression_level");
 	//}
 
-	qoi_desc desc;
-	desc.width = input_image.width;
-	desc.height = input_image.height;
-	desc.channels = 4;
-	desc.colorspace = QOI_SRGB; // TODO: decide
+	bool lossless = true;
+	int quality = 90;
+	if (extra_options.count("quality")) {
+		lossless = false;
+		quality = extra_options.at("quality");
+	}
 
 	std::vector<uint8_t> new_data;
-	for (const auto& frame : input_image.frames) {
-		int out_len {0};
-		uint8_t* enc_data = static_cast<uint8_t*>(qoi_encode(
-			frame.data.data(),
-			&desc,
-			&out_len
-		));
+	if (lossless) {
+		qoi_desc desc;
+		desc.width = input_image.width;
+		desc.height = input_image.height;
+		desc.channels = 4;
+		desc.colorspace = QOI_SRGB; // TODO: decide
 
-		if (enc_data == nullptr) {
-			std::cerr << "IEQOI error: qoi_encode failed!\n";
-			break;
+		for (const auto& frame : input_image.frames) {
+			int out_len {0};
+			uint8_t* enc_data = static_cast<uint8_t*>(qoi_encode(
+				frame.data.data(),
+				&desc,
+				&out_len
+			));
+
+			if (enc_data == nullptr) {
+				std::cerr << "IEQOI error: qoi_encode failed!\n";
+				break;
+			}
+
+			// qoi_pipe like animation support. simple concatination of images
+			if (new_data.empty()) {
+				new_data = std::vector<uint8_t>(enc_data, enc_data+out_len);
+			} else {
+				new_data.insert(new_data.cend(), enc_data, enc_data+out_len);
+			}
+
+			free(enc_data); // TODO: a streaming encoder would be better
+		}
+	} else { // rdo
+		// current rdo is not thread safe
+		static std::mutex rdo_mutex{};
+		std::lock_guard lg{rdo_mutex};
+		init_qoi_rdo();
+
+		// TODO: merge with qoi?
+		qoi_rdo_desc desc;
+		desc.width = input_image.width;
+		desc.height = input_image.height;
+		desc.channels = 4;
+		desc.colorspace = QOI_SRGB; // TODO: decide
+
+		for (const auto& frame : input_image.frames) {
+			auto enc_data = encode_qoi_rdo_simple(
+				frame.data.data(),
+				desc,
+				quality
+			);
+
+			if (enc_data.empty()) {
+				std::cerr << "IEQOI error: encode_qoi_rdo_simple failed!\n";
+				break;
+			}
+
+			// qoi_pipe like animation support. simple concatination of images
+			if (new_data.empty()) {
+				new_data = enc_data;
+			} else {
+				new_data.insert(new_data.cend(), enc_data.cbegin(), enc_data.cend());
+			}
 		}
 
-		// qoi_pipe like animation support. simple concatination of images
-		if (new_data.empty()) {
-			new_data = std::vector<uint8_t>(enc_data, enc_data+out_len);
-		} else {
-			new_data.insert(new_data.cend(), enc_data, enc_data+out_len);
-		}
-
-		free(enc_data); // TODO: a streaming encoder would be better
+		quit_qoi_rdo();
 	}
 
 	return new_data;

@@ -25,6 +25,7 @@ add_subdirectory(./implot)
 add_subdirectory(./stb)
 add_subdirectory(./libwebp)
 add_subdirectory(./qoi)
+add_subdirectory(./libqoirdo)
 add_subdirectory(./sdl_image)
 
 if (TOMATO_BREAKPAD)

@@ -473,12 +473,12 @@ void SendImagePopup::render(float time_delta) {
 
 	if (compress) {
 		ImGui::SameLine();
-		ImGui::Combo("##compression_type", &current_compressor, "webp\0webp lossless\0jpeg\0png\0qoi\0");
+		ImGui::Combo("##compression_type", &current_compressor, "webp\0webp lossless\0jpeg\0png\0qoi\0qoi lossy\0");
 
 		ImGui::Indent();
 		// combo "webp""webp-lossless""png""jpg?"
 		// if lossy quality slider (1-100) default 80
-		if (current_compressor == 0 || current_compressor == 2) {
+		if (current_compressor == 0 || current_compressor == 2 || current_compressor == 5) {
 			const uint32_t qmin = 1;
 			const uint32_t qmax = 100;
 			recalc_size |= ImGui::SliderScalar("quality", ImGuiDataType_U32, &quality, &qmin, &qmax);
@@ -534,17 +534,22 @@ void SendImagePopup::render(float time_delta) {
 					_on_send(new_data, ".webp");
 				}
 			} else if (current_compressor == 2) {
-				new_data = ImageEncoderSTBJpeg{}.encodeToMemoryRGBA(tmp_img, {{"quality", quality}});;
+				new_data = ImageEncoderSTBJpeg{}.encodeToMemoryRGBA(tmp_img, {{"quality", quality}});
 				if (!new_data.empty()) {
 					_on_send(new_data, ".jpg");
 				}
 			} else if (current_compressor == 3) {
-				new_data = ImageEncoderSTBPNG{}.encodeToMemoryRGBA(tmp_img, {{"png_compression_level", compression_level}});;
+				new_data = ImageEncoderSTBPNG{}.encodeToMemoryRGBA(tmp_img, {{"png_compression_level", compression_level}});
 				if (!new_data.empty()) {
 					_on_send(new_data, ".png");
 				}
 			} else if (current_compressor == 4) {
-				new_data = ImageEncoderQOI{}.encodeToMemoryRGBA(tmp_img, {});;
+				new_data = ImageEncoderQOI{}.encodeToMemoryRGBA(tmp_img, {});
+				if (!new_data.empty()) {
+					_on_send(new_data, ".qoi");
+				}
+			} else if (current_compressor == 5) {
+				new_data = ImageEncoderQOI{}.encodeToMemoryRGBA(tmp_img, {{"quality", quality}});
 				if (!new_data.empty()) {
 					_on_send(new_data, ".qoi");
 				}

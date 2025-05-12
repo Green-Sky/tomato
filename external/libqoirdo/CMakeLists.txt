@@ -15,6 +15,8 @@ add_library(qoirdo
 
 target_compile_features(qoirdo PUBLIC cxx_std_11)
 
+target_include_directories(qoirdo SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
+
 #if (NOT MSVC)
 #   target_link_libraries(rdopng m pthread)
 #endif()
