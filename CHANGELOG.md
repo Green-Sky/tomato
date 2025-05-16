@@ -1,3 +1,29 @@
+<a name="v0.2.21"></a>
+
+## v0.2.21 (2025-05-15)
+
+### Release notes
+
+This release brings 2 great featues. First, the abillty to disable DNS lookups, which has been a long requested security feature, which we plan to default to in an upcoming version.
+Second, there is an network profiler, which tallies up sent and received network packets.
+
+Beside these features we also have fixes like a 75% memory usage reduction for NGCs and connecting to NGC with a password if we are already joined, which might be necessary if a password was set or changed while you where away.
+Furthermore, we now have better localhost discovery, which means that nodes on the same system find each other.
+
+---
+
+If you have not yet upgraded to the previous release (0.2.20), you absolutely should, as it fixes a security issue. All releases before 0.2.20 used VBR opus encoding, which is susceptible to transcription attacks. ( see https://github.com/TokTok/c-toxcore/pull/2757 )
+
+#### Bug Fixes
+
+- forgot an enum in the nodes request rename see https://github.com/TokTok/c-toxcore/pull/2860 ([9324a974](https://github.com/TokTok/c-toxcore/commit/9324a974d473641a90a750e5117108b3c672010e))
+- **bazel:**
+  - one more fuzz target that needs netprof ([1d4cc783](https://github.com/TokTok/c-toxcore/commit/1d4cc783b142cbfc77a639a4034fa7a79555e5c2))
+  - make `net_prof` visible to its consumers ([066aafbf](https://github.com/TokTok/c-toxcore/commit/066aafbfcdf5cbe4176e6a7e0ba58033a6576378))
+  - missing dep for `auto_tests` ([9dcc2f53](https://github.com/TokTok/c-toxcore/commit/9dcc2f530d67696a162275c07ceb4ddf2199fa72))
+  - missing dep for fuzz target ([741ac5f5](https://github.com/TokTok/c-toxcore/commit/741ac5f5e65e54c0b2e2542e95d28ea529fcc200))
+- **ngc:** dont double every message, if we are not directly connected but we and the other peer would support direct. ([219773bf](https://github.com/TokTok/c-toxcore/commit/219773bff599c3f23ccc20080c8cfa1b29a1117b))
+
 <a name="v0.2.21-rc.1"></a>
 
 ## v0.2.21-rc.1 (2025-02-24)
