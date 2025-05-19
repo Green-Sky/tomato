@@ -188,7 +188,7 @@ jobs:
       env:
         VCPKG_FEATURE_FLAGS: "binarycaching"
         VCPKG_BINARY_SOURCES: "clear;files,${{steps.vcpkg-cache.outputs.path}},readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static libjxl:x64-windows-static freetype:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static libjxl:x64-windows freetype:x64-windows-static
 
     # setup vs env
     - uses: ilammy/msvc-dev-cmd@v1
@@ -262,7 +262,7 @@ jobs:
       env:
         VCPKG_FEATURE_FLAGS: "binarycaching"
         VCPKG_BINARY_SOURCES: "clear;files,${{steps.vcpkg-cache.outputs.path}},readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static libjxl:x64-windows-static freetype:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static libjxl:x64-windows freetype:x64-windows-static
 
 
     # setup vs env
