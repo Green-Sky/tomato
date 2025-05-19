@@ -224,13 +224,17 @@ void FileSelector::render(void) {
 							}
 							ImGui::PushID(tmp_id++);
 							if (ImGui::Selectable("D", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
-								_current_file_path = dir_entry.path() / "";
+								try {
+									_current_file_path = dir_entry.path() / "";
+								} catch (...) {}
 							}
 							ImGui::PopID();
 						}
 
 						if (ImGui::TableNextColumn()) {
-							ImGui::TextUnformatted((dir_entry.path().filename().generic_u8string() + "/").c_str());
+							try {
+								ImGui::TextUnformatted((dir_entry.path().filename().generic_u8string() + "/").c_str());
+							} catch (...) {}
 						}
 
 						if (ImGui::TableNextColumn()) {
@@ -238,15 +242,17 @@ void FileSelector::render(void) {
 						}
 
 						if (ImGui::TableNextColumn()) {
-							const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-								dir_entry.last_write_time()
-								- decltype(dir_entry.last_write_time())::clock::now()
-								+ std::chrono::system_clock::now()
-							);
-							const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+							try {
+								const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+									dir_entry.last_write_time()
+									- decltype(dir_entry.last_write_time())::clock::now()
+									+ std::chrono::system_clock::now()
+								);
+								const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
 
-							const auto ltime = std::localtime(&ctime);
-							ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon + 1, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+								const auto ltime = std::localtime(&ctime);
+								ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon + 1, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+							} catch (...) {}
 						}
 					}
 				}
@@ -260,29 +266,37 @@ void FileSelector::render(void) {
 						if (ImGui::TableNextColumn()) {
 							ImGui::PushID(tmp_id++);
 							if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
-								_current_file_path = file_entry.path();
+								try {
+									_current_file_path = file_entry.path();
+								} catch(...) {}
 							}
 							ImGui::PopID();
 						}
 
 						if (ImGui::TableNextColumn()) {
-							ImGui::TextUnformatted(file_entry.path().filename().generic_u8string().c_str());
+							try {
+								ImGui::TextUnformatted(file_entry.path().filename().generic_u8string().c_str());
+							} catch(...) {}
 						}
 
 						if (ImGui::TableNextColumn()) {
-							ImGui::TextDisabled("%s", std::to_string(file_entry.file_size()).c_str());
+							try {
+								ImGui::TextDisabled("%s", std::to_string(file_entry.file_size()).c_str());
+							} catch(...) {}
 						}
 
 						if (ImGui::TableNextColumn()) {
-							const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-								file_entry.last_write_time()
-								- decltype(file_entry.last_write_time())::clock::now()
-								+ std::chrono::system_clock::now()
-							);
-							const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
+							try {
+								const auto file_time_converted = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+									file_entry.last_write_time()
+									- decltype(file_entry.last_write_time())::clock::now()
+									+ std::chrono::system_clock::now()
+								);
+								const auto ctime = std::chrono::system_clock::to_time_t(file_time_converted);
 
-							const auto ltime = std::localtime(&ctime);
-							ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+								const auto ltime = std::localtime(&ctime);
+								ImGui::TextDisabled("%2d.%2d.%2d - %2d:%2d", ltime->tm_mday, ltime->tm_mon, ltime->tm_year + 1900, ltime->tm_hour, ltime->tm_min);
+							} catch(...) {}
 						}
 					}
 				}

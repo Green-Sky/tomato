@@ -188,7 +188,7 @@ jobs:
       env:
         VCPKG_FEATURE_FLAGS: "binarycaching"
         VCPKG_BINARY_SOURCES: "clear;files,${{steps.vcpkg-cache.outputs.path}},readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static freetype:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static libjxl:x64-windows-static freetype:x64-windows-static
 
     # setup vs env
     - uses: ilammy/msvc-dev-cmd@v1
@@ -199,7 +199,7 @@ jobs:
     #- uses: ilammy/setup-nasm@v1
 
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=ON -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -t tomato
@@ -262,7 +262,7 @@ jobs:
       env:
         VCPKG_FEATURE_FLAGS: "binarycaching"
         VCPKG_BINARY_SOURCES: "clear;files,${{steps.vcpkg-cache.outputs.path}},readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static freetype:x64-windows-static
+      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static libjxl:x64-windows-static freetype:x64-windows-static
 
 
     # setup vs env
@@ -274,7 +274,7 @@ jobs:
     #- uses: ilammy/setup-nasm@v1
 
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_TOX_AV=ON
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=ON -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_TOX_AV=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
