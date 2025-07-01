@@ -28,7 +28,7 @@ if (NOT TARGET plutosvg::plutosvg)
 	set(PLUTOSVG_BUILD_EXAMPLES OFF CACHE INTERNAL "")
 	FetchContent_Declare(plutosvg
 		GIT_REPOSITORY https://github.com/sammycage/plutosvg.git
-		GIT_TAG v0.0.6
+		GIT_TAG v0.0.7
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(plutosvg)
