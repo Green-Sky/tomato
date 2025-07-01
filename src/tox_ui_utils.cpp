@@ -10,8 +10,8 @@
 
 #include <solanaceae/util/config_model.hpp>
 
-#include <imgui/imgui.h>
-#include <imgui/misc/cpp/imgui_stdlib.h>
+#include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include <cstring>
 

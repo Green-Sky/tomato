@@ -8,7 +8,7 @@
 #include "./frame_streams/sdl/sdl_audio2_frame_stream2.hpp"
 #include "./frame_streams/sdl/sdl_video_frame_stream2.hpp"
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <implot.h>
 
 #include <SDL3/SDL.h>

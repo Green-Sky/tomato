@@ -5,8 +5,8 @@
 #include <solanaceae/util/utils.hpp>
 #include <solanaceae/util/time.hpp>
 
-#include <imgui/imgui.h>
-//#include <imgui/imgui_internal.h>
+#include <imgui.h>
+//#include <imgui_internal.h>
 
 #include <entt/entity/runtime_view.hpp>
 

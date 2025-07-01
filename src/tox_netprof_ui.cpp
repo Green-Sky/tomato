@@ -1,6 +1,6 @@
 #include "./tox_netprof_ui.hpp"
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <implot.h>
 
 #include <string>

@@ -1,6 +1,6 @@
 #include "./image_viewer_popup.hpp"
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include <iostream>
 

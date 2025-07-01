@@ -18,20 +18,37 @@
         "type": "github"
       }
     },
+    "imgui": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1742239046,
+        "narHash": "sha256-dkukDP0HD8CHC2ds0kmqy7KiGIh4148hMCyA1QF3IMo=",
+        "owner": "ocornut",
+        "repo": "imgui",
+        "rev": "f5befd2d29e66809cd1110a152e375a7f1981f06",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ocornut",
+        "repo": "imgui",
+        "rev": "f5befd2d29e66809cd1110a152e375a7f1981f06",
+        "type": "github"
+      }
+    },
     "implot": {
       "flake": false,
       "locked": {
-        "lastModified": 1741197716,
-        "narHash": "sha256-rNiD7GXc2F3KWhCAMdAI2j2+ECn2VTlZ7bng5lfiVoo=",
+        "lastModified": 1742406940,
+        "narHash": "sha256-T3lc5xTuUcKBq/p0iJgxRBgstKrSZ2AdXcRXYPQe8G0=",
         "owner": "epezent",
         "repo": "implot",
-        "rev": "193b9d8f92c4a437e84182b171f1ae266e72321f",
+        "rev": "3da8bd34299965d3b0ab124df743fe3e076fa222",
         "type": "github"
       },
       "original": {
         "owner": "epezent",
         "repo": "implot",
-        "rev": "193b9d8f92c4a437e84182b171f1ae266e72321f",
+        "rev": "3da8bd34299965d3b0ab124df743fe3e076fa222",
         "type": "github"
       }
     },
@@ -71,17 +88,17 @@
     "plutosvg": {
       "flake": false,
       "locked": {
-        "lastModified": 1740306654,
-        "narHash": "sha256-radjL0bP+JPDk7FQ/qSOIxlokhwQ78fO52/S5V6rAmk=",
-        "ref": "refs/tags/v0.0.6",
-        "rev": "c5388fa96feca1f1376a3d0485d5e35159452707",
-        "revCount": 111,
+        "lastModified": 1747321730,
+        "narHash": "sha256-fEXW3mQlORVDan2+TcfbwMI+iJfCxK/xq2jkiva3d8E=",
+        "ref": "refs/tags/v0.0.7",
+        "rev": "31f7d2675416cd777c8e86220b035364873b2a8b",
+        "revCount": 125,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/sammycage/plutosvg"
       },
       "original": {
-        "ref": "refs/tags/v0.0.6",
+        "ref": "refs/tags/v0.0.7",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/sammycage/plutosvg"
@@ -90,6 +107,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "imgui": "imgui",
         "implot": "implot",
         "nixpkgs": "nixpkgs",
         "nlohmann-json": "nlohmann-json",

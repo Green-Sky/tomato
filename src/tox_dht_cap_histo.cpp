@@ -1,6 +1,6 @@
 #include "./tox_dht_cap_histo.hpp"
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <implot.h>
 
 void ToxDHTCapHisto::tick(float time_delta) {

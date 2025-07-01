@@ -20,17 +20,21 @@
       url = "github:libsdl-org/SDL_image/11154afb7855293159588b245b446a4ef09e574f";
       flake = false;
     };
+    imgui = {
+      url = "github:ocornut/imgui/f5befd2d29e66809cd1110a152e375a7f1981f06";
+      flake = false;
+    };
     plutosvg = {
-      url = "git+https://github.com/sammycage/plutosvg?submodules=1&ref=refs/tags/v0.0.6";
+      url = "git+https://github.com/sammycage/plutosvg?submodules=1&ref=refs/tags/v0.0.7";
       flake = false;
     };
     implot = {
-      url = "github:epezent/implot/193b9d8f92c4a437e84182b171f1ae266e72321f";
+      url = "github:epezent/implot/3da8bd34299965d3b0ab124df743fe3e076fa222";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image, plutosvg, implot }:
+  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image, imgui, plutosvg, implot }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
@@ -111,6 +115,7 @@
           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdl3}"
           "-DFETCHCONTENT_SOURCE_DIR_SDL3_IMAGE=${sdl3_image}"
           "-DSDLIMAGE_JXL=ON"
+          "-DFETCHCONTENT_SOURCE_DIR_IMGUI=${imgui}" # specific version
           "-DFETCHCONTENT_SOURCE_DIR_PLUTOSVG=${plutosvg}" # not in pkgs
           "-DFETCHCONTENT_SOURCE_DIR_IMPLOT=${implot}" # could use pkgs.implot.src for outdated version
         ];

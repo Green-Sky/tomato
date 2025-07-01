@@ -6,9 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include <imgui/imgui.h>
-#include <imgui/misc/freetype/imgui_freetype.h>
-#include <imgui/misc/cpp/imgui_stdlib.h>
+#include <imgui.h>
+#include <misc/freetype/imgui_freetype.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include <cctype>
 #include <memory>

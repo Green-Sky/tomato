@@ -1,6 +1,6 @@
 #include "./file_selector.hpp"
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include <chrono>
 #include <string>

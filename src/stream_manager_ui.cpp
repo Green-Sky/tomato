@@ -4,7 +4,7 @@
 
 #include "./string_formatter_utils.hpp"
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include <string>
 #include <cinttypes>

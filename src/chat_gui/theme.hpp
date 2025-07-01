@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include <entt/container/dense_map.hpp>
 #include <entt/core/type_info.hpp>
