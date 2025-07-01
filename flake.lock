@@ -21,17 +21,17 @@
     "imgui": {
       "flake": false,
       "locked": {
-        "lastModified": 1742239046,
-        "narHash": "sha256-dkukDP0HD8CHC2ds0kmqy7KiGIh4148hMCyA1QF3IMo=",
+        "lastModified": 1750870001,
+        "narHash": "sha256-qiESah4j/yHqkOuL5BYANvZfrSqM04CqKONz1jVnkJ0=",
         "owner": "ocornut",
         "repo": "imgui",
-        "rev": "f5befd2d29e66809cd1110a152e375a7f1981f06",
+        "rev": "85b2fe8486190fa9326565a2fb5fccb6caea4396",
         "type": "github"
       },
       "original": {
         "owner": "ocornut",
         "repo": "imgui",
-        "rev": "f5befd2d29e66809cd1110a152e375a7f1981f06",
+        "rev": "85b2fe8486190fa9326565a2fb5fccb6caea4396",
         "type": "github"
       }
     },

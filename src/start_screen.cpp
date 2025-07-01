@@ -103,12 +103,12 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		//fontcfg.SizePixels = 16.f*display_scale;
 		fontcfg.SizePixels = _conf.get_int("ImGuiFonts", "size").value_or(13) * display_scale;
 		fontcfg.RasterizerDensity = 1.f;
-		fontcfg.OversampleH = 2;
-		fontcfg.OversampleV = 1;
+		fontcfg.OversampleH = 0;
+		fontcfg.OversampleV = 0;
 		fontcfg.MergeMode = false;
 #if defined(IMGUI_ENABLE_FREETYPE) && defined(IMGUI_ENABLE_FREETYPE_PLUTOSVG)
 		std::cout << "Font: enabling freetype color loading\n";
-		fontcfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+		fontcfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
 #endif
 
 		for (const auto [font_path, should_load] : _conf.entries_bool("ImGuiFonts", "fonts")) {

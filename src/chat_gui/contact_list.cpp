@@ -309,8 +309,6 @@ bool renderContactBig(
 	}
 	ImGui::EndGroup();
 
-	ImGui::SetCursorPos(post_curser_pos);
-
 	ImGui::EndGroup();
 	return got_selected;
 }

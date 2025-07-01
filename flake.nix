@@ -21,7 +21,7 @@
       flake = false;
     };
     imgui = {
-      url = "github:ocornut/imgui/f5befd2d29e66809cd1110a152e375a7f1981f06";
+      url = "github:ocornut/imgui/85b2fe8486190fa9326565a2fb5fccb6caea4396";
       flake = false;
     };
     plutosvg = {
