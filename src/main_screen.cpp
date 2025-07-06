@@ -659,7 +659,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 		// in powersave fix the lowerbound to 100ms
 		case 1: _min_tick_interval = std::max<float>(_min_tick_interval, 0.1f); break;
 		// extreme 2s
-		case 2: _min_tick_interval = std::max<float>(_min_tick_interval, 2.f); break;
+		case 2: _min_tick_interval = std::max<float>(_min_tick_interval, 1.5f); break;
 		default: std::cerr << "unknown compute perf mode\n"; std::exit(-1);
 	}
 
