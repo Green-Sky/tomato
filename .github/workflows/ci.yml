@@ -37,10 +37,14 @@ jobs:
         key: ${{github.event.repository.name}}-${{github.job}}-${{matrix.os}}-${{matrix.type}}
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DTOMATO_ASAN=${{matrix.type == 'asan' && 'ON' || 'OFF'}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DTOMATO_ASAN=${{matrix.type == 'asan' && 'ON' || 'OFF'}} -DBUILD_TESTING=ON
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato test_font_loaders
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -V -C ${{env.BUILD_TYPE}}
 
   android:
     timeout-minutes: 30
@@ -190,5 +194,9 @@ jobs:
         -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato test_font_loaders
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -V -C ${{env.BUILD_TYPE}}
 
