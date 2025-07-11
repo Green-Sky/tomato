@@ -33,13 +33,15 @@ set_target_properties(font_loading PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 ########################################
 
-add_executable(test_font_loaders EXCLUDE_FROM_ALL
-	./test_ff.cpp
-)
+if (BUILD_TESTING)
+	add_executable(test_font_loaders
+		./test_ff.cpp
+	)
 
-target_link_libraries(test_font_loaders
-	font_loading
-)
+	target_link_libraries(test_font_loaders
+		font_loading
+	)
 
-add_test(NAME test_font_loaders COMMAND test_font_loaders)
+	add_test(NAME test_font_loaders COMMAND test_font_loaders)
+endif()
 
