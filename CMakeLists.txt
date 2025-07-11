@@ -134,6 +134,10 @@ message(STATUS "${tomato_VERSION_MAJOR}.${tomato_VERSION_MINOR}.${tomato_VERSION
 
 # cmake setup end
 
+if (BUILD_TESTING)
+	include(CTest)
+endif()
+
 add_subdirectory(./src)
 
 # TODO: move to src
