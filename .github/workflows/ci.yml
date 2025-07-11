@@ -40,7 +40,10 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DTOMATO_ASAN=${{matrix.type == 'asan' && 'ON' || 'OFF'}} -DBUILD_TESTING=ON
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato test_font_loaders
+
+    - name: Test
+      run: ctest
 
   android:
     timeout-minutes: 30
