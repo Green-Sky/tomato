@@ -10,7 +10,8 @@ if (NOT TARGET imgui)
 	FetchContent_Declare(imgui
 		GIT_REPOSITORY https://github.com/ocornut/imgui.git
 		#GIT_TAG f5befd2d29e66809cd1110a152e375a7f1981f06 # v1.91.9b
-		GIT_TAG 85b2fe8486190fa9326565a2fb5fccb6caea4396 # v1.92.0
+		#GIT_TAG 85b2fe8486190fa9326565a2fb5fccb6caea4396 # v1.92.0
+		GIT_TAG 5d4126876bc10396d4c6511853ff10964414c776 # v1.92.1
 		EXCLUDE_FROM_ALL
 	)
 
