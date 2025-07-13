@@ -8,13 +8,14 @@ if (NOT TARGET breakpad_client)
 		if (NOT TARGET lss)
 			FetchContent_Declare(lss
 				GIT_REPOSITORY https://chromium.googlesource.com/linux-syscall-support/
-				GIT_TAG 9719c1e1e676814c456b55f5f070eabad6709d31
+				#GIT_TAG 9719c1e1e676814c456b55f5f070eabad6709d31 # v2022.10.12
+				GIT_TAG ed31caa60f20a4f6569883b2d752ef7522de51e0 # v2024.02.01
 
 				FIND_PACKAGE_ARGS # for the future
 			)
 			FetchContent_GetProperties(lss)
 			if(NOT lss_POPULATED)
-				FetchContent_Populate(lss)
+				FetchContent_MakeAvailable(lss)
 
 				# HACK: breakpad expects this at a specific path
 				configure_file(
@@ -31,13 +32,14 @@ if (NOT TARGET breakpad_client)
 
 	FetchContent_Declare(breakpad
 		GIT_REPOSITORY https://chromium.googlesource.com/breakpad/breakpad
-		GIT_TAG v2023.06.01
+		#GIT_TAG 76a3c2013b2ebb0d781a523608102f6c0d22231c # v2023.06.01
+		GIT_TAG 0f8fea981d0f09174e2cc6289aad9a58239c1780 # v2024.02.16
 
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_GetProperties(breakpad)
 	if(NOT breakpad_POPULATED)
-		FetchContent_Populate(breakpad)
+		FetchContent_MakeAvailable(breakpad)
 
 		add_library(breakpad_common STATIC
 			${breakpad_SOURCE_DIR}/src/common/convert_UTF.h
