@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <string_view>
@@ -13,7 +14,7 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 	const char *args[] = {"fc-list", "-f", "%{family}:%{style}:%{lang}:%{color}\n", NULL};
 	auto* proc = SDL_CreateProcess(args, true);
 	if (proc == nullptr) {
-		std::cerr << "failed to create process\n";
+		throw std::runtime_error("failed to create process");
 		return false;
 	}
 
@@ -21,12 +22,12 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 	int exit_code{0};
 	char* data = static_cast<char*>(SDL_ReadProcess(proc, &data_size, &exit_code));
 	if (data == nullptr) {
-		std::cerr << "process returned no data\n";
+		throw std::runtime_error("process returned no data");
 		return false; // error
 	}
 	if (exit_code != 0) {
 		SDL_free(data);
-		std::cerr << "process exit code " << exit_code << "\n";
+		throw std::runtime_error("process exit code " + std::to_string(exit_code));
 		return false;
 	}
 
