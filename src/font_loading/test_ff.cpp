@@ -3,12 +3,15 @@
 #include "./font_finder_fc_sdl.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 int main(void) {
 	std::cout << "Font Finder Tests\n";
 
 	auto fun_tests = [](FontFinderInterface& ff) {
+		std::cout << "findBest('ColorEmoji', '', true): '" << ff.findBest("ColorEmoji", "", true) << "'\n";
 		std::cout << "findBest('Emoji', '', true): '" << ff.findBest("Emoji", "", true) << "'\n";
+		std::cout << "findBest('Emoji', '', false): '" << ff.findBest("Emoji", "", false) << "'\n";
 
 		std::cout << "findBest('NotoColorEmoji'): '" << ff.findBest("NotoColorEmoji") << "'\n";
 		std::cout << "findBest('Noto Color Emoji'): '" << ff.findBest("Noto Color Emoji") << "'\n";
@@ -19,6 +22,11 @@ int main(void) {
 		std::cout << "findBest('Seguiemj'): '" << ff.findBest("Seguiemj") << "'\n";
 		std::cout << "findBest('Segoe UI Emoji'): '" << ff.findBest("Segoe UI Emoji") << "'\n";
 		std::cout << "findBest('Segoe UI'): '" << ff.findBest("Segoe UI") << "'\n";
+
+		// macos
+		std::cout << "findBest('Apple Color Emoji'): '" << ff.findBest("Apple Color Emoji") << "'\n";
+		std::cout << "findBest('Helvetica'): '" << ff.findBest("Helvetica") << "'\n";
+		std::cout << "findBest('San Francisco'): '" << ff.findBest("San Francisco") << "'\n";
 	};
 
 
@@ -36,12 +44,15 @@ int main(void) {
 		FontFinder_FileSystem ff{"C:\\Windows\\Fonts"};
 #elif __ANDROID__
 		FontFinder_FileSystem ff{"/system/fonts"};
-//#elif mac
-///System Folder/Fonts/
+#elif __APPLE__
+		// TODO: macos only
+		FontFinder_FileSystem ff{"/System/Library/Fonts"};
 #else
 		FontFinder_FileSystem ff{"/usr/share/fonts"};
 #endif
 		fun_tests(ff);
+	} catch (const std::runtime_error& e) {
+		std::cerr << "caught runtime_error exception '" << e.what() << "'\n";
 	} catch (...) {
 		std::cerr << "caught exception\n";
 	}
