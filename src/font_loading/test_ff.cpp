@@ -14,6 +14,11 @@ int main(void) {
 		std::cout << "findBest('Noto Color Emoji'): '" << ff.findBest("Noto Color Emoji") << "'\n";
 		std::cout << "findBest('NotoSans'): '" << ff.findBest("NotoSans") << "'\n";
 		std::cout << "findBest('Noto Sans'): '" << ff.findBest("Noto Sans") << "'\n";
+
+		// windows file name
+		std::cout << "findBest('Seguiemj'): '" << ff.findBest("Seguiemj") << "'\n";
+		std::cout << "findBest('Segoe UI Emoji'): '" << ff.findBest("Segoe UI Emoji") << "'\n";
+		std::cout << "findBest('Segoe UI'): '" << ff.findBest("Segoe UI") << "'\n";
 	};
 
 
