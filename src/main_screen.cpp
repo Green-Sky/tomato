@@ -369,7 +369,14 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		if (ImGui::Begin("tomato")) {
 			if (ImGui::BeginMenuBar()) {
 				// ImGui::Separator(); // why do we not need this????
-				if (ImGui::BeginMenu("Performance")) {
+				if (_compute_lower_limit_hit) {
+					ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.2f, 0.2f, 1.f});
+				}
+				bool perf_menu = ImGui::BeginMenu("Performance");
+				if (_compute_lower_limit_hit) {
+					ImGui::PopStyleColor();
+				}
+				if (perf_menu) {
 					{ // fps
 						const auto targets = "normal\0reduced\0powersave\0";
 						ImGui::SetNextItemWidth(ImGui::GetFontSize()*10);
@@ -386,7 +393,14 @@ Screen* MainScreen::render(float time_delta, bool&) {
 					ImGui::Separator();
 
 					ImGui::Text("render interval: %.0fms (%.2ffps)", _render_interval*1000.f, 1.f/_render_interval);
+
+					if (_compute_lower_limit_hit) {
+						ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.2f, 0.2f, 1.f});
+					}
 					ImGui::Text("tick   interval: %.0fms (%.2ftps)", _min_tick_interval*1000.f, 1.f/_min_tick_interval);
+					if (_compute_lower_limit_hit) {
+						ImGui::PopStyleColor();
+					}
 
 					ImGui::EndMenu();
 				}
@@ -444,6 +458,8 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	if (_show_tool_demo) {
 		ImGui::ShowDemoWindow(&_show_tool_demo);
 	}
+
+	_compute_lower_limit_hit = false;
 
 	float tc_unfinished_queue_interval;
 	{ // load rendered but not loaded textures
@@ -653,14 +669,19 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 
 	//std::cout << "MS: min tick interval: " << _min_tick_interval << "\n";
 
+	float compute_mode_lower_limit = 0;
 	switch (_compute_perf_mode) {
 		// normal 1ms lower bound
-		case 0: _min_tick_interval = std::max<float>(_min_tick_interval, 0.001f); break;
+		case 0: compute_mode_lower_limit = 0.001f; break;
 		// in powersave fix the lowerbound to 100ms
-		case 1: _min_tick_interval = std::max<float>(_min_tick_interval, 0.1f); break;
+		case 1: compute_mode_lower_limit = 0.1f; break;
 		// extreme 2s
-		case 2: _min_tick_interval = std::max<float>(_min_tick_interval, 1.5f); break;
+		case 2: compute_mode_lower_limit = 1.5f; break;
 		default: std::cerr << "unknown compute perf mode\n"; std::exit(-1);
+	}
+	if (compute_mode_lower_limit > _min_tick_interval) {
+		_min_tick_interval = compute_mode_lower_limit;
+		_compute_lower_limit_hit = true;
 	}
 
 	return nullptr;

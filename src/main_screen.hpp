@@ -145,6 +145,8 @@ struct MainScreen final : public Screen {
 	float _render_interval {1.f/60.f};
 	float _min_tick_interval {0.f};
 
+	bool _compute_lower_limit_hit {false};
+
 	float nextRender(void) override { return _render_interval; }
 	float nextTick(void) override { return _min_tick_interval; }
 };
