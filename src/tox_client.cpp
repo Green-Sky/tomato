@@ -227,6 +227,8 @@ void ToxClient::saveToxProfile(void) {
 	try {
 		std::ofstream ofile{tmp_path, std::ios::binary};
 		ofile.write(reinterpret_cast<const char*>(data.data()), data.size());
+		ofile.flush();
+
 		if (!ofile.good()) {
 			// TODO: maybe enable fstream exceptions instead?
 			throw std::runtime_error("write error");
