@@ -467,7 +467,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		ImGui::ShowDemoWindow(&_show_tool_demo);
 	}
 
-	_compute_lower_limit_hit = false;
+	_compute_lower_limit_hit_rendered = true;
 
 	float tc_unfinished_queue_interval;
 	{ // load rendered but not loaded textures
@@ -690,6 +690,10 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 	if (compute_mode_lower_limit > _min_tick_interval) {
 		_min_tick_interval = compute_mode_lower_limit;
 		_compute_lower_limit_hit = true;
+	} else if (_compute_lower_limit_hit_rendered) {
+		// stop indicating a limit hit
+		_compute_lower_limit_hit_rendered = false;
+		_compute_lower_limit_hit = false;
 	}
 
 	return nullptr;
