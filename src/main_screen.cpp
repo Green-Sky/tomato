@@ -407,6 +407,10 @@ Screen* MainScreen::render(float time_delta, bool&) {
 				if (ImGui::BeginMenu("Settings")) {
 					ImGui::SeparatorText("ImGui");
 
+					if (ImGui::MenuItem("About Dear ImGui", nullptr, _show_imgui_about)) {
+						_show_imgui_about = !_show_imgui_about;
+					}
+
 					if (ImGui::MenuItem("Style Editor", nullptr, _show_tool_style_editor)) {
 						_show_tool_style_editor = !_show_tool_style_editor;
 					}
@@ -434,6 +438,10 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 		}
 		ImGui::End();
+	}
+
+	if (_show_imgui_about) {
+		ImGui::ShowAboutWindow(&_show_imgui_about);
 	}
 
 	if (_show_tool_style_editor) {

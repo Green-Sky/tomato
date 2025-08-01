@@ -111,6 +111,7 @@ struct MainScreen final : public Screen {
 	DebugVideoTap dvt;
 
 
+	bool _show_imgui_about {false};
 	bool _show_tool_style_editor {false};
 	bool _show_tool_metrics {false};
 	bool _show_tool_debug_log {false};
