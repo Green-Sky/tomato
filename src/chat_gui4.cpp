@@ -672,6 +672,28 @@ void ChatGui4::sendFilePath(std::string_view file_path) {
 }
 
 void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<Contact4>* sub_contacts) {
+	const float scroll_amount {2.f * TEXT_BASE_HEIGHT};
+	bool manually_scrolled {false};
+	// TODO: replace with IsKeyPressed version in the future
+	if (ImGui::Shortcut(ImGuiKey_J, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+		ImGui::SetScrollY(ImGui::GetScrollY() + scroll_amount);
+		manually_scrolled = true;
+	}
+	if (ImGui::Shortcut(ImGuiKey_K, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+		ImGui::SetScrollY(ImGui::GetScrollY() - scroll_amount);
+		manually_scrolled = true;
+	}
+
+	// TODO: figure ot page size
+	if (ImGui::Shortcut(ImGuiKey_PageDown, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+		ImGui::SetScrollY(ImGui::GetScrollY() + scroll_amount*10.f);
+		manually_scrolled = true;
+	}
+	if (ImGui::Shortcut(ImGuiKey_PageUp, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+		ImGui::SetScrollY(ImGui::GetScrollY() - scroll_amount*10.f);
+		manually_scrolled = true;
+	}
+
 	auto* msg_reg_ptr = _rmm.get(c);
 
 	constexpr ImGuiTableFlags table_flags =
@@ -1051,8 +1073,13 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 		ImGui::EndTable();
 	}
 
+	if (ImGui::Shortcut(ImGuiKey_End, ImGuiInputFlags_RouteGlobal)) {
+		ImGui::SetScrollHereY(1.f);
+		manually_scrolled = true;
+	}
+
 	// follow if at bottom (this is a frame delayed, but thats just how it works)
-	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+	if (!manually_scrolled && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
 		ImGui::SetScrollHereY(1.f);
 	}
 }
