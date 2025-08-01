@@ -10,12 +10,14 @@
 
 #include <vector>
 #include <fstream>
+#include <filesystem>
+#include <string>
 #include <iostream>
 #include <cassert>
 
 static void eee(std::string& mod) {
 	for (char& c : mod) {
-		c ^= 0x59;
+		c ^= 0x37;
 	}
 }
 
@@ -218,11 +220,28 @@ void ToxClient::saveToxProfile(void) {
 		}
 		eee(_tox_profile_password);
 	}
-	std::ofstream ofile{_tox_profile_path, std::ios::binary};
-	// TODO: improve
-	for (const auto& ch : data) {
-		ofile.put(ch);
+
+	std::filesystem::path tmp_path = _tox_profile_path + ".tmp";
+	tmp_path.replace_filename("." + tmp_path.filename().generic_u8string());
+
+	try {
+		std::ofstream ofile{tmp_path, std::ios::binary};
+		ofile.write(reinterpret_cast<const char*>(data.data()), data.size());
+		if (!ofile.good()) {
+			// TODO: maybe enable fstream exceptions instead?
+			throw std::runtime_error("write error");
+		}
+	} catch (...) {
+		std::filesystem::remove(tmp_path);
+		std::cerr << "TOX saving failed!\n";
+		_save_heat = 10.f;
+		return;
 	}
+
+	std::filesystem::rename(
+		tmp_path,
+		_tox_profile_path
+	);
 
 	_tox_profile_dirty = false;
 	_save_heat = 10.f;
