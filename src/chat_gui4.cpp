@@ -478,6 +478,8 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 				ImGui::EndChild();
 
 				if (ImGui::BeginChild("text_input", {-150, 0})) {
+					ImGui::SetNextItemShortcut(ImGuiKey_I, ImGuiInputFlags_RouteGlobal);
+
 					constexpr ImGuiInputTextFlags input_flags =
 						//ImGuiInputTextFlags_AllowTabInput |
 						ImGuiInputTextFlags_NoHorizontalScroll |
