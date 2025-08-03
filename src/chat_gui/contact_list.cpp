@@ -1,6 +1,7 @@
 #include "./contact_list.hpp"
 
 #include <solanaceae/contact/components.hpp>
+#include <solanaceae/contact/contact_model4.hpp>
 #include <solanaceae/message3/components.hpp>
 #include <solanaceae/util/utils.hpp>
 #include <solanaceae/util/time.hpp>
@@ -325,6 +326,7 @@ bool renderContactList(
 ) {
 	bool selection_changed {false};
 	for (const Contact4 cv : view) {
+		ImGui::PushID(entt::to_integral(cv));
 		ContactHandle4 c{cr, cv};
 		const bool selected = selected_c == c;
 
@@ -342,6 +344,36 @@ bool renderContactList(
 			selected_c = c;
 			selection_changed = true;
 		}
+
+		// TODO: move to own function
+		if (ImGui::BeginPopupContextItem("contact_context")) {
+			if (c.all_of<Contact::Components::ContactModel>()) {
+				const auto& cm = c.get<Contact::Components::ContactModel>();
+				// TODO: make hookable
+				if (ImGui::BeginMenu("invite to")) {
+					// big?
+					//for (const auto& c : cr.view<Contact::Components::TagBig>()) {
+					//    // filter
+					//    if (cr.any_of<Contact::Components::RequestIncoming, Contact::Components::TagRequestOutgoing>(c)) {
+					//        continue;
+					//    }
+					for (auto [tov] : cr.storage<Contact4>().each()) {
+						if (cm->canInvite(c, tov)) {
+							ContactHandle4 to{cr, tov};
+
+							if (renderContactBig(th, contact_tc, to, 1, false, true, false)) {
+								// TODO: error check
+								cm->invite(c, tov);
+							}
+						}
+					}
+					ImGui::EndMenu();
+				}
+			}
+
+			ImGui::EndPopup();
+		}
+		ImGui::PopID();
 	}
 	return selection_changed;
 }
