@@ -9,7 +9,6 @@ if (NOT TARGET implot)
 		#GIT_TAG 193b9d8f92c4a437e84182b171f1ae266e72321f # 05-03-2025
 		GIT_TAG 3da8bd34299965d3b0ab124df743fe3e076fa222 # 19-03-2025
 		EXCLUDE_FROM_ALL
-		CONFIGURE_COMMAND "" # no cmake
 	)
 
 	FetchContent_GetProperties(implot)
