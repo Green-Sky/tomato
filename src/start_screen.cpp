@@ -55,6 +55,10 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 			const auto& plugin_path = args.at(ai);
 			// TODO: check for dups
 			queued_plugin_paths.push_back(static_cast<std::string>(plugin_path));
+		} else if (args.at(ai) == "--crash") {
+			// HACK: force bad pointer
+			int* _p {reinterpret_cast<int*>(args.size())};
+			*_p = 1337;
 		} else {
 			std::cerr << "TOMATO error: unknown cli arg: '" << args.at(ai) << "'\n";
 		}
