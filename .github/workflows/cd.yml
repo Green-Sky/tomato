@@ -298,6 +298,12 @@ jobs:
       run: |
         Remove-Item "${{github.workspace}}/build/bin/*.ilk"
 
+    - name: Add asan runtime deps
+      # msvc redist does not ship them
+      shell: powershell
+      run: |
+        Copy-Item "$env:VCToolsInstallDir/bin/Hostx64/x64/clang_rt.asan_dynamic-x86_64.dll" -Destination "${{github.workspace}}/build/bin/"
+
     - name: Compress artifacts
       shell: powershell
       run: |
