@@ -178,15 +178,6 @@ jobs:
       with:
         arch: amd64
 
-    ## sdl_image vendored needs nasm for dav1d
-    #- uses: ilammy/setup-nasm@v1
-
-    #- name: ccache
-    #  uses: hendrikmuhs/ccache-action@v1.2
-    #  with:
-    #    variant: sccache
-    #    key: ${{github.event.repository.name}}-${{github.job}}
-
     - name: Configure CMake
       run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe
 

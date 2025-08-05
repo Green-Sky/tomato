@@ -165,7 +165,12 @@ jobs:
   windows:
     timeout-minutes: 15
 
-    runs-on: windows-2022
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      matrix:
+        type: ['', 'asan']
+        os: ['windows-2022']
 
     permissions:
       # vcpkg caching action
@@ -199,7 +204,8 @@ jobs:
     #- uses: ilammy/setup-nasm@v1
 
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON
+      # TODO: og asan had this -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON -DTOMATO_ASAN=${{matrix.type == 'asan' && 'ON' || 'OFF'}}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -t tomato
@@ -223,82 +229,8 @@ jobs:
       run: |
         Remove-Item "${{github.workspace}}/build/bin/*.ilk"
 
-    - name: Compress artifacts
-      shell: powershell
-      run: |
-        Compress-Archive -Path ${{github.workspace}}/build/bin/* -Destination ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64.zip
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: ${{github.event.repository.name}}-${{steps.tag.outputs.name}}-${{runner.os}}-msvc-x86_64
-        # TODO: do propper packing
-        path: |
-          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-x86_64.zip
-
-
-  windows-asan:
-    timeout-minutes: 15
-
-    runs-on: windows-2022
-
-    permissions:
-      # vcpkg caching action
-      actions: read
-      contents: read
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Restore vcpkg cache
-      id: vcpkg-cache
-      uses: TAServers/vcpkg-cache@v3
-      with:
-        token: ${{secrets.GITHUB_TOKEN}}
-
-    - name: Install Dependencies
-      env:
-        VCPKG_FEATURE_FLAGS: "binarycaching"
-        VCPKG_BINARY_SOURCES: "clear;files,${{steps.vcpkg-cache.outputs.path}},readwrite"
-      run: vcpkg install pkgconf:x64-windows libsodium:x64-windows-static pthreads:x64-windows-static opus:x64-windows-static libvpx:x64-windows-static zstd:x64-windows-static libwebp:x64-windows-static libpng:x64-windows-static libjpeg-turbo:x64-windows-static freetype:x64-windows-static
-
-
-    # setup vs env
-    - uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: amd64
-
-    ## sdl_image vendored needs nasm for dav1d
-    #- uses: ilammy/setup-nasm@v1
-
-    - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_TOX_AV=ON
-
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
-
-    - name: Determine tag name
-      id: tag
-      shell: bash
-      # taken from llama.cpp
-      run: |
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
-        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=dev-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        else
-          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Clean temporary artifacts
-      # msvc sometimes produces .ilk files, which are used for linking only
-      shell: powershell
-      run: |
-        Remove-Item "${{github.workspace}}/build/bin/*.ilk"
-
     - name: Add asan runtime deps
+      if: ${{matrix.type == 'asan'}}
       # msvc redist does not ship them
       shell: powershell
       run: |
@@ -307,14 +239,18 @@ jobs:
     - name: Compress artifacts
       shell: powershell
       run: |
-        Compress-Archive -Path ${{github.workspace}}/build/bin/* -Destination ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64.zip
+        Compress-Archive -Path ${{github.workspace}}/build/bin/* -Destination ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc${{matrix.type == 'asan' && '-asan' || ''}}-x86_64.zip
 
     - uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64
+        name: ${{github.event.repository.name}}-${{steps.tag.outputs.name}}-${{runner.os}}-msvc${{matrix.type == 'asan' && '-asan' || ''}}-x86_64
         # TODO: do propper packing
         path: |
-          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc-asan-x86_64.zip
+          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc${{matrix.type == 'asan' && '-asan' || ''}}-x86_64.zip
+
+  #  - name: Configure CMake
+  #    run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_ASAN=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_TOX_AV=ON
+
 
   dumpsyms:
     runs-on: ubuntu-latest
@@ -323,7 +259,7 @@ jobs:
       - linux-ubuntu
       - android
       - windows
-      - windows-asan
+      #- windows-asan
 
     permissions:
       contents: write
@@ -394,7 +330,7 @@ jobs:
       - linux-ubuntu
       - android
       - windows
-      - windows-asan
+      #- windows-asan
       - dumpsyms
 
     permissions:
