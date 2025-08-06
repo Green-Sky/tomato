@@ -82,6 +82,8 @@ target_sources(tomato PUBLIC
 	./sys_tray.cpp
 
 	./string_formatter_utils.hpp
+	./chat_gui/about.hpp
+	./chat_gui/about.cpp
 	./chat_gui/theme.hpp
 	./chat_gui/theme.cpp
 	./chat_gui/icons/direct.hpp

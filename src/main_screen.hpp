@@ -117,6 +117,7 @@ struct MainScreen final : public Screen {
 	bool _show_tool_debug_log {false};
 	bool _show_tool_id_stack {false};
 	bool _show_tool_demo {false};
+	bool _show_about {false};
 
 	bool _window_focused {true};
 	bool _window_hidden {false};

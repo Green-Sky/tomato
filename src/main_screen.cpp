@@ -5,6 +5,8 @@
 
 #include <solanaceae/contact/components.hpp>
 
+#include "./chat_gui/about.hpp"
+
 #include "./frame_streams/sdl/sdl_audio2_frame_stream2.hpp"
 #include "./frame_streams/sdl/sdl_video_frame_stream2.hpp"
 
@@ -433,6 +435,9 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 					ImGui::EndMenu();
 				}
+				if (ImGui::MenuItem("About", nullptr, _show_about)) {
+					_show_about = !_show_about;
+				}
 				ImGui::EndMenuBar();
 			}
 
@@ -465,6 +470,13 @@ Screen* MainScreen::render(float time_delta, bool&) {
 
 	if (_show_tool_demo) {
 		ImGui::ShowDemoWindow(&_show_tool_demo);
+	}
+
+	if (_show_about) {
+		if (ImGui::Begin("About", &_show_about, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGuiTomatoAbout();
+		}
+		ImGui::End();
 	}
 
 	_compute_lower_limit_hit_rendered = true;

@@ -4,6 +4,8 @@
 
 #include "./json_to_config.hpp"
 
+#include "./chat_gui/about.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <imgui.h>
@@ -393,6 +395,12 @@ Screen* StartScreen::render(float, bool&) {
 
 				ImGui::EndTabItem();
 			}
+
+			if (ImGui::BeginTabItem("about")) {
+				ImGuiTomatoAbout();
+				ImGui::EndTabItem();
+			}
+
 			ImGui::EndTabBar();
 		}
 	}
