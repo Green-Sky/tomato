@@ -14,7 +14,7 @@ jobs:
   linux-ubuntu:
     timeout-minutes: 10
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -47,14 +47,14 @@ jobs:
     - name: Compress artifacts
       shell: bash
       run: |
-        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu22.04-x86_64.tar.gz -C ${{github.workspace}}/build/bin/ .
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu24.04-x86_64.tar.gz -C ${{github.workspace}}/build/bin/ .
 
     - uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu22.04-x86_64
+        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu24.04-x86_64
         # TODO: do propper packing
         path: |
-          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu22.04-x86_64.tar.gz
+          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu24.04-x86_64.tar.gz
 
   android:
     timeout-minutes: 30
@@ -300,8 +300,8 @@ jobs:
       run: |
         mkdir ./artifacts/extract
 
-        echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu22.04-x86_64/*)
-        dump_syms -s tomato-dev-ubuntu22.04-x86_64-sym ./artifacts/extract/tomato
+        echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64/*)
+        dump_syms -s tomato-dev-ubuntu24.04-x86_64-sym ./artifacts/extract/tomato
         rm -rf ./artifacts/extract/*
 
         echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64/*)
@@ -311,14 +311,14 @@ jobs:
     - name: Compress symbol stores
       shell: bash
       run: |
-        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu22.04-x86_64-symbol_store.tar.gz -C ./tomato-dev-ubuntu22.04-x86_64-sym .
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64-symbol_store.tar.gz -C ./tomato-dev-ubuntu24.04-x86_64-sym .
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz -C ./tomato-dev-Windows-msvc-x86_64-sym .
 
     - uses: actions/upload-artifact@v4
       with:
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-symbol_stores
         path: |
-          ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu22.04-x86_64-symbol_store.tar.gz
+          ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64-symbol_store.tar.gz
           ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz
 
   release:
