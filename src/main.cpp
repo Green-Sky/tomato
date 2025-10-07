@@ -68,6 +68,19 @@ int main(int argc, char** argv) {
 	auto last_time_render = std::chrono::steady_clock::now();
 	auto last_time_tick = std::chrono::steady_clock::now();
 
+	std::cout
+		<< "SDL version: "
+		<< SDL_VERSIONNUM_MAJOR(SDL_VERSION) << "."
+		<< SDL_VERSIONNUM_MINOR(SDL_VERSION) << "."
+		<< SDL_VERSIONNUM_MICRO(SDL_VERSION)
+		<< " (compiled)\n";
+	std::cout << "SDL version: "
+		<< SDL_VERSIONNUM_MAJOR(SDL_GetVersion()) << "."
+		<< SDL_VERSIONNUM_MINOR(SDL_GetVersion()) << "."
+		<< SDL_VERSIONNUM_MICRO(SDL_GetVersion())
+		<< "-" << SDL_GetRevision()
+		<< " (linked)\n";
+
 	// actual setup
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		std::cerr << "SDL_Init failed (" << SDL_GetError() << ")\n";
