@@ -483,7 +483,8 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					constexpr ImGuiInputTextFlags input_flags =
 						//ImGuiInputTextFlags_AllowTabInput |
 						ImGuiInputTextFlags_NoHorizontalScroll |
-						ImGuiInputTextFlags_CallbackCharFilter;
+						ImGuiInputTextFlags_CallbackCharFilter |
+						ImGuiInputTextFlags_WordWrap;
 
 					bool text_input_validate {false};
 					ImGui::InputTextMultiline(
