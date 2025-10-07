@@ -699,7 +699,7 @@ Screen* MainScreen::tick(float time_delta, bool& quit) {
 		case 2: compute_mode_lower_limit = 1.5f; break;
 		default: std::cerr << "unknown compute perf mode\n"; std::exit(-1);
 	}
-	if (compute_mode_lower_limit > _min_tick_interval) {
+	if (compute_mode_lower_limit > _min_tick_interval+0.0001f) {
 		_min_tick_interval = compute_mode_lower_limit;
 		_compute_lower_limit_hit = true;
 	} else if (_compute_lower_limit_hit_rendered) {
