@@ -63,7 +63,7 @@ if (NOT TARGET WebP::libwebpmux)
 
 	FetchContent_Declare(libwebp
 		GIT_REPOSITORY https://github.com/webmproject/libwebp
-		GIT_TAG v1.5.0
+		GIT_TAG v1.6.0
 		FIND_PACKAGE_ARGS
 	)
 	FetchContent_MakeAvailable(libwebp)
