@@ -54,7 +54,7 @@ static void tox_connection_status(const Tox_Event_Self_Connection_Status *event,
         ck_abort_msg("Tox went offline");
     }
 
-    ck_assert_msg(connection_status != TOX_CONNECTION_NONE, "wrong status %d", connection_status);
+    ck_assert_msg(connection_status != TOX_CONNECTION_NONE, "wrong status %u", connection_status);
 
     connected_t1 = connection_status;
 }
@@ -153,7 +153,7 @@ static void test_few_clients(void)
     tox_options_set_tcp_port(opts1, TCP_RELAY_PORT);
     Tox_Err_New t_n_error;
     Tox *tox1 = tox_new_log(opts1, &t_n_error, &index[0]);
-    ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);
+    ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %u", t_n_error);
     tox_options_free(opts1);
     tox_events_init(tox1);
     Tox_Dispatch *dispatch1 = tox_dispatch_new(nullptr);
@@ -164,7 +164,7 @@ static void test_few_clients(void)
     tox_options_set_udp_enabled(opts2, false);
     tox_options_set_local_discovery_enabled(opts2, false);
     Tox *tox2 = tox_new_log(opts2, &t_n_error, &index[1]);
-    ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);
+    ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %u", t_n_error);
     tox_events_init(tox2);
     Tox_Dispatch *dispatch2 = tox_dispatch_new(nullptr);
     ck_assert(dispatch2 != nullptr);
@@ -173,7 +173,7 @@ static void test_few_clients(void)
     tox_options_set_ipv6_enabled(opts3, USE_IPV6);
     tox_options_set_local_discovery_enabled(opts3, false);
     Tox *tox3 = tox_new_log(opts3, &t_n_error, &index[2]);
-    ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);
+    ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %u", t_n_error);
 
     ck_assert_msg(tox1 && tox2 && tox3, "Failed to create 3 tox instances");
 

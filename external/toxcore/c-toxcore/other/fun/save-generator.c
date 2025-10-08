@@ -46,7 +46,7 @@ static bool bootstrap_tox(Tox *tox)
     free(key);
 
     if (err != TOX_ERR_BOOTSTRAP_OK) {
-        printf("Failed to bootstrap. Error number: %d", err);
+        printf("Failed to bootstrap. Error number: %u", err);
         return false;
     }
 
@@ -128,13 +128,13 @@ int main(int argc, char *argv[])
     tox_self_set_name(tox, name, strlen((const char *)name), &err);
 
     if (err != TOX_ERR_SET_INFO_OK) {
-        printf("Failed to set name. Error number %d\n", err);
+        printf("Failed to set name. Error number %u\n", err);
     }
 
     tox_self_set_status_message(tox, (const uint8_t *)GENERATED_STATUS_MESSAGE, strlen(GENERATED_STATUS_MESSAGE), &err);
 
     if (err != TOX_ERR_SET_INFO_OK) {
-        printf("Failed to set status. Error number: %d\n", err);
+        printf("Failed to set status. Error number: %u\n", err);
     }
 
     for (int i = 2; i < argc; i++) { //start at 2 because that is where the tox ids are
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         free(address);
 
         if (friend_err != TOX_ERR_FRIEND_ADD_OK) {
-            printf("Failed to add friend number %d. Error number: %d\n", i - 1, friend_err);
+            printf("Failed to add friend number %d. Error number: %u\n", i - 1, friend_err);
         }
     }
 

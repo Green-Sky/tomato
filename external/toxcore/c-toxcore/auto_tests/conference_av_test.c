@@ -83,7 +83,7 @@ static void handle_conference_invite(
     const uint8_t *cookie = tox_event_conference_invite_get_cookie(event);
     const size_t length = tox_event_conference_invite_get_cookie_length(event);
 
-    ck_assert_msg(type == TOX_CONFERENCE_TYPE_AV, "tox #%u: wrong conference type: %d", autotox->index, type);
+    ck_assert_msg(type == TOX_CONFERENCE_TYPE_AV, "tox #%u: wrong conference type: %u", autotox->index, type);
 
     ck_assert_msg(toxav_join_av_groupchat(autotox->tox, friend_number, cookie, length, audio_callback, user_data) == 0,
                   "tox #%u: failed to join group", autotox->index);
@@ -101,7 +101,7 @@ static void handle_conference_connected(
 
     Tox_Err_Conference_Invite err;
     tox_conference_invite(autotox->tox, 1, 0, &err);
-    ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %d", autotox->index,
+    ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %u", autotox->index,
                   err);
     printf("tox #%u: invited next friend\n", autotox->index);
     state->invited_next = true;

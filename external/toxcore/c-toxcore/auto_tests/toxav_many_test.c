@@ -297,7 +297,7 @@ static void test_av_three_calls(void)
         toxav_call(alice_av, tds[i].friend_number, 48, 3000, &rc);
 
         if (rc != TOXAV_ERR_CALL_OK) {
-            printf("toxav_call failed: %d\n", rc);
+            printf("toxav_call failed: %u\n", rc);
             ck_assert(0);
         }
     }
@@ -316,7 +316,7 @@ static void test_av_three_calls(void)
                 toxav_answer(bobs_av[i], 0, 8, 500, &rc);
 
                 if (rc != TOXAV_ERR_ANSWER_OK) {
-                    printf("toxav_answer failed: %d\n", rc);
+                    printf("toxav_answer failed: %u\n", rc);
                     ck_assert(0);
                 }
 
@@ -334,7 +334,7 @@ static void test_av_three_calls(void)
         toxav_call_control(alice_av, i, TOXAV_CALL_CONTROL_CANCEL, &rc);
 
         if (rc != TOXAV_ERR_CALL_CONTROL_OK) {
-            printf("toxav_call_control failed: %d %p %p\n", rc, (void *)alice_av, (void *)&bobs_av[i]);
+            printf("toxav_call_control failed: %u %p %p\n", rc, (void *)alice_av, (void *)&bobs_av[i]);
         }
     }
 

@@ -90,7 +90,7 @@ static void group_invite_handler(const Tox_Event_Group_Invite *event, void *user
 static void group_join_fail_handler(const Tox_Event_Group_Join_Fail *event, void *user_data)
 {
     const Tox_Group_Join_Fail fail_type = tox_event_group_join_fail_get_fail_type(event);
-    printf("join failed: %d\n", fail_type);
+    printf("join failed: %u\n", fail_type);
 }
 
 static void group_peer_join_handler(const Tox_Event_Group_Peer_Join *event, void *user_data)
@@ -448,7 +448,7 @@ static void group_message_test(AutoTox *autotoxes)
     // tox0 ignores tox1
     Tox_Err_Group_Set_Ignore ig_err;
     tox_group_set_ignore(tox0, group_number, state0->peer_id, true, &ig_err);
-    ck_assert_msg(ig_err == TOX_ERR_GROUP_SET_IGNORE_OK, "%d", ig_err);
+    ck_assert_msg(ig_err == TOX_ERR_GROUP_SET_IGNORE_OK, "%u", ig_err);
 
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
@@ -460,7 +460,7 @@ static void group_message_test(AutoTox *autotoxes)
 
     // tox0 unignores tox1
     tox_group_set_ignore(tox0, group_number, state0->peer_id, false, &ig_err);
-    ck_assert_msg(ig_err == TOX_ERR_GROUP_SET_IGNORE_OK, "%d", ig_err);
+    ck_assert_msg(ig_err == TOX_ERR_GROUP_SET_IGNORE_OK, "%u", ig_err);
 
     fprintf(stderr, "Sending private action...\n");
 
@@ -470,7 +470,7 @@ static void group_message_test(AutoTox *autotoxes)
                             TOX_MESSAGE_TYPE_ACTION, (const uint8_t *)TEST_PRIVATE_MESSAGE,
                             TEST_PRIVATE_MESSAGE_LEN, &m_err);
 
-    ck_assert_msg(m_err == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%d", m_err);
+    ck_assert_msg(m_err == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%u", m_err);
 
     while (!state0->private_message_received) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
@@ -485,11 +485,11 @@ static void group_message_test(AutoTox *autotoxes)
     Tox_Err_Group_Send_Custom_Packet c_err;
     tox_group_send_custom_packet(tox1, group_number, true, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
                                  &c_err);
-    ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%d", c_err);
+    ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%u", c_err);
 
     tox_group_send_custom_packet(tox1, group_number, false, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
                                  &c_err);
-    ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%d", c_err);
+    ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%u", c_err);
 
     fprintf(stderr, "Sending custom private packets...\n");
 
@@ -499,13 +499,13 @@ static void group_message_test(AutoTox *autotoxes)
                                          (const uint8_t *)TEST_CUSTOM_PRIVATE_PACKET,
                                          TEST_CUSTOM_PRIVATE_PACKET_LEN, &cperr);
 
-    ck_assert_msg(cperr == TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_OK, "%d", cperr);
+    ck_assert_msg(cperr == TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_OK, "%u", cperr);
 
     tox_group_send_custom_private_packet(tox1, group_number, state1->peer_id, false,
                                          (const uint8_t *)TEST_CUSTOM_PRIVATE_PACKET,
                                          TEST_CUSTOM_PRIVATE_PACKET_LEN, &cperr);
 
-    ck_assert_msg(cperr == TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_OK, "%d", cperr);
+    ck_assert_msg(cperr == TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_OK, "%u", cperr);
 
     while (state0->custom_packets_received < 2 || state0->custom_private_packets_received < 2) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
@@ -518,7 +518,7 @@ static void group_message_test(AutoTox *autotoxes)
 
     tox_group_send_custom_packet(tox1, group_number, false, (const uint8_t *)TEST_CUSTOM_PACKET_LARGE, TEST_CUSTOM_PACKET_LARGE_LEN,
                                  &c_err);
-    ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%d", c_err);
+    ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%u", c_err);
 
     while (state0->custom_packets_received < 3) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);

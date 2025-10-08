@@ -54,7 +54,7 @@ static void save_data_encrypted(void)
 
     ck_assert_msg(tox_pass_encrypt(clear, size - TOX_PASS_ENCRYPTION_EXTRA_LENGTH, (const uint8_t *)pphrase,
                                    strlen(pphrase), cipher,
-                                   &eerr), "Could not encrypt, error code %d.", eerr);
+                                   &eerr), "Could not encrypt, error code %u.", eerr);
 
     size_t written_value = fwrite(cipher, sizeof(*cipher), size, f);
     printf("written written_value = %u of %u\n", (unsigned)written_value, (unsigned)size);

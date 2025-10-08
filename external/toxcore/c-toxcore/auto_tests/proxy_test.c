@@ -23,7 +23,7 @@ static bool try_bootstrap(Tox *tox1, Tox *tox2, Tox *tox3, Tox *tox4)
                 tox_self_get_connection_status(tox2) != TOX_CONNECTION_NONE &&
                 tox_self_get_connection_status(tox3) != TOX_CONNECTION_NONE &&
                 tox_self_get_connection_status(tox4) != TOX_CONNECTION_NONE) {
-            printf("%d %d %d %d\n",
+            printf("%u %u %u %u\n",
                    tox_self_get_connection_status(tox1),
                    tox_self_get_connection_status(tox2),
                    tox_self_get_connection_status(tox3),
@@ -37,7 +37,7 @@ static bool try_bootstrap(Tox *tox1, Tox *tox2, Tox *tox3, Tox *tox4)
         tox_iterate(tox4, nullptr);
 
         if (i % 10 == 0) {
-            printf("%d %d %d %d\n",
+            printf("%u %u %u %u\n",
                    tox_self_get_connection_status(tox1),
                    tox_self_get_connection_status(tox2),
                    tox_self_get_connection_status(tox3),

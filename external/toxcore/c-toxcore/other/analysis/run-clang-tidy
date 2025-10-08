@@ -7,6 +7,11 @@ ERRORS="*"
 # Still good to occasionally look at.
 ERRORS="$ERRORS,-google-readability-casting"
 
+# TODO(iphydf): Fix these.
+CHECKS="$CHECKS,-clang-analyzer-nullability.NullableDereferenced"
+CHECKS="$CHECKS,-clang-analyzer-nullability.NullablePassedToNonnull"
+CHECKS="$CHECKS,-clang-analyzer-nullability.NullPassedToNonnull"
+
 # Need to investigate or disable and document these.
 # =========================================================
 

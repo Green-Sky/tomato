@@ -84,7 +84,7 @@ static void test_save_compatibility(const char *save_path)
     size_t index = 0;
     Tox_Err_New err;
     Tox *tox = tox_new_log(options, &err, &index);
-    ck_assert_msg(tox, "failed to create tox, error number: %d", err);
+    ck_assert_msg(tox, "failed to create tox, error number: %u", err);
 
     tox_options_free(options);
     free(save_data);

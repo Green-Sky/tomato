@@ -156,7 +156,7 @@ static void group_tcp_test(AutoTox *autotoxes)
     Tox_Err_Group_New new_err;
     uint32_t groupnumber = tox_group_new(autotoxes[0].tox, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
                                          (const uint8_t *)"test", 4, &new_err);
-    ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
+    ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %u", new_err);
 
     iterate_group(autotoxes, NUM_GROUP_TOXES, GROUP_ITERATION_INTERVAL);
 
@@ -164,14 +164,14 @@ static void group_tcp_test(AutoTox *autotoxes)
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
     tox_group_get_chat_id(autotoxes[0].tox, groupnumber, chat_id, &id_err);
-    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "%d", id_err);
+    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "%u", id_err);
 
     printf("Tox 0 created new group...\n");
 
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         Tox_Err_Group_Join jerr;
         tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"test", 4, nullptr, 0, &jerr);
-        ck_assert_msg(jerr == TOX_ERR_GROUP_JOIN_OK, "%d", jerr);
+        ck_assert_msg(jerr == TOX_ERR_GROUP_JOIN_OK, "%u", jerr);
         iterate_group(autotoxes, NUM_GROUP_TOXES, GROUP_ITERATION_INTERVAL * 10);
     }
 
@@ -187,7 +187,7 @@ static void group_tcp_test(AutoTox *autotoxes)
         tox_group_send_private_message(autotoxes[0].tox, groupnumber, state0->peer_id[i],
                                        TOX_MESSAGE_TYPE_NORMAL,
                                        (const uint8_t *)CODEWORD, CODEWORD_LEN, &perr);
-        ck_assert_msg(perr == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%d", perr);
+        ck_assert_msg(perr == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%u", perr);
     }
 
     while (!all_peers_got_code(autotoxes))

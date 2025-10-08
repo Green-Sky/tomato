@@ -89,7 +89,7 @@ static void tox_file_receive(const Tox_Event_File_Recv *event, void *userdata)
     Tox_Err_File_Control error;
 
     ck_assert_msg(tox_file_control(state_tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, &error),
-                  "tox_file_control failed. %i", error);
+                  "tox_file_control failed. %u", error);
     ++file_accepted;
 
     Tox_Err_File_Seek err_s;
@@ -238,7 +238,7 @@ static void file_transfer_test(void)
         iterate_and_dispatch(dispatch2, tox2);
         iterate_and_dispatch(dispatch3, tox3);
 
-        printf("Connections: self (%d, %d, %d), friends (%d, %d)\n",
+        printf("Connections: self (%u, %u, %u), friends (%u, %u)\n",
                tox_self_get_connection_status(tox1),
                tox_self_get_connection_status(tox2),
                tox_self_get_connection_status(tox3),
@@ -285,7 +285,7 @@ static void file_transfer_test(void)
         if (file_sending_done) {
             ck_assert_msg(sendf_ok && file_recv && totalf_size == file_size && size_recv == file_size && sending_pos == size_recv
                           && file_accepted == 1,
-                          "Something went wrong in file transfer %u %u %u %u %u %u %lu %lu %lu",
+                          "Something went wrong in file transfer %u %u %d %d %d %d %lu %lu %lu",
                           sendf_ok, file_recv, totalf_size == file_size, size_recv == file_size, sending_pos == size_recv,
                           file_accepted == 1, (unsigned long)totalf_size, (unsigned long)size_recv,
                           (unsigned long)sending_pos);
@@ -304,7 +304,7 @@ static void file_transfer_test(void)
     }
 
     ck_assert_msg(file_sending_done, "file sending did not complete after %u iterations: sendf_ok:%u file_recv:%u "
-                  "totalf_size==file_size:%u size_recv==file_size:%u sending_pos==size_recv:%u file_accepted:%u "
+                  "totalf_size==file_size:%d size_recv==file_size:%d sending_pos==size_recv:%d file_accepted:%d "
                   "totalf_size:%lu size_recv:%lu sending_pos:%lu",
                   (unsigned int)max_iterations, sendf_ok, file_recv,
                   totalf_size == file_size, size_recv == file_size, sending_pos == size_recv, file_accepted == 1,
@@ -352,7 +352,7 @@ static void file_transfer_test(void)
 
     ck_assert_msg(sendf_ok && file_recv && totalf_size == file_size && size_recv == file_size
                   && sending_pos == size_recv && file_accepted == 1,
-                  "something went wrong in file transfer %u %u %u %u %u %u %llu %llu %llu", sendf_ok, file_recv,
+                  "something went wrong in file transfer %u %u %d %d %d %d %llu %llu %llu", sendf_ok, file_recv,
                   totalf_size == file_size, size_recv == file_size, sending_pos == size_recv, file_accepted == 1,
                   (unsigned long long)totalf_size, (unsigned long long)size_recv,
                   (unsigned long long)sending_pos);

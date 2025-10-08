@@ -125,15 +125,12 @@ jobs:
   cimple:
     working_directory: /tmp/cirrus-ci-build
     docker:
-      - image: toxchat/toktok-stack:latest-release
+      - image: toxchat/toktok-stack:latest
 
     steps:
       - checkout
-      - run: git submodule update --init --recursive
-      - run: /src/workspace/tools/inject-repo c-toxcore
-      - run: cd /src/workspace &&
-          bazel test
-            -k
+      - run:
+          CIRCLE_JOB=release bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
             --build_tag_filters=haskell
             --test_tag_filters=haskell
             --

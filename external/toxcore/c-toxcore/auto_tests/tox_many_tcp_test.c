@@ -88,7 +88,7 @@ static void test_many_clients_tcp(void)
         uint8_t dpk[TOX_PUBLIC_KEY_SIZE];
         tox_self_get_dht_id(toxes[0], dpk);
         Tox_Err_Bootstrap error;
-        ck_assert_msg(tox_add_tcp_relay(toxes[i], TOX_LOCALHOST, tcp_relay_port, dpk, &error), "add relay error, %u, %d", i,
+        ck_assert_msg(tox_add_tcp_relay(toxes[i], TOX_LOCALHOST, tcp_relay_port, dpk, &error), "add relay error, %u, %u", i,
                       error);
         uint16_t first_port = tox_self_get_udp_port(toxes[0], nullptr);
         ck_assert_msg(tox_bootstrap(toxes[i], TOX_LOCALHOST, first_port, dpk, nullptr), "Bootstrap error");
@@ -128,7 +128,7 @@ loop_top:
             goto loop_top;
         }
 
-        ck_assert_msg(num != UINT32_MAX && test == TOX_ERR_FRIEND_ADD_OK, "Failed to add friend error code: %i", test);
+        ck_assert_msg(num != UINT32_MAX && test == TOX_ERR_FRIEND_ADD_OK, "Failed to add friend error code: %u", test);
     }
 
     while (true) {
@@ -233,7 +233,7 @@ loop_top:
             goto loop_top;
         }
 
-        ck_assert_msg(num != UINT32_MAX && test == TOX_ERR_FRIEND_ADD_OK, "Failed to add friend error code: %i", test);
+        ck_assert_msg(num != UINT32_MAX && test == TOX_ERR_FRIEND_ADD_OK, "Failed to add friend error code: %u", test);
     }
 
     uint16_t last_count = 0;

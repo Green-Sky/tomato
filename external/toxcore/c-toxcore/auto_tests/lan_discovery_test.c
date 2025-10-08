@@ -43,7 +43,7 @@ int main(void)
     } while (tox_self_get_connection_status(tox1) == TOX_CONNECTION_NONE ||
              tox_self_get_connection_status(tox2) == TOX_CONNECTION_NONE);
 
-    printf(" %d <-> %d\n",
+    printf(" %u <-> %u\n",
            tox_self_get_connection_status(tox1),
            tox_self_get_connection_status(tox2));
 

@@ -156,7 +156,7 @@ static void send_update(BWController *bwc)
             tox_friend_send_lossy_packet(bwc->tox, bwc->friend_number, bwc_packet, sizeof(bwc_packet), &error);
 
             if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-                LOGGER_WARNING(bwc->log, "BWC send failed: %d", error);
+                LOGGER_WARNING(bwc->log, "BWC send failed: %u", error);
             }
         }
 

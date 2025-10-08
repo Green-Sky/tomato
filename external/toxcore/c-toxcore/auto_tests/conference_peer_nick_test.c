@@ -23,14 +23,14 @@ static void handle_conference_invite(
     const uint8_t *cookie = tox_event_conference_invite_get_cookie(event);
     const size_t length = tox_event_conference_invite_get_cookie_length(event);
 
-    fprintf(stderr, "handle_conference_invite(#%u, %u, %d, uint8_t[%u], _)\n",
+    fprintf(stderr, "handle_conference_invite(#%u, %u, %u, uint8_t[%u], _)\n",
             autotox->index, friend_number, type, (unsigned)length);
     fprintf(stderr, "tox%u joining conference\n", autotox->index);
 
     Tox_Err_Conference_Join err;
     state->conference = tox_conference_join(autotox->tox, friend_number, cookie, length, &err);
     ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK,
-                  "attempting to join the conference returned with an error: %d", err);
+                  "attempting to join the conference returned with an error: %u", err);
     fprintf(stderr, "tox%u joined conference %u\n", autotox->index, state->conference);
     state->joined = true;
 }
@@ -47,7 +47,7 @@ static void handle_peer_list_changed(const Tox_Event_Conference_Peer_List_Change
     Tox_Err_Conference_Peer_Query err;
     uint32_t const count = tox_conference_peer_count(autotox->tox, conference_number, &err);
     ck_assert_msg(err == TOX_ERR_CONFERENCE_PEER_QUERY_OK,
-                  "failed to get conference peer count: err = %d", err);
+                  "failed to get conference peer count: err = %u", err);
     printf("tox%u has %u peers\n", autotox->index, count);
     state->friend_in_group = count == 2;
 }
@@ -60,18 +60,18 @@ static void rebuild_peer_list(Tox *tox)
         Tox_Err_Conference_Peer_Query err;
         uint32_t const count = tox_conference_peer_count(tox, conference_number, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_PEER_QUERY_OK,
-                      "failed to get conference peer count for conference %u: err = %d", conference_number, err);
+                      "failed to get conference peer count for conference %u: err = %u", conference_number, err);
 
         for (uint32_t peer_number = 0; peer_number < count; peer_number++) {
             size_t size = tox_conference_peer_get_name_size(tox, conference_number, peer_number, &err);
             ck_assert_msg(err == TOX_ERR_CONFERENCE_PEER_QUERY_OK,
-                          "failed to get conference peer %u's name size (conference = %u): err = %d", peer_number, conference_number, err);
+                          "failed to get conference peer %u's name size (conference = %u): err = %u", peer_number, conference_number, err);
 
             uint8_t *const name = (uint8_t *)malloc(size);
             ck_assert(name != nullptr);
             tox_conference_peer_get_name(tox, conference_number, peer_number, name, &err);
             ck_assert_msg(err == TOX_ERR_CONFERENCE_PEER_QUERY_OK,
-                          "failed to get conference peer %u's name (conference = %u): err = %d", peer_number, conference_number, err);
+                          "failed to get conference peer %u's name (conference = %u): err = %u", peer_number, conference_number, err);
             free(name);
         }
     }
@@ -99,7 +99,7 @@ static void conference_peer_nick_test(AutoTox *autotoxes)
         state[0]->conference = tox_conference_new(autotoxes[0].tox, &err);
         state[0]->joined = true;
         ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK,
-                      "attempting to create a new conference returned with an error: %d", err);
+                      "attempting to create a new conference returned with an error: %u", err);
         fprintf(stderr, "Created conference: index=%u\n", state[0]->conference);
     }
 
@@ -108,7 +108,7 @@ static void conference_peer_nick_test(AutoTox *autotoxes)
         Tox_Err_Conference_Invite err;
         tox_conference_invite(autotoxes[0].tox, 0, state[0]->conference, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK,
-                      "attempting to invite a friend returned with an error: %d", err);
+                      "attempting to invite a friend returned with an error: %u", err);
         fprintf(stderr, "tox0 invited tox1\n");
     }
 

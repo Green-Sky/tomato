@@ -91,10 +91,10 @@ static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int
      */
     if (kf_max_dist > 1) {
         cfg->kf_max_dist = kf_max_dist; // a full frame every x frames minimum (can be more often, codec decides automatically)
-        LOGGER_DEBUG(log, "kf_max_dist=%d (1)", cfg->kf_max_dist);
+        LOGGER_DEBUG(log, "kf_max_dist=%u (1)", cfg->kf_max_dist);
     } else {
         cfg->kf_max_dist = VPX_MAX_DIST_START;
-        LOGGER_DEBUG(log, "kf_max_dist=%d (2)", cfg->kf_max_dist);
+        LOGGER_DEBUG(log, "kf_max_dist=%u (2)", cfg->kf_max_dist);
     }
 
     cfg->g_threads = VPX_MAX_ENCODER_THREADS; // Maximum number of threads to use
@@ -213,7 +213,7 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, ToxAV *av, uint
     }
 
     /*
-     * VPX_CTRL_USE_TYPE(VP8E_SET_NOISE_SENSITIVITY,  unsigned int)
+     * VPX_CTRL_USE_TYPE(VP8E_SET_NOISE_SENSITIVITY, unsigned int)
      * control function to set noise sensitivity
      *   0: off, 1: OnYOnly, 2: OnYUV, 3: OnYUVAggressive, 4: Adaptive
      */

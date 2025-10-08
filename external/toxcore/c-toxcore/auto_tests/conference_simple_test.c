@@ -28,7 +28,7 @@ static void handle_self_connection_status(const Tox_Event_Self_Connection_Status
     State *state = (State *)user_data;
 
     const Tox_Connection connection_status = tox_event_self_connection_status_get_connection_status(event);
-    fprintf(stderr, "self_connection_status(#%u, %d, _)\n", state->id, connection_status);
+    fprintf(stderr, "self_connection_status(#%u, %u, _)\n", state->id, connection_status);
     state->self_online = connection_status != TOX_CONNECTION_NONE;
 }
 
@@ -39,7 +39,7 @@ static void handle_friend_connection_status(const Tox_Event_Friend_Connection_St
 
     const uint32_t friend_number = tox_event_friend_connection_status_get_friend_number(event);
     const Tox_Connection connection_status = tox_event_friend_connection_status_get_connection_status(event);
-    fprintf(stderr, "handle_friend_connection_status(#%u, %u, %d, _)\n", state->id, friend_number, connection_status);
+    fprintf(stderr, "handle_friend_connection_status(#%u, %u, %u, _)\n", state->id, friend_number, connection_status);
     state->friend_online = connection_status != TOX_CONNECTION_NONE;
 }
 
@@ -51,14 +51,14 @@ static void handle_conference_invite(const Tox_Event_Conference_Invite *event, v
     const Tox_Conference_Type type = tox_event_conference_invite_get_type(event);
     const uint8_t *cookie = tox_event_conference_invite_get_cookie(event);
     const size_t length = tox_event_conference_invite_get_cookie_length(event);
-    fprintf(stderr, "handle_conference_invite(#%u, %u, %d, uint8_t[%u], _)\n",
+    fprintf(stderr, "handle_conference_invite(#%u, %u, %u, uint8_t[%u], _)\n",
             state->id, friend_number, type, (unsigned)length);
     fprintf(stderr, "tox%u joining conference\n", state->id);
 
     {
         Tox_Err_Conference_Join err;
         state->conference = tox_conference_join(state->tox, friend_number, cookie, length, &err);
-        ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "failed to join a conference: err = %d", err);
+        ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "failed to join a conference: err = %u", err);
         fprintf(stderr, "tox%u Joined conference %u\n", state->id, state->conference);
         state->joined = true;
     }
@@ -74,7 +74,7 @@ static void handle_conference_message(const Tox_Event_Conference_Message *event,
     const uint8_t *message = tox_event_conference_message_get_message(event);
     const size_t length = tox_event_conference_message_get_message_length(event);
 
-    fprintf(stderr, "handle_conference_message(#%u, %u, %u, %d, uint8_t[%u], _)\n",
+    fprintf(stderr, "handle_conference_message(#%u, %u, %u, %u, uint8_t[%u], _)\n",
             state->id, conference_number, peer_number, type, (unsigned)length);
 
     fprintf(stderr, "tox%u got message: %s\n", state->id, (const char *)message);
@@ -93,7 +93,7 @@ static void handle_conference_peer_list_changed(const Tox_Event_Conference_Peer_
     uint32_t count = tox_conference_peer_count(state->tox, conference_number, &err);
 
     if (err != TOX_ERR_CONFERENCE_PEER_QUERY_OK) {
-        fprintf(stderr, "ERROR: %d\n", err);
+        fprintf(stderr, "ERROR: %u\n", err);
         exit(EXIT_FAILURE);
     }
 
@@ -109,7 +109,7 @@ static void handle_conference_connected(const Tox_Event_Conference_Connected *ev
     if (state->id == 2 && !state->invited_next) {
         Tox_Err_Conference_Invite err;
         tox_conference_invite(state->tox, 1, state->conference, &err);
-        ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox2 failed to invite tox3: err = %d", err);
+        ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox2 failed to invite tox3: err = %u", err);
 
         state->invited_next = true;
         fprintf(stderr, "tox2 invited tox3\n");
@@ -209,7 +209,7 @@ int main(void)
         Tox_Err_Conference_New err;
         state1.conference = tox_conference_new(state1.tox, &err);
         state1.joined = true;
-        ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create a conference: err = %d", err);
+        ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create a conference: err = %u", err);
         fprintf(stderr, "Created conference: id = %u\n", state1.conference);
     }
 
@@ -217,7 +217,7 @@ int main(void)
         // Invite friend.
         Tox_Err_Conference_Invite err;
         tox_conference_invite(state1.tox, 0, state1.conference, &err);
-        ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "failed to invite a friend: err = %d", err);
+        ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "failed to invite a friend: err = %u", err);
         state1.invited_next = true;
         fprintf(stderr, "tox1 invited tox2\n");
     }
@@ -245,7 +245,7 @@ int main(void)
                                     (const uint8_t *)"hello!", 7, &err);
 
         if (err != TOX_ERR_CONFERENCE_SEND_MESSAGE_OK) {
-            fprintf(stderr, "ERROR: %d\n", err);
+            fprintf(stderr, "ERROR: %u\n", err);
             exit(EXIT_FAILURE);
         }
     }

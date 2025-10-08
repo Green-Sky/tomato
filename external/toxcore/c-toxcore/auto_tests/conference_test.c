@@ -53,12 +53,12 @@ static void handle_conference_invite(
     const uint8_t *data, size_t length, void *user_data)
 {
     const AutoTox *autotox = (AutoTox *)user_data;
-    ck_assert_msg(type == TOX_CONFERENCE_TYPE_TEXT, "tox #%u: wrong conference type: %d", autotox->index, type);
+    ck_assert_msg(type == TOX_CONFERENCE_TYPE_TEXT, "tox #%u: wrong conference type: %u", autotox->index, type);
 
     Tox_Err_Conference_Join err;
     uint32_t g_num = tox_conference_join(autotox->tox, friendnumber, data, length, &err);
 
-    ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "tox #%u: error joining group: %d", autotox->index, err);
+    ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "tox #%u: error joining group: %u", autotox->index, err);
     ck_assert_msg(g_num == 0, "tox #%u: group number was not 0", autotox->index);
 
     // Try joining again. We should only be allowed to join once.
@@ -79,7 +79,7 @@ static void handle_conference_connected(
 
     Tox_Err_Conference_Invite err;
     tox_conference_invite(autotox->tox, 1, 0, &err);
-    ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %d", autotox->index,
+    ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %u", autotox->index,
                   err);
     printf("tox #%u: invited next friend\n", autotox->index);
     state->invited_next = true;
@@ -206,7 +206,7 @@ static void run_conference_tests(AutoTox *autotoxes)
         Tox_Err_Conference_Set_Max_Offline err;
         tox_conference_set_max_offline(autotoxes[i].tox, 0, max_frozen, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_SET_MAX_OFFLINE_OK,
-                      "tox #%u failed to set max offline: err = %d", autotoxes[i].index, err);
+                      "tox #%u failed to set max offline: err = %u", autotoxes[i].index, err);
     }
 
     printf("letting random toxes timeout\n");

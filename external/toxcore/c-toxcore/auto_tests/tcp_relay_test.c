@@ -35,8 +35,8 @@ int main(void)
 
     const Tox_Connection status = tox_self_get_connection_status(tox_tcp);
     ck_assert_msg(status == TOX_CONNECTION_TCP,
-                  "expected TCP connection, but got %d", status);
-    printf("Connection (TCP): %d\n", status);
+                  "expected TCP connection, but got %u", status);
+    printf("Connection (TCP): %u\n", status);
 
     tox_kill(tox_tcp);
 

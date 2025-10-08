@@ -43,7 +43,7 @@ static void net_crypto_overflow_test(AutoTox *autotoxes)
             }
 
             ck_assert_msg(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK,
-                          "tox%u failed to send message number %u: %d", tox_index, i, err);
+                          "tox%u failed to send message number %u: %u", tox_index, i, err);
         }
     }
 

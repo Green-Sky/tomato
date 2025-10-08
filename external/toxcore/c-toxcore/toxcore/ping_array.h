@@ -31,23 +31,18 @@ typedef struct Ping_Array Ping_Array;
  *
  * @return pointer to allocated Ping_Array on success, nullptr on failure.
  */
-non_null()
-struct Ping_Array *ping_array_new(const Memory *mem, uint32_t size, uint32_t timeout);
+struct Ping_Array *_Nullable ping_array_new(const Memory *_Nonnull mem, uint32_t size, uint32_t timeout);
 
 /**
  * @brief Free all the allocated memory in a @ref Ping_Array.
  */
-nullable(1)
-void ping_array_kill(Ping_Array *array);
-
+void ping_array_kill(Ping_Array *_Nullable array);
 /**
  * @brief Add a data with length to the @ref Ping_Array list and return a ping_id.
  *
  * @return ping_id on success, 0 on failure.
  */
-non_null()
-uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Random *rng,
-                        const uint8_t *data, uint32_t length);
+uint64_t ping_array_add(Ping_Array *_Nonnull array, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, const uint8_t *_Nonnull data, uint32_t length);
 
 /**
  * @brief Check if @p ping_id is valid and not timed out.
@@ -56,9 +51,7 @@ uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Ran
  *
  * @return length of data copied on success, -1 on failure.
  */
-non_null()
-int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t *data, size_t length,
-                         uint64_t ping_id);
+int32_t ping_array_check(Ping_Array *_Nonnull array, const Mono_Time *_Nonnull mono_time, uint8_t *_Nonnull data, size_t length, uint64_t ping_id);
 
 #ifdef __cplusplus
 } /* extern "C" */

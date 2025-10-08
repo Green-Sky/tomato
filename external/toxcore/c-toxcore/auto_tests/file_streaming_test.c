@@ -75,7 +75,7 @@ static void tox_file_receive(Tox *tox, uint32_t friend_number, uint32_t file_num
     Tox_Err_File_Control error;
 
     ck_assert_msg(tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, &error),
-                  "tox_file_control failed. %i", error);
+                  "tox_file_control failed. %u", error);
     ++file_accepted;
 
     Tox_Err_File_Seek err_s;
@@ -189,7 +189,7 @@ static void file_transfer_test(void)
         tox_iterate(tox2, nullptr);
         tox_iterate(tox3, nullptr);
 
-        printf("Connections: self (%d, %d, %d), friends (%d, %d)\n",
+        printf("Connections: self (%u, %u, %u), friends (%u, %u)\n",
                tox_self_get_connection_status(tox1),
                tox_self_get_connection_status(tox2),
                tox_self_get_connection_status(tox3),
@@ -252,7 +252,7 @@ static void file_transfer_test(void)
 
     ck_assert_msg(sendf_ok && file_recv && m_send_reached && totalf_size == file_size && size_recv == max_sending
                   && sending_pos == size_recv && file_accepted == 1,
-                  "something went wrong in file transfer %u %u %u %u %u %u %u %lu %lu %lu %lu", sendf_ok, file_recv,
+                  "something went wrong in file transfer %u %u %d %d %d %d %d %lu %lu %lu %lu", sendf_ok, file_recv,
                   m_send_reached, totalf_size == file_size, size_recv == max_sending, sending_pos == size_recv, file_accepted == 1,
                   (unsigned long)totalf_size, (unsigned long)file_size,
                   (unsigned long)size_recv, (unsigned long)sending_pos);
