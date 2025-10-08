@@ -544,8 +544,8 @@ static void test_client(void)
 
     // The connection status should be unconfirmed here because we have finished
     // sending our data and are awaiting a response.
-    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_UNCONFIRMED, "Wrong connection status. Expected: %d, is: %d.",
-                  TCP_CLIENT_UNCONFIRMED, tcp_con_status(conn));
+    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_UNCONFIRMED, "Wrong connection status. Expected: %u, is: %u.",
+                  (unsigned int)TCP_CLIENT_UNCONFIRMED, tcp_con_status(conn));
 
     do_tcp_server_delay(tcp_s, mono_time, 50); // Now let the server handle requests...
 
@@ -556,8 +556,8 @@ static void test_client(void)
         do_tcp_connection(logger, mono_time, conn, nullptr); // Run the connection loop.
 
         // The status of the connection should continue to be TCP_CLIENT_CONFIRMED after multiple subsequent do_tcp_connection() calls.
-        ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONFIRMED, "Wrong connection status. Expected: %d, is: %d",
-                      TCP_CLIENT_CONFIRMED, tcp_con_status(conn));
+        ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONFIRMED, "Wrong connection status. Expected: %u, is: %u",
+                      (unsigned int)TCP_CLIENT_CONFIRMED, tcp_con_status(conn));
 
         c_sleep(i == loop_size - 1 ? 0 : 500); // Sleep for 500ms on all except third loop.
     }
@@ -565,7 +565,7 @@ static void test_client(void)
     do_tcp_server_delay(tcp_s, mono_time, 50);
 
     // And still after the server runs again.
-    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONFIRMED, "Wrong status. Expected: %d, is: %d", TCP_CLIENT_CONFIRMED,
+    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONFIRMED, "Wrong status. Expected: %u, is: %u", (unsigned int)TCP_CLIENT_CONFIRMED,
                   tcp_con_status(conn));
 
     uint8_t f2_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -680,20 +680,20 @@ static void test_client_invalid(void)
     c_sleep(50);
 
     // After 50ms of no response...
-    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONNECTING, "Wrong status. Expected: %d, is: %d.",
-                  TCP_CLIENT_CONNECTING, tcp_con_status(conn));
+    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONNECTING, "Wrong status. Expected: %u, is: %u.",
+                  (unsigned int)TCP_CLIENT_CONNECTING, tcp_con_status(conn));
     // After 5s...
     c_sleep(5000);
     mono_time_update(mono_time);
     do_tcp_connection(logger, mono_time, conn, nullptr);
-    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONNECTING, "Wrong status. Expected: %d, is: %d.",
-                  TCP_CLIENT_CONNECTING, tcp_con_status(conn));
+    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONNECTING, "Wrong status. Expected: %u, is: %u.",
+                  (unsigned int)TCP_CLIENT_CONNECTING, tcp_con_status(conn));
     // 11s... (Should wait for 10 before giving up.)
     c_sleep(6000);
     mono_time_update(mono_time);
     do_tcp_connection(logger, mono_time, conn, nullptr);
-    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_DISCONNECTED, "Wrong status. Expected: %d, is: %d.",
-                  TCP_CLIENT_DISCONNECTED, tcp_con_status(conn));
+    ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_DISCONNECTED, "Wrong status. Expected: %u, is: %u.",
+                  (unsigned int)TCP_CLIENT_DISCONNECTED, tcp_con_status(conn));
 
     kill_tcp_connection(conn);
 

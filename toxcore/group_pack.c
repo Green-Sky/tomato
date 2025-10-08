@@ -74,8 +74,7 @@ bool group_voice_state_from_int(uint8_t value, Group_Voice_State *out_enum)
     }
 }
 
-non_null()
-static bool load_unpack_state_values(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_state_values(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     if (!bin_unpack_array_fixed(bu, 8, nullptr)) {
         LOGGER_ERROR(chat->log, "Group state values array malformed");
@@ -110,8 +109,7 @@ static bool load_unpack_state_values(GC_Chat *chat, Bin_Unpack *bu)
     return true;
 }
 
-non_null()
-static bool load_unpack_state_bin(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_state_bin(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     if (!bin_unpack_array_fixed(bu, 5, nullptr)) {
         LOGGER_ERROR(chat->log, "Group state binary array malformed");
@@ -138,8 +136,7 @@ static bool load_unpack_state_bin(GC_Chat *chat, Bin_Unpack *bu)
     return true;
 }
 
-non_null()
-static bool load_unpack_topic_info(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_topic_info(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     if (!bin_unpack_array_fixed(bu, 6, nullptr)) {
         LOGGER_ERROR(chat->log, "Group topic array malformed");
@@ -159,12 +156,11 @@ static bool load_unpack_topic_info(GC_Chat *chat, Bin_Unpack *bu)
     return true;
 }
 
-non_null()
-static bool load_unpack_mod_list(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_mod_list(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     uint32_t actual_size = 0;
     if (!bin_unpack_array_fixed(bu, 2, &actual_size)) {
-        LOGGER_ERROR(chat->log, "Group mod list array malformed: %d != 2", actual_size);
+        LOGGER_ERROR(chat->log, "Group mod list array malformed: %u != 2", actual_size);
         return false;
     }
 
@@ -179,7 +175,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, Bin_Unpack *bu)
     }
 
     if (chat->moderation.num_mods > MOD_MAX_NUM_MODERATORS) {
-        LOGGER_ERROR(chat->log, "moderation count %u exceeds maximum %u", chat->moderation.num_mods, MOD_MAX_NUM_MODERATORS);
+        LOGGER_ERROR(chat->log, "moderation count %u exceeds maximum %u", chat->moderation.num_mods, (unsigned int)MOD_MAX_NUM_MODERATORS);
         chat->moderation.num_mods = MOD_MAX_NUM_MODERATORS;
     }
 
@@ -209,8 +205,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, Bin_Unpack *bu)
     return true;
 }
 
-non_null()
-static bool load_unpack_keys(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_keys(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
         LOGGER_ERROR(chat->log, "Group keys array malformed");
@@ -228,8 +223,7 @@ static bool load_unpack_keys(GC_Chat *chat, Bin_Unpack *bu)
     return true;
 }
 
-non_null()
-static bool load_unpack_self_info(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_self_info(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
         LOGGER_ERROR(chat->log, "Group self info array malformed");
@@ -281,8 +275,7 @@ static bool load_unpack_self_info(GC_Chat *chat, Bin_Unpack *bu)
     return true;
 }
 
-non_null()
-static bool load_unpack_saved_peers(GC_Chat *chat, Bin_Unpack *bu)
+static bool load_unpack_saved_peers(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
 {
     if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
         LOGGER_ERROR(chat->log, "Group saved peers array malformed");
@@ -328,7 +321,7 @@ bool gc_load_unpack_group(GC_Chat *chat, Bin_Unpack *bu)
 {
     uint32_t actual_size;
     if (!bin_unpack_array_fixed(bu, 7, &actual_size)) {
-        LOGGER_ERROR(chat->log, "Group info array malformed: %d != 7", actual_size);
+        LOGGER_ERROR(chat->log, "Group info array malformed: %u != 7", actual_size);
         return false;
     }
 
@@ -341,8 +334,7 @@ bool gc_load_unpack_group(GC_Chat *chat, Bin_Unpack *bu)
            && load_unpack_saved_peers(chat, bu);
 }
 
-non_null()
-static void save_pack_state_values(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_state_values(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 8);
     bin_pack_bool(bp, chat->connection_state == CS_DISCONNECTED); // 1
@@ -355,8 +347,7 @@ static void save_pack_state_values(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_u08(bp, chat->shared_state.voice_state); // 8
 }
 
-non_null()
-static void save_pack_state_bin(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_state_bin(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 5);
 
@@ -367,8 +358,7 @@ static void save_pack_state_bin(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_bin(bp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 5
 }
 
-non_null()
-static void save_pack_topic_info(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_topic_info(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 6);
 
@@ -380,8 +370,7 @@ static void save_pack_topic_info(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_bin(bp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 
-non_null()
-static void save_pack_mod_list(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_mod_list(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 2);
 
@@ -414,8 +403,7 @@ static void save_pack_mod_list(const GC_Chat *chat, Bin_Pack *bp)
     mem_delete(chat->mem, packed_mod_list);
 }
 
-non_null()
-static void save_pack_keys(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_keys(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 4);
 
@@ -425,8 +413,7 @@ static void save_pack_keys(const GC_Chat *chat, Bin_Pack *bp)
     pack_extended_secret_key(&chat->self_secret_key, bp); // 4
 }
 
-non_null()
-static void save_pack_self_info(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_self_info(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 4);
 
@@ -443,8 +430,7 @@ static void save_pack_self_info(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_bin(bp, self->nick, self->nick_length); // 4
 }
 
-non_null()
-static void save_pack_saved_peers(const GC_Chat *chat, Bin_Pack *bp)
+static void save_pack_saved_peers(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
 {
     bin_pack_array(bp, 2);
 

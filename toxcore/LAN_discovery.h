@@ -25,34 +25,27 @@ typedef struct Broadcast_Info Broadcast_Info;
  *
  * @return true on success, false on failure.
  */
-non_null()
-bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk,
-                        uint16_t port);
+bool lan_discovery_send(const Networking_Core *_Nonnull net, const Broadcast_Info *_Nonnull broadcast, const uint8_t *_Nonnull dht_pk, uint16_t port);
 
 /**
  * Discovers broadcast devices and IP addresses.
  */
-non_null()
-Broadcast_Info *lan_discovery_init(const Memory *mem, const Network *ns);
+Broadcast_Info *_Nullable lan_discovery_init(const Memory *_Nonnull mem, const Network *_Nonnull ns);
 
 /**
  * Free all resources associated with the broadcast info.
  */
-nullable(1)
-void lan_discovery_kill(Broadcast_Info *broadcast);
-
+void lan_discovery_kill(Broadcast_Info *_Nullable broadcast);
 /**
  * Is IP a local ip or not.
  */
-non_null()
-bool ip_is_local(const IP *ip);
+bool ip_is_local(const IP *_Nonnull ip);
 
 /**
  * Checks if a given IP isn't routable.
  *
  * @return true if ip is a LAN ip, false if it is not.
  */
-non_null()
-bool ip_is_lan(const IP *ip);
+bool ip_is_lan(const IP *_Nonnull ip);
 
 #endif /* C_TOXCORE_TOXCORE_LAN_DISCOVERY_H */

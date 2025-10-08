@@ -15,25 +15,25 @@ extern "C" {
 #endif
 
 /** @brief Compare elements with a less-than ordering: `a < b`. */
-typedef bool sort_less_cb(const void *object, const void *a, const void *b);
+typedef bool sort_less_cb(const void *_Nonnull object, const void *_Nonnull a, const void *_Nonnull b);
 /** @brief Get element from array at index. */
-typedef const void *sort_get_cb(const void *arr, uint32_t index);
+typedef const void *sort_get_cb(const void *_Nonnull arr, uint32_t index);
 /** @brief Set element in array at index to new value (perform copy). */
-typedef void sort_set_cb(void *arr, uint32_t index, const void *val);
+typedef void sort_set_cb(void *_Nonnull arr, uint32_t index, const void *_Nonnull val);
 /** @brief Get a sub-array at an index of a given size (mutable pointer).
  *
  * Used to index in the temporary array allocated by `sort_alloc_cb` and get
  * a sub-array for working memory.
  */
-typedef void *sort_subarr_cb(void *arr, uint32_t index, uint32_t size);
+typedef void *sort_subarr_cb(void *_Nonnull arr, uint32_t index, uint32_t size);
 /** @brief Allocate a new array of the element type.
  *
  * @param size The array size in elements of type T (not byte size). This value
  *   is always exactly the input array size as passed to `merge_sort`.
  */
-typedef void *sort_alloc_cb(const void *object, uint32_t size);
+typedef void *sort_alloc_cb(const void *_Nonnull object, uint32_t size);
 /** @brief Free the element type array. */
-typedef void sort_delete_cb(const void *object, void *arr, uint32_t size);
+typedef void sort_delete_cb(const void *_Nonnull object, void *_Nonnull arr, uint32_t size);
 
 /** @brief Virtual function table for getting/setting elements in an array and
  * comparing them.
@@ -46,12 +46,12 @@ typedef void sort_delete_cb(const void *object, void *arr, uint32_t size);
  * to mutate any state, but if necessary that can be changed in the future.
  */
 typedef struct Sort_Funcs {
-    sort_less_cb *less_callback;
-    sort_get_cb *get_callback;
-    sort_set_cb *set_callback;
-    sort_subarr_cb *subarr_callback;
-    sort_alloc_cb *alloc_callback;
-    sort_delete_cb *delete_callback;
+    sort_less_cb *_Nonnull less_callback;
+    sort_get_cb *_Nonnull get_callback;
+    sort_set_cb *_Nonnull set_callback;
+    sort_subarr_cb *_Nonnull subarr_callback;
+    sort_alloc_cb *_Nonnull alloc_callback;
+    sort_delete_cb *_Nonnull delete_callback;
 } Sort_Funcs;
 
 /** @brief Non-recursive merge sort function to sort `arr[0...arr_size-1]`.
@@ -82,8 +82,7 @@ typedef struct Sort_Funcs {
  * @param[in] object Comparator object.
  * @param[in] funcs Callback struct for elements of type T.
  */
-non_null()
-bool merge_sort(void *arr, uint32_t arr_size, const void *object, const Sort_Funcs *funcs);
+bool merge_sort(void *_Nonnull arr, uint32_t arr_size, const void *_Nonnull object, const Sort_Funcs *_Nonnull funcs);
 
 /**
  * @brief Merge sort like above but with a pre-allocated buffer.
@@ -106,8 +105,7 @@ bool merge_sort(void *arr, uint32_t arr_size, const void *object, const Sort_Fun
  * @param[in] object Comparator object.
  * @param[in] funcs Callback struct for elements of type T.
  */
-non_null()
-void merge_sort_with_buf(void *arr, uint32_t arr_size, void *tmp, uint32_t tmp_size, const void *object, const Sort_Funcs *funcs);
+void merge_sort_with_buf(void *_Nonnull arr, uint32_t arr_size, void *_Nonnull tmp, uint32_t tmp_size, const void *_Nonnull object, const Sort_Funcs *_Nonnull funcs);
 
 #ifdef __cplusplus
 } /* extern "C" */

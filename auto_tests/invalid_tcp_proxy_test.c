@@ -32,7 +32,7 @@ int main(void)
         // None of the iterations should have a connection.
         const Tox_Connection status = tox_self_get_connection_status(tox);
         ck_assert_msg(status == TOX_CONNECTION_NONE,
-                      "unexpectedly got a connection (%d)", status);
+                      "unexpectedly got a connection (%u)", status);
     }
 
     tox_kill(tox);

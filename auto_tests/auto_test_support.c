@@ -79,14 +79,14 @@ void bootstrap_tox_live_network(Tox *tox, bool enable_tcp)
         tox_bootstrap(tox, ip, port, key, &err);
 
         if (err != TOX_ERR_BOOTSTRAP_OK) {
-            fprintf(stderr, "Failed to bootstrap node %zu (%s): error %d\n", j, ip, err);
+            fprintf(stderr, "Failed to bootstrap node %zu (%s): error %u\n", j, ip, err);
         }
 
         if (enable_tcp) {
             tox_add_tcp_relay(tox, ip, port, key, &err);
 
             if (err != TOX_ERR_BOOTSTRAP_OK) {
-                fprintf(stderr, "Failed to add TCP relay %zu (%s): error %d\n", j, ip, err);
+                fprintf(stderr, "Failed to add TCP relay %zu (%s): error %u\n", j, ip, err);
             }
         }
     }
@@ -247,7 +247,7 @@ static void initialise_autotox(struct Tox_Options *options, AutoTox *autotox, ui
             tox_options_set_tcp_port(options, 0);
             autotest_opts->tcp_port = 0;
             autotox->tox = tox_new_log(options, &err, &autotox->index);
-            ck_assert_msg(err == TOX_ERR_NEW_OK, "unexpected tox_new error: %d", err);
+            ck_assert_msg(err == TOX_ERR_NEW_OK, "unexpected tox_new error: %u", err);
         } else {
             // Try a few ports for the TCP relay.
             for (uint16_t tcp_port = autotest_opts->tcp_port; tcp_port < autotest_opts->tcp_port + 200; ++tcp_port) {
@@ -259,7 +259,7 @@ static void initialise_autotox(struct Tox_Options *options, AutoTox *autotox, ui
                     break;
                 }
 
-                ck_assert_msg(err == TOX_ERR_NEW_PORT_ALLOC, "unexpected tox_new error (expected PORT_ALLOC): %d", err);
+                ck_assert_msg(err == TOX_ERR_NEW_PORT_ALLOC, "unexpected tox_new error (expected PORT_ALLOC): %u", err);
             }
         }
 
@@ -273,7 +273,7 @@ static void initialise_autotox(struct Tox_Options *options, AutoTox *autotox, ui
         autotox->tox = tox_new_log(options, &err, &autotox->index);
     }
 
-    ck_assert_msg(autotox->tox != nullptr, "failed to create tox instance #%u (error = %d)", index, err);
+    ck_assert_msg(autotox->tox != nullptr, "failed to create tox instance #%u (error = %u)", index, err);
 
     set_mono_time_callback(autotox);
 
@@ -348,7 +348,7 @@ static void bootstrap_autotoxes(const Tox_Options *options, uint32_t tox_count, 
     for (uint32_t i = 1; i < tox_count; ++i) {
         Tox_Err_Bootstrap err;
         tox_bootstrap(autotoxes[i].tox, "localhost", dht_port, dht_key, &err);
-        ck_assert_msg(err == TOX_ERR_BOOTSTRAP_OK, "bootstrap error for port %d: %d", dht_port, err);
+        ck_assert_msg(err == TOX_ERR_BOOTSTRAP_OK, "bootstrap error for port %d: %u", dht_port, err);
     }
 
     if (!udp_enabled) {

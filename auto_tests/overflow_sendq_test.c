@@ -24,10 +24,10 @@ static void net_crypto_overflow_test(AutoTox *autotoxes)
             // As soon as we get the first error, we expect the same error (SENDQ)
             // every time we try to send.
             ck_assert_msg(err == TOX_ERR_FRIEND_SEND_MESSAGE_SENDQ,
-                          "expected SENDQ error on message %u, but got %d", i, err);
+                          "expected SENDQ error on message %u, but got %u", i, err);
         } else {
             ck_assert_msg(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK,
-                          "failed to send message number %u: %d", i, err);
+                          "failed to send message number %u: %u", i, err);
         }
     }
 

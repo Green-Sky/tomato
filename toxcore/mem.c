@@ -10,26 +10,22 @@
 #include "attributes.h"
 #include "ccompat.h"
 
-nullable(1)
-static void *sys_malloc(void *obj, uint32_t size)
+static void *sys_malloc(void *_Nullable obj, uint32_t size)
 {
     return malloc(size);
 }
 
-nullable(1)
-static void *sys_calloc(void *obj, uint32_t nmemb, uint32_t size)
+static void *sys_calloc(void *_Nullable obj, uint32_t nmemb, uint32_t size)
 {
     return calloc(nmemb, size);
 }
 
-nullable(1, 2)
-static void *sys_realloc(void *obj, void *ptr, uint32_t size)
+static void *sys_realloc(void *_Nullable obj, void *_Nullable ptr, uint32_t size)
 {
     return realloc(ptr, size);
 }
 
-nullable(1, 2)
-static void sys_free(void *obj, void *ptr)
+static void sys_free(void *_Nullable obj, void *_Nullable ptr)
 {
     free(ptr);
 }

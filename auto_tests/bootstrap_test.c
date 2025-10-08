@@ -25,8 +25,8 @@ int main(void)
 
     const Tox_Connection status = tox_self_get_connection_status(tox_udp);
     ck_assert_msg(status == TOX_CONNECTION_UDP,
-                  "expected connection status to be UDP, but got %d", status);
-    printf("Connection (UDP): %d\n", tox_self_get_connection_status(tox_udp));
+                  "expected connection status to be UDP, but got %u", status);
+    printf("Connection (UDP): %u\n", tox_self_get_connection_status(tox_udp));
 
     tox_kill(tox_udp);
 

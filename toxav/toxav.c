@@ -737,10 +737,10 @@ bool toxav_audio_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t bit_ra
         goto RETURN;
     }
 
-    LOGGER_DEBUG(av->log, "Setting new audio bitrate to: %d", bit_rate);
+    LOGGER_DEBUG(av->log, "Setting new audio bitrate to: %u", bit_rate);
 
     if (call->audio_bit_rate == bit_rate) {
-        LOGGER_DEBUG(av->log, "Audio bitrate already set to: %d", bit_rate);
+        LOGGER_DEBUG(av->log, "Audio bitrate already set to: %u", bit_rate);
     } else if (bit_rate == 0) {
         LOGGER_DEBUG(av->log, "Turned off audio sending");
 
@@ -768,7 +768,7 @@ bool toxav_audio_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t bit_ra
                 goto RETURN;
             }
         } else {
-            LOGGER_DEBUG(av->log, "Set new audio bit rate %d", bit_rate);
+            LOGGER_DEBUG(av->log, "Set new audio bit rate %u", bit_rate);
         }
 
         call->audio_bit_rate = bit_rate;
@@ -810,10 +810,10 @@ bool toxav_video_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t bit_ra
         goto RETURN;
     }
 
-    LOGGER_DEBUG(av->log, "Setting new video bitrate to: %d", bit_rate);
+    LOGGER_DEBUG(av->log, "Setting new video bitrate to: %u", bit_rate);
 
     if (call->video_bit_rate == bit_rate) {
-        LOGGER_DEBUG(av->log, "Video bitrate already set to: %d", bit_rate);
+        LOGGER_DEBUG(av->log, "Video bitrate already set to: %u", bit_rate);
     } else if (bit_rate == 0) {
         LOGGER_DEBUG(av->log, "Turned off video sending");
 
@@ -841,7 +841,7 @@ bool toxav_video_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t bit_ra
                 goto RETURN;
             }
         } else {
-            LOGGER_DEBUG(av->log, "Set new video bit rate %d", bit_rate);
+            LOGGER_DEBUG(av->log, "Set new video bit rate %u", bit_rate);
         }
 
         call->video_bit_rate = bit_rate;
@@ -1048,13 +1048,13 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
     if (call->video_rtp->ssrc < VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // Key frame flag for first frames
         vpx_encode_flags = VPX_EFLAG_FORCE_KF;
-        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%d only-i-frame mode", call->video_rtp->ssrc);
+        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%u only-i-frame mode", call->video_rtp->ssrc);
 
         ++call->video_rtp->ssrc;
     } else if (call->video_rtp->ssrc == VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // normal keyframe placement
         vpx_encode_flags = 0;
-        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%d normal mode", call->video_rtp->ssrc);
+        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%u normal mode", call->video_rtp->ssrc);
 
         ++call->video_rtp->ssrc;
     }
@@ -1083,11 +1083,8 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
             memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
         }
 
-        // TODO(zoff99): don't hardcode this, let the application choose it
-        const unsigned long deadline = VPX_DL_REALTIME;
-
         const vpx_codec_err_t vrc = vpx_codec_encode(call->video->encoder, &img,
-                                    call->video->frame_counter, 1, vpx_encode_flags, deadline);
+                                    call->video->frame_counter, 1, vpx_encode_flags, VPX_DL_REALTIME);
 
         vpx_img_free(&img);
 

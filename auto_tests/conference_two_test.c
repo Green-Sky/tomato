@@ -17,9 +17,9 @@ int main(void)
     // Create two conferences and then exit.
     Tox_Err_Conference_New err;
     tox_conference_new(tox1, &err);
-    ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create conference 1: %d", err);
+    ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create conference 1: %u", err);
     tox_conference_new(tox1, &err);
-    ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create conference 2: %d", err);
+    ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create conference 2: %u", err);
 
     tox_kill(tox1);
 

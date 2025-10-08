@@ -364,12 +364,12 @@ static void group_sync_test(AutoTox *autotoxes)
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
     tox_group_get_chat_id(tox0, groupnumber, chat_id, &id_err);
-    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "%d", id_err);
+    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "%u", id_err);
 
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         Tox_Err_Group_Join join_err;
         tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
-        ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
+        ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%u", join_err);
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
@@ -381,7 +381,7 @@ static void group_sync_test(AutoTox *autotoxes)
 
     Tox_Err_Group_Set_Topic_Lock lock_set_err;
     tox_group_set_topic_lock(tox0, groupnumber, TOX_GROUP_TOPIC_LOCK_DISABLED, &lock_set_err);
-    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %d",
+    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %u",
                   lock_set_err);
 
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
@@ -393,7 +393,7 @@ static void group_sync_test(AutoTox *autotoxes)
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
     tox_group_set_topic_lock(tox0, groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED, &lock_set_err);
-    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to enable topic lock: %d",
+    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to enable topic lock: %u",
                   lock_set_err);
 
     do {
@@ -407,7 +407,7 @@ static void group_sync_test(AutoTox *autotoxes)
     for (size_t i = 0; i < state0->peers->num_peers; ++i) {
         tox_group_set_role(tox0, groupnumber, (uint32_t)state0->peers->peer_ids[i], TOX_GROUP_ROLE_MODERATOR,
                            &role_err);
-        ck_assert_msg(role_err == TOX_ERR_GROUP_SET_ROLE_OK, "Failed to set moderator. error: %d", role_err);
+        ck_assert_msg(role_err == TOX_ERR_GROUP_SET_ROLE_OK, "Failed to set moderator. error: %u", role_err);
     }
 
     fprintf(stderr, "founder enabled topic lock and set all peers to moderator role\n");
@@ -425,7 +425,7 @@ static void group_sync_test(AutoTox *autotoxes)
     for (size_t i = 0; i < num_demoted; ++i) {
         tox_group_set_role(tox0, groupnumber, (uint32_t)state0->peers->peer_ids[i], TOX_GROUP_ROLE_USER,
                            &role_err);
-        ck_assert_msg(role_err == TOX_ERR_GROUP_SET_ROLE_OK, "Failed to set user. error: %d", role_err);
+        ck_assert_msg(role_err == TOX_ERR_GROUP_SET_ROLE_OK, "Failed to set user. error: %u", role_err);
     }
 
     do {

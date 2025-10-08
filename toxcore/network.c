@@ -118,26 +118,22 @@ static bool should_ignore_connect_error(int err)
     return err == EWOULDBLOCK || err == EINPROGRESS;
 }
 
-non_null()
-static const char *inet_ntop4(const struct in_addr *addr, char *buf, size_t bufsize)
+static const char *inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     return inet_ntop(AF_INET, addr, buf, bufsize);
 }
 
-non_null()
-static const char *inet_ntop6(const struct in6_addr *addr, char *buf, size_t bufsize)
+static const char *inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     return inet_ntop(AF_INET6, addr, buf, bufsize);
 }
 
-non_null()
-static int inet_pton4(const char *addr_string, struct in_addr *addrbuf)
+static int inet_pton4(const char *_Nonnull addr_string, struct in_addr *_Nonnull addrbuf)
 {
     return inet_pton(AF_INET, addr_string, addrbuf);
 }
 
-non_null()
-static int inet_pton6(const char *addr_string, struct in6_addr *addrbuf)
+static int inet_pton6(const char *_Nonnull addr_string, struct in6_addr *_Nonnull addrbuf)
 {
     return inet_pton(AF_INET6, addr_string, addrbuf);
 }
@@ -159,8 +155,7 @@ static bool should_ignore_connect_error(int err)
     return err == WSAEWOULDBLOCK || err == WSAEINPROGRESS;
 }
 
-non_null()
-static const char *inet_ntop4(const struct in_addr *addr, char *buf, size_t bufsize)
+static const char *inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     struct sockaddr_in saddr = {0};
 
@@ -176,8 +171,7 @@ static const char *inet_ntop4(const struct in_addr *addr, char *buf, size_t bufs
     return buf;
 }
 
-non_null()
-static const char *inet_ntop6(const struct in6_addr *addr, char *buf, size_t bufsize)
+static const char *inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     struct sockaddr_in6 saddr = {0};
 
@@ -193,8 +187,7 @@ static const char *inet_ntop6(const struct in6_addr *addr, char *buf, size_t buf
     return buf;
 }
 
-non_null()
-static int inet_pton4(const char *addrString, struct in_addr *addrbuf)
+static int inet_pton4(const char *_Nonnull addrString, struct in_addr *_Nonnull addrbuf)
 {
     struct sockaddr_in saddr = {0};
 
@@ -209,8 +202,7 @@ static int inet_pton4(const char *addrString, struct in_addr *addrbuf)
     return 1;
 }
 
-non_null()
-static int inet_pton6(const char *addrString, struct in6_addr *addrbuf)
+static int inet_pton6(const char *_Nonnull addrString, struct in6_addr *_Nonnull addrbuf)
 {
     struct sockaddr_in6 saddr = {0};
 
@@ -306,30 +298,26 @@ static const Family *make_tox_family(int family)
     }
 }
 
-non_null()
-static void get_ip4(IP4 *result, const struct in_addr *addr)
+static void get_ip4(IP4 *_Nonnull result, const struct in_addr *_Nonnull addr)
 {
     static_assert(sizeof(result->uint32) == sizeof(addr->s_addr),
                   "Tox and operating system don't agree on size of IPv4 addresses");
     result->uint32 = addr->s_addr;
 }
 
-non_null()
-static void get_ip6(IP6 *result, const struct in6_addr *addr)
+static void get_ip6(IP6 *_Nonnull result, const struct in6_addr *_Nonnull addr)
 {
     static_assert(sizeof(result->uint8) == sizeof(addr->s6_addr),
                   "Tox and operating system don't agree on size of IPv6 addresses");
     memcpy(result->uint8, addr->s6_addr, sizeof(result->uint8));
 }
 
-non_null()
-static void fill_addr4(const IP4 *ip, struct in_addr *addr)
+static void fill_addr4(const IP4 *_Nonnull ip, struct in_addr *_Nonnull addr)
 {
     addr->s_addr = ip->uint32;
 }
 
-non_null()
-static void fill_addr6(const IP6 *ip, struct in6_addr *addr)
+static void fill_addr6(const IP6 *_Nonnull ip, struct in6_addr *_Nonnull addr)
 {
     memcpy(addr->s6_addr, ip->uint8, sizeof(ip->uint8));
 }
@@ -488,8 +476,7 @@ struct Network_Addr {
     size_t size;
 };
 
-non_null()
-static int sys_close(void *obj, Socket sock)
+static int sys_close(void *_Nonnull obj, Socket sock)
 {
 #if defined(OS_WIN32)
     return closesocket(net_socket_to_native(sock));
@@ -498,32 +485,27 @@ static int sys_close(void *obj, Socket sock)
 #endif /* OS_WIN32 */
 }
 
-non_null()
-static Socket sys_accept(void *obj, Socket sock)
+static Socket sys_accept(void *_Nonnull obj, Socket sock)
 {
     return net_socket_from_native(accept(net_socket_to_native(sock), nullptr, nullptr));
 }
 
-non_null()
-static int sys_bind(void *obj, Socket sock, const Network_Addr *addr)
+static int sys_bind(void *_Nonnull obj, Socket sock, const Network_Addr *_Nonnull addr)
 {
     return bind(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
 }
 
-non_null()
-static int sys_listen(void *obj, Socket sock, int backlog)
+static int sys_listen(void *_Nonnull obj, Socket sock, int backlog)
 {
     return listen(net_socket_to_native(sock), backlog);
 }
 
-non_null()
-static int sys_connect(void *obj, Socket sock, const Network_Addr *addr)
+static int sys_connect(void *_Nonnull obj, Socket sock, const Network_Addr *_Nonnull addr)
 {
     return connect(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
 }
 
-non_null()
-static int sys_recvbuf(void *obj, Socket sock)
+static int sys_recvbuf(void *_Nonnull obj, Socket sock)
 {
 #ifdef OS_WIN32
     u_long count = 0;
@@ -536,26 +518,22 @@ static int sys_recvbuf(void *obj, Socket sock)
     return count;
 }
 
-non_null()
-static int sys_recv(void *obj, Socket sock, uint8_t *buf, size_t len)
+static int sys_recv(void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf, size_t len)
 {
     return recv(net_socket_to_native(sock), (char *)buf, len, MSG_NOSIGNAL);
 }
 
-non_null()
-static int sys_send(void *obj, Socket sock, const uint8_t *buf, size_t len)
+static int sys_send(void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf, size_t len)
 {
     return send(net_socket_to_native(sock), (const char *)buf, len, MSG_NOSIGNAL);
 }
 
-non_null()
-static int sys_sendto(void *obj, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr)
+static int sys_sendto(void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf, size_t len, const Network_Addr *_Nonnull addr)
 {
     return sendto(net_socket_to_native(sock), (const char *)buf, len, 0, (const struct sockaddr *)&addr->addr, addr->size);
 }
 
-non_null()
-static int sys_recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr)
+static int sys_recvfrom(void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf, size_t len, Network_Addr *_Nonnull addr)
 {
     socklen_t size = addr->size;
     const int ret = recvfrom(net_socket_to_native(sock), (char *)buf, len, 0, (struct sockaddr *)&addr->addr, &size);
@@ -563,14 +541,12 @@ static int sys_recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, Networ
     return ret;
 }
 
-non_null()
-static Socket sys_socket(void *obj, int domain, int type, int proto)
+static Socket sys_socket(void *_Nonnull obj, int domain, int type, int proto)
 {
     return net_socket_from_native(socket(domain, type, proto));
 }
 
-non_null()
-static int sys_socket_nonblock(void *obj, Socket sock, bool nonblock)
+static int sys_socket_nonblock(void *_Nonnull obj, Socket sock, bool nonblock)
 {
 #ifdef OS_WIN32
     u_long mode = nonblock ? 1 : 0;
@@ -580,8 +556,7 @@ static int sys_socket_nonblock(void *obj, Socket sock, bool nonblock)
 #endif /* OS_WIN32 */
 }
 
-non_null()
-static int sys_getsockopt(void *obj, Socket sock, int level, int optname, void *optval, size_t *optlen)
+static int sys_getsockopt(void *_Nonnull obj, Socket sock, int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen)
 {
     socklen_t len = *optlen;
     const int ret = getsockopt(net_socket_to_native(sock), level, optname, (char *)optval, &len);
@@ -589,8 +564,7 @@ static int sys_getsockopt(void *obj, Socket sock, int level, int optname, void *
     return ret;
 }
 
-non_null()
-static int sys_setsockopt(void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen)
+static int sys_setsockopt(void *_Nonnull obj, Socket sock, int level, int optname, const void *_Nonnull optval, size_t optlen)
 {
 #ifdef EMSCRIPTEN
     return 0;
@@ -601,8 +575,7 @@ static int sys_setsockopt(void *obj, Socket sock, int level, int optname, const 
 
 // sets and fills an array of addrs for address
 // returns the number of entries in addrs
-non_null()
-static int sys_getaddrinfo(void *obj, const Memory *mem, const char *address, int family, int sock_type, Network_Addr **addrs)
+static int sys_getaddrinfo(void *_Nonnull obj, const Memory *_Nonnull mem, const char *_Nonnull address, int family, int sock_type, Network_Addr **_Nonnull addrs)
 {
     assert(addrs != nullptr);
 
@@ -673,8 +646,7 @@ static int sys_getaddrinfo(void *obj, const Memory *mem, const char *address, in
     return result;
 }
 
-non_null()
-static int sys_freeaddrinfo(void *obj, const Memory *mem, Network_Addr *addrs)
+static int sys_freeaddrinfo(void *_Nonnull obj, const Memory *_Nonnull mem, Network_Addr *_Nonnull addrs)
 {
     if (addrs == nullptr) {
         return 0;
@@ -732,20 +704,17 @@ void os_network_deinit(const Network *ns)
 }
 #endif /* 0 */
 
-non_null()
-static int net_setsockopt(const Network *ns, Socket sock, int level, int optname, const void *optval, size_t optlen)
+static int net_setsockopt(const Network *_Nonnull ns, Socket sock, int level, int optname, const void *_Nonnull optval, size_t optlen)
 {
     return ns->funcs->setsockopt(ns->obj, sock, level, optname, optval, optlen);
 }
 
-non_null()
-static int net_getsockopt(const Network *ns, Socket sock, int level, int optname, void *optval, size_t *optlen)
+static int net_getsockopt(const Network *_Nonnull ns, Socket sock, int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen)
 {
     return ns->funcs->getsockopt(ns->obj, sock, level, optname, optval, optlen);
 }
 
-non_null()
-static uint32_t data_0(uint16_t buflen, const uint8_t *buffer)
+static uint32_t data_0(uint16_t buflen, const uint8_t *_Nonnull buffer)
 {
     uint32_t data = 0;
 
@@ -755,8 +724,7 @@ static uint32_t data_0(uint16_t buflen, const uint8_t *buffer)
 
     return data;
 }
-non_null()
-static uint32_t data_1(uint16_t buflen, const uint8_t *buffer)
+static uint32_t data_1(uint16_t buflen, const uint8_t *_Nonnull buffer)
 {
     uint32_t data = 0;
 
@@ -882,9 +850,7 @@ static const char *net_packet_type_name(Net_Packet_Type type)
     return "<unknown>";
 }
 
-non_null()
-static void loglogdata(const Logger *log, const char *message, const uint8_t *buffer,
-                       uint16_t buflen, const IP_Port *ip_port, long res)
+static void loglogdata(const Logger *_Nonnull log, const char *_Nonnull message, const uint8_t *_Nonnull buffer, uint16_t buflen, const IP_Port *_Nonnull ip_port, long res)
 {
     if (res < 0) { /* Windows doesn't necessarily know `%zu` */
         Ip_Ntoa ip_str;
@@ -893,21 +859,21 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
         LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(buflen, 999), 'E',
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error,
+                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), (unsigned int)error,
                      net_strerror(error, &error_str), data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
         Ip_Ntoa ip_str;
         LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
+                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), (unsigned int)0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else { /* empty or overwrite */
         Ip_Ntoa ip_str;
         LOGGER_TRACE(log, "[%02x = %-21s] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
-                     res, res == 0 ? '!' : '>', buflen,
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
+                     (unsigned long)res, res == 0 ? '!' : '>', buflen,
+                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), (unsigned int)0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     }
 }
@@ -925,10 +891,7 @@ int net_send(const Network *ns, const Logger *log,
     return res;
 }
 
-non_null()
-static int net_sendto(
-    const Network *ns,
-    Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr, const IP_Port *ip_port)
+static int net_sendto(const Network *_Nonnull ns, Socket sock, const uint8_t *_Nonnull buf, size_t len, const Network_Addr *_Nonnull addr, const IP_Port *_Nonnull ip_port)
 {
     return ns->funcs->sendto(ns->obj, sock, buf, len, addr);
 }
@@ -941,9 +904,7 @@ int net_recv(const Network *ns, const Logger *log,
     return res;
 }
 
-non_null()
-static int net_recvfrom(const Network *ns,
-                        Socket sock, uint8_t *buf, size_t len, Network_Addr *addr)
+static int net_recvfrom(const Network *_Nonnull ns, Socket sock, uint8_t *_Nonnull buf, size_t len, Network_Addr *_Nonnull addr)
 {
     return ns->funcs->recvfrom(ns->obj, sock, buf, len, addr);
 }
@@ -953,8 +914,7 @@ int net_listen(const Network *ns, Socket sock, int backlog)
     return ns->funcs->listen(ns->obj, sock, backlog);
 }
 
-non_null()
-static int net_bind(const Network *ns, Socket sock, const Network_Addr *addr)
+static int net_bind(const Network *_Nonnull ns, Socket sock, const Network_Addr *_Nonnull addr)
 {
     return ns->funcs->bind(ns->obj, sock, addr);
 }
@@ -1135,8 +1095,7 @@ int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t
  * Packet data is put into data.
  * Packet length is put into length.
  */
-non_null()
-static int receivepacket(const Network *ns, const Logger *log, Socket sock, IP_Port *ip_port, uint8_t *data, uint32_t *length)
+static int receivepacket(const Network *_Nonnull ns, const Logger *_Nonnull log, Socket sock, IP_Port *_Nonnull ip_port, uint8_t *_Nonnull data, uint32_t *_Nonnull length)
 {
     memset(ip_port, 0, sizeof(IP_Port));
     Network_Addr addr = {{0}};
@@ -1150,7 +1109,7 @@ static int receivepacket(const Network *ns, const Logger *log, Socket sock, IP_P
 
         if (!should_ignore_recv_error(error)) {
             Net_Strerror error_str;
-            LOGGER_ERROR(log, "unexpected error reading from socket: %u, %s", error, net_strerror(error, &error_str));
+            LOGGER_ERROR(log, "unexpected error reading from socket: %u, %s", (unsigned int)error, net_strerror(error, &error_str));
         }
 
         return -1; /* Nothing received. */
@@ -1568,14 +1527,12 @@ bool ipport_equal(const IP_Port *a, const IP_Port *b)
     return ip_equal(&a->ip, &b->ip);
 }
 
-non_null()
-static int ip4_cmp(const IP4 *a, const IP4 *b)
+static int ip4_cmp(const IP4 *_Nonnull a, const IP4 *_Nonnull b)
 {
     return cmp_uint(a->uint32, b->uint32);
 }
 
-non_null()
-static int ip6_cmp(const IP6 *a, const IP6 *b)
+static int ip6_cmp(const IP6 *_Nonnull a, const IP6 *_Nonnull b)
 {
     const int res = cmp_uint(a->uint64[0], b->uint64[0]);
     if (res != 0) {
@@ -1584,8 +1541,7 @@ static int ip6_cmp(const IP6 *a, const IP6 *b)
     return cmp_uint(a->uint64[1], b->uint64[1]);
 }
 
-non_null()
-static int ip_cmp(const IP *a, const IP *b)
+static int ip_cmp(const IP *_Nonnull a, const IP *_Nonnull b)
 {
     const int res = cmp_uint(a->family.value, b->family.value);
     if (res != 0) {
@@ -1718,8 +1674,7 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
  *
  * @retval true on success.
  */
-non_null()
-static bool bin_pack_ip(Bin_Pack *bp, const IP *ip, bool is_ipv4)
+static bool bin_pack_ip(Bin_Pack *_Nonnull bp, const IP *_Nonnull ip, bool is_ipv4)
 {
     if (is_ipv4) {
         return bin_pack_bin_b(bp, ip->ip.v4.uint8, SIZE_IP4);
@@ -1763,8 +1718,7 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
            && bin_pack_u16_b(bp, net_ntohs(ip_port->port));
 }
 
-non_null()
-static bool bin_pack_ip_port_handler(const void *obj, const Logger *logger, Bin_Pack *bp)
+static bool bin_pack_ip_port_handler(const void *_Nonnull obj, const Logger *_Nonnull logger, Bin_Pack *_Nonnull bp)
 {
     const IP_Port *ip_port = (const IP_Port *)obj;
     return bin_pack_ip_port(bp, logger, ip_port);
@@ -1941,8 +1895,7 @@ bool addr_parse_ip(const char *address, IP *to)
  *
  * @return false on failure, true on success.
  */
-non_null(1, 2, 3, 4) nullable(5)
-static bool addr_resolve(const Network *ns, const Memory *mem, const char *address, IP *to, IP *extra)
+static bool addr_resolve(const Network *_Nonnull ns, const Memory *_Nonnull mem, const char *_Nonnull address, IP *_Nonnull to, IP *_Nullable extra)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
@@ -2374,8 +2327,7 @@ char *net_strerror(int error, Net_Strerror *buf)
 }
 #else
 #if defined(_GNU_SOURCE) && defined(__GLIBC__)
-non_null()
-static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
+static const char *net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
 {
     const char *retstr = strerror_r(error, tmp, tmp_size);
 
@@ -2386,8 +2338,7 @@ static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
     return retstr;
 }
 #else
-non_null()
-static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
+static const char *net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
 {
     const int fmt_error = strerror_r(error, tmp, tmp_size);
 

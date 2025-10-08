@@ -345,14 +345,12 @@ jobs:
     uses: TokTok/ci-tools/.github/workflows/deploy-artifact.yml@master
     with:
       project-name: toxcore
-      artifact-source: tox-*.tar.{gz,xz}
-      artifact-versioned: $VERSION.tar.{gz,xz}
+      artifact-source: toxcore.tar.{gz,xz}
+      artifact-versioned: c-toxcore-$VERSION.tar.{gz,xz}
       build: tarball
       run: |
         sudo apt-get install -y --no-install-recommends libsodium-dev
         autoreconf -fi
-        ./configure
-        make dist
-        for f in tox-*.tar.gz; do
-          gunzip -c "$f" | xz -z - >"${f%.gz}.xz"
-        done
+        touch toxcore.tar.gz # prevent error of file changes
+        tar --exclude-vcs --exclude='toxcore.tar.gz' --exclude='third_party/ci-tools' --exclude='*.github' --exclude='autom4te.cache' -zcvf toxcore.tar.gz .
+        gunzip -c toxcore.tar.gz | xz -z - >"toxcore.tar.xz"

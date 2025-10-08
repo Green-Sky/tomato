@@ -112,7 +112,7 @@ int main(void)
     Tox_Err_Options_New options_err;
     struct Tox_Options *tox_opts = tox_options_new(&options_err);
 
-    ck_assert_msg(options_err == TOX_ERR_OPTIONS_NEW_OK, "Failed to initialize tox options: %d\n", options_err);
+    ck_assert_msg(options_err == TOX_ERR_OPTIONS_NEW_OK, "Failed to initialize tox options: %u\n", options_err);
 
     tox_options_default(tox_opts);
     tox_options_set_udp_enabled(tox_opts, true);

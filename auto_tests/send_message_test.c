@@ -50,10 +50,10 @@ static void send_message_test(AutoTox *autotoxes)
 
     Tox_Err_Friend_Send_Message errm;
     tox_friend_send_message(autotoxes[0].tox, 0, TOX_MESSAGE_TYPE_NORMAL, msgs, msgs_len, &errm);
-    ck_assert_msg(errm == TOX_ERR_FRIEND_SEND_MESSAGE_TOO_LONG, "tox_max_message_length() is too small? error=%d", errm);
+    ck_assert_msg(errm == TOX_ERR_FRIEND_SEND_MESSAGE_TOO_LONG, "tox_max_message_length() is too small? error=%u", errm);
 
     tox_friend_send_message(autotoxes[0].tox, 0, TOX_MESSAGE_TYPE_NORMAL, msgs, tox_max_message_length(), &errm);
-    ck_assert_msg(errm == TOX_ERR_FRIEND_SEND_MESSAGE_OK, "tox_max_message_length() is too big? error=%d", errm);
+    ck_assert_msg(errm == TOX_ERR_FRIEND_SEND_MESSAGE_OK, "tox_max_message_length() is too big? error=%u", errm);
 
     free(msgs);
 

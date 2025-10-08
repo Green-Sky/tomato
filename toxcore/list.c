@@ -41,8 +41,7 @@ static int32_t list_index(uint32_t i)
  * @retval <0  no match, returns index (return value is `list_index(index)`) where
  *   the data should be inserted
  */
-non_null()
-static int find(const BS_List *list, const uint8_t *data)
+static int find(const BS_List *_Nonnull list, const uint8_t *_Nonnull data)
 {
     // should work well, but could be improved
     if (list->n == 0) {
@@ -60,7 +59,7 @@ static int find(const BS_List *list, const uint8_t *data)
     // closest match is found if we move back to where we have already been
 
     while (true) {
-        const int r = list->cmp_callback(data, list->data + list->element_size * i, list->element_size);
+        const int r = list->cmp_callback(data, (const void *_Nonnull)(list->data + list->element_size * i), list->element_size);
 
         if (r == 0) {
             return i;
@@ -107,8 +106,7 @@ static int find(const BS_List *list, const uint8_t *data)
  *
  * @return true on success.
  */
-non_null()
-static bool resize(BS_List *list, uint32_t new_size)
+static bool resize(BS_List *_Nonnull list, uint32_t new_size)
 {
     if (new_size == 0) {
         bs_list_free(list);

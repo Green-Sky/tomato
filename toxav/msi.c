@@ -183,7 +183,7 @@ bool check_peer_offline_status(const Logger *log, const Tox *tox, MSISession *se
 
     if (f_con_status == TOX_CONNECTION_NONE) {
         /* Friend is now offline */
-        LOGGER_DEBUG(log, "Friend %d is now offline", friend_number);
+        LOGGER_DEBUG(log, "Friend %u is now offline", friend_number);
 
         pthread_mutex_lock(session->mutex);
         MSICall *call = get_call(session, friend_number);
@@ -575,7 +575,7 @@ static int send_error(const Logger *log, Tox *tox, uint32_t friend_number, MSIEr
     assert(tox != nullptr);
 
     /* Send error message */
-    LOGGER_DEBUG(log, "Sending error: %d to friend: %d", error, friend_number);
+    LOGGER_DEBUG(log, "Sending error: %u to friend: %u", error, friend_number);
 
     MSIMessage msg;
     msg_init(&msg, REQU_POP);
@@ -590,7 +590,7 @@ static int send_error(const Logger *log, Tox *tox, uint32_t friend_number, MSIEr
 static int invoke_callback_inner(const Logger *log, MSICall *call, MSICallbackID id)
 {
     MSISession *session = call->session;
-    LOGGER_DEBUG(log, "invoking callback function: %d", id);
+    LOGGER_DEBUG(log, "invoking callback function: %u", id);
 
     switch (id) {
         case MSI_ON_INVITE:
@@ -612,7 +612,7 @@ static int invoke_callback_inner(const Logger *log, MSICall *call, MSICallbackID
             return session->capabilities_callback(session->av, call);
     }
 
-    LOGGER_FATAL(log, "invalid callback id: %d", id);
+    LOGGER_FATAL(log, "invalid callback id: %u", id);
     return -1;
 }
 
@@ -803,7 +803,7 @@ static void handle_init(const Logger *log, MSICall *call, const MSIMessage *msg)
 {
     assert(call != nullptr);
     LOGGER_DEBUG(log,
-                 "Session: %p Handling 'init' friend: %d", (void *)call->session, call->friend_number);
+                 "Session: %p Handling 'init' friend: %u", (void *)call->session, call->friend_number);
 
     if (!try_handle_init(log, call, msg)) {
         send_error(log, call->session->tox, call->friend_number, call->error);
@@ -815,7 +815,7 @@ static void handle_push(const Logger *log, MSICall *call, const MSIMessage *msg)
 {
     assert(call != nullptr);
 
-    LOGGER_DEBUG(log, "Session: %p Handling 'push' friend: %d", (void *)call->session,
+    LOGGER_DEBUG(log, "Session: %p Handling 'push' friend: %u", (void *)call->session,
                  call->friend_number);
 
     if (!msg->capabilities.exists) {
@@ -871,13 +871,13 @@ static void handle_pop(const Logger *log, MSICall *call, const MSIMessage *msg)
 {
     assert(call != nullptr);
 
-    LOGGER_DEBUG(log, "Session: %p Handling 'pop', friend id: %d", (void *)call->session,
+    LOGGER_DEBUG(log, "Session: %p Handling 'pop', friend id: %u", (void *)call->session,
                  call->friend_number);
 
     /* callback errors are ignored */
 
     if (msg->error.exists) {
-        LOGGER_WARNING(log, "Friend detected an error: %d", msg->error.value);
+        LOGGER_WARNING(log, "Friend detected an error: %u", msg->error.value);
         call->error = msg->error.value;
         invoke_callback(log, call, MSI_ON_ERROR);
     } else {

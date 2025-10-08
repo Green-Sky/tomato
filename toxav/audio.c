@@ -489,7 +489,7 @@ static bool reconfigure_audio_encoder(const Logger *log, OpusEncoder **e, uint32
     *old_sr = new_sr;
     *old_ch = new_ch;
 
-    LOGGER_DEBUG(log, "Reconfigured audio encoder br: %d sr: %d cc:%d", new_br, new_sr, new_ch);
+    LOGGER_DEBUG(log, "Reconfigured audio encoder br: %u sr: %u cc:%d", new_br, new_sr, new_ch);
     return true;
 }
 
@@ -504,7 +504,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
         OpusDecoder *new_dec = opus_decoder_create(sampling_rate, channels, &status);
 
         if (status != OPUS_OK) {
-            LOGGER_ERROR(ac->log, "Error while starting audio decoder(%d %d): %s", sampling_rate, channels, opus_strerror(status));
+            LOGGER_ERROR(ac->log, "Error while starting audio decoder(%u %u): %s", sampling_rate, channels, opus_strerror(status));
             return false;
         }
 
@@ -515,7 +515,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
         opus_decoder_destroy(ac->decoder);
         ac->decoder = new_dec;
 
-        LOGGER_DEBUG(ac->log, "Reconfigured audio decoder sr: %d cc: %d", sampling_rate, channels);
+        LOGGER_DEBUG(ac->log, "Reconfigured audio decoder sr: %u cc: %u", sampling_rate, channels);
     }
 
     return true;

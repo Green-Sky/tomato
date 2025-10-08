@@ -90,7 +90,7 @@ loop_top:
 
         tox_bootstrap(toxes[pairs[i].tox2], "localhost", dht_port, dht_key, nullptr);
 
-        ck_assert_msg(num != UINT32_MAX && test == TOX_ERR_FRIEND_ADD_OK, "failed to add friend error code: %i", test);
+        ck_assert_msg(num != UINT32_MAX && test == TOX_ERR_FRIEND_ADD_OK, "failed to add friend error code: %u", test);
     }
 
     for (uint32_t i = 0; i < TCP_TEST_NUM_TOXES; ++i) {

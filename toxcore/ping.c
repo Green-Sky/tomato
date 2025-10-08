@@ -86,9 +86,7 @@ void ping_send_request(Ping *ping, const IP_Port *ipp, const uint8_t *public_key
     sendpacket(dht_get_net(ping->dht), ipp, pk, sizeof(pk));
 }
 
-non_null()
-static int ping_send_response(const Ping *ping, const IP_Port *ipp, const uint8_t *public_key,
-                              uint64_t ping_id, const uint8_t *shared_encryption_key)
+static int ping_send_response(const Ping *_Nonnull ping, const IP_Port *_Nonnull ipp, const uint8_t *_Nonnull public_key, uint64_t ping_id, const uint8_t *_Nonnull shared_encryption_key)
 {
     uint8_t pk[DHT_PING_SIZE];
 
@@ -117,9 +115,7 @@ static int ping_send_response(const Ping *ping, const IP_Port *ipp, const uint8_
     return sendpacket(dht_get_net(ping->dht), ipp, pk, sizeof(pk));
 }
 
-non_null()
-static int handle_ping_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                               void *userdata)
+static int handle_ping_request(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, void *_Nonnull userdata)
 {
     DHT *dht = (DHT *)object;
 
@@ -161,9 +157,7 @@ static int handle_ping_request(void *object, const IP_Port *source, const uint8_
     return 0;
 }
 
-non_null()
-static int handle_ping_response(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                                void *userdata)
+static int handle_ping_response(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, void *_Nonnull userdata)
 {
     DHT      *dht = (DHT *)object;
     int       rc;
@@ -225,9 +219,7 @@ static int handle_ping_response(void *object, const IP_Port *source, const uint8
  * return true if it is.
  * return false if it isn't.
  */
-non_null()
-static bool in_list(const Client_data *list, uint16_t length, const Mono_Time *mono_time, const uint8_t *public_key,
-                    const IP_Port *ip_port)
+static bool in_list(const Client_data *_Nonnull list, uint16_t length, const Mono_Time *_Nonnull mono_time, const uint8_t *_Nonnull public_key, const IP_Port *_Nonnull ip_port)
 {
     for (unsigned int i = 0; i < length; ++i) {
         if (pk_equal(list[i].public_key, public_key)) {

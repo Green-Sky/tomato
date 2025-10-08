@@ -241,7 +241,7 @@ static void group_topic_test(AutoTox *autotoxes)
                                  GROUP_NAME_LEN,
                                  (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
-    ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
+    ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %u", new_err);
 
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
@@ -254,7 +254,7 @@ static void group_topic_test(AutoTox *autotoxes)
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
     tox_group_get_chat_id(tox0, groupnumber, chat_id, &id_err);
 
-    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "tox_group_get_chat_id failed %d", id_err);
+    ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERY_OK, "tox_group_get_chat_id failed %u", id_err);
 
     /* All other peers join the group using the Chat ID */
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
@@ -262,7 +262,7 @@ static void group_topic_test(AutoTox *autotoxes)
 
         Tox_Err_Group_Join join_err;
         tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
-        ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
+        ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %u", join_err);
 
         c_sleep(100);
     }
@@ -276,7 +276,7 @@ static void group_topic_test(AutoTox *autotoxes)
     /* Founder disables topic lock */
     Tox_Err_Group_Set_Topic_Lock lock_set_err;
     tox_group_set_topic_lock(tox0, groupnumber, TOX_GROUP_TOPIC_LOCK_DISABLED, &lock_set_err);
-    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %d",
+    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %u",
                   lock_set_err);
 
     fprintf(stderr, "Topic lock disabled\n");
@@ -292,7 +292,7 @@ static void group_topic_test(AutoTox *autotoxes)
     /* founder silences the last peer he saw join */
     Tox_Err_Group_Set_Role merr;
     tox_group_set_role(tox0, groupnumber, state0->peer_id, TOX_GROUP_ROLE_OBSERVER, &merr);
-    ck_assert_msg(merr == TOX_ERR_GROUP_SET_ROLE_OK, "Failed to set %u to observer role: %d", state0->peer_id, merr);
+    ck_assert_msg(merr == TOX_ERR_GROUP_SET_ROLE_OK, "Failed to set %u to observer role: %u", state0->peer_id, merr);
 
     fprintf(stderr, "Random peer is set to observer\n");
 
@@ -305,7 +305,7 @@ static void group_topic_test(AutoTox *autotoxes)
 
     /* Founder enables topic lock and sets topic back to original */
     tox_group_set_topic_lock(tox0, groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED, &lock_set_err);
-    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to enable topic lock: %d",
+    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_SET_TOPIC_LOCK_OK, "failed to enable topic lock: %u",
                   lock_set_err);
 
     fprintf(stderr, "Topic lock enabled\n");
@@ -330,7 +330,7 @@ static void group_topic_test(AutoTox *autotoxes)
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         Tox_Err_Group_Leave err_exit;
         tox_group_leave(autotoxes[i].tox, groupnumber, nullptr, 0, &err_exit);
-        ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
+        ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%u", err_exit);
     }
 
     fprintf(stderr, "All tests passed!\n");

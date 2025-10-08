@@ -39,7 +39,7 @@ static void accept_friend_request(const Tox_Event_Friend_Request *event, void *u
     Tox_Err_Friend_Add err;
     tox_friend_add_norequest(cb_data->tox2, public_key, &err);
 
-    ck_assert_msg(err == TOX_ERR_FRIEND_ADD_OK, "tox_friend_add_norequest failed: %d", err);
+    ck_assert_msg(err == TOX_ERR_FRIEND_ADD_OK, "tox_friend_add_norequest failed: %u", err);
 }
 
 static void iterate2_wait(const Tox_Dispatch *dispatch, Callback_Data *cb_data)
@@ -108,7 +108,7 @@ static void test_friend_request(const uint8_t *message, uint16_t length)
     Tox_Err_Friend_Add err;
     const uint32_t test = tox_friend_add(tox1, address, message, length, &err);
 
-    ck_assert_msg(err == TOX_ERR_FRIEND_ADD_OK, "tox_friend_add failed: %d", err);
+    ck_assert_msg(err == TOX_ERR_FRIEND_ADD_OK, "tox_friend_add failed: %u", err);
     ck_assert_msg(test == 0, "failed to add friend error code: %u", test);
 
     do {

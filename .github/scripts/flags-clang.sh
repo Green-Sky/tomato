@@ -9,6 +9,11 @@ add_flag -Weverything
 
 # Disable specific warning flags for both C and C++.
 
+# We're not checking nullability, yet.
+# TODO(iphydf): Remove.
+add_flag -Wno-nullable-to-nonnull-conversion
+add_flag -Wno-nullability-completeness
+
 # Very verbose, not very useful. This warns about things like int -> uint
 # conversions that change sign without a cast and narrowing conversions.
 add_flag -Wno-conversion
@@ -30,6 +35,8 @@ add_flag -Wno-missing-braces
 add_flag -Wno-missing-field-initializers
 # We don't use this attribute. It appears in the non-NDEBUG stderr logger.
 add_flag -Wno-missing-noreturn
+# We want to use this extension.
+add_flag -Wno-nullability-extension
 # Useful sometimes, but we accept padding in structs for clarity.
 # Reordering fields to avoid padding will reduce readability.
 add_flag -Wno-padded

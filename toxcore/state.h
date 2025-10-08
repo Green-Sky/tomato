@@ -52,35 +52,26 @@ typedef enum State_Load_Status {
     STATE_LOAD_STATUS_END,
 } State_Load_Status;
 
-typedef State_Load_Status state_load_cb(void *outer, const uint8_t *data, uint32_t length, uint16_t type);
+typedef State_Load_Status state_load_cb(void *_Nonnull outer, const uint8_t *_Nonnull data, uint32_t length, uint16_t type);
 
 /** state load/save */
-non_null()
-int state_load(const Logger *log, state_load_cb *state_load_callback, void *outer,
-               const uint8_t *data, uint32_t length, uint16_t cookie_inner);
+int state_load(const Logger *_Nonnull log, state_load_cb *_Nonnull state_load_callback, void *_Nonnull outer, const uint8_t *_Nonnull data, uint32_t length, uint16_t cookie_inner);
 
-non_null()
-uint8_t *state_write_section_header(uint8_t *data, uint16_t cookie_type, uint32_t len, uint32_t section_type);
+uint8_t *_Nonnull state_write_section_header(uint8_t *_Nonnull data, uint16_t cookie_type, uint32_t len, uint32_t section_type);
 
 // Utilities for state data serialisation.
 
 uint16_t lendian_to_host16(uint16_t lendian);
 uint16_t host_to_lendian16(uint16_t host);
 
-non_null()
-void host_to_lendian_bytes64(uint8_t *dest, uint64_t num);
-non_null()
-void lendian_bytes_to_host64(uint64_t *dest, const uint8_t *lendian);
+void host_to_lendian_bytes64(uint8_t *_Nonnull dest, uint64_t num);
+void lendian_bytes_to_host64(uint64_t *_Nonnull dest, const uint8_t *_Nonnull lendian);
 
-non_null()
-void host_to_lendian_bytes32(uint8_t *dest, uint32_t num);
-non_null()
-void lendian_bytes_to_host32(uint32_t *dest, const uint8_t *lendian);
+void host_to_lendian_bytes32(uint8_t *_Nonnull dest, uint32_t num);
+void lendian_bytes_to_host32(uint32_t *_Nonnull dest, const uint8_t *_Nonnull lendian);
 
-non_null()
-void host_to_lendian_bytes16(uint8_t *dest, uint16_t num);
-non_null()
-void lendian_bytes_to_host16(uint16_t *dest, const uint8_t *lendian);
+void host_to_lendian_bytes16(uint8_t *_Nonnull dest, uint16_t num);
+void lendian_bytes_to_host16(uint16_t *_Nonnull dest, const uint8_t *_Nonnull lendian);
 
 #ifdef __cplusplus
 } /* extern "C" */
