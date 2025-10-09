@@ -103,8 +103,15 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 		new_entry.current_texture = 0;
 		for (const auto& [ms, data] : res.frames) {
 			const auto n_t = tu.upload(data.data(), res.width, res.height);
+			if (n_t == 0) {
+				continue;
+			}
 			new_entry.textures.push_back(n_t);
 			new_entry.frame_duration.push_back(ms);
+		}
+
+		if (new_entry.textures.empty()) {
+			continue;
 		}
 
 		new_entry.width = res.width;

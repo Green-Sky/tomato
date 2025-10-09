@@ -116,6 +116,9 @@ struct TextureCache {
 				_tu.destroy(tex_id);
 			}
 		}
+		for (const auto& tex_id : _default_texture.textures) {
+			_tu.destroy(tex_id);
+		}
 	}
 
 	struct GetInfo {
