@@ -70,7 +70,10 @@ ImageLoaderWebP::ImageResult ImageLoaderWebP::loadFromMemoryRGBA(const uint8_t* 
 	while (WebPAnimDecoderHasMoreFrames(dec.get())) {
 		uint8_t* buf;
 		int timestamp;
-		WebPAnimDecoderGetNext(dec.get(), &buf, &timestamp);
+		if (WebPAnimDecoderGetNext(dec.get(), &buf, &timestamp) == 0 || buf == nullptr) {
+			// error out with empty res
+			return {};
+		}
 		// ... (Render 'buf' based on 'timestamp').
 		// ... (Do NOT free 'buf', as it is owned by 'dec').
 
