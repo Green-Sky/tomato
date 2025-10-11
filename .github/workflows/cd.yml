@@ -204,8 +204,18 @@ jobs:
     #- uses: ilammy/setup-nasm@v1
 
     - name: Configure CMake
+      env:
+        CXXFLAGS: "/D_MSVC_STL_HARDENING=1"
       # TODO: og asan had this -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON -DTOMATO_ASAN=${{matrix.type == 'asan' && 'ON' || 'OFF'}}
+      run: cmake -G Ninja
+        -B ${{github.workspace}}/build
+        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static
+        -DTOMATO_DEP_LIBWEBP_USE_SYSTEM=ON
+        -DSDLIMAGE_VENDORED=OFF -DSDLIMAGE_DEPS_SHARED=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_AVIF=OFF
+        -DPKG_CONFIG_EXECUTABLE=C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe
+        -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON
+        -DTOMATO_ASAN=${{matrix.type == 'asan' && 'ON' || 'OFF'}}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -t tomato
