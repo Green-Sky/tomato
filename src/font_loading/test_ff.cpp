@@ -2,11 +2,13 @@
 #include "./font_finder_fs.hpp"
 #include "./font_finder_fc_sdl.hpp"
 
+#include "./font_finder.hpp"
+
 #include <iostream>
 #include <stdexcept>
 
 int main(void) {
-	std::cout << "Font Finder Tests\n";
+	std::cout << "=== Font Finder Tests ===\n";
 
 	auto fun_tests = [](FontFinderInterface& ff) {
 		std::cout << "findBest('ColorEmoji', '', true): '" << ff.findBest("ColorEmoji", "", true) << "'\n";
@@ -36,6 +38,36 @@ int main(void) {
 		std::cout << "findBest('sans-serif', 'ar'): '" << ff.findBest("sans-serif", "ar") << "'\n";
 		std::cout << "findBest('sans-serif', 'ja'): '" << ff.findBest("sans-serif", "ja") << "'\n";
 		std::cout << "findBest('monospace'): '" << ff.findBest("monospace") << "'\n";
+
+		{
+			std::string path;
+			for (const auto family : getPlatformDefaultUIFamilies()) {
+				path = ff.findBest(family);
+				if (!path.empty()) {
+					break;
+				}
+			}
+			if (!path.empty()) {
+				std::cout << "found getPlatformDefaultUIFamily: '" << path << "'\n";
+			} else {
+				std::cout << "did not find getPlatformDefaultUIFamily\n";
+			}
+		}
+
+		{
+			std::string path;
+			for (const auto family : getPlatformDefaultColorEmojiFamilies()) {
+				path = ff.findBest(family);
+				if (!path.empty()) {
+					break;
+				}
+			}
+			if (!path.empty()) {
+				std::cout << "found getPlatformDefaultColorEmojiFamily: '" << path << "'\n";
+			} else {
+				std::cout << "did not find getPlatformDefaultColorEmojiFamily\n";
+			}
+		}
 	};
 
 
