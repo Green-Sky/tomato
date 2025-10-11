@@ -27,6 +27,15 @@ int main(void) {
 		std::cout << "findBest('Apple Color Emoji'): '" << ff.findBest("Apple Color Emoji") << "'\n";
 		std::cout << "findBest('Helvetica'): '" << ff.findBest("Helvetica") << "'\n";
 		std::cout << "findBest('San Francisco'): '" << ff.findBest("San Francisco") << "'\n";
+
+		// system default aliases (typical on linux with fc)
+		std::cout << "findBest('serif'): '" << ff.findBest("serif") << "'\n";
+		std::cout << "findBest('serif', 'ar'): '" << ff.findBest("serif", "ar") << "'\n";
+		std::cout << "findBest('serif', 'ja'): '" << ff.findBest("serif", "ja") << "'\n";
+		std::cout << "findBest('sans-serif'): '" << ff.findBest("sans-serif") << "'\n";
+		std::cout << "findBest('sans-serif', 'ar'): '" << ff.findBest("sans-serif", "ar") << "'\n";
+		std::cout << "findBest('sans-serif', 'ja'): '" << ff.findBest("sans-serif", "ja") << "'\n";
+		std::cout << "findBest('monospace'): '" << ff.findBest("monospace") << "'\n";
 	};
 
 
