@@ -75,9 +75,14 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 		std::string processed_family{segment_splits[0]};
 		processed_family.erase(std::remove(processed_family.begin(), processed_family.end(), ' '), processed_family.end());
 		std::transform(processed_family.begin(), processed_family.end(), processed_family.begin(), [](unsigned char c) { return std::tolower(c); });
+
+		std::string processed_lang{segment_splits[2]};
+		std::transform(processed_lang.begin(), processed_lang.end(), processed_lang.begin(), [](unsigned char c) { return std::tolower(c); });
+
 		_cache.push_back(SystemFont{
 			std::string{segment_splits[0]},
 			processed_family,
+			processed_lang,
 			segment_splits[3] == "True" || segment_splits[3] == "true" || segment_splits[3] == "1",
 		});
 #if 0
@@ -164,18 +169,32 @@ std::string FontFinder_FontConfigSDL::findBest(std::string_view family, std::str
 		}
 		// TODO: case/fuzzy compare/edit distance
 
-		// TODO: lang!
-		// TODO: style? or make style part of the name?
+		if (score > 0) { // extra selectors after the family
+			if (lang.empty()) {
+				if (!it.lang.empty()) {
+					score -= 1;
+				}
+			} else {
+				if (it.lang.find(lang) != std::string::npos) {
+					score += 5;
+				}
+			}
 
-		if (it.color != color) {
-			score -= 1;
+			// TODO: style? or make style part of the name?
+
+			if (it.color != color) {
+				score -= 1;
+			}
 		}
 
 		if (best_score < score) {
 			best_score = score;
 			best_ptr = &it;
 		}
-		//std::cout << it.family << " had score " << score << "\n";
+
+		//if (score > 0 && lang == "ja") {
+		//    std::cout << it.family << " l:" << it.lang << " had score " << score << "\n";
+		//}
 	}
 
 	if (best_ptr == nullptr) {
