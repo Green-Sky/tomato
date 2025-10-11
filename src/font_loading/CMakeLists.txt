@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.9...3.24 FATAL_ERROR)
 add_library(font_loading STATIC)
 
 target_sources(font_loading PUBLIC
+	./font_finder.hpp
+	./font_finder.cpp
 	./font_finder_i.hpp
 	./font_finder_fs.hpp
 	./font_finder_fs.cpp
