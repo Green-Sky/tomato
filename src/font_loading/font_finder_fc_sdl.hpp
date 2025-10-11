@@ -7,9 +7,7 @@
 #include <string>
 #include <vector>
 #include <string_view>
-#include <algorithm>
 
-#include <iostream>
 
 // provides a fontconfig (typically linux/unix) implementation
 // using commandline tools using sdl process management
@@ -17,11 +15,13 @@ struct FontFinder_FontConfigSDL : public FontFinderInterface {
 	struct SystemFont {
 		std::string family;
 		std::string processed_family;
-		bool color {false};
 
 		// lang
-		// for emojies:
-		// lang: und-zsye
+		// for emojies: und-zsye
+		// langs are concatinated with |
+		std::string lang;
+
+		bool color {false};
 	};
 
 	std::vector<SystemFont> _cache;
