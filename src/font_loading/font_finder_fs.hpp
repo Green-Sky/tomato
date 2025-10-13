@@ -26,5 +26,7 @@ struct FontFinder_FileSystem : public FontFinderInterface {
 	void addFontDir(std::string_view path);
 	void addFontFile(std::string_view path);
 
+	const char* name(void) const override;
+
 	std::string findBest(std::string_view family, std::string_view lang = "", bool color = false) const override;
 };

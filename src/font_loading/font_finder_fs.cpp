@@ -64,6 +64,10 @@ void FontFinder_FileSystem::addFontFile(std::string_view file_path) {
 	});
 }
 
+const char* FontFinder_FileSystem::name(void) const {
+	return "FileSystem";
+}
+
 std::string FontFinder_FileSystem::findBest(std::string_view family, std::string_view lang, bool color) const {
 	const SystemFont* best_ptr = nullptr;
 	int best_score = 0;

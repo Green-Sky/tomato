@@ -140,6 +140,10 @@ void FontFinder_FontConfigSDL::reset(void) {
 	fillCache();
 }
 
+const char* FontFinder_FontConfigSDL::name(void) const {
+	return "FontConfigSDL";
+}
+
 // TODO: use fc-match instead, maybe fallback to this
 std::string FontFinder_FontConfigSDL::findBest(std::string_view family, std::string_view lang, bool color) const {
 	const SystemFont* best_ptr = nullptr;
