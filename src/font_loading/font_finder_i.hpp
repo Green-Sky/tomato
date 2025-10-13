@@ -5,6 +5,8 @@
 struct FontFinderInterface {
 	virtual ~FontFinderInterface(void) {}
 
+	virtual const char* name(void) const = 0;
+
 	//struct FontIteratorI {
 	//};
 	//virtual FontIteratorI begin(void) const {}

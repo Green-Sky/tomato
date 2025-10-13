@@ -34,5 +34,7 @@ struct FontFinder_FontConfigSDL : public FontFinderInterface {
 
 	void reset(void);
 
+	const char* name(void) const override;
+
 	std::string findBest(std::string_view family, std::string_view lang = "", bool color = false) const override;
 };
