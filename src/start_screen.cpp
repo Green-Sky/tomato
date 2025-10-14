@@ -6,6 +6,8 @@
 
 #include "./chat_gui/about.hpp"
 
+#include "./font_loading/font_finder.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <imgui.h>
@@ -84,7 +86,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 
 	ImGui::GetIO().FontGlobalScale = display_scale;
 	ImGui::GetStyle().FontSizeBase = _conf.get_int("ImGuiFonts", "size").value_or(13);
-	{
+	if constexpr (false) {
 		auto* font_atlas = ImGui::GetIO().Fonts;
 		font_atlas->ClearFonts();
 		// for now we also always merge
@@ -139,6 +141,50 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		}
 
 		font_atlas->Build();
+	} else {
+		auto* font_atlas = ImGui::GetIO().Fonts;
+		font_atlas->ClearFonts();
+
+		const auto ff_backends = constructPlatformDefaultFinderBackends();
+
+		// last text font is always built-in
+		font_atlas->AddFontDefault();
+
+		{ // emojies after text
+			ImFontConfig fontcfg_emoji;
+			fontcfg_emoji.MergeMode = true;
+			const auto emoji_families = getPlatformDefaultColorEmojiFamilies();
+
+			std::string font_path;
+
+#if defined(IMGUI_ENABLE_FREETYPE)
+	#if defined(IMGUI_ENABLE_FREETYPE_PLUTOSVG)
+			std::cout << "Font: enabling freetype color loading\n";
+			fontcfg_emoji.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+			for (const auto family : emoji_families) {
+				font_path = getBestMatch(ff_backends, family, "", true);
+				if (!font_path.empty()) {
+					break;
+				}
+			}
+	#else
+			// fallback to monochrome
+			for (const auto family : emoji_families) {
+				font_path = getBestMatch(ff_backends, family);
+				if (!font_path.empty()) {
+					break;
+				}
+			}
+	#endif
+			// ???
+			fontcfg_emoji.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_Bitmap;
+#endif
+
+			if (font_atlas->AddFontFromFileTTF(font_path.c_str(), 0.f, &fontcfg_emoji) == nullptr) {
+				std::cerr << "Font error: failed adding '" << font_path << "' to font atlas\n";
+			}
+		}
+
 	}
 
 	if (config_loaded) { // pull plugins from config
