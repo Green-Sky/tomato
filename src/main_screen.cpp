@@ -479,6 +479,25 @@ Screen* MainScreen::render(float time_delta, bool&) {
 		ImGui::End();
 	}
 
+	if (ImGui::Begin("emoji debug")) {
+		ImGui::BeginTable("font display", 2, ImGuiTableFlags_BordersInner);
+		ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
+		for (int i = 26; i <= 32; i++) {
+			ImGui::TableNextColumn();
+			ImGui::Text("%d", i);
+			if (i == 26 || i == 32) {
+				ImGui::SameLine();
+				ImGui::Text("base");
+			}
+			ImGui::TableNextColumn();
+			ImGui::PushFont(nullptr, i);
+			ImGui::Text(u8"T😂❤️🤣👍🍅🥰🌴");
+			ImGui::PopFont();
+		}
+		ImGui::EndTable();
+	}
+	ImGui::End();
+
 	_compute_lower_limit_hit_rendered = true;
 
 	float tc_unfinished_queue_interval;
