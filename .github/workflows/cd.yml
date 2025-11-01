@@ -34,16 +34,7 @@ jobs:
     - name: Determine tag name
       id: tag
       shell: bash
-      # taken from llama.cpp
-      run: |
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
-        DEPTH="$(git rev-list --count HEAD)"
-        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=dev-${DEPTH}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        else
-          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        fi
+      run: . .github/workflows/tag_version.bash
 
     - name: Compress artifacts
       shell: bash
@@ -142,16 +133,7 @@ jobs:
     - name: Determine tag name
       id: tag
       shell: bash
-      # taken from llama.cpp
-      run: |
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
-        DEPTH="$(git rev-list --count HEAD)"
-        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=dev-${DEPTH}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        else
-          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        fi
+      run: . .github/workflows/tag_version.bash
 
     - name: rename apk
       id: rename_apk
@@ -225,16 +207,7 @@ jobs:
     - name: Determine tag name
       id: tag
       shell: bash
-      # taken from llama.cpp
-      run: |
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
-        DEPTH="$(git rev-list --count HEAD)"
-        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=dev-${DEPTH}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        else
-          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        fi
+      run: . .github/workflows/tag_version.bash
 
     - name: Clean temporary artifacts
       # msvc sometimes produces .ilk files, which are used for linking only
@@ -286,16 +259,7 @@ jobs:
     - name: Determine tag name
       id: tag
       shell: bash
-      # taken from llama.cpp
-      run: |
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
-        DEPTH="$(git rev-list --count HEAD)"
-        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=dev-${DEPTH}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        else
-          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        fi
+      run: . .github/workflows/tag_version.bash
 
     - name: Install Dependencies
       run: sudo apt update && sudo apt -y install unar
@@ -360,16 +324,7 @@ jobs:
     - name: Determine tag name
       id: tag
       shell: bash
-      # taken from llama.cpp
-      run: |
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
-        DEPTH="$(git rev-list --count HEAD)"
-        if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
-          echo "name=dev-${DEPTH}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        else
-          SAFE_NAME=$(echo "${{ env.BRANCH_NAME }}" | tr '/' '-')
-          echo "name=dev-${SAFE_NAME}-${SHORT_HASH}" >> $GITHUB_OUTPUT
-        fi
+      run: . .github/workflows/tag_version.bash
 
     - name: Download artifacts
       id: download-artifact
