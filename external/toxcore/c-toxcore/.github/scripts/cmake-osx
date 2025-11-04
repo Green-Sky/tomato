@@ -10,6 +10,7 @@ brew update
 brew install \
   libconfig \
   libvpx \
+  ninja \
   opus
 
 . ".github/scripts/flags-clang.sh"
@@ -25,7 +26,7 @@ add_flag -Werror
 add_c_flag -Wno-c11-extensions
 add_c_flag -Wno-pre-c11-compat
 
-cmake -B_build -H. \
+cmake -GNinja -B_build -H. \
   -DCMAKE_C_FLAGS="$C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS="$LD_FLAGS" \
@@ -38,11 +39,10 @@ cmake -B_build -H. \
   -DUSE_IPV6=OFF \
   -DAUTOTEST=ON
 
-cd _build # pushd
-make "-j$NPROC" -k install
+cmake --build _build
+cmake --install _build
 
 # TODO(iphydf): Investigate if we can get lan discovery to work on macos CI.
 # It works, but CI doesn't let us press the "allow broadcast" button.
-ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6 -E lan_discovery ||
-  ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6 -E lan_discovery
-cd - # popd
+ctest --test-dir _build -j50 --output-on-failure --rerun-failed --repeat until-pass:6 -E lan_discovery ||
+  ctest --test-dir _build -j50 --output-on-failure --rerun-failed --repeat until-pass:6 -E lan_discovery
