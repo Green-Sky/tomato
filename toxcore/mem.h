@@ -12,30 +12,13 @@
 #include <stdint.h>     // uint*_t
 
 #include "attributes.h"
+#include "tox_memory.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void *mem_malloc_cb(void *_Nullable obj, uint32_t size);
-typedef void *mem_calloc_cb(void *_Nullable obj, uint32_t nmemb, uint32_t size);
-typedef void *mem_realloc_cb(void *_Nullable obj, void *_Nullable ptr, uint32_t size);
-typedef void mem_free_cb(void *_Nullable obj, void *_Nullable ptr);
-
-/** @brief Functions wrapping standard C memory allocation functions. */
-typedef struct Memory_Funcs {
-    mem_malloc_cb *_Nullable malloc;
-    mem_calloc_cb *_Nullable calloc;
-    mem_realloc_cb *_Nullable realloc;
-    mem_free_cb *_Nullable free;
-} Memory_Funcs;
-
-typedef struct Memory {
-    const Memory_Funcs *_Nullable funcs;
-    void *_Nullable obj;
-} Memory;
-
-const Memory *_Nullable os_memory(void);
+typedef Tox_Memory Memory;
 
 /**
  * @brief Allocate an array of a given size for built-in types.

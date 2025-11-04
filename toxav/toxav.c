@@ -77,7 +77,7 @@ typedef struct DecodeTimeStats {
 } DecodeTimeStats;
 
 struct ToxAV {
-    const Memory *mem;
+    const struct Tox_Memory *mem;
     Logger *log;
     Tox *tox;
     MSISession *msi;
