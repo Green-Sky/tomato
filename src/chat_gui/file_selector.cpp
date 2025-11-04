@@ -89,7 +89,7 @@ void FileSelector::render(void) {
 
 			if (current_path.has_parent_path()) {
 				if (ImGui::TableNextColumn()) {
-					if (ImGui::Selectable("D##..", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
+					if (ImGui::Selectable("D##..", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
 						// the first "parent_path()" only removes the filename and the ending "/"
 						_current_file_path = _current_file_path.parent_path().parent_path() / "";
 						//_current_file_path = _current_file_path.remove_filename().parent_path() / "";
@@ -223,7 +223,7 @@ void FileSelector::render(void) {
 								ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, dir_bg1_color);
 							}
 							ImGui::PushID(tmp_id++);
-							if (ImGui::Selectable("D", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
+							if (ImGui::Selectable("D", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
 								try {
 									_current_file_path = dir_entry.path() / "";
 								} catch (...) {}
@@ -265,7 +265,7 @@ void FileSelector::render(void) {
 						const auto& file_entry = files.at(row);
 						if (ImGui::TableNextColumn()) {
 							ImGui::PushID(tmp_id++);
-							if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) {
+							if (ImGui::Selectable("F", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
 								try {
 									_current_file_path = file_entry.path();
 								} catch(...) {}
