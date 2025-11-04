@@ -53,6 +53,8 @@ target_sources(tomato PUBLIC
 	./image_loader_qoi.cpp
 	./image_loader_sdl_image.hpp
 	./image_loader_sdl_image.cpp
+	./image_scaler.hpp
+	./image_scaler.cpp
 
 	./texture_uploader.hpp
 	./sdlrenderer_texture_uploader.hpp
