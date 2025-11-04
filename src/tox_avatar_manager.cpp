@@ -297,6 +297,11 @@ void ToxAvatarManager::checkObj(ObjectHandle o) {
 		// like set "accepted" tag comp or something
 
 		std::cout << "TAM: accepted avatar ft\n";
+	} else {
+		// in progress, or canceled/aborted
+
+		// TODO: canceled tag with reason??
+		//if (o.all_of<ObjComp::Ephemeral::ToxTransferFriend
 	}
 }
 

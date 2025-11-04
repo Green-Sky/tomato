@@ -82,36 +82,17 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		display_scale = 1.f;
 	}
 
+	ImGui::GetIO().FontGlobalScale = display_scale;
+	ImGui::GetStyle().FontSizeBase = _conf.get_int("ImGuiFonts", "size").value_or(13);
 	{
 		auto* font_atlas = ImGui::GetIO().Fonts;
 		font_atlas->ClearFonts();
 		// for now we also always merge
-		//bool has_font {false};
-
-		ImFontGlyphRangesBuilder glyphbld;
-		ImVector<ImWchar> glyph_ranges;
-		{ // build ranges
-			glyphbld.AddRanges(font_atlas->GetGlyphRangesDefault());
-			glyphbld.AddRanges(font_atlas->GetGlyphRangesGreek());
-			glyphbld.AddRanges(font_atlas->GetGlyphRangesCyrillic());
-			glyphbld.AddRanges(font_atlas->GetGlyphRangesChineseSimplifiedCommon()); // contains CJK
-			glyphbld.AddText("™"); // somehow missing
-			// popular emojies
-			glyphbld.AddText(u8"😂❤️🤣👍😭🙏😘🥰😍😊🎉😁💕🥺😅🔥☺️🤦♥️🤷🙄😆🤗😉🎂🤔👏🙂😳🥳😎👌💜😔💪✨💖👀😋😏😢👉💗😩💯🌹💞🎈💙😃😡💐😜🙈🤞😄🤤🙌🤪❣️😀💋💀👇💔😌💓🤩🙃😬😱😴🤭😐🌞😒😇🌸😈🎶✌️🎊🥵😞💚☀️🖤💰😚👑🎁💥🙋☹️😑🥴👈💩✅👋🤮😤🤢🌟❗😥🌈💛😝😫😲🖕‼️🔴🌻🤯💃👊🤬🏃😕👁️⚡☕🍀💦⭐🦋🤨🌺😹🤘🌷💝💤🤝🐰😓💘🍻😟😣🧐😠🤠😻🌙😛🤙🙊");
-
-			if (const auto sv_opt = _conf.get_string("ImGuiFonts", "atlas_extra_text"); sv_opt.has_value) {
-				glyphbld.AddText(sv_opt.s.start, sv_opt.s.start+sv_opt.s.extend);
-			}
-			glyphbld.BuildRanges(&glyph_ranges);
-		}
 
 		ImFontConfig fontcfg;
-		//fontcfg.SizePixels = 16.f*display_scale;
-		fontcfg.SizePixels = _conf.get_int("ImGuiFonts", "size").value_or(13) * display_scale;
-		fontcfg.RasterizerDensity = 1.f;
-		fontcfg.OversampleH = 0;
-		fontcfg.OversampleV = 0;
-		fontcfg.MergeMode = false;
+		// defaults
+		fontcfg.OversampleH = fontcfg.OversampleV = 1;
+		fontcfg.PixelSnapH = true;
 #if defined(IMGUI_ENABLE_FREETYPE) && defined(IMGUI_ENABLE_FREETYPE_PLUTOSVG)
 		std::cout << "Font: enabling freetype color loading\n";
 		fontcfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
@@ -125,16 +106,14 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 			std::cout << "Font: loading '" << font_path << "'\n";
 			const auto* resulting_font = font_atlas->AddFontFromFileTTF(
 				font_path.c_str(),
-				_conf.get_int("ImGuiFonts", "size", font_path).value_or(0) * display_scale,
-				&fontcfg,
-				&(glyph_ranges[0])
+				0.f,
+				&fontcfg
 			);
 
 			if (resulting_font != nullptr) {
-				//has_font = true;
 				fontcfg.MergeMode = true;
 			} else {
-				std::cerr << "Font: failed to load '" << "path" << "' !\n";
+				std::cerr << "Font: failed to load '" << font_path << "' !\n";
 			}
 		}
 
