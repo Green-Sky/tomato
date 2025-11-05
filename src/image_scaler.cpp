@@ -67,7 +67,7 @@ struct ColorCanvas8888 {
 };
 
 template<typename ColorCanvas, typename ColorTmp>
-void image_scale(ColorCanvas& dst, const int dst_w, const int dst_h, const ColorCanvas& src, const int src_w, const int src_h) {
+constexpr void image_scale(ColorCanvas& dst, const int dst_w, const int dst_h, const ColorCanvas& src, const int src_w, const int src_h) {
 	// Box sampling - Imagine projecting the new, smaller pixels onto the larger source, covering multiple pixel.
 	for (int y = 0; y < dst_h; y++) {
 		for (int x = 0; x < dst_w; x++) {
@@ -109,7 +109,33 @@ void image_scale(ColorCanvas& dst, const int dst_w, const int dst_h, const Color
 	}
 }
 
+bool image_scale(uint8_t* dst, const int dst_w, const int dst_h, uint8_t* src, const int src_w, const int src_h) {
+	if (dst == nullptr || src == nullptr) {
+		return false;
+	}
+	if (dst_w == src_w && dst_h == src_h) {
+		assert(false && "fix me !");
+		return false;
+	}
+
+	ColorCanvas8888 dst_c{dst};
+	const ColorCanvas8888 src_c{src};
+
+	image_scale<ColorCanvas8888, ColorFloat4>(
+		dst_c,
+		dst_w, dst_h,
+		src_c,
+		src_w, src_h
+	);
+
+	return true;
+}
+
 bool image_scale(SDL_Surface* dst, SDL_Surface* src) {
+	if (dst == nullptr || src == nullptr) {
+		return false;
+	}
+
 	if (dst->format != src->format) {
 		return false;
 	}

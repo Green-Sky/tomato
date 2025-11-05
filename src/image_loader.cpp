@@ -1,6 +1,9 @@
 #include "./image_loader.hpp"
 
 #include <cassert>
+#include <cstdint>
+
+#include "./image_scaler.hpp"
 
 ImageLoaderI::ImageResult ImageLoaderI::ImageResult::crop(int32_t c_x, int32_t c_y, int32_t c_w, int32_t c_h) const {
 	// TODO: proper error handling
@@ -30,3 +33,23 @@ ImageLoaderI::ImageResult ImageLoaderI::ImageResult::crop(int32_t c_x, int32_t c
 	return new_image;
 }
 
+ImageLoaderI::ImageResult ImageLoaderI::ImageResult::scale(int32_t w, int32_t h) const {
+	assert(w > 0);
+	assert(h > 0);
+
+	ImageLoaderI::ImageResult new_image;
+	new_image.width = w;
+	new_image.height = h;
+	new_image.file_ext = file_ext;
+
+	for (const auto& input_frame : frames) {
+		auto& new_frame = new_image.frames.emplace_back();
+		new_frame.ms = input_frame.ms;
+
+		new_frame.data.resize(w*h*4);
+
+		image_scale(new_frame.data.data(), w, h, const_cast<uint8_t*>(input_frame.data.data()), width, height);
+	}
+
+	return new_image;
+}

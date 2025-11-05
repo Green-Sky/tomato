@@ -28,7 +28,8 @@ struct ImageLoaderI {
 		// only positive values are valid
 		ImageResult crop(int32_t c_x, int32_t c_y, int32_t c_w, int32_t c_h) const;
 
-		// TODO: scale
+		// only values > 0 are valid
+		ImageResult scale(int32_t w, int32_t h) const;
 	};
 	virtual ImageResult loadFromMemoryRGBA(const uint8_t* data, uint64_t data_size) = 0;
 };

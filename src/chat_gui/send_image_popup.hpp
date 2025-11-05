@@ -36,6 +36,10 @@ struct SendImagePopup {
 	bool dragging_last_frame_ul {false};
 	bool dragging_last_frame_lr {false};
 
+	float scale_x {1.f};
+	float scale_y {1.f};
+	bool scale_tie {true};
+
 	// texture to render (orig img)
 	TextureEntry preview_image;
 

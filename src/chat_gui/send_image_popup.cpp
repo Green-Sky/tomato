@@ -13,6 +13,7 @@
 
 #include <imgui.h>
 
+#include <cstdint>
 #include <cmath>
 
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
@@ -245,7 +246,7 @@ void SendImagePopup::render(float time_delta) {
 			- (
 				ImGui::GetWindowContentRegionMin().y
 				+ TEXT_BASE_HEIGHT*(2-1) // row of buttons (-1 bc fh inclues fontsize)
-				+ ImGui::GetFrameHeightWithSpacing()*4
+				+ ImGui::GetFrameHeightWithSpacing()*6
 			)
 		;
 		if (height > max_height) {
@@ -340,23 +341,22 @@ void SendImagePopup::render(float time_delta) {
 			{ // 4 lines delimiting the crop result
 				ImU32 line_color = 0xffffffff;
 				{ // calc color
+					static constexpr auto f = [](float x) {
+						while (x < 0.f) {
+							x += 1.f;
+						}
+
+						x = std::fmod(x, 1.f); // fract()
+
+						if (x < 1.f/3) {
+							return x * 3;
+						} else if (x < 2.f/3) {
+							return (1 - (x - (1.f/3))) * 3 - 2;
+						} else {
+							return 0.f;
+						}
+					};
 					auto rgb = [](float x) -> ImVec4 {
-						auto f = [](float x) {
-							while (x < 0.f) {
-								x += 1.f;
-							}
-
-							x = std::fmod(x, 1.f); // fract()
-
-							if (x < 1.f/3) {
-								return x * 3;
-							} else if (x < 2.f/3) {
-								return (1 - (x - (1.f/3))) * 3 - 2;
-							} else {
-								return 0.f;
-							}
-						};
-
 						float red = f(x);
 						float green = f(x - (1.f/3));
 						float blue = f(x - (2.f/3));
@@ -434,7 +434,7 @@ void SendImagePopup::render(float time_delta) {
 		}
 	}
 
-	const bool cropped = crop_rect.x != 0 || crop_rect.y != 0 || crop_rect.w != original_image.width || crop_rect.h != original_image.height;
+	const bool cropped = crop_rect.x != 0 || crop_rect.y != 0 || crop_rect.w != int64_t(original_image.width) || crop_rect.h != int64_t(original_image.height);
 	if (cropping) {
 		if (ImGui::Button("done")) {
 			cropping = false;
@@ -445,7 +445,7 @@ void SendImagePopup::render(float time_delta) {
 		}
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("reset")) {
+	if (ImGui::Button("reset##crop")) {
 		crop_rect.x = 0;
 		crop_rect.y = 0;
 		crop_rect.w = original_image.width;
@@ -455,8 +455,44 @@ void SendImagePopup::render(float time_delta) {
 	ImGui::SameLine();
 	ImGui::Text("x:%d y:%d w:%d h:%d", crop_rect.x, crop_rect.y, crop_rect.w, crop_rect.h);
 
+	ImGui::TextUnformatted("scale");
+	ImGui::SameLine();
+	if (ImGui::Button("reset##scale")) {
+		scale_x = 1.f;
+		scale_y = 1.f;
+		compress = false; // feels nice
+	}
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(TEXT_BASE_HEIGHT*3);
+	if (ImGui::DragFloat("##scale x", &scale_x, 0.001f, 0.001f, 100.f) && scale_tie) {
+		scale_y = scale_x;
+	}
+	ImGui::SameLine();
+	ImGui::TextUnformatted("X");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(TEXT_BASE_HEIGHT*3);
+	if (ImGui::DragFloat("##scale y", &scale_y, 0.001f, 0.001f, 100.f) && scale_tie) {
+		scale_x = scale_y;
+	}
+	ImGui::SameLine();
+	ImGui::Checkbox("tie", &scale_tie);
+
+	if (scale_x <= 0.f) { scale_x = 0.001f; }
+	if (scale_y <= 0.f) { scale_y = 0.001f; }
+	if (scale_x > 100.f) { scale_x = 100.f; }
+	if (scale_y > 100.f) { scale_y = 100.f; }
+
+	ImGui::Text("final size -> w:%d h:%d", (int)std::ceil(crop_rect.w*scale_x), (int)std::ceil(crop_rect.h*scale_y));
+
 	bool recalc_size = false;
 	if (cropped) {
+		if (!compress) {
+			// looks like a change
+			recalc_size = true;
+		}
+		compress = true;
+	}
+	if (scale_x != 1.f || scale_y != 1.f) {
 		if (!compress) {
 			// looks like a change
 			recalc_size = true;
@@ -505,16 +541,24 @@ void SendImagePopup::render(float time_delta) {
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("send ->", {-FLT_MIN, TEXT_BASE_HEIGHT*2})) {
-		if (compress || cropped) {
+		if (compress || cropped || scale_x != 1.f || scale_y != 1.f) {
 			// TODO: copy bad
 			ImageLoaderI::ImageResult tmp_img;
 			if (cropped) {
-				std::cout << "SIP: CROP!!!!!\n";
 				tmp_img = original_image.crop(
 					crop_rect.x,
 					crop_rect.y,
 					crop_rect.w,
 					crop_rect.h
+				);
+			} else {
+				tmp_img = original_image;
+			}
+
+			if (scale_x != 1.f || scale_y != 1.f) {
+				tmp_img = tmp_img.scale(
+					(int)std::ceil(crop_rect.w*scale_x),
+					(int)std::ceil(crop_rect.h*scale_y)
 				);
 			} else {
 				tmp_img = original_image;
