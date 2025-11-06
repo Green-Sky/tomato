@@ -475,6 +475,16 @@ void SendImagePopup::render(float time_delta) {
 		scale_x = scale_y;
 	}
 	ImGui::SameLine();
+	if (ImGui::Button("/2##scale")) {
+		scale_x *= 0.5f;
+		scale_y *= 0.5f;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("*2##scale")) {
+		scale_x *= 2.f;
+		scale_y *= 2.f;
+	}
+	ImGui::SameLine();
 	ImGui::Checkbox("tie", &scale_tie);
 
 	if (scale_x <= 0.f) { scale_x = 0.001f; }
