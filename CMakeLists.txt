@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14...3.24 FATAL_ERROR)
 
 # cmake setup begin
 project(tomato
-	VERSION 0.3.1
+	VERSION 0.3.2
 	HOMEPAGE_URL https://github.com/Green-Sky/tomato
 )
 
