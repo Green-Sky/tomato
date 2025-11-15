@@ -1074,7 +1074,7 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 		ImGui::EndTable();
 	}
 
-	if (ImGui::Shortcut(ImGuiKey_End, ImGuiInputFlags_RouteGlobal)) {
+	if (ImGui::Shortcut(ImGuiKey_G | ImGuiMod_Shift, ImGuiInputFlags_RouteGlobal) || ImGui::Shortcut(ImGuiKey_End, ImGuiInputFlags_RouteGlobal)) {
 		ImGui::SetScrollHereY(1.f);
 		manually_scrolled = true;
 	}
