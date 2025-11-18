@@ -460,7 +460,6 @@ void SendImagePopup::render(float time_delta) {
 	if (ImGui::Button("reset##scale")) {
 		scale_x = 1.f;
 		scale_y = 1.f;
-		compress = false; // feels nice
 	}
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(TEXT_BASE_HEIGHT*3);
