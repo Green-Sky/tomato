@@ -79,6 +79,10 @@ void ToxUIUtils::render(void) {
 						_tc.runBootstrap();
 					}
 
+					if (ImGui::MenuItem("connect node", nullptr, _show_dht_connect_node)) {
+						_show_dht_connect_node = !_show_dht_connect_node;
+					}
+
 					ImGui::EndMenu();
 				}
 
@@ -232,6 +236,82 @@ void ToxUIUtils::render(void) {
 				ImGui::Text("error creating group!");
 				ImGui::Text("group: '%s' (%d)", tox_err_group_new_to_string(err), err);
 				ImGui::Text("pw:    '%s' (%d)", tox_err_group_set_password_to_string(err_pw), err_pw);
+			}
+		}
+		ImGui::End();
+	}
+
+	if (_show_dht_connect_node) {
+		if (ImGui::Begin("Tox connect DHT node", &_show_dht_connect_node)) {
+			ImGui::BeginDisabled();
+			ImGui::TextWrapped(
+				"Here you can manually connect to a DHT node (or/and tcp-relay) by address and pubkey.\n"
+				"This is equivalent to what 'DHT Bootstrapping' does, but not with hardcoded nodes.\n"
+				"Keep in mind that your own DHT pubkey changes everytime you start the program, unlike dedicated bootstrap nodes.\n"
+				// see https://nodes.tox.chat/
+				"If DNS querries where not disabled at launch, domain names can be used too."
+			);
+			ImGui::EndDisabled();
+
+			static std::string addr;
+			static uint16_t port {33445};
+			static char pubkey[TOX_PUBLIC_KEY_SIZE*2 + 1]; // 1 for null terminator
+
+			if (ImGui::BeginTable("node", 2, ImGuiTableFlags_SizingFixedFit)) {
+				ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
+
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted("address");
+				ImGui::TableNextColumn();
+				ImGui::SetNextItemWidth(-1);
+				ImGui::InputText("##address", &addr);
+
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted("port");
+				ImGui::TableNextColumn();
+				ImGui::SetNextItemWidth(-1);
+				ImGui::InputScalar("##port", ImGuiDataType_U16, &port);
+
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted("pubkey");
+				ImGui::TableNextColumn();
+				ImGui::SetNextItemWidth(-1);
+				ImGui::InputText("##pubkey", pubkey, TOX_PUBLIC_KEY_SIZE*2+1);
+
+				// add as
+				// - udp dht node (default)
+				// - udp dht node + tcp relay
+				// - tcp relay
+
+				ImGui::EndTable();
+			}
+
+			static std::string last_error;
+
+			bool valid_input = !addr.empty() && port != 0;
+			if (!valid_input) ImGui::BeginDisabled();
+			if (ImGui::Button("connect")) {
+				std::vector<uint8_t> bin_pubkey = hex2bin(std::string_view{pubkey, TOX_PUBLIC_KEY_SIZE*2});
+
+				last_error.clear();
+
+				{
+					Tox_Err_Bootstrap err = _tc.toxBootstrap(addr, port, bin_pubkey);
+					if (err != Tox_Err_Bootstrap::TOX_ERR_BOOTSTRAP_OK) {
+						last_error += "add udp node failed with " + std::to_string(err) + "\n";
+					}
+				}
+				{
+					Tox_Err_Bootstrap err = _tc.toxAddTcpRelay(addr, port, bin_pubkey);
+					if (err != Tox_Err_Bootstrap::TOX_ERR_BOOTSTRAP_OK) {
+						last_error += "add tcp relay failed with " + std::to_string(err) + "\n";
+					}
+				}
+			}
+			if (!valid_input) ImGui::EndDisabled();
+			if (!last_error.empty()) {
+				ImGui::TextUnformatted(last_error.c_str());
 			}
 		}
 		ImGui::End();

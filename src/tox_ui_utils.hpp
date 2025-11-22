@@ -11,6 +11,7 @@ class ToxUIUtils {
 	bool _show_add_friend_window {false};
 	bool _show_add_group_window {false};
 	bool _show_new_group_window {false};
+	bool _show_dht_connect_node {false};
 
 	ToxClient& _tc;
 	ToxContactModel2& _tcm;
