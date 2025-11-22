@@ -271,11 +271,11 @@ void ToxUIUtils::render(void) {
 		if (ImGui::Begin("Tox connect DHT node", &_show_dht_connect_node)) {
 			ImGui::BeginDisabled();
 			ImGui::TextWrapped(
-				"Here you can manually connect to a DHT node (or/and tcp-relay) by address and pubkey.\n"
+				"Here you can manually connect to a DHT node (or/and tcp-relay) by address and id/pubkey.\n"
 				"This is equivalent to what 'DHT Bootstrapping' does, but not with hardcoded nodes.\n"
-				"Keep in mind that your own DHT pubkey changes everytime you start the program, unlike dedicated bootstrap nodes.\n"
-				// see https://nodes.tox.chat/
+				"Keep in mind that your own DHT id/pubkey changes everytime you start the program, unlike dedicated bootstrap nodes.\n"
 				"If DNS querries where not disabled at launch, domain names can be used too."
+				"A public list can be found at: nodes.tox.chat\n"
 			);
 			ImGui::EndDisabled();
 
