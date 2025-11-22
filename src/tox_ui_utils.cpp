@@ -83,18 +83,44 @@ void ToxUIUtils::render(void) {
 						_show_dht_connect_node = !_show_dht_connect_node;
 					}
 
+					{ // self node info
+						bool either = false;
+						{
+							auto [port_opt, port_err] = _tc.toxSelfGetUDPPort();
+							if (port_opt.has_value()) {
+								either = true;
+								ImGui::TextDisabled("udp online; port: %d", port_opt.value());
+							} else {
+								ImGui::TextDisabled("udp disabled");
+							}
+						}
+						{
+							auto [port_opt, port_err] = _tc.toxSelfGetTCPPort();
+							if (port_opt.has_value()) {
+								either = true;
+								ImGui::TextDisabled("tcp relay server online; port: %d", port_opt.value());
+							} else {
+								ImGui::TextDisabled("tcp relay server disabled");
+							}
+						}
+
+						if (either && ImGui::MenuItem("copy own DHT id/pubkey")) {
+							ImGui::SetClipboardText(bin2hex(_tc.toxSelfGetDHTID()).c_str());
+						}
+					}
+
 					ImGui::EndMenu();
 				}
 
 				switch (_tc.toxSelfGetConnectionStatus()) {
 					case TOX_CONNECTION_NONE:
-						ImGui::TextColored({1.0,0.5,0.5,0.8}, "Offline");
+						ImGui::TextColored({1.0,0.5,0.5,0.8}, "Disconnected");
 						break;
 					case TOX_CONNECTION_TCP:
-						ImGui::TextColored({0.0,1.0,0.8,0.8}, "Online-TCP");
+						ImGui::TextColored({0.0,1.0,0.8,0.8}, "Connected-TCP");
 						break;
 					case TOX_CONNECTION_UDP:
-						ImGui::TextColored({0.3,1.0,0.0,0.8}, "Online-UDP");
+						ImGui::TextColored({0.3,1.0,0.0,0.8}, "Connected-UDP");
 						break;
 				}
 
