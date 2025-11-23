@@ -569,8 +569,6 @@ void SendImagePopup::render(float time_delta) {
 					(int)std::ceil(crop_rect.w*scale_x),
 					(int)std::ceil(crop_rect.h*scale_y)
 				);
-			} else {
-				tmp_img = original_image;
 			}
 
 			std::vector<uint8_t> new_data;
