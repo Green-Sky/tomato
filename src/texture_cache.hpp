@@ -16,6 +16,10 @@
 struct TextureEntry {
 	uint32_t width {0};
 	uint32_t height {0};
+
+	uint32_t src_width {0};
+	uint32_t src_height {0};
+
 	std::vector<uint64_t> textures;
 	std::vector<uint32_t> frame_duration; // ms
 	size_t current_texture {0};
@@ -28,6 +32,8 @@ struct TextureEntry {
 	TextureEntry(const TextureEntry& other) :
 		width(other.width),
 		height(other.height),
+		src_width(other.src_width),
+		src_height(other.src_height),
 		textures(other.textures),
 		frame_duration(other.frame_duration),
 		current_texture(other.current_texture),
@@ -39,6 +45,8 @@ struct TextureEntry {
 	TextureEntry& operator=(const TextureEntry& other) {
 		width = other.width;
 		height = other.height;
+		src_width = other.src_width;
+		src_height = other.src_height;
 		textures = other.textures;
 		frame_duration = other.frame_duration;
 		current_texture = other.current_texture;
@@ -97,7 +105,11 @@ struct TextureCache {
 	TextureEntry _default_texture;
 
 	entt::dense_map<KeyType, TextureEntry> _cache;
-	entt::dense_set<KeyType> _to_load;
+	struct LoadDims {
+		uint32_t w{0};
+		uint32_t h{0};
+	};
+	entt::dense_map<KeyType, LoadDims> _to_load;
 	// to_reload // to_update? _marked_stale?
 
 	const uint64_t ms_before_purge {60 * 1000ull};
@@ -126,21 +138,37 @@ struct TextureCache {
 		uint32_t width;
 		uint32_t height;
 	};
-	GetInfo get(const KeyType& key) {
+	GetInfo get(const KeyType& key, uint32_t width = 0, uint32_t height = 0) {
 		auto it = _cache.find(key);
 
 		if (it != _cache.end()) {
+			// if scaled down AND smaller than requested, reload larger
+			if (
+				(width != 0 && height != 0) &&
+				(
+					(it->second.width < width && it->second.width < it->second.src_width) ||
+					(it->second.height < height && it->second.height < it->second.src_height)
+				)
+			) {
+				// TODO: only overwrite smaller dims (or combine max)
+				_to_load.insert({key, LoadDims{width, height}});
+			}
+
+			// return current texture either way
 			return {
 				it->second.template getID<TextureType>(),
-				it->second.width,
-				it->second.height
+				it->second.src_width,
+				it->second.src_height
 			};
 		} else {
-			_to_load.insert(key);
+			// TODO: only overwrite smaller dims (or combine max)
+			_to_load.insert({key, LoadDims{width, height}});
+
+			// return fallback
 			return {
 				_default_texture.getID<TextureType>(),
-				_default_texture.width,
-				_default_texture.height
+				_default_texture.src_width,
+				_default_texture.src_height
 			};
 		}
 	}
@@ -153,7 +181,7 @@ struct TextureCache {
 		if (it == _cache.end()) {
 			return false;
 		}
-		_to_load.insert(key);
+		_to_load.insert({key, {it->second.width, it->second.height}});
 		return true;
 	}
 
@@ -202,17 +230,18 @@ struct TextureCache {
 	bool workLoadQueue(void) {
 		auto it = _to_load.cbegin();
 		for (; it != _to_load.cend(); it++) {
-			auto new_entry_opt = _l.load(_tu, *it);
-			if (_cache.count(*it)) {
+			const auto& load_key = it->first;
+			auto new_entry_opt = _l.load(_tu, load_key, it->second.w, it->second.h);
+			if (_cache.count(load_key)) {
 				if (new_entry_opt.texture.has_value()) {
-					auto old_entry = _cache.at(*it); // copy
+					auto old_entry = _cache.at(load_key); // copy
 					assert(!old_entry.textures.empty());
 					for (const auto& tex_id : old_entry.textures) {
 						_tu.destroy(tex_id);
 					}
 
-					_cache.erase(*it);
-					auto& new_entry = _cache[*it] = new_entry_opt.texture.value();
+					_cache.erase(load_key);
+					auto& new_entry = _cache[load_key] = new_entry_opt.texture.value();
 					// TODO: make update interface and let loader handle this
 					//new_entry.current_texture = old_entry.current_texture; // ??
 					new_entry.rendered_this_frame = old_entry.rendered_this_frame;
@@ -228,8 +257,8 @@ struct TextureCache {
 				}
 			} else {
 				if (new_entry_opt.texture.has_value()) {
-					_cache.emplace(*it, new_entry_opt.texture.value());
-					_cache.at(*it).rendered_this_frame = true; // ?
+					_cache.emplace(load_key, new_entry_opt.texture.value());
+					_cache.at(load_key).rendered_this_frame = true; // ?
 					it = _to_load.erase(it);
 
 					// TODO: not a good idea?

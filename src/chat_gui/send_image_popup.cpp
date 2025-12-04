@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <iostream>
 
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());

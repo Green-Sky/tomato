@@ -27,9 +27,7 @@
 
 #include "./chat_gui/contact_list.hpp"
 
-#include "./media_meta_info_loader.hpp"
 #include "./sdl_clipboard_utils.hpp"
-#include "os_comps.hpp"
 
 #include "./string_formatter_utils.hpp"
 
@@ -42,7 +40,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <variant>
+#include <iostream>
 
 // TODO: split into msg and c
 namespace Components {
@@ -1420,7 +1418,7 @@ void ChatGui4::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
 		if (ImGui::IsItemVisible() && o.all_of<ObjComp::F::TagLocalHaveAll, ObjComp::F::SingleInfo, ObjComp::Ephemeral::BackendFile2>()) {
 			ImGui::SetCursorPos(orig_curser_pos); // reset for actual img
 
-			auto [id, img_width, img_height] = _msg_tc.get(Message3Handle{reg, e});
+			auto [id, img_width, img_height] = _msg_tc.get(Message3Handle{reg, e}, width, height);
 
 			// if cache gives 0s, fall back to frame dims (eg if pic not loaded yet)
 			//if (img_width == 0 || img_height == 0) {

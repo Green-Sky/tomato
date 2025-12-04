@@ -8,9 +8,8 @@
 
 #include <solanaceae/message3/components.hpp>
 
-#include "./os_comps.hpp"
-
 #include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/object_store/meta_components_file.hpp>
 
 #include <solanaceae/file/file2.hpp>
 
@@ -25,7 +24,7 @@ MessageImageLoader::MessageImageLoader(void) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 }
 
-TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handle m) {
+TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handle m, uint32_t w, uint32_t h) {
 	if (!static_cast<bool>(m)) {
 		return {std::nullopt};
 	}
@@ -101,6 +100,17 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 		TextureEntry new_entry;
 		new_entry.timestamp_last_rendered = getTimeMS();
 		new_entry.current_texture = 0;
+
+		new_entry.src_width = res.width;
+		new_entry.src_height = res.height;
+
+		if (w != 0 && h != 0 && w < res.width && h < res.height) {
+			res = res.scale(w, h);
+		}
+
+		new_entry.width = res.width;
+		new_entry.height = res.height;
+
 		for (const auto& [ms, data] : res.frames) {
 			const auto n_t = tu.upload(data.data(), res.width, res.height);
 			if (n_t == 0) {
@@ -113,9 +123,6 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 		if (new_entry.textures.empty()) {
 			continue;
 		}
-
-		new_entry.width = res.width;
-		new_entry.height = res.height;
 
 		std::cout << "MIL: loaded image file o:" << /*file_path*/ entt::to_integral(o.entity()) << "\n";
 

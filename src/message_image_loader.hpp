@@ -5,13 +5,11 @@
 #include "./image_loader.hpp"
 #include "./texture_cache.hpp"
 
-#include <optional>
-
 class MessageImageLoader {
 	std::vector<std::unique_ptr<ImageLoaderI>> _image_loaders;
 
 	public:
 		MessageImageLoader(void);
-		TextureLoaderResult load(TextureUploaderI& tu, Message3Handle m);
+		TextureLoaderResult load(TextureUploaderI& tu, Message3Handle m, uint32_t w, uint32_t h);
 };
 

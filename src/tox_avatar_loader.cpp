@@ -195,7 +195,7 @@ static std::vector<uint8_t> generateToxIdenticon(const ToxKey& key) {
 	return pixels;
 }
 
-TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact4 c) {
+TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact4 c, uint32_t w, uint32_t h) {
 	const auto& cr = _cs.registry();
 	if (!cr.valid(c)) {
 		return {std::nullopt};
@@ -234,14 +234,23 @@ TextureLoaderResult ToxAvatarLoader::load(TextureUploaderI& tu, Contact4 c) {
 				TextureEntry new_entry;
 				new_entry.timestamp_last_rendered = getTimeMS();
 				new_entry.current_texture = 0;
+
+				new_entry.src_width = res.width;
+				new_entry.src_height = res.height;
+
+				if (w != 0 && h != 0 && w < res.width && h < res.height) {
+					res = res.scale(w, h);
+				}
+
+				new_entry.width = res.width;
+				new_entry.height = res.height;
+
 				for (const auto& [ms, data] : res.frames) {
 					const auto n_t = tu.upload(data.data(), res.width, res.height);
 					new_entry.textures.push_back(n_t);
 					new_entry.frame_duration.push_back(ms);
 				}
 
-				new_entry.width = res.width;
-				new_entry.height = res.height;
 
 				if (cr.all_of<Contact::Components::AvatarFile>(c)) {
 					std::cout << "TAL: loaded image file " << cr.get<Contact::Components::AvatarFile>(c).file_path << "\n";

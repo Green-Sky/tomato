@@ -12,6 +12,9 @@ struct ImageViewerPopup {
 
 	Message3Handle _m{};
 	float _scale {1.f};
+	// keep track of full size from last frame
+	uint32_t _width {0};
+	uint32_t _height {0};
 
 	bool _open_popup {false};
 

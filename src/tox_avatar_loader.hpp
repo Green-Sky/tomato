@@ -8,8 +8,6 @@
 #include "./image_loader.hpp"
 #include "./texture_cache.hpp"
 
-#include <optional>
-
 class ToxAvatarLoader {
 	ContactStore4I& _cs;
 	ObjectStore2& _os;
@@ -21,6 +19,6 @@ class ToxAvatarLoader {
 
 	public:
 		ToxAvatarLoader(ContactStore4I& cs, ObjectStore2& os);
-		TextureLoaderResult load(TextureUploaderI& tu, Contact4 c);
+		TextureLoaderResult load(TextureUploaderI& tu, Contact4 c, uint32_t w, uint32_t h);
 };
 

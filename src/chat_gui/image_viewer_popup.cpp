@@ -14,6 +14,8 @@ void ImageViewerPopup::view(Message3Handle m) {
 	}
 
 	_m = m;
+	_width = 0;
+	_height = 0;
 
 	_open_popup = true;
 }
@@ -35,10 +37,13 @@ void ImageViewerPopup::render(float) {
 
 	ImGui::SliderFloat("scale", &_scale, 0.05f, 2.f);
 
-	auto [id, img_width, img_height] = _mtc.get(_m);
+	auto [id, img_width, img_height] = _mtc.get(_m, _width, _height);
 
-	img_width = std::max<int32_t>(5, _scale * img_width);
-	img_height = std::max<int32_t>(5, _scale * img_height);
+	img_width = std::max<uint32_t>(5, _scale * img_width);
+	img_height = std::max<uint32_t>(5, _scale * img_height);
+
+	_width = img_width;
+	_height = img_height;
 
 	ImGui::Image(
 		id,

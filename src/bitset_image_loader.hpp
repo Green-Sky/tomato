@@ -34,7 +34,7 @@ class BitsetImageLoader {
 
 	public:
 		BitsetImageLoader(void);
-		TextureLoaderResult load(TextureUploaderI& tu, ObjectHandle o);
+		TextureLoaderResult load(TextureUploaderI& tu, ObjectHandle o, uint32_t w, uint32_t h);
 		std::optional<TextureEntry> load(TextureUploaderI& tu, ObjectContactSub ocs);
 };
 

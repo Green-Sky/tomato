@@ -41,8 +41,12 @@ void renderAvatar(
 			}
 		}
 
+		// TODO: per display?
+		// TODO: do we really need this? test dpi scaling
+		const auto [g_scale_x, g_scyle_y] = ImGui::GetIO().DisplayFramebufferScale;
+
 		// avatar
-		const auto [id, width, height] = contact_tc.get(c);
+		const auto [id, width, height] = contact_tc.get(c, box.x*g_scale_x, box.y*g_scyle_y);
 		ImGui::Image(
 			id,
 			box,

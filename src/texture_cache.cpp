@@ -51,8 +51,11 @@ TextureEntry generateTestAnim(TextureUploaderI& tu) {
 		new_entry.textures.emplace_back(n_t);
 		new_entry.frame_duration.emplace_back(250);
 	}
+	// TODO: 2x2?
 	new_entry.width = 0;
 	new_entry.height = 0;
+	new_entry.src_width = 0;
+	new_entry.src_height = 0;
 	return new_entry;
 }
 
