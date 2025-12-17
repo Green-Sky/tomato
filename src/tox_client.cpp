@@ -61,7 +61,6 @@ ToxClient::ToxClient(ConfigModelI& conf, std::string_view save_path, std::string
 					)) {
 						throw std::runtime_error("failed to decrypt save file!");
 					}
-					eee(_tox_profile_password);
 				}
 				tox_options_set_savedata_type(options.get(), TOX_SAVEDATA_TYPE_TOX_SAVE);
 				tox_options_set_savedata_data(options.get(), profile_data.data(), profile_data.size());
@@ -70,6 +69,12 @@ ToxClient::ToxClient(ConfigModelI& conf, std::string_view save_path, std::string
 			ifile.close(); // do i need this?
 		}
 	}
+
+	// prepare for runtime state
+	if (!_tox_profile_password.empty()) {
+		eee(_tox_profile_password);
+	}
+
 
 	tox_options_set_ipv6_enabled(options.get(), conf.get_bool("tox", "ipv6_enabled").value_or(true));
 	tox_options_set_udp_enabled(options.get(), conf.get_bool("tox", "udp_enabled").value_or(true));
@@ -207,7 +212,6 @@ void ToxClient::saveToxProfile(void) {
 
 	if (!_tox_profile_password.empty()) {
 		std::vector<uint8_t> unencrypted_copy(data.begin(), data.end());
-		//profile_data.clear();
 		data.resize(unencrypted_copy.size() + TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
 		eee(_tox_profile_password);
 		if (!tox_pass_encrypt(
