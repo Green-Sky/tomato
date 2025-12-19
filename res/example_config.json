@@ -22,13 +22,12 @@
 		}
 	},
 	"ImGuiFonts": {
-		"atlas_extra_text": "🥰💀✌️🌴🐢🐐🍄⚽🍻👑📸😬👀🚨🏡🐦‍🔥🍋‍🟩🍄‍🟫🙂‍↕️🕊️🏆😻🌟🧿🍀🎨🍜",
 		"size": 20,
 		"fonts": {
 			"entries": {
-				"/nix/store/7fjwhgbz16i08xm171arr081bqpivv7k-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf": true,
-				"/nix/store/g4hlmhda2xmap333kqnzlsz01k8djnp6-noto-fonts-24.3.1/share/fonts/noto/NotoSans[wdth,wght].ttf": true,
-				"/nix/store/d7mgcvb59anvaz69cjghbb42616c7xfg-noto-fonts-monochrome-emoji-3.000/share/fonts/noto/NotoEmoji.ttf": true
+				"/nix/store/ihpjyw2nvm924kf84898v9zqizhbwvn6-hack-font-3.003/share/fonts/truetype/Hack-Regular.ttf": true,
+				"/home/user/Downloads/TwitterColorEmoji-SVGinOT-15.1.0/TwitterColorEmoji-SVGinOT.ttf": true
+
 			}
 		}
 	}
