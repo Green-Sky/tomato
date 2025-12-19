@@ -156,8 +156,6 @@ bool renderContactBig(
 		ImGui::EndTooltip();
 	}
 
-	ImVec2 post_curser_pos = ImGui::GetCursorPos();
-
 	ImVec2 img_curser {
 		orig_curser_pos.x + ImGui::GetStyle().FramePadding.x,
 		orig_curser_pos.y + ImGui::GetStyle().FramePadding.y
