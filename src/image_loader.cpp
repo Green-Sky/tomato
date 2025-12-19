@@ -6,9 +6,14 @@
 #include "./image_scaler.hpp"
 
 ImageLoaderI::ImageResult ImageLoaderI::ImageResult::crop(int32_t c_x, int32_t c_y, int32_t c_w, int32_t c_h) const {
-	// TODO: proper error handling
-	assert(c_x+c_w <= width);
-	assert(c_y+c_h <= height);
+	if (
+		c_x < 0 || c_y < 0 || c_w < 1 || c_h < 1 ||
+		int64_t(c_x) + int64_t(c_w) > int64_t(width) || int64_t(c_y) + int64_t(c_h) > int64_t(height)
+	) {
+		// unreachable
+		assert(false && "invalid image crop");
+		return *this;
+	}
 
 	ImageLoaderI::ImageResult new_image;
 	new_image.width = c_w;
@@ -19,7 +24,7 @@ ImageLoaderI::ImageResult ImageLoaderI::ImageResult::crop(int32_t c_x, int32_t c
 		auto& new_frame = new_image.frames.emplace_back();
 		new_frame.ms = input_frame.ms;
 
-		// TODO: improve this, this is super inefficent
+		// TODO: improve this, this is inefficent
 		for (int64_t y = c_y; y < c_y + c_h; y++) {
 			for (int64_t x = c_x; x < c_x + c_w; x++) {
 				new_frame.data.push_back(input_frame.data.at(y*width*4+x*4+0));
