@@ -7,7 +7,7 @@
 #include "../audio_stream_pop_reframer.hpp"
 
 // "thin" wrapper around sdl audio streams
-// we dont needs to get fance, as they already provide everything we need
+// we dont needs to get fancy, as they already provide everything we need
 struct SDLAudio2StreamReader : public AudioFrame2Stream2I {
 	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> _stream;
 

@@ -15,11 +15,13 @@
 
 #include "./start_screen.hpp"
 
+#ifdef __ANDROID__
 #include <filesystem>
+#endif
+
 #include <memory>
 #include <iostream>
 #include <string_view>
-#include <thread>
 #include <chrono>
 
 #ifdef TOMATO_BREAKPAD

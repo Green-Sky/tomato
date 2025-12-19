@@ -28,7 +28,7 @@ struct LockedFrameStream2 : public FrameStream2I<FrameType> {
 		FrameType new_frame = std::move(_frames.front());
 		_frames.pop_front();
 
-		return std::move(new_frame);
+		return new_frame;
 	}
 
 	bool push(const FrameType& value) {

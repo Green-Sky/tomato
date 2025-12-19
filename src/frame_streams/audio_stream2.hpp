@@ -24,6 +24,24 @@ struct AudioFrame2 {
 		Span<int16_t> // non owning variant, for direct consumption
 	> buffer;
 
+	AudioFrame2(void) = default;
+	AudioFrame2(const AudioFrame2&) = default;
+	AudioFrame2(AudioFrame2&& other) :
+		sample_rate(other.sample_rate),
+		channels(other.channels),
+		buffer(std::move(other.buffer))
+	{}
+	AudioFrame2(uint32_t sample_rate_, size_t channels_, const std::variant<std::vector<int16_t>, Span<int16_t>>& buffer_) :
+		sample_rate(sample_rate_),
+		channels(channels_),
+		buffer(buffer_)
+	{}
+	AudioFrame2(uint32_t sample_rate_, size_t channels_, std::variant<std::vector<int16_t>, Span<int16_t>>&& buffer_) :
+		sample_rate(sample_rate_),
+		channels(channels_),
+		buffer(std::move(buffer_))
+	{}
+
 	// helpers
 	Span<int16_t> getSpan(void) const {
 		if (std::holds_alternative<std::vector<int16_t>>(buffer)) {
