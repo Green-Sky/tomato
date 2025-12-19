@@ -57,8 +57,6 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG 5ac37a8ffcf89da390404c1016833d56e2d67ae4 # 3.2.12
 		#GIT_TAG a8589a84226a6202831a3d49ff4edda4acab9acd # 3.2.24
 		GIT_TAG badbf8da4ee72b3ef599c721ffc9899e8d7c8d90 # 3.2.26
-
-		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(SDL3)
 endif()
