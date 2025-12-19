@@ -89,8 +89,8 @@ std::vector<uint8_t> ImageEncoderSTBPNG::encodeToMemoryRGBA(const ImageResult& i
 	struct Context {
 		std::vector<uint8_t> new_data;
 	} context;
-	auto write_f = +[](void* context, void* data, int size) -> void {
-		Context* ctx = reinterpret_cast<Context*>(context);
+	auto write_f = +[](void* context_, void* data, int size) -> void {
+		Context* ctx = reinterpret_cast<Context*>(context_);
 		uint8_t* d = reinterpret_cast<uint8_t*>(data);
 		ctx->new_data.insert(ctx->new_data.cend(), d, d + size);
 	};
@@ -126,8 +126,8 @@ std::vector<uint8_t> ImageEncoderSTBJpeg::encodeToMemoryRGBA(const ImageResult& 
 	struct Context {
 		std::vector<uint8_t> new_data;
 	} context;
-	auto write_f = +[](void* context, void* data, int size) -> void {
-		Context* ctx = reinterpret_cast<Context*>(context);
+	auto write_f = +[](void* context_, void* data, int size) -> void {
+		Context* ctx = reinterpret_cast<Context*>(context_);
 		uint8_t* d = reinterpret_cast<uint8_t*>(data);
 		ctx->new_data.insert(ctx->new_data.cend(), d, d + size);
 	};

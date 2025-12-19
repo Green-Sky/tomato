@@ -65,7 +65,7 @@ std::optional<TextureEntry> BitsetImageLoader::haveToTexture(TextureUploaderI& t
 BitsetImageLoader::BitsetImageLoader(void) {
 }
 
-TextureLoaderResult BitsetImageLoader::load(TextureUploaderI& tu, ObjectHandle o, uint32_t w, uint32_t h) {
+TextureLoaderResult BitsetImageLoader::load(TextureUploaderI& tu, ObjectHandle o, uint32_t /*w*/, uint32_t /*h*/) {
 	if (!static_cast<bool>(o)) {
 		std::cerr << "BIL error: trying to load invalid object\n";
 		return {};
