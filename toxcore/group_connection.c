@@ -556,7 +556,7 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
     const uint16_t start = gconn->send_array_start;
     const uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
 
-    GC_Message_Array_Entry *array_entry = &gconn->send_array[start];
+    const GC_Message_Array_Entry *array_entry = &gconn->send_array[start];
 
     if (array_entry_is_empty(array_entry)) {
         return;
@@ -569,23 +569,23 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
     }
 
     for (uint16_t i = start; i != end; i = (i + 1) % GCC_BUFFER_SIZE) {
-        array_entry = &gconn->send_array[i];
+        GC_Message_Array_Entry *const array_entry_loop = &gconn->send_array[i];
 
-        if (array_entry_is_empty(array_entry)) {
+        if (array_entry_is_empty(array_entry_loop)) {
             continue;
         }
 
-        if (tm == array_entry->last_send_try) {
+        if (tm == array_entry_loop->last_send_try) {
             continue;
         }
 
-        const uint64_t delta = array_entry->last_send_try - array_entry->time_added;
-        array_entry->last_send_try = tm;
+        const uint64_t delta = array_entry_loop->last_send_try - array_entry_loop->time_added;
+        array_entry_loop->last_send_try = tm;
 
         /* if this occurrs less than once per second this won't be reliable */
         if (delta > 1 && is_power_of_2(delta)) {
-            gcc_encrypt_and_send_lossless_packet(chat, gconn, array_entry->data, array_entry->data_length,
-                                                 array_entry->message_id, array_entry->packet_type);
+            gcc_encrypt_and_send_lossless_packet(chat, gconn, array_entry_loop->data, array_entry_loop->data_length,
+                                                 array_entry_loop->message_id, array_entry_loop->packet_type);
         }
     }
 }

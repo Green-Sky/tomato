@@ -9,13 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "toxav_hacks.h"
-
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
-#include "../toxcore/net_crypto.h"
-#include "../toxcore/tox.h"
-#include "../toxcore/tox_private.h"
 #include "../toxcore/util.h"
 
 #define MSI_MAXMSG_SIZE 256
@@ -64,52 +59,22 @@ static void kill_call(const Logger *log, MSICall *call);
 static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data, uint16_t length);
 static uint8_t *msg_parse_header_out(MSIHeaderID id, uint8_t *dest, const uint8_t *value, uint8_t value_len,
                                      uint16_t *length);
-static int send_message(const Logger *log, Tox *tox, uint32_t friend_number, const MSIMessage *msg);
-static int send_error(const Logger *log, Tox *tox, uint32_t friend_number, MSIError error);
+static int send_message(const Logger *log, MSISession *session, uint32_t friend_number, const MSIMessage *msg);
+static int send_error(const Logger *log, MSISession *session, uint32_t friend_number, MSIError error);
 static MSICall *get_call(MSISession *session, uint32_t friend_number);
 static MSICall *new_call(MSISession *session, uint32_t friend_number);
 static bool invoke_callback(const Logger *log, MSICall *call, MSICallbackID cb);
 static void handle_init(const Logger *log, MSICall *call, const MSIMessage *msg);
 static void handle_push(const Logger *log, MSICall *call, const MSIMessage *msg);
 static void handle_pop(const Logger *log, MSICall *call, const MSIMessage *msg);
-static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
-                              void *user_data);
 
 /*
  * Public functions
  */
 
-void msi_callback_invite(MSISession *session, msi_action_cb *callback)
+MSISession *msi_new(const Logger *log, msi_send_packet_cb *send_packet, void *send_packet_user_data,
+                    const MSICallbacks *callbacks, void *user_data)
 {
-    session->invite_callback = callback;
-}
-void msi_callback_start(MSISession *session, msi_action_cb *callback)
-{
-    session->start_callback = callback;
-}
-void msi_callback_end(MSISession *session, msi_action_cb *callback)
-{
-    session->end_callback = callback;
-}
-void msi_callback_error(MSISession *session, msi_action_cb *callback)
-{
-    session->error_callback = callback;
-}
-void msi_callback_peertimeout(MSISession *session, msi_action_cb *callback)
-{
-    session->peertimeout_callback = callback;
-}
-void msi_callback_capabilities(MSISession *session, msi_action_cb *callback)
-{
-    session->capabilities_callback = callback;
-}
-
-MSISession *msi_new(const Logger *log, Tox *tox)
-{
-    if (tox == nullptr) {
-        return nullptr;
-    }
-
     MSISession *retu = (MSISession *)calloc(1, sizeof(MSISession));
 
     if (retu == nullptr) {
@@ -123,24 +88,27 @@ MSISession *msi_new(const Logger *log, Tox *tox)
         return nullptr;
     }
 
-    retu->tox = tox;
+    retu->send_packet = send_packet;
+    retu->send_packet_user_data = send_packet_user_data;
+    retu->user_data = user_data;
 
-    // register callback
-    tox_callback_friend_lossless_packet_per_pktid(tox, handle_msi_packet, PACKET_ID_MSI);
+    retu->invite_callback = callbacks->invite;
+    retu->start_callback = callbacks->start;
+    retu->end_callback = callbacks->end;
+    retu->error_callback = callbacks->error;
+    retu->peertimeout_callback = callbacks->peertimeout;
+    retu->capabilities_callback = callbacks->capabilities;
 
     LOGGER_DEBUG(log, "New msi session: %p ", (void *)retu);
     return retu;
 }
 
-int msi_kill(const Logger *log, Tox *tox, MSISession *session)
+int msi_kill(const Logger *log, MSISession *session)
 {
     if (session == nullptr) {
         LOGGER_ERROR(log, "Tried to terminate non-existing session");
         return -1;
     }
-
-    // UN-register callback
-    tox_callback_friend_lossless_packet_per_pktid(tox, nullptr, PACKET_ID_MSI);
 
     if (pthread_mutex_trylock(session->mutex) != 0) {
         LOGGER_ERROR(log, "Failed to acquire lock on msi mutex");
@@ -154,7 +122,7 @@ int msi_kill(const Logger *log, Tox *tox, MSISession *session)
         MSICall *it = get_call(session, session->calls_head);
 
         while (it != nullptr) {
-            send_message(log, session->tox, it->friend_number, &msg);
+            send_message(log, session, it->friend_number, &msg);
             MSICall *temp_it = it;
             it = it->next;
             kill_call(log, temp_it); /* This will eventually free session->calls */
@@ -169,37 +137,23 @@ int msi_kill(const Logger *log, Tox *tox, MSISession *session)
     return 0;
 }
 
-/*
- * return true if friend is offline and the call was canceled.
- */
-bool check_peer_offline_status(const Logger *log, const Tox *tox, MSISession *session, uint32_t friend_number)
+void msi_call_timeout(MSISession *session, const Logger *log, uint32_t friend_number)
 {
-    if (tox == nullptr || session == nullptr) {
-        return false;
+    if (session == nullptr) {
+        return;
     }
 
-    Tox_Err_Friend_Query f_con_query_error;
-    const Tox_Connection f_con_status = tox_friend_get_connection_status(tox, friend_number, &f_con_query_error);
+    pthread_mutex_lock(session->mutex);
+    MSICall *call = get_call(session, friend_number);
 
-    if (f_con_status == TOX_CONNECTION_NONE) {
-        /* Friend is now offline */
-        LOGGER_DEBUG(log, "Friend %u is now offline", friend_number);
-
-        pthread_mutex_lock(session->mutex);
-        MSICall *call = get_call(session, friend_number);
-
-        if (call == nullptr) {
-            pthread_mutex_unlock(session->mutex);
-            return true;
-        }
-
-        invoke_callback(log, call, MSI_ON_PEERTIMEOUT); /* Failure is ignored */
-        kill_call(log, call);
+    if (call == nullptr) {
         pthread_mutex_unlock(session->mutex);
-        return true;
+        return;
     }
 
-    return false;
+    invoke_callback(log, call, MSI_ON_PEERTIMEOUT); /* Failure is ignored */
+    kill_call(log, call);
+    pthread_mutex_unlock(session->mutex);
 }
 
 int msi_invite(const Logger *log, MSISession *session, MSICall **call, uint32_t friend_number, uint8_t capabilities)
@@ -238,7 +192,7 @@ int msi_invite(const Logger *log, MSISession *session, MSICall **call, uint32_t 
     msg.capabilities.exists = true;
     msg.capabilities.value = capabilities;
 
-    send_message(log, temp->session->tox, temp->friend_number, &msg);
+    send_message(log, session, temp->friend_number, &msg);
 
     temp->state = MSI_CALL_REQUESTING;
 
@@ -274,7 +228,7 @@ int msi_hangup(const Logger *log, MSICall *call)
     MSIMessage msg;
     msg_init(&msg, REQU_POP);
 
-    send_message(log, session->tox, call->friend_number, &msg);
+    send_message(log, session, call->friend_number, &msg);
 
     kill_call(log, call);
     pthread_mutex_unlock(session->mutex);
@@ -313,7 +267,7 @@ int msi_answer(const Logger *log, MSICall *call, uint8_t capabilities)
     msg.capabilities.exists = true;
     msg.capabilities.value = capabilities;
 
-    send_message(log, session->tox, call->friend_number, &msg);
+    send_message(log, session, call->friend_number, &msg);
 
     call->state = MSI_CALL_ACTIVE;
     pthread_mutex_unlock(session->mutex);
@@ -351,7 +305,7 @@ int msi_change_capabilities(const Logger *log, MSICall *call, uint8_t capabiliti
     msg.capabilities.exists = true;
     msg.capabilities.value = capabilities;
 
-    send_message(log, call->session->tox, call->friend_number, &msg);
+    send_message(log, session, call->friend_number, &msg);
 
     pthread_mutex_unlock(session->mutex);
     return 0;
@@ -488,46 +442,8 @@ static uint8_t *msg_parse_header_out(MSIHeaderID id, uint8_t *dest, const uint8_
     return dest + value_len; /* Set to next position ready to be written */
 }
 
-/* Send an msi packet.
- *
- *  return 1 on success
- *  return 0 on failure
- */
-static int m_msi_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint16_t length)
+static int send_message(const Logger *log, MSISession *session, uint32_t friend_number, const MSIMessage *msg)
 {
-    // TODO(Zoff): make this better later! -------------------
-    /* we need to prepend 1 byte (packet id) to data
-     * do this without malloc, memcpy and free in the future
-     */
-    const size_t length_new = (size_t)length + 1;
-    uint8_t *data_new = (uint8_t *)malloc(length_new);
-
-    if (data_new == nullptr) {
-        return 0;
-    }
-
-    data_new[0] = PACKET_ID_MSI;
-
-    if (length != 0) {
-        memcpy(data_new + 1, data, length);
-    }
-
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossless_packet(tox, friendnumber, data_new, length_new, &error);
-
-    free(data_new);
-
-    if (error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-        return 1;
-    }
-
-    return 0;
-}
-
-static int send_message(const Logger *log, Tox *tox, uint32_t friend_number, const MSIMessage *msg)
-{
-    assert(tox != nullptr);
-
     /* Parse and send message */
     uint8_t parsed[MSI_MAXMSG_SIZE];
 
@@ -562,7 +478,7 @@ static int send_message(const Logger *log, Tox *tox, uint32_t friend_number, con
     *it = 0;
     ++size;
 
-    if (m_msi_packet(tox, friend_number, parsed, size) == 1) {
+    if (session->send_packet != nullptr && session->send_packet(session->send_packet_user_data, friend_number, parsed, size) == 0) {
         LOGGER_DEBUG(log, "Sent message");
         return 0;
     }
@@ -570,10 +486,8 @@ static int send_message(const Logger *log, Tox *tox, uint32_t friend_number, con
     return -1;
 }
 
-static int send_error(const Logger *log, Tox *tox, uint32_t friend_number, MSIError error)
+static int send_error(const Logger *log, MSISession *session, uint32_t friend_number, MSIError error)
 {
-    assert(tox != nullptr);
-
     /* Send error message */
     LOGGER_DEBUG(log, "Sending error: %u to friend: %u", error, friend_number);
 
@@ -583,7 +497,7 @@ static int send_error(const Logger *log, Tox *tox, uint32_t friend_number, MSIEr
     msg.error.exists = true;
     msg.error.value = error;
 
-    send_message(log, tox, friend_number, &msg);
+    send_message(log, session, friend_number, &msg);
     return 0;
 }
 
@@ -594,22 +508,22 @@ static int invoke_callback_inner(const Logger *log, MSICall *call, MSICallbackID
 
     switch (id) {
         case MSI_ON_INVITE:
-            return session->invite_callback(session->av, call);
+            return session->invite_callback(session->user_data, call);
 
         case MSI_ON_START:
-            return session->start_callback(session->av, call);
+            return session->start_callback(session->user_data, call);
 
         case MSI_ON_END:
-            return session->end_callback(session->av, call);
+            return session->end_callback(session->user_data, call);
 
         case MSI_ON_ERROR:
-            return session->error_callback(session->av, call);
+            return session->error_callback(session->user_data, call);
 
         case MSI_ON_PEERTIMEOUT:
-            return session->peertimeout_callback(session->av, call);
+            return session->peertimeout_callback(session->user_data, call);
 
         case MSI_ON_CAPABILITIES:
-            return session->capabilities_callback(session->av, call);
+            return session->capabilities_callback(session->user_data, call);
     }
 
     LOGGER_FATAL(log, "invalid callback id: %u", id);
@@ -694,6 +608,20 @@ static MSICall *new_call(MSISession *session, uint32_t friend_number)
         rc->next = session->calls[session->calls_head];
         session->calls[session->calls_head]->prev = rc;
         session->calls_head = friend_number;
+    } else { /* Inserting in a hole */
+        uint32_t i = friend_number - 1;
+
+        while (session->calls[i] == nullptr) {
+            --i;
+        }
+
+        rc->prev = session->calls[i];
+        rc->next = session->calls[i]->next;
+        rc->prev->next = rc;
+
+        if (rc->next != nullptr) {
+            rc->next->prev = rc;
+        }
     }
 
     session->calls[friend_number] = rc;
@@ -774,13 +702,23 @@ static bool try_handle_init(const Logger *log, MSICall *call, const MSIMessage *
 
             LOGGER_INFO(log, "Friend is recalling us");
 
+            if (call->peer_capabilities != msg->capabilities.value) {
+                LOGGER_INFO(log, "Friend is changing capabilities to: %u", msg->capabilities.value);
+
+                call->peer_capabilities = msg->capabilities.value;
+
+                if (!invoke_callback(log, call, MSI_ON_CAPABILITIES)) {
+                    return false;
+                }
+            }
+
             MSIMessage out_msg;
             msg_init(&out_msg, REQU_PUSH);
 
             out_msg.capabilities.exists = true;
             out_msg.capabilities.value = call->self_capabilities;
 
-            send_message(log, call->session->tox, call->friend_number, &out_msg);
+            send_message(log, call->session, call->friend_number, &out_msg);
 
             /* If peer changed capabilities during re-call they will
              * be handled accordingly during the next step
@@ -806,7 +744,7 @@ static void handle_init(const Logger *log, MSICall *call, const MSIMessage *msg)
                  "Session: %p Handling 'init' friend: %u", (void *)call->session, call->friend_number);
 
     if (!try_handle_init(log, call, msg)) {
-        send_error(log, call->session->tox, call->friend_number, call->error);
+        send_error(log, call->session, call->friend_number, call->error);
         kill_call(log, call);
     }
 }
@@ -863,7 +801,7 @@ static void handle_push(const Logger *log, MSICall *call, const MSIMessage *msg)
     return;
 
 FAILURE:
-    send_error(log, call->session->tox, call->friend_number, call->error);
+    send_error(log, call->session, call->friend_number, call->error);
     kill_call(log, call);
 }
 
@@ -913,41 +851,25 @@ static void handle_pop(const Logger *log, MSICall *call, const MSIMessage *msg)
     kill_call(log, call);
 }
 
-static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
-                              void *user_data)
+void msi_handle_packet(MSISession *session, const Logger *log, uint32_t friend_number, const uint8_t *data,
+                       size_t length)
 {
-    const ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
-
-    if (toxav == nullptr) {
-        return;
-    }
-
-    const Logger *log = toxav_get_logger(toxav);
-
-    if (length < 2) {
-        LOGGER_ERROR(log, "MSI packet is less than 2 bytes in size");
-        // we need more than the ID byte for MSI messages
-        return;
-    }
-
-    const uint16_t payload_length = (uint16_t)(length - 1);
-
-    // Zoff: do not show the first byte, its always "PACKET_ID_MSI"
-    const uint8_t *data_strip_id_byte = data + 1;
-
-    LOGGER_DEBUG(log, "Got msi message");
-
-    MSISession *session = tox_av_msi_get(toxav);
-
     if (session == nullptr) {
         return;
     }
 
+    if (length < 1) {
+        LOGGER_ERROR(log, "MSI packet is empty");
+        return;
+    }
+
+    LOGGER_DEBUG(log, "Got msi message");
+
     MSIMessage msg;
 
-    if (msg_parse_in(log, &msg, data_strip_id_byte, payload_length) == -1) {
+    if (msg_parse_in(log, &msg, data, length) == -1) {
         LOGGER_WARNING(log, "Error parsing message");
-        send_error(log, tox, friend_number, MSI_E_INVALID_MESSAGE);
+        send_error(log, session, friend_number, MSI_E_INVALID_MESSAGE);
         return;
     }
 
@@ -958,7 +880,7 @@ static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *d
 
     if (call == nullptr) {
         if (msg.request.value != REQU_INIT) {
-            send_error(log, tox, friend_number, MSI_E_STRAY_MESSAGE);
+            send_error(log, session, friend_number, MSI_E_STRAY_MESSAGE);
             pthread_mutex_unlock(session->mutex);
             return;
         }
@@ -966,7 +888,7 @@ static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *d
         call = new_call(session, friend_number);
 
         if (call == nullptr) {
-            send_error(log, tox, friend_number, MSI_E_SYSTEM);
+            send_error(log, session, friend_number, MSI_E_SYSTEM);
             pthread_mutex_unlock(session->mutex);
             return;
         }

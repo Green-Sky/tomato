@@ -142,12 +142,7 @@ bool crypto_memunlock(void *data, size_t length)
 
 bool pk_equal(const uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE], const uint8_t pk2[CRYPTO_PUBLIC_KEY_SIZE])
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // Hope that this is better for the fuzzer
     return memcmp(pk1, pk2, CRYPTO_PUBLIC_KEY_SIZE) == 0;
-#else
-    return crypto_verify_32(pk1, pk2) == 0;
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 void pk_copy(uint8_t dest[CRYPTO_PUBLIC_KEY_SIZE], const uint8_t src[CRYPTO_PUBLIC_KEY_SIZE])
@@ -167,12 +162,7 @@ bool crypto_sha512_eq(const uint8_t cksum1[CRYPTO_SHA512_SIZE], const uint8_t ck
 
 bool crypto_sha256_eq(const uint8_t cksum1[CRYPTO_SHA256_SIZE], const uint8_t cksum2[CRYPTO_SHA256_SIZE])
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // Hope that this is better for the fuzzer
     return memcmp(cksum1, cksum2, CRYPTO_SHA256_SIZE) == 0;
-#else
-    return crypto_verify_32(cksum1, cksum2) == 0;
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 uint8_t random_u08(const Random *rng)

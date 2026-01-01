@@ -591,9 +591,18 @@ static bool client_or_ip_port_in_list(const Logger *_Nonnull log, const Mono_Tim
 
     LOGGER_DEBUG(log, "coipil[%u]: switching public_key (ipv%d)", index, ip_version);
 
-    /* kill the other address, if it was set */
-    const IPPTsPng empty_ipptspng = {{{{0}}}};
-    *assoc = empty_ipptspng;
+    /* kill the other address, if it was set.
+     * We just updated `assoc` (which is either assoc4 or assoc6) with the new public_key.
+     * If there was an association for the other IP version, it's now invalid for this new identity.
+     */
+    if (ip_version == 4) {
+        const IPPTsPng empty_ipptspng = {{{{0}}}};
+        list[index].assoc6 = empty_ipptspng;
+    } else {
+        const IPPTsPng empty_ipptspng = {{{{0}}}};
+        list[index].assoc4 = empty_ipptspng;
+    }
+
     return true;
 }
 
@@ -601,27 +610,30 @@ bool add_to_list(
     Node_format *nodes_list, uint32_t length, const uint8_t pk[CRYPTO_PUBLIC_KEY_SIZE],
     const IP_Port *ip_port, const uint8_t cmp_pk[CRYPTO_PUBLIC_KEY_SIZE])
 {
+    uint8_t pk_cur[CRYPTO_PUBLIC_KEY_SIZE];
+    memcpy(pk_cur, pk, CRYPTO_PUBLIC_KEY_SIZE);
+    IP_Port ip_port_cur = *ip_port;
+
+    bool inserted = false;
+
     for (uint32_t i = 0; i < length; ++i) {
         Node_format *node = &nodes_list[i];
 
-        if (id_closest(cmp_pk, node->public_key, pk) == 2) {
+        if (id_closest(cmp_pk, node->public_key, pk_cur) == 2) {
             uint8_t pk_bak[CRYPTO_PUBLIC_KEY_SIZE];
             memcpy(pk_bak, node->public_key, CRYPTO_PUBLIC_KEY_SIZE);
-
             const IP_Port ip_port_bak = node->ip_port;
-            memcpy(node->public_key, pk, CRYPTO_PUBLIC_KEY_SIZE);
 
-            node->ip_port = *ip_port;
+            memcpy(node->public_key, pk_cur, CRYPTO_PUBLIC_KEY_SIZE);
+            node->ip_port = ip_port_cur;
 
-            if (i != length - 1) {
-                add_to_list(nodes_list, length, pk_bak, &ip_port_bak, cmp_pk);
-            }
-
-            return true;
+            memcpy(pk_cur, pk_bak, CRYPTO_PUBLIC_KEY_SIZE);
+            ip_port_cur = ip_port_bak;
+            inserted = true;
         }
     }
 
-    return false;
+    return inserted;
 }
 
 /**
@@ -638,12 +650,6 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull pub
 
     for (uint32_t i = 0; i < client_list_length; ++i) {
         const Client_data *const client = &client_list[i];
-
-        /* node already in list? */
-        if (index_of_node_pk(nodes_list, MAX_SENT_NODES, client->public_key) != UINT32_MAX) {
-            continue;
-        }
-
         const IPPTsPng *ipptp;
 
         if (net_family_is_ipv4(sa_family)) {
@@ -673,6 +679,11 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull pub
         }
 
 #endif /* CHECK_ANNOUNCE_NODE */
+
+        /* node already in list? */
+        if (index_of_node_pk(nodes_list, num_nodes, client->public_key) != UINT32_MAX) {
+            continue;
+        }
 
         if (num_nodes < MAX_SENT_NODES) {
             memcpy(nodes_list[num_nodes].public_key, client->public_key, CRYPTO_PUBLIC_KEY_SIZE);
@@ -2009,7 +2020,7 @@ static uint32_t foreach_ip_port(const DHT *_Nonnull dht, const DHT_Friend *_Nonn
 static bool send_packet_to_friend(const DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, uint32_t *_Nonnull n, void *_Nonnull userdata)
 {
     const Packet *packet = (const Packet *)userdata;
-    const int retval = send_packet(dht->net, ip_port, *packet);
+    const int retval = net_send_packet(dht->net, ip_port, *packet);
 
     if ((uint32_t)retval == packet->length) {
         ++*n;
@@ -2078,7 +2089,7 @@ static uint32_t routeone_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonn
     }
 
     const uint32_t rand_idx = random_range_u32(dht->rng, n);
-    const int retval = send_packet(dht->net, &ip_list[rand_idx], *packet);
+    const int retval = net_send_packet(dht->net, &ip_list[rand_idx], *packet);
 
     if ((unsigned int)retval == packet->length) {
         return 1;

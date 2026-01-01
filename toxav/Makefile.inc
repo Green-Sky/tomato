@@ -19,7 +19,6 @@ libtoxav_la_SOURCES = ../toxav/rtp.h \
                     ../toxav/ring_buffer.h \
                     ../toxav/ring_buffer.c \
                     ../toxav/toxav.h \
-                    ../toxav/toxav_hacks.h \
                     ../toxav/toxav.c \
                     ../toxav/toxav_old.c
 

@@ -51,7 +51,7 @@ static void handle_friend_connection_status(
     }
 }
 
-static void audio_callback(void *tox, uint32_t groupnumber, uint32_t peernumber,
+static void audio_callback(void *tox, uint32_t conference_number, uint32_t peer_number,
                            const int16_t *pcm, unsigned int samples, uint8_t channels, uint32_t
                            sample_rate, void *user_data)
 {
@@ -63,14 +63,14 @@ static void audio_callback(void *tox, uint32_t groupnumber, uint32_t peernumber,
     State *state = (State *)autotox->state;
 
     for (uint32_t i = 0; i < state->received_audio_num; ++i) {
-        if (state->received_audio_peers[i] == peernumber) {
+        if (state->received_audio_peers[i] == peer_number) {
             return;
         }
     }
 
     ck_assert(state->received_audio_num < NUM_AV_GROUP_TOX);
 
-    state->received_audio_peers[state->received_audio_num] = peernumber;
+    state->received_audio_peers[state->received_audio_num] = peer_number;
     ++state->received_audio_num;
 }
 
