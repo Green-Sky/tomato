@@ -10,6 +10,7 @@
 #include "group_moderation.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 #include <string.h>
 #include <time.h>
@@ -23,6 +24,30 @@
 #include "network.h"
 #include "util.h"
 
+static int compare_signatures(const void *a, const void *b)
+{
+    return memcmp(a, b, SIGNATURE_SIZE);
+}
+
+static int compare_sig_pks(const void *a, const void *b)
+{
+    return memcmp(a, b, SIG_PUBLIC_KEY_SIZE);
+}
+
+static int compare_sanctions(const void *a, const void *b)
+{
+    const Mod_Sanction *sa = (const Mod_Sanction *)a;
+    const Mod_Sanction *sb = (const Mod_Sanction *)b;
+    return memcmp(sa->signature, sb->signature, SIGNATURE_SIZE);
+}
+
+static int compare_mod_pointers(const void *a, const void *b)
+{
+    const uint8_t *const *mod_a = (const uint8_t *const *)a;
+    const uint8_t *const *mod_b = (const uint8_t *const *)b;
+    return memcmp(*mod_a, *mod_b, SIG_PUBLIC_KEY_SIZE);
+}
+
 static_assert(MOD_SANCTIONS_CREDS_SIZE <= MAX_PACKET_SIZE_NO_HEADERS,
               "MOD_SANCTIONS_CREDS_SIZE must be <= the maximum allowed payload size");
 static_assert(MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE <= MAX_PACKET_SIZE_NO_HEADERS,
@@ -34,6 +59,7 @@ static_assert(MOD_MAX_NUM_MODERATORS <= MOD_MAX_NUM_MODERATORS_LIMIT,
 static_assert(MOD_MAX_NUM_SANCTIONS <= MOD_MAX_NUM_SANCTIONS_LIMIT,
               "MOD_MAX_NUM_SANCTIONS must be <= MOD_MAX_NUM_SANCTIONS_LIMIT");
 
+/** @brief Returns the size in bytes of the packed moderation list. */
 uint16_t mod_list_packed_size(const Moderation *_Nonnull moderation)
 {
     return moderation->num_mods * MOD_LIST_ENTRY_SIZE;
@@ -76,6 +102,8 @@ int mod_list_unpack(Moderation *_Nonnull moderation, const uint8_t *_Nonnull dat
     moderation->mod_list = tmp_list;
     moderation->num_mods = num_mods;
 
+    qsort(moderation->mod_list, moderation->num_mods, sizeof(uint8_t *), compare_mod_pointers);
+
     return unpacked_len;
 }
 
@@ -109,6 +137,8 @@ bool mod_list_make_hash(const Moderation *_Nonnull moderation, uint8_t *_Nonnull
     }
 
     mod_list_pack(moderation, data);
+
+    qsort(data, moderation->num_mods, SIG_PUBLIC_KEY_SIZE, compare_sig_pks);
 
     mod_list_get_data_hash(hash, data, data_buf_size);
 
@@ -176,6 +206,8 @@ bool mod_list_remove_index(Moderation *_Nonnull moderation, uint16_t index)
 
     moderation->mod_list = tmp_list;
 
+    qsort(moderation->mod_list, moderation->num_mods, sizeof(uint8_t *), compare_mod_pointers);
+
     return true;
 }
 
@@ -220,6 +252,8 @@ bool mod_list_add_entry(Moderation *_Nonnull moderation, const uint8_t *_Nonnull
 
     tmp_list[moderation->num_mods] = entry;
     ++moderation->num_mods;
+
+    qsort(moderation->mod_list, moderation->num_mods, sizeof(uint8_t *), compare_mod_pointers);
 
     return true;
 }
@@ -430,6 +464,8 @@ static bool sanctions_list_make_hash(const Memory *_Nonnull mem, const Mod_Sanct
         memcpy(&data[i * SIGNATURE_SIZE], sanctions[i].signature, SIGNATURE_SIZE);
     }
 
+    qsort(data, num_sanctions, SIGNATURE_SIZE, compare_signatures);
+
     memcpy(&data[sig_data_size], &new_version, sizeof(uint32_t));
     crypto_sha256(hash, data, data_buf_size);
 
@@ -593,6 +629,8 @@ static bool sanctions_apply_new(Moderation *_Nonnull moderation, Mod_Sanction *_
 
         moderation->sanctions_creds = *new_creds;
     }
+
+    qsort(new_sanctions, num_sanctions, sizeof(Mod_Sanction), compare_sanctions);
 
     sanctions_list_cleanup(moderation);
     moderation->sanctions = new_sanctions;
@@ -805,7 +843,8 @@ bool sanctions_list_make_entry(Moderation *_Nonnull moderation, const uint8_t *_
 
     memcpy(sanction->setter_public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
-    sanction->time_set = (uint64_t)time(nullptr);
+    /* Use a stable non-zero value to ensure deterministic signatures and hashes. */
+    sanction->time_set = 1;
     sanction->type = type;
 
     if (!sanctions_list_sign_entry(moderation, sanction)) {

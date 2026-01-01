@@ -89,7 +89,7 @@ static void handle_conference_connected(
 static uint32_t num_recv;
 
 static void handle_conference_message(
-    Tox *tox, uint32_t groupnumber, uint32_t peernumber, Tox_Message_Type type,
+    Tox *tox, uint32_t conference_number, uint32_t peer_number, Tox_Message_Type type,
     const uint8_t *message, size_t length, void *user_data)
 {
     if (length == (sizeof(GROUP_MESSAGE) - 1) && memcmp(message, GROUP_MESSAGE, sizeof(GROUP_MESSAGE) - 1) == 0) {

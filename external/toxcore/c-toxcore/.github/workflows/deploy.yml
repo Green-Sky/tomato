@@ -94,7 +94,7 @@ jobs:
     strategy:
       matrix:
         arch: [arm64, x86_64]
-    runs-on: ${{ matrix.arch == 'arm64' && 'macos-14' || 'macos-13' }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'macos-14' || 'macos-15-intel' }}
     steps:
       - uses: actions/checkout@v4
         with:

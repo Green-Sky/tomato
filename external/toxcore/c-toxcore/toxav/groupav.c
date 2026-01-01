@@ -255,7 +255,7 @@ static Group_AV *new_group_av(const Logger *log, Tox *tox, Group_Chats *g_c, aud
     return group_av;
 }
 
-static void group_av_peer_new(void *object, uint32_t conference_number, uint32_t peer_number)
+static void group_av_peer_new(void *object, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number)
 {
     const Group_AV *group_av = (const Group_AV *)object;
     Group_Peer_AV *peer_av = (Group_Peer_AV *)calloc(1, sizeof(Group_Peer_AV));
@@ -272,7 +272,7 @@ static void group_av_peer_new(void *object, uint32_t conference_number, uint32_t
     }
 }
 
-static void group_av_peer_delete(void *object, uint32_t conference_number, void *peer_object)
+static void group_av_peer_delete(void *object, Tox_Conference_Number conference_number, void *peer_object)
 {
     Group_Peer_AV *peer_av = (Group_Peer_AV *)peer_object;
 
@@ -288,7 +288,7 @@ static void group_av_peer_delete(void *object, uint32_t conference_number, void 
     free(peer_object);
 }
 
-static void group_av_groupchat_delete(void *object, uint32_t conference_number)
+static void group_av_groupchat_delete(void *object, Tox_Conference_Number conference_number)
 {
     Group_AV *group_av = (Group_AV *)object;
     if (group_av != nullptr) {
@@ -296,8 +296,8 @@ static void group_av_groupchat_delete(void *object, uint32_t conference_number)
     }
 }
 
-static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint32_t conference_number,
-                               uint32_t peer_number)
+static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, Tox_Conference_Number conference_number,
+                               Tox_Conference_Peer_Number peer_number)
 {
     if (group_av == nullptr || peer_av == nullptr) {
         return -1;
@@ -313,7 +313,7 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
     int16_t *out_audio = nullptr;
     int out_audio_samples = 0;
 
-    const unsigned int sample_rate = 48000;
+    const uint32_t sample_rate = 48000;
 
     if (success == 1) {
         const int channels = opus_packet_get_nb_channels(pk->data);
@@ -363,7 +363,7 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
             return -1;
         }
 
-        peer_av->last_packet_samples = out_audio_samples;
+        peer_av->last_packet_samples = (unsigned int)out_audio_samples;
     } else {
         if (peer_av->audio_decoder == nullptr) {
             return -1;
@@ -391,8 +391,8 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
     if (out_audio != nullptr) {
 
         if (group_av->audio_data != nullptr) {
-            group_av->audio_data(group_av->tox, conference_number, peer_number, out_audio, out_audio_samples,
-                                 peer_av->decoder_channels, sample_rate, group_av->userdata);
+            group_av->audio_data(group_av->tox, conference_number, peer_number, out_audio, (uint32_t)out_audio_samples,
+                                 (uint8_t)peer_av->decoder_channels, sample_rate, group_av->userdata);
         }
 
         free(out_audio);
@@ -402,7 +402,7 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
     return -1;
 }
 
-static int handle_group_audio_packet(void *object, uint32_t conference_number, uint32_t peer_number, void *peer_object,
+static int handle_group_audio_packet(void *object, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, void *peer_object,
                                      const uint8_t *packet, uint16_t length)
 {
     Group_AV *group_av = (Group_AV *)object;
@@ -447,7 +447,7 @@ static int handle_group_audio_packet(void *object, uint32_t conference_number, u
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-int groupchat_enable_av(const Logger *log, Tox *tox, Group_Chats *g_c, uint32_t conference_number,
+int groupchat_enable_av(const Logger *log, Tox *tox, Group_Chats *g_c, Tox_Conference_Number conference_number,
                         audio_data_cb *audio_callback, void *userdata)
 {
     if (group_get_type(g_c, conference_number) != GROUPCHAT_TYPE_AV
@@ -489,7 +489,7 @@ int groupchat_enable_av(const Logger *log, Tox *tox, Group_Chats *g_c, uint32_t 
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-int groupchat_disable_av(const Group_Chats *g_c, uint32_t conference_number)
+int groupchat_disable_av(const Group_Chats *g_c, Tox_Conference_Number conference_number)
 {
     if (group_get_type(g_c, conference_number) != GROUPCHAT_TYPE_AV) {
         return -1;
@@ -526,7 +526,7 @@ int groupchat_disable_av(const Group_Chats *g_c, uint32_t conference_number)
 }
 
 /** Return whether A/V is enabled in the conference. */
-bool groupchat_av_enabled(const Group_Chats *g_c, uint32_t conference_number)
+bool groupchat_av_enabled(const Group_Chats *g_c, Tox_Conference_Number conference_number)
 {
     return group_get_object(g_c, conference_number) != nullptr;
 }
@@ -544,8 +544,8 @@ int add_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_c
         return -1;
     }
 
-    if (groupchat_enable_av(log, tox, g_c, conference_number, audio_callback, userdata) == -1) {
-        del_groupchat(g_c, conference_number, true);
+    if (groupchat_enable_av(log, tox, g_c, (Tox_Conference_Number)conference_number, audio_callback, userdata) == -1) {
+        del_groupchat(g_c, (Tox_Conference_Number)conference_number, true);
         return -1;
     }
 
@@ -557,17 +557,17 @@ int add_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_c
  * @return conference number on success
  * @retval -1 on failure.
  */
-int join_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, uint32_t peer_number, const uint8_t *data,
+int join_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, Tox_Friend_Number friend_number, const uint8_t *data,
                       uint16_t length, audio_data_cb *audio_callback, void *userdata)
 {
-    const int conference_number = join_groupchat(g_c, peer_number, GROUPCHAT_TYPE_AV, data, length);
+    const int conference_number = join_groupchat(g_c, friend_number, GROUPCHAT_TYPE_AV, data, length);
 
     if (conference_number == -1) {
         return -1;
     }
 
-    if (groupchat_enable_av(log, tox, g_c, conference_number, audio_callback, userdata) == -1) {
-        del_groupchat(g_c, conference_number, true);
+    if (groupchat_enable_av(log, tox, g_c, (Tox_Conference_Number)conference_number, audio_callback, userdata) == -1) {
+        del_groupchat(g_c, (Tox_Conference_Number)conference_number, true);
         return -1;
     }
 
@@ -579,7 +579,7 @@ int join_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, uint32_t pe
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-static int send_audio_packet(const Group_Chats *g_c, uint32_t conference_number, const uint8_t *packet, uint16_t length)
+static int send_audio_packet(const Group_Chats *g_c, Tox_Conference_Number conference_number, const uint8_t *packet, uint16_t length)
 {
     if (length == 0 || length > MAX_CRYPTO_DATA_SIZE - 1 - sizeof(uint16_t)) {
         return -1;
@@ -614,7 +614,7 @@ static int send_audio_packet(const Group_Chats *g_c, uint32_t conference_number,
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-int group_send_audio(const Group_Chats *g_c, uint32_t conference_number, const int16_t *pcm, unsigned int samples, uint8_t channels,
+int group_send_audio(const Group_Chats *g_c, Tox_Conference_Number conference_number, const int16_t pcm[], uint32_t samples, uint8_t channels,
                      uint32_t sample_rate)
 {
     Group_AV *group_av = (Group_AV *)group_get_object(g_c, conference_number);

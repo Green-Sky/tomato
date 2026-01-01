@@ -418,7 +418,6 @@ if(BUILD_TOXAV)
     toxav/rtp.h
     toxav/toxav.c
     toxav/toxav.h
-    toxav/toxav_hacks.h
     toxav/toxav_old.c
     toxav/video.c
     toxav/video.h)
@@ -578,8 +577,15 @@ endfunction()
 # The actual unit tests follow.
 #
 if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
-  unit_test(toxav ring_buffer)
-  unit_test(toxav rtp)
+  if(BUILD_TOXAV)
+    unit_test(toxav audio)
+    unit_test(toxav bwcontroller)
+    unit_test(toxav msi)
+    unit_test(toxav ring_buffer)
+    unit_test(toxav rtp)
+    unit_test(toxav video)
+  endif()
+
   unit_test(toxcore DHT)
   unit_test(toxcore bin_pack)
   unit_test(toxcore crypto_core)

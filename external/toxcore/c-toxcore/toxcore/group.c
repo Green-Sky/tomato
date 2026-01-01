@@ -3717,6 +3717,10 @@ Group_Chats *new_groupchats(const Mono_Time *mono_time, const Memory *mem, Messe
 /** main groupchats loop. */
 void do_groupchats(Group_Chats *g_c, void *userdata)
 {
+    if (g_c == nullptr) {
+        return;
+    }
+
     for (uint16_t i = 0; i < g_c->num_chats; ++i) {
         Group_c *g = get_group_c(g_c, i);
 

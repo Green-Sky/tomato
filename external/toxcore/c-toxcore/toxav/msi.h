@@ -8,10 +8,11 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#include "audio.h"
-#include "video.h"
-
 #include "../toxcore/logger.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Error codes.
@@ -72,7 +73,7 @@ typedef struct MSICall {
     uint32_t             friend_number;     /* Index of this call in MSISession */
     MSIError             error;             /* Last error */
 
-    struct ToxAVCall     *av_call;           /* Pointer to av call handler */
+    void                *user_data;         /* Pointer to av call handler */
 
     struct MSICall       *next;
     struct MSICall       *prev;
@@ -86,6 +87,25 @@ typedef struct MSICall {
 typedef int msi_action_cb(void *object, MSICall *call);
 
 /**
+ * Send packet callback.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+typedef int msi_send_packet_cb(void *user_data, uint32_t friend_number, const uint8_t *data, size_t length);
+
+/**
+ * MSI callbacks.
+ */
+typedef struct MSICallbacks {
+    msi_action_cb *_Nonnull invite;
+    msi_action_cb *_Nonnull start;
+    msi_action_cb *_Nonnull end;
+    msi_action_cb *_Nonnull error;
+    msi_action_cb *_Nonnull peertimeout;
+    msi_action_cb *_Nonnull capabilities;
+} MSICallbacks;
+
+/**
  * Control session struct. Please do not modify outside msi.c
  */
 typedef struct MSISession {
@@ -94,53 +114,63 @@ typedef struct MSISession {
     uint32_t        calls_tail;
     uint32_t        calls_head;
 
-    void           *av;
-    Tox            *tox;
+    void           *user_data;
+
+    msi_send_packet_cb *send_packet;
+    void               *send_packet_user_data;
 
     pthread_mutex_t mutex[1];
 
-    msi_action_cb *invite_callback;
-    msi_action_cb *start_callback;
-    msi_action_cb *end_callback;
-    msi_action_cb *error_callback;
-    msi_action_cb *peertimeout_callback;
-    msi_action_cb *capabilities_callback;
+    msi_action_cb *_Nonnull invite_callback;
+    msi_action_cb *_Nonnull start_callback;
+    msi_action_cb *_Nonnull end_callback;
+    msi_action_cb *_Nonnull error_callback;
+    msi_action_cb *_Nonnull peertimeout_callback;
+    msi_action_cb *_Nonnull capabilities_callback;
 } MSISession;
 
 /**
  * Start the control session.
  */
-MSISession *msi_new(const Logger *log, Tox *tox);
+MSISession *_Nullable msi_new(const Logger *_Nonnull log,
+                              msi_send_packet_cb *_Nonnull send_packet, void *_Nullable send_packet_user_data,
+                              const MSICallbacks *_Nonnull callbacks,
+                              void *_Nullable user_data);
 /**
  * Terminate control session. NOTE: all calls will be freed
  */
-int msi_kill(const Logger *log, Tox *tox, MSISession *session);
-/**
- * Callback setters.
- */
-void msi_callback_invite(MSISession *session, msi_action_cb *callback);
-void msi_callback_start(MSISession *session, msi_action_cb *callback);
-void msi_callback_end(MSISession *session, msi_action_cb *callback);
-void msi_callback_error(MSISession *session, msi_action_cb *callback);
-void msi_callback_peertimeout(MSISession *session, msi_action_cb *callback);
-void msi_callback_capabilities(MSISession *session, msi_action_cb *callback);
+int msi_kill(const Logger *_Nonnull log, MSISession *_Nullable session);
 /**
  * Send invite request to friend_number.
  */
-int msi_invite(const Logger *log, MSISession *session, MSICall **call, uint32_t friend_number, uint8_t capabilities);
+int msi_invite(const Logger *_Nonnull log, MSISession *_Nonnull session, MSICall *_Nonnull *_Nonnull call,
+               uint32_t friend_number, uint8_t capabilities);
 /**
  * Hangup call. NOTE: `call` will be freed
  */
-int msi_hangup(const Logger *log, MSICall *call);
+int msi_hangup(const Logger *_Nonnull log, MSICall *_Nullable call);
 /**
  * Answer call request.
  */
-int msi_answer(const Logger *log, MSICall *call, uint8_t capabilities);
+int msi_answer(const Logger *_Nonnull log, MSICall *_Nullable call, uint8_t capabilities);
 /**
  * Change capabilities of the call.
  */
-int msi_change_capabilities(const Logger *log, MSICall *call, uint8_t capabilities);
+int msi_change_capabilities(const Logger *_Nonnull log, MSICall *_Nullable call, uint8_t capabilities);
 
-bool check_peer_offline_status(const Logger *log, const Tox *tox, MSISession *session, uint32_t friend_number);
+/**
+ * Handle incoming MSI packet.
+ */
+void msi_handle_packet(MSISession *_Nullable session, const Logger *_Nonnull log, uint32_t friend_number,
+                       const uint8_t *_Nonnull data, size_t length);
+
+/**
+ * Mark a call as timed out.
+ */
+void msi_call_timeout(MSISession *_Nullable session, const Logger *_Nonnull log, uint32_t friend_number);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXAV_MSI_H */
