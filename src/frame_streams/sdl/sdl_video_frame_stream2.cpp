@@ -1,6 +1,7 @@
 #include "./sdl_video_frame_stream2.hpp"
 
 #include <chrono>
+#include <algorithm>
 
 #include <iostream>
 
@@ -128,7 +129,12 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 			std::cout << "SDLVID: camera format: " << format_name << "\n";
 		}
 
-		_thread = std::thread([this, camera = std::move(camera), fps](void) {
+		_thread = std::thread([this, camera = std::move(camera)](void) {
+			bool use_chrono_fallback = false;
+			Uint64 last_timestampUS = 0;
+
+			double intervalUS_avg = 1.;
+
 			while (_ref > 0) {
 				Uint64 timestampNS = 0;
 
@@ -136,20 +142,45 @@ std::shared_ptr<FrameStream2I<SDLVideoFrame>> SDLVideo2InputDevice::subscribe(vo
 				SDL_Surface* sdl_frame_next = SDL_AcquireCameraFrame(camera.get(), &timestampNS);
 
 				if (sdl_frame_next != nullptr) {
+					Uint64 timestampUS_correct = timestampNS/1000;
+					if (!use_chrono_fallback) {
+						if (timestampNS == 0 || last_timestampUS == timestampUS_correct) {
+							use_chrono_fallback = true;
+							std::cerr << "SDLVID: invalid or unreliable timestampNS from sdl, falling back to own mesurements!\n";
+							timestampUS_correct = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+						} else if (last_timestampUS == 0) {
+							last_timestampUS = timestampUS_correct;
+							// HACK: skip first frame
+							std::cerr << "SDLVID: skipping first frame\n";
+							SDL_ReleaseCameraFrame(camera.get(), sdl_frame_next);
+							continue;
+						}
+					} else {
+						timestampUS_correct = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+					}
+
+					if (last_timestampUS != 0 && timestampUS_correct != 0 && last_timestampUS != timestampUS_correct && last_timestampUS < timestampUS_correct) {
+						const double r = 0.15;
+						intervalUS_avg = std::clamp(intervalUS_avg * (1.-r) + (timestampUS_correct-last_timestampUS) * r, 1000., 500.*1000.);
+					}
+
 					SDLVideoFrame new_frame_non_owning {
-						timestampNS/1000,
+						timestampUS_correct,
 						sdl_frame_next
 					};
 
 					// creates surface copies
 					push(new_frame_non_owning);
 
+
+					last_timestampUS = timestampUS_correct;
+
 					SDL_ReleaseCameraFrame(camera.get(), sdl_frame_next);
 				}
 
 				// sleep for interval
 				// TODO: do we really need half?
-				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t((1000/fps)*0.5)));
+				std::this_thread::sleep_for(std::chrono::milliseconds(int64_t((intervalUS_avg/1000)*0.5)));
 			}
 			// camera destructor closes device here
 		});

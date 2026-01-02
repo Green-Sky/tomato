@@ -200,7 +200,7 @@ float DebugVideoTap::render(void) {
 					auto delta = int64_t(new_frame_opt.value().timestampUS) - int64_t(view._v_last_ts);
 					view._v_last_ts = new_frame_opt.value().timestampUS;
 
-					if (view._v_interval_avg == 0) {
+					if (view._v_interval_avg == 0 || std::isinf(view._v_interval_avg) || std::isnan(view._v_interval_avg)) {
 						view._v_interval_avg = delta/1'000'000.f;
 					} else {
 						const float r = 0.05f;
