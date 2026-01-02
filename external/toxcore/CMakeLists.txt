@@ -29,16 +29,6 @@ endif()
 
 # HACK: "install" api headers into binary dir
 configure_file(
-	./c-toxcore/toxcore/tox_log_level.h
-	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox_log_level.h
-	@ONLY
-)
-configure_file(
-	./c-toxcore/toxcore/tox_options.h
-	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox_options.h
-	@ONLY
-)
-configure_file(
 	./c-toxcore/toxcore/tox.h
 	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox.h
 	@ONLY
@@ -46,6 +36,16 @@ configure_file(
 configure_file(
 	./c-toxcore/toxcore/tox_events.h
 	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox_events.h
+	@ONLY
+)
+configure_file(
+	./c-toxcore/toxcore/tox_log_level.h
+	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox_log_level.h
+	@ONLY
+)
+configure_file(
+	./c-toxcore/toxcore/tox_options.h
+	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox_options.h
 	@ONLY
 )
 configure_file(
