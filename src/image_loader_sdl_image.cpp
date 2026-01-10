@@ -7,6 +7,7 @@
 
 static std::optional<const char*> getExt(SDL_IOStream* ios) {
 	// blacklist:
+	// - svg
 	// - tga
 	// - tiff
 	// - xcf
@@ -33,8 +34,6 @@ static std::optional<const char*> getExt(SDL_IOStream* ios) {
 		return "png";
 	} else if (IMG_isPNM(ios)) {
 		return "pnm";
-	} else if (IMG_isSVG(ios)) {
-		return "svg";
 	} else if (IMG_isXPM(ios)) {
 		return "xpm";
 	} else if (IMG_isXV(ios)) {

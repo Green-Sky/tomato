@@ -50,11 +50,19 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
+	if (!o.all_of<ObjComp::F::TagLocalHaveAll>()) {
+		// not ready yet
+		return;
+	}
+
 	// TODO: handle collections
 	const auto file_size = o.get<ObjComp::F::SingleInfo>().file_size;
 
 	if (file_size > 50*1024*1024) {
-		std::cerr << "MMIL error: image file too large\n";
+		// not an error
+		//std::cerr << "MMIL error: image file too large\n";
+		// this is unlikely to change, so we tag as not image
+		m.emplace<Message::Components::TagNotImage>();
 		return;
 	}
 
@@ -63,17 +71,11 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 		return;
 	}
 
-	if (!o.all_of<ObjComp::F::TagLocalHaveAll>()) {
-		// not ready yet
-		return;
-	}
-
 	auto* file_backend = o.get<ObjComp::Ephemeral::BackendFile2>().ptr;
 	if (file_backend == nullptr) {
 		std::cerr << "MMIL error: object backend nullptr\n";
 		return;
 	}
-
 
 	auto file2 = file_backend->file2(o, StorageBackendIFile2::FILE2_READ);
 	if (!file2 || !file2->isGood() || !file2->can_read) {

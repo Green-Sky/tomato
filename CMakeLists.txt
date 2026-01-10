@@ -31,13 +31,13 @@ if (TOMATO_ASAN)
 	if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 		if (NOT WIN32) # exclude mingw
 			add_compile_options(-fno-omit-frame-pointer)
-			add_compile_options(-fsanitize=address,undefined)
+			add_compile_options(-fsanitize=address,undefined,nullability)
 			#add_compile_options(-fsanitize=address,undefined,pointer-compare,pointer-subtract)
 			#add_compile_options(-fhardened)
 			#add_compile_options(-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fPIE  -pie  -Wl,-z,relro,-z,now -fstack-protector-strong -fstack-clash-protection -fcf-protection=full)
 
 			add_link_options(-fno-omit-frame-pointer)
-			add_link_options(-fsanitize=address,undefined)
+			add_link_options(-fsanitize=address,undefined,nullability)
 			#add_link_options(-fsanitize=address,undefined,pointer-compare,pointer-subtract)
 			#add_link_options(-fhardened)
 			#add_link_options(-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fPIE  -pie  -Wl,-z,relro,-z,now -fstack-protector-strong -fstack-clash-protection -fcf-protection=full)
@@ -99,34 +99,34 @@ set(TOMATO_GIT_COMMIT "UNK")
 
 find_package(Git QUIET)
 if(NOT Git_FOUND)
-    find_program(GIT_EXECUTABLE NAMES git git.exe)
-    if(GIT_EXECUTABLE)
-        set(Git_FOUND TRUE)
-        message(STATUS "Found Git: ${GIT_EXECUTABLE}")
-    endif()
+	find_program(GIT_EXECUTABLE NAMES git git.exe)
+	if(GIT_EXECUTABLE)
+		set(Git_FOUND TRUE)
+		message(STATUS "Found Git: ${GIT_EXECUTABLE}")
+	endif()
 endif()
 
 if(Git_FOUND)
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		OUTPUT_VARIABLE GIT_HEAD
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE RES
-    )
-    if (RES EQUAL 0)
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		RESULT_VARIABLE RES
+	)
+	if (RES EQUAL 0)
 		set(TOMATO_GIT_COMMIT ${GIT_HEAD})
-    endif()
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	endif()
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		OUTPUT_VARIABLE GIT_DEPTH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE RES
-    )
-    if (RES EQUAL 0)
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		RESULT_VARIABLE RES
+	)
+	if (RES EQUAL 0)
 		set(TOMATO_GIT_DEPTH ${GIT_DEPTH})
-    endif()
+	endif()
 endif()
 
 message(STATUS "tomato version: ")
