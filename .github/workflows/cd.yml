@@ -48,6 +48,47 @@ jobs:
         path: |
           ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu24.04-x86_64.tar.gz
 
+  linux-debian12:
+    timeout-minutes: 10
+
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+
+    steps:
+    - name: Install Dependencies
+      run: apt update && apt -y install git build-essential pkg-config cmake ninja-build libsodium-dev libasound2-dev libpulse-dev libjack-dev libsndio-dev libpipewire-0.3-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev libvpx-dev libopus-dev liburing-dev
+
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Fix gitconfig
+      run: git config --system --add safe.directory ${GITHUB_WORKSPACE}
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTOMATO_BREAKPAD=ON -DTOMATO_TOX_AV=ON -DCMAKE_C_FLAGS=-gz -DCMAKE_CXX_FLAGS=-gz -DCMAKE_EXE_LINKER_FLAGS=-gz
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato
+
+    - name: Determine tag name
+      id: tag
+      shell: bash
+      run: . .github/workflows/tag_version.bash
+
+    - name: Compress artifacts
+      shell: bash
+      run: |
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-debian12-x86_64.tar.gz -C ${{github.workspace}}/build/bin/ .
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-debian12-x86_64
+        path: |
+          ${{github.workspace}}/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-debian12-x86_64.tar.gz
+
   android:
     timeout-minutes: 30
     # contains sections copied from sdl repo
@@ -243,6 +284,7 @@ jobs:
 
     needs:
       - linux-ubuntu
+      - linux-debian12
       - android
       - windows
       #- windows-asan
@@ -283,6 +325,10 @@ jobs:
         dump_syms -s tomato-dev-ubuntu24.04-x86_64-sym ./artifacts/extract/tomato
         rm -rf ./artifacts/extract/*
 
+        echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-debian12-x86_64/*)
+        dump_syms -s tomato-dev-debian12-x86_64-sym ./artifacts/extract/tomato
+        rm -rf ./artifacts/extract/*
+
         echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64/*)
         dump_syms -s tomato-dev-Windows-msvc-x86_64-sym ./artifacts/extract/tomato.pdb
         rm -rf ./artifacts/extract/*
@@ -291,6 +337,7 @@ jobs:
       shell: bash
       run: |
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64-symbol_store.tar.gz -C ./tomato-dev-ubuntu24.04-x86_64-sym .
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-debian12-x86_64-symbol_store.tar.gz -C ./tomato-dev-debian12-x86_64-sym .
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz -C ./tomato-dev-Windows-msvc-x86_64-sym .
 
     - uses: actions/upload-artifact@v4
@@ -298,6 +345,7 @@ jobs:
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-symbol_stores
         path: |
           ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64-symbol_store.tar.gz
+          ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-debian12-x86_64-symbol_store.tar.gz
           ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz
 
   release:
