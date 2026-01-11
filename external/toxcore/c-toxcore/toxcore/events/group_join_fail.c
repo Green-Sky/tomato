@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -107,7 +107,7 @@ Tox_Event_Group_Join_Fail *tox_event_group_join_fail_new(const Memory *mem)
 void tox_event_group_join_fail_free(Tox_Event_Group_Join_Fail *group_join_fail, const Memory *mem)
 {
     if (group_join_fail != nullptr) {
-        tox_event_group_join_fail_destruct(group_join_fail, mem);
+        tox_event_group_join_fail_destruct((Tox_Event_Group_Join_Fail * _Nonnull)group_join_fail, mem);
     }
     mem_delete(mem, group_join_fail);
 }
@@ -145,11 +145,8 @@ bool tox_event_group_join_fail_unpack(
     return tox_event_group_join_fail_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -174,7 +171,8 @@ void tox_events_handle_group_join_fail(
     Tox *tox, uint32_t group_number, Tox_Group_Join_Fail fail_type,
     void *user_data)
 {
-    Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(state);
 
     if (group_join_fail == nullptr) {
         return;

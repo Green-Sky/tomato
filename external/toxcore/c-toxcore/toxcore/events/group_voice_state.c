@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -107,7 +107,7 @@ Tox_Event_Group_Voice_State *tox_event_group_voice_state_new(const Memory *mem)
 void tox_event_group_voice_state_free(Tox_Event_Group_Voice_State *group_voice_state, const Memory *mem)
 {
     if (group_voice_state != nullptr) {
-        tox_event_group_voice_state_destruct(group_voice_state, mem);
+        tox_event_group_voice_state_destruct((Tox_Event_Group_Voice_State * _Nonnull)group_voice_state, mem);
     }
     mem_delete(mem, group_voice_state);
 }
@@ -145,11 +145,8 @@ bool tox_event_group_voice_state_unpack(
     return tox_event_group_voice_state_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Voice_State *tox_event_group_voice_state_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Voice_State *tox_event_group_voice_state_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -174,7 +171,8 @@ void tox_events_handle_group_voice_state(
     Tox *tox, uint32_t group_number, Tox_Group_Voice_State voice_state,
     void *user_data)
 {
-    Tox_Event_Group_Voice_State *group_voice_state = tox_event_group_voice_state_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Voice_State *group_voice_state = tox_event_group_voice_state_alloc(state);
 
     if (group_voice_state == nullptr) {
         return;

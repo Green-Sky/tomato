@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../attributes.h"
@@ -68,11 +67,11 @@ Tox_Message_Type tox_event_group_message_get_message_type(const Tox_Event_Group_
 }
 
 static bool tox_event_group_message_set_message(Tox_Event_Group_Message *_Nonnull group_message,
-        const uint8_t *_Nullable message, uint32_t message_length)
+        const Memory *_Nonnull mem, const uint8_t *_Nullable message, uint32_t message_length)
 {
     assert(group_message != nullptr);
     if (group_message->message != nullptr) {
-        free(group_message->message);
+        mem_delete(mem, group_message->message);
         group_message->message = nullptr;
         group_message->message_length = 0;
     }
@@ -82,7 +81,7 @@ static bool tox_event_group_message_set_message(Tox_Event_Group_Message *_Nonnul
         return true;
     }
 
-    uint8_t *message_copy = (uint8_t *)malloc(message_length);
+    uint8_t *message_copy = (uint8_t *)mem_balloc(mem, message_length);
 
     if (message_copy == nullptr) {
         return false;
@@ -123,7 +122,7 @@ static void tox_event_group_message_construct(Tox_Event_Group_Message *_Nonnull 
 }
 static void tox_event_group_message_destruct(Tox_Event_Group_Message *_Nonnull group_message, const Memory *_Nonnull mem)
 {
-    free(group_message->message);
+    mem_delete(mem, group_message->message);
 }
 
 bool tox_event_group_message_pack(
@@ -178,7 +177,7 @@ Tox_Event_Group_Message *tox_event_group_message_new(const Memory *mem)
 void tox_event_group_message_free(Tox_Event_Group_Message *group_message, const Memory *mem)
 {
     if (group_message != nullptr) {
-        tox_event_group_message_destruct(group_message, mem);
+        tox_event_group_message_destruct((Tox_Event_Group_Message * _Nonnull)group_message, mem);
     }
     mem_delete(mem, group_message);
 }
@@ -216,11 +215,8 @@ bool tox_event_group_message_unpack(
     return tox_event_group_message_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Message *tox_event_group_message_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Message *tox_event_group_message_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -245,7 +241,8 @@ void tox_events_handle_group_message(
     Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Message_Type message_type, const uint8_t *message, size_t message_length, uint32_t message_id,
     void *user_data)
 {
-    Tox_Event_Group_Message *group_message = tox_event_group_message_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Message *group_message = tox_event_group_message_alloc(state);
 
     if (group_message == nullptr) {
         return;
@@ -254,6 +251,6 @@ void tox_events_handle_group_message(
     tox_event_group_message_set_group_number(group_message, group_number);
     tox_event_group_message_set_peer_id(group_message, peer_id);
     tox_event_group_message_set_message_type(group_message, message_type);
-    tox_event_group_message_set_message(group_message, message, message_length);
+    tox_event_group_message_set_message(group_message, state->mem, message, message_length);
     tox_event_group_message_set_message_id(group_message, message_id);
 }

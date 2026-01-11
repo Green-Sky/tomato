@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -105,7 +105,7 @@ Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_new(const Memory *mem)
 void tox_event_group_peer_limit_free(Tox_Event_Group_Peer_Limit *group_peer_limit, const Memory *mem)
 {
     if (group_peer_limit != nullptr) {
-        tox_event_group_peer_limit_destruct(group_peer_limit, mem);
+        tox_event_group_peer_limit_destruct((Tox_Event_Group_Peer_Limit * _Nonnull)group_peer_limit, mem);
     }
     mem_delete(mem, group_peer_limit);
 }
@@ -143,11 +143,8 @@ bool tox_event_group_peer_limit_unpack(
     return tox_event_group_peer_limit_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -172,7 +169,8 @@ void tox_events_handle_group_peer_limit(
     Tox *tox, uint32_t group_number, uint32_t peer_limit,
     void *user_data)
 {
-    Tox_Event_Group_Peer_Limit *group_peer_limit = tox_event_group_peer_limit_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Peer_Limit *group_peer_limit = tox_event_group_peer_limit_alloc(state);
 
     if (group_peer_limit == nullptr) {
         return;

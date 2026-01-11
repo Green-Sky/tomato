@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -15,7 +15,6 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
-#include "../tox_private.h"
 
 /*****************************************************
  *
@@ -29,10 +28,9 @@ struct Tox_Event_Friend_Request {
     uint32_t message_length;
 };
 
-static bool tox_event_friend_request_set_public_key(Tox_Event_Friend_Request *_Nonnull friend_request, const uint8_t *_Nonnull public_key)
+static bool tox_event_friend_request_set_public_key(Tox_Event_Friend_Request *_Nonnull friend_request, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE])
 {
     assert(friend_request != nullptr);
-
     memcpy(friend_request->public_key, public_key, TOX_PUBLIC_KEY_SIZE);
     return true;
 }
@@ -42,14 +40,19 @@ const uint8_t *tox_event_friend_request_get_public_key(const Tox_Event_Friend_Re
     return friend_request->public_key;
 }
 
-static bool tox_event_friend_request_set_message(Tox_Event_Friend_Request *_Nonnull friend_request, const uint8_t *_Nonnull message, uint32_t message_length, const Memory *_Nonnull mem)
+static bool tox_event_friend_request_set_message(Tox_Event_Friend_Request *_Nonnull friend_request,
+        const Memory *_Nonnull mem, const uint8_t *_Nullable message, uint32_t message_length)
 {
     assert(friend_request != nullptr);
-
     if (friend_request->message != nullptr) {
         mem_delete(mem, friend_request->message);
         friend_request->message = nullptr;
         friend_request->message_length = 0;
+    }
+
+    if (message == nullptr) {
+        assert(message_length == 0);
+        return true;
     }
 
     uint8_t *message_copy = (uint8_t *)mem_balloc(mem, message_length);
@@ -106,8 +109,13 @@ static bool tox_event_friend_request_unpack_into(Tox_Event_Friend_Request *_Nonn
            && bin_unpack_bin(bu, &event->message, &event->message_length);
 }
 
-const Tox_Event_Friend_Request *tox_event_get_friend_request(
-    const Tox_Event *event)
+/*****************************************************
+ *
+ * :: new/free/add/get/size/unpack
+ *
+ *****************************************************/
+
+const Tox_Event_Friend_Request *tox_event_get_friend_request(const Tox_Event *event)
 {
     return event->type == TOX_EVENT_FRIEND_REQUEST ? event->data.friend_request : nullptr;
 }
@@ -128,7 +136,7 @@ Tox_Event_Friend_Request *tox_event_friend_request_new(const Memory *mem)
 void tox_event_friend_request_free(Tox_Event_Friend_Request *friend_request, const Memory *mem)
 {
     if (friend_request != nullptr) {
-        tox_event_friend_request_destruct(friend_request, mem);
+        tox_event_friend_request_destruct((Tox_Event_Friend_Request * _Nonnull)friend_request, mem);
     }
     mem_delete(mem, friend_request);
 }
@@ -166,11 +174,8 @@ bool tox_event_friend_request_unpack(
     return tox_event_friend_request_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Request *tox_event_friend_request_alloc(void *_Nonnull user_data)
+static Tox_Event_Friend_Request *tox_event_friend_request_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -191,17 +196,17 @@ static Tox_Event_Friend_Request *tox_event_friend_request_alloc(void *_Nonnull u
  *
  *****************************************************/
 
-void tox_events_handle_friend_request(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length,
-                                      void *user_data)
+void tox_events_handle_friend_request(
+    Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length,
+    void *user_data)
 {
-    Tox_Event_Friend_Request *friend_request = tox_event_friend_request_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Friend_Request *friend_request = tox_event_friend_request_alloc(state);
 
     if (friend_request == nullptr) {
         return;
     }
 
-    const Tox_System *sys = tox_get_system(tox);
-
     tox_event_friend_request_set_public_key(friend_request, public_key);
-    tox_event_friend_request_set_message(friend_request, message, length, sys->mem);
+    tox_event_friend_request_set_message(friend_request, state->mem, message, length);
 }

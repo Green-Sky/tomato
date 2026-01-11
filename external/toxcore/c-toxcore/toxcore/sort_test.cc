@@ -16,7 +16,7 @@ namespace {
 
 TEST(MergeSort, BehavesLikeStdSort)
 {
-    std::mt19937 rng;
+    std::minstd_rand rng;
     // INT_MAX-1 so later we have room to add 1 larger element if needed.
     std::uniform_int_distribution<int> dist{
         std::numeric_limits<int>::min(), std::numeric_limits<int>::max() - 1};
@@ -48,7 +48,7 @@ TEST(MergeSort, BehavesLikeStdSort)
 
 TEST(MergeSort, WorksWithNonTrivialTypes)
 {
-    std::mt19937 rng;
+    std::minstd_rand rng;
     std::uniform_int_distribution<int> dist{
         std::numeric_limits<int>::min(), std::numeric_limits<int>::max()};
 

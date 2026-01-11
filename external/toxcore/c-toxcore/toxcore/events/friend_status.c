@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -107,7 +107,7 @@ Tox_Event_Friend_Status *tox_event_friend_status_new(const Memory *mem)
 void tox_event_friend_status_free(Tox_Event_Friend_Status *friend_status, const Memory *mem)
 {
     if (friend_status != nullptr) {
-        tox_event_friend_status_destruct(friend_status, mem);
+        tox_event_friend_status_destruct((Tox_Event_Friend_Status * _Nonnull)friend_status, mem);
     }
     mem_delete(mem, friend_status);
 }
@@ -145,11 +145,8 @@ bool tox_event_friend_status_unpack(
     return tox_event_friend_status_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Status *tox_event_friend_status_alloc(void *_Nonnull user_data)
+static Tox_Event_Friend_Status *tox_event_friend_status_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -174,7 +171,8 @@ void tox_events_handle_friend_status(
     Tox *tox, uint32_t friend_number, Tox_User_Status status,
     void *user_data)
 {
-    Tox_Event_Friend_Status *friend_status = tox_event_friend_status_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Friend_Status *friend_status = tox_event_friend_status_alloc(state);
 
     if (friend_status == nullptr) {
         return;

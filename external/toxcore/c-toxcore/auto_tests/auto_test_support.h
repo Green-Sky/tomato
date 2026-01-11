@@ -8,6 +8,7 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/tox_dispatch.h"
+#include "../toxcore/net_crypto.h"
 
 typedef struct AutoTox {
     Tox *tox;
@@ -24,17 +25,10 @@ typedef struct AutoTox {
     void *state;
 } AutoTox;
 
-bool all_connected(const AutoTox *autotoxes, uint32_t tox_count);
 
-bool all_friends_connected(const AutoTox *autotoxes, uint32_t tox_count);
 
-void iterate_all_wait(AutoTox *autotoxes, uint32_t tox_count, uint32_t wait);
 
-void save_autotox(AutoTox *autotox);
-void kill_autotox(AutoTox *autotox);
-void reload(AutoTox *autotox);
 
-void set_mono_time_callback(AutoTox *autotox);
 
 typedef enum Graph_Type {
     GRAPH_COMPLETE = 0,
@@ -48,11 +42,6 @@ typedef struct Run_Auto_Options {
     bool events;
 } Run_Auto_Options;
 
-Run_Auto_Options default_run_auto_options(void);
-
-void run_auto_test(struct Tox_Options *options, uint32_t tox_count, void test(AutoTox *autotoxes),
-                   uint32_t state_size, Run_Auto_Options *autotest_opts);
-
 void bootstrap_tox_live_network(Tox *tox, bool enable_tcp);
 
 // Use this function when setting the log callback on a Tox* object
@@ -65,5 +54,7 @@ void print_debug_logger(void *context, Logger_Level level, const char *file, uin
 
 Tox *tox_new_log(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data);
 Tox *tox_new_log_lan(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data, bool lan_discovery);
+
+extern const Net_Crypto_DHT_Funcs auto_test_dht_funcs;
 
 #endif

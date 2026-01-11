@@ -452,12 +452,14 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
     /* peer number can change from peer add operations in packet handlers */
     peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
-    gconn = get_gc_connection(chat, peer_number);
+    GC_Connection *new_gconn = get_gc_connection(chat, peer_number);
 
-    if (gconn == nullptr) {
+    if (new_gconn == nullptr) {
         mem_delete(chat->mem, payload);
         return 0;
     }
+
+    gconn = new_gconn;
 
     gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
     gconn->last_chunk_id = 0;
@@ -510,7 +512,14 @@ static bool process_recv_array_entry(const GC_Session *_Nonnull c, GC_Chat *_Non
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(&gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
-    const bool ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
+    const uint8_t *data = array_entry->data;
+    // TODO(iphydf): This is ugly. We should probably change all the handlers to accept nullable.
+    const uint8_t empty_data[1] = { 0 };
+    if (data == nullptr) {
+        data = empty_data;
+    }
+
+    const bool ret = handle_gc_lossless_helper(c, chat, peer_number, data, array_entry->data_length,
                      array_entry->packet_type, userdata);
 
     /* peer number can change from peer add operations in packet handlers */
@@ -612,6 +621,9 @@ bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *p
         }
     }
 
+    if (chat->tcp_conn == nullptr) {
+        return false;
+    }
     const int ret = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
     return ret == 0 || direct_send_attempt;
 }
@@ -682,7 +694,9 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
     gconn->pending_delete = true;
     gconn->exit_info.exit_type = type;
 
-    kill_tcp_connection_to(tcp_conn, gconn->tcp_connection_num);
+    if (tcp_conn != nullptr) {
+        kill_tcp_connection_to(tcp_conn, gconn->tcp_connection_num);
+    }
 
     if (length > 0 && length <= MAX_GC_PART_MESSAGE_SIZE  && part_message != nullptr) {
         memcpy(gconn->exit_info.part_message, part_message, length);

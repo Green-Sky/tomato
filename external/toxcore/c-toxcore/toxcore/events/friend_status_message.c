@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../attributes.h"
@@ -41,11 +40,11 @@ uint32_t tox_event_friend_status_message_get_friend_number(const Tox_Event_Frien
 }
 
 static bool tox_event_friend_status_message_set_message(Tox_Event_Friend_Status_Message *_Nonnull friend_status_message,
-        const uint8_t *_Nullable message, uint32_t message_length)
+        const Memory *_Nonnull mem, const uint8_t *_Nullable message, uint32_t message_length)
 {
     assert(friend_status_message != nullptr);
     if (friend_status_message->message != nullptr) {
-        free(friend_status_message->message);
+        mem_delete(mem, friend_status_message->message);
         friend_status_message->message = nullptr;
         friend_status_message->message_length = 0;
     }
@@ -55,7 +54,7 @@ static bool tox_event_friend_status_message_set_message(Tox_Event_Friend_Status_
         return true;
     }
 
-    uint8_t *message_copy = (uint8_t *)malloc(message_length);
+    uint8_t *message_copy = (uint8_t *)mem_balloc(mem, message_length);
 
     if (message_copy == nullptr) {
         return false;
@@ -85,7 +84,7 @@ static void tox_event_friend_status_message_construct(Tox_Event_Friend_Status_Me
 }
 static void tox_event_friend_status_message_destruct(Tox_Event_Friend_Status_Message *_Nonnull friend_status_message, const Memory *_Nonnull mem)
 {
-    free(friend_status_message->message);
+    mem_delete(mem, friend_status_message->message);
 }
 
 bool tox_event_friend_status_message_pack(
@@ -134,7 +133,7 @@ Tox_Event_Friend_Status_Message *tox_event_friend_status_message_new(const Memor
 void tox_event_friend_status_message_free(Tox_Event_Friend_Status_Message *friend_status_message, const Memory *mem)
 {
     if (friend_status_message != nullptr) {
-        tox_event_friend_status_message_destruct(friend_status_message, mem);
+        tox_event_friend_status_message_destruct((Tox_Event_Friend_Status_Message * _Nonnull)friend_status_message, mem);
     }
     mem_delete(mem, friend_status_message);
 }
@@ -172,11 +171,8 @@ bool tox_event_friend_status_message_unpack(
     return tox_event_friend_status_message_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Status_Message *tox_event_friend_status_message_alloc(void *_Nonnull user_data)
+static Tox_Event_Friend_Status_Message *tox_event_friend_status_message_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -201,12 +197,13 @@ void tox_events_handle_friend_status_message(
     Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length,
     void *user_data)
 {
-    Tox_Event_Friend_Status_Message *friend_status_message = tox_event_friend_status_message_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Friend_Status_Message *friend_status_message = tox_event_friend_status_message_alloc(state);
 
     if (friend_status_message == nullptr) {
         return;
     }
 
     tox_event_friend_status_message_set_friend_number(friend_status_message, friend_number);
-    tox_event_friend_status_message_set_message(friend_status_message, message, length);
+    tox_event_friend_status_message_set_message(friend_status_message, state->mem, message, length);
 }

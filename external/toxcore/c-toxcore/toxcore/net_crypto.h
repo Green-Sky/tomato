@@ -9,7 +9,7 @@
 #ifndef C_TOXCORE_TOXCORE_NET_CRYPTO_H
 #define C_TOXCORE_TOXCORE_NET_CRYPTO_H
 
-#include "DHT.h"
+#include "DHT.h" // Node_format
 #include "TCP_client.h"
 #include "TCP_connection.h"
 #include "attributes.h"
@@ -23,6 +23,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef const uint8_t *_Nullable nc_dht_get_shared_key_sent_cb(void *_Nonnull obj, const uint8_t *_Nonnull public_key);
+typedef const uint8_t *_Nonnull nc_dht_get_self_public_key_cb(const void *_Nonnull obj);
+typedef const uint8_t *_Nonnull nc_dht_get_self_secret_key_cb(const void *_Nonnull obj);
+
+typedef struct Net_Crypto_DHT_Funcs {
+    nc_dht_get_shared_key_sent_cb *_Nonnull get_shared_key_sent;
+    nc_dht_get_self_public_key_cb *_Nonnull get_self_public_key;
+    nc_dht_get_self_secret_key_cb *_Nonnull get_self_secret_key;
+} Net_Crypto_DHT_Funcs;
 
 /*** Crypto payloads. */
 
@@ -133,7 +143,7 @@ typedef struct New_Connection {
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
     uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce of received packets. */
     uint8_t peersessionpublic_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
-    uint8_t *_Nullable cookie;
+    uint8_t *_Nonnull cookie;
     uint8_t cookie_length;
 } New_Connection;
 
@@ -369,7 +379,7 @@ void load_secret_key(Net_Crypto *_Nonnull c, const uint8_t *_Nonnull sk);
  * Sets all the global connection variables to their default values.
  */
 Net_Crypto *_Nullable new_net_crypto(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time,
-                                     Networking_Core *_Nonnull net, DHT *_Nonnull dht,
+                                     Networking_Core *_Nonnull net, void *_Nonnull dht, const Net_Crypto_DHT_Funcs *_Nonnull dht_funcs,
                                      const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np);
 
 /** return the optimal interval in ms for running do_net_crypto. */
@@ -378,6 +388,10 @@ uint32_t crypto_run_interval(const Net_Crypto *_Nonnull c);
 /** Main loop. */
 void do_net_crypto(Net_Crypto *_Nonnull c, void *_Nullable userdata);
 void kill_net_crypto(Net_Crypto *_Nullable c);
+
+/** Unit test support functions. Do not use outside tests. */
+void nc_testonly_get_secrets(const Net_Crypto *_Nonnull c, int conn_id, uint8_t *_Nonnull shared_key, uint8_t *_Nonnull sent_nonce, uint8_t *_Nonnull recv_nonce);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

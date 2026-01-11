@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../attributes.h"
@@ -41,11 +40,11 @@ uint32_t tox_event_group_password_get_group_number(const Tox_Event_Group_Passwor
 }
 
 static bool tox_event_group_password_set_password(Tox_Event_Group_Password *_Nonnull group_password,
-        const uint8_t *_Nullable password, uint32_t password_length)
+        const Memory *_Nonnull mem, const uint8_t *_Nullable password, uint32_t password_length)
 {
     assert(group_password != nullptr);
     if (group_password->password != nullptr) {
-        free(group_password->password);
+        mem_delete(mem, group_password->password);
         group_password->password = nullptr;
         group_password->password_length = 0;
     }
@@ -55,7 +54,7 @@ static bool tox_event_group_password_set_password(Tox_Event_Group_Password *_Non
         return true;
     }
 
-    uint8_t *password_copy = (uint8_t *)malloc(password_length);
+    uint8_t *password_copy = (uint8_t *)mem_balloc(mem, password_length);
 
     if (password_copy == nullptr) {
         return false;
@@ -85,7 +84,7 @@ static void tox_event_group_password_construct(Tox_Event_Group_Password *_Nonnul
 }
 static void tox_event_group_password_destruct(Tox_Event_Group_Password *_Nonnull group_password, const Memory *_Nonnull mem)
 {
-    free(group_password->password);
+    mem_delete(mem, group_password->password);
 }
 
 bool tox_event_group_password_pack(
@@ -134,7 +133,7 @@ Tox_Event_Group_Password *tox_event_group_password_new(const Memory *mem)
 void tox_event_group_password_free(Tox_Event_Group_Password *group_password, const Memory *mem)
 {
     if (group_password != nullptr) {
-        tox_event_group_password_destruct(group_password, mem);
+        tox_event_group_password_destruct((Tox_Event_Group_Password * _Nonnull)group_password, mem);
     }
     mem_delete(mem, group_password);
 }
@@ -172,11 +171,8 @@ bool tox_event_group_password_unpack(
     return tox_event_group_password_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Password *tox_event_group_password_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Password *tox_event_group_password_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -201,12 +197,13 @@ void tox_events_handle_group_password(
     Tox *tox, uint32_t group_number, const uint8_t *password, size_t password_length,
     void *user_data)
 {
-    Tox_Event_Group_Password *group_password = tox_event_group_password_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Password *group_password = tox_event_group_password_alloc(state);
 
     if (group_password == nullptr) {
         return;
     }
 
     tox_event_group_password_set_group_number(group_password, group_number);
-    tox_event_group_password_set_password(group_password, password, password_length);
+    tox_event_group_password_set_password(group_password, state->mem, password, password_length);
 }

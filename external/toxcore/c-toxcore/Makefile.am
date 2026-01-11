@@ -15,6 +15,7 @@ EXTRA_DIST = \
 	libtoxcore.pc.in \
 	tox.spec \
 	so.version \
+	$(top_srcdir)/tools/test-wrapper.sh \
 	$(top_srcdir)/docs/updates/Crypto.md \
 	$(top_srcdir)/docs/updates/Spam-Prevention.md \
 	$(top_srcdir)/docs/updates/Symmetric-NAT-Transversal.md \

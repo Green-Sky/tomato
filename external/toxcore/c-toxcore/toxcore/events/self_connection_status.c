@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -88,7 +88,7 @@ Tox_Event_Self_Connection_Status *tox_event_self_connection_status_new(const Mem
 void tox_event_self_connection_status_free(Tox_Event_Self_Connection_Status *self_connection_status, const Memory *mem)
 {
     if (self_connection_status != nullptr) {
-        tox_event_self_connection_status_destruct(self_connection_status, mem);
+        tox_event_self_connection_status_destruct((Tox_Event_Self_Connection_Status * _Nonnull)self_connection_status, mem);
     }
     mem_delete(mem, self_connection_status);
 }
@@ -126,11 +126,8 @@ bool tox_event_self_connection_status_unpack(
     return tox_event_self_connection_status_unpack_into(*event, bu);
 }
 
-static Tox_Event_Self_Connection_Status *tox_event_self_connection_status_alloc(void *_Nonnull user_data)
+static Tox_Event_Self_Connection_Status *tox_event_self_connection_status_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -155,7 +152,8 @@ void tox_events_handle_self_connection_status(
     Tox *tox, Tox_Connection connection_status,
     void *user_data)
 {
-    Tox_Event_Self_Connection_Status *self_connection_status = tox_event_self_connection_status_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Self_Connection_Status *self_connection_status = tox_event_self_connection_status_alloc(state);
 
     if (self_connection_status == nullptr) {
         return;
