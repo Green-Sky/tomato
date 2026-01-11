@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -86,7 +86,7 @@ Tox_Event_Conference_Connected *tox_event_conference_connected_new(const Memory 
 void tox_event_conference_connected_free(Tox_Event_Conference_Connected *conference_connected, const Memory *mem)
 {
     if (conference_connected != nullptr) {
-        tox_event_conference_connected_destruct(conference_connected, mem);
+        tox_event_conference_connected_destruct((Tox_Event_Conference_Connected * _Nonnull)conference_connected, mem);
     }
     mem_delete(mem, conference_connected);
 }
@@ -124,11 +124,8 @@ bool tox_event_conference_connected_unpack(
     return tox_event_conference_connected_unpack_into(*event, bu);
 }
 
-static Tox_Event_Conference_Connected *tox_event_conference_connected_alloc(void *_Nonnull user_data)
+static Tox_Event_Conference_Connected *tox_event_conference_connected_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -153,7 +150,8 @@ void tox_events_handle_conference_connected(
     Tox *tox, uint32_t conference_number,
     void *user_data)
 {
-    Tox_Event_Conference_Connected *conference_connected = tox_event_conference_connected_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Conference_Connected *conference_connected = tox_event_conference_connected_alloc(state);
 
     if (conference_connected == nullptr) {
         return;

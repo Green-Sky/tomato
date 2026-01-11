@@ -87,7 +87,7 @@ if(MSVC AND MSVC_TOOLSET_VERSION LESS 143)
 else()
   set(CMAKE_C_STANDARD 11)
 endif()
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -533,6 +533,8 @@ make_version_script(toxcore ${toxcore_API_HEADERS})
 # "${CMAKE_INSTALL_INCLUDEDIR}/tox".
 install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tox)
 
+add_subdirectory(testing)
+
 ################################################################################
 #
 # :: Unit tests: no networking, just pure function calls.
@@ -545,8 +547,8 @@ if(UNITTEST)
     toxcore/DHT_test_util.hh
     toxcore/crypto_core_test_util.cc
     toxcore/crypto_core_test_util.hh
-    toxcore/mem_test_util.cc
-    toxcore/mem_test_util.hh
+    toxcore/mono_time_test_util.cc
+    toxcore/mono_time_test_util.hh
     toxcore/network_test_util.cc
     toxcore/network_test_util.hh
     toxcore/test_util.cc
@@ -555,7 +557,7 @@ endif()
 
 function(unit_test subdir target)
   add_executable(unit_${target}_test ${subdir}/${target}_test.cc)
-  target_link_libraries(unit_${target}_test PRIVATE test_util)
+  target_link_libraries(unit_${target}_test PRIVATE test_util support)
   if(TARGET toxcore_static)
     target_link_libraries(unit_${target}_test PRIVATE toxcore_static)
   else()
@@ -570,7 +572,7 @@ function(unit_test subdir target)
   endif()
   target_link_libraries(unit_${target}_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock)
   set_target_properties(unit_${target}_test PROPERTIES COMPILE_FLAGS "${TEST_CXX_FLAGS}")
-  add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} unit_${target}_test)
+  add_test(NAME ${target} COMMAND unit_${target}_test)
   set_property(TEST ${target} PROPERTY ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw")
 endfunction()
 
@@ -578,12 +580,24 @@ endfunction()
 #
 if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   if(BUILD_TOXAV)
+    add_library(av_test_support STATIC
+      toxav/av_test_support.cc
+      toxav/av_test_support.hh)
+    if(TARGET toxcore_static)
+      target_link_libraries(av_test_support PRIVATE toxcore_static)
+    else()
+      target_link_libraries(av_test_support PRIVATE toxcore_shared)
+    endif()
+    target_link_libraries(av_test_support PRIVATE GTest::gtest)
+
     unit_test(toxav audio)
+    target_link_libraries(unit_audio_test PRIVATE av_test_support)
     unit_test(toxav bwcontroller)
     unit_test(toxav msi)
     unit_test(toxav ring_buffer)
     unit_test(toxav rtp)
     unit_test(toxav video)
+    target_link_libraries(unit_video_test PRIVATE av_test_support)
   endif()
 
   unit_test(toxcore DHT)
@@ -599,8 +613,6 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore tox)
   unit_test(toxcore util)
 endif()
-
-add_subdirectory(testing)
 
 ################################################################################
 #

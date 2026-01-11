@@ -15,9 +15,9 @@
 
 namespace {
 
-std::pair<std::vector<Some_Type>, std::mt19937> random_vec(benchmark::State &state)
+std::pair<std::vector<Some_Type>, std::minstd_rand> random_vec(benchmark::State &state)
 {
-    std::mt19937 rng;
+    std::minstd_rand rng;
     // INT_MAX-1 so later we have room to add 1 larger element if needed.
     std::uniform_int_distribution<uint32_t> dist{
         std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max() - 1};

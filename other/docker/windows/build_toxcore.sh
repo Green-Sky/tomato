@@ -56,7 +56,7 @@ build() {
     " >windows_toolchain.cmake
 
   if [ "$ENABLE_TEST" = "true" ]; then
-    echo "SET(CROSSCOMPILING_EMULATOR /usr/bin/wine)" >>windows_toolchain.cmake
+    echo "SET(CMAKE_CROSSCOMPILING_EMULATOR /usr/bin/wine)" >>windows_toolchain.cmake
   fi
 
   if [ "$ARCH" = "i686" ]; then

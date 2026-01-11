@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -105,7 +105,7 @@ Tox_Event_Friend_Typing *tox_event_friend_typing_new(const Memory *mem)
 void tox_event_friend_typing_free(Tox_Event_Friend_Typing *friend_typing, const Memory *mem)
 {
     if (friend_typing != nullptr) {
-        tox_event_friend_typing_destruct(friend_typing, mem);
+        tox_event_friend_typing_destruct((Tox_Event_Friend_Typing * _Nonnull)friend_typing, mem);
     }
     mem_delete(mem, friend_typing);
 }
@@ -143,11 +143,8 @@ bool tox_event_friend_typing_unpack(
     return tox_event_friend_typing_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Typing *tox_event_friend_typing_alloc(void *_Nonnull user_data)
+static Tox_Event_Friend_Typing *tox_event_friend_typing_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -172,7 +169,8 @@ void tox_events_handle_friend_typing(
     Tox *tox, uint32_t friend_number, bool typing,
     void *user_data)
 {
-    Tox_Event_Friend_Typing *friend_typing = tox_event_friend_typing_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Friend_Typing *friend_typing = tox_event_friend_typing_alloc(state);
 
     if (friend_typing == nullptr) {
         return;

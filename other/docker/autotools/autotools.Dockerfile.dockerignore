@@ -6,6 +6,7 @@
 !*.spec.in
 !**/Makefile.am
 !**/Makefile.inc
+!tools/*
 !docs/updates/*
 !other/DHTnodes
 !other/astyle/*

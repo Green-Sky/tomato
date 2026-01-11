@@ -212,7 +212,7 @@ int unpack_nodes(Node_format *_Nonnull nodes, uint16_t max_num_nodes, uint16_t *
                  uint16_t length, bool tcp_enabled);
 /*----------------------------------------------------------------------------------*/
 
-typedef int cryptopacket_handler_cb(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull source_pubkey,
+typedef int cryptopacket_handler_cb(void *_Nullable object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull source_pubkey,
                                     const uint8_t *_Nonnull packet, uint16_t length, void *_Nullable userdata);
 
 typedef struct DHT DHT;
@@ -398,7 +398,7 @@ int route_packet(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, co
  * @return ip for friend.
  * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
  */
-uint32_t route_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonnull friend_id, const Packet *_Nonnull packet);
+uint32_t route_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonnull friend_id, const Net_Packet *_Nonnull packet);
 
 /** Function to handle crypto packets. */
 void cryptopacket_registerhandler(DHT *_Nonnull dht, uint8_t byte, cryptopacket_handler_cb *_Nullable cb, void *_Nullable object);

@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../attributes.h"
@@ -69,11 +68,11 @@ Tox_Group_Exit_Type tox_event_group_peer_exit_get_exit_type(const Tox_Event_Grou
 }
 
 static bool tox_event_group_peer_exit_set_name(Tox_Event_Group_Peer_Exit *_Nonnull group_peer_exit,
-        const uint8_t *_Nullable name, uint32_t name_length)
+        const Memory *_Nonnull mem, const uint8_t *_Nullable name, uint32_t name_length)
 {
     assert(group_peer_exit != nullptr);
     if (group_peer_exit->name != nullptr) {
-        free(group_peer_exit->name);
+        mem_delete(mem, group_peer_exit->name);
         group_peer_exit->name = nullptr;
         group_peer_exit->name_length = 0;
     }
@@ -83,7 +82,7 @@ static bool tox_event_group_peer_exit_set_name(Tox_Event_Group_Peer_Exit *_Nonnu
         return true;
     }
 
-    uint8_t *name_copy = (uint8_t *)malloc(name_length);
+    uint8_t *name_copy = (uint8_t *)mem_balloc(mem, name_length);
 
     if (name_copy == nullptr) {
         return false;
@@ -106,11 +105,11 @@ const uint8_t *tox_event_group_peer_exit_get_name(const Tox_Event_Group_Peer_Exi
 }
 
 static bool tox_event_group_peer_exit_set_part_message(Tox_Event_Group_Peer_Exit *_Nonnull group_peer_exit,
-        const uint8_t *_Nullable part_message, uint32_t part_message_length)
+        const Memory *_Nonnull mem, const uint8_t *_Nullable part_message, uint32_t part_message_length)
 {
     assert(group_peer_exit != nullptr);
     if (group_peer_exit->part_message != nullptr) {
-        free(group_peer_exit->part_message);
+        mem_delete(mem, group_peer_exit->part_message);
         group_peer_exit->part_message = nullptr;
         group_peer_exit->part_message_length = 0;
     }
@@ -120,7 +119,7 @@ static bool tox_event_group_peer_exit_set_part_message(Tox_Event_Group_Peer_Exit
         return true;
     }
 
-    uint8_t *part_message_copy = (uint8_t *)malloc(part_message_length);
+    uint8_t *part_message_copy = (uint8_t *)mem_balloc(mem, part_message_length);
 
     if (part_message_copy == nullptr) {
         return false;
@@ -150,8 +149,8 @@ static void tox_event_group_peer_exit_construct(Tox_Event_Group_Peer_Exit *_Nonn
 }
 static void tox_event_group_peer_exit_destruct(Tox_Event_Group_Peer_Exit *_Nonnull group_peer_exit, const Memory *_Nonnull mem)
 {
-    free(group_peer_exit->name);
-    free(group_peer_exit->part_message);
+    mem_delete(mem, group_peer_exit->name);
+    mem_delete(mem, group_peer_exit->part_message);
 }
 
 bool tox_event_group_peer_exit_pack(
@@ -206,7 +205,7 @@ Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_new(const Memory *mem)
 void tox_event_group_peer_exit_free(Tox_Event_Group_Peer_Exit *group_peer_exit, const Memory *mem)
 {
     if (group_peer_exit != nullptr) {
-        tox_event_group_peer_exit_destruct(group_peer_exit, mem);
+        tox_event_group_peer_exit_destruct((Tox_Event_Group_Peer_Exit * _Nonnull)group_peer_exit, mem);
     }
     mem_delete(mem, group_peer_exit);
 }
@@ -244,11 +243,8 @@ bool tox_event_group_peer_exit_unpack(
     return tox_event_group_peer_exit_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -273,7 +269,8 @@ void tox_events_handle_group_peer_exit(
     Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Group_Exit_Type exit_type, const uint8_t *name, size_t name_length, const uint8_t *part_message, size_t part_message_length,
     void *user_data)
 {
-    Tox_Event_Group_Peer_Exit *group_peer_exit = tox_event_group_peer_exit_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Peer_Exit *group_peer_exit = tox_event_group_peer_exit_alloc(state);
 
     if (group_peer_exit == nullptr) {
         return;
@@ -282,6 +279,6 @@ void tox_events_handle_group_peer_exit(
     tox_event_group_peer_exit_set_group_number(group_peer_exit, group_number);
     tox_event_group_peer_exit_set_peer_id(group_peer_exit, peer_id);
     tox_event_group_peer_exit_set_exit_type(group_peer_exit, exit_type);
-    tox_event_group_peer_exit_set_name(group_peer_exit, name, name_length);
-    tox_event_group_peer_exit_set_part_message(group_peer_exit, part_message, part_message_length);
+    tox_event_group_peer_exit_set_name(group_peer_exit, state->mem, name, name_length);
+    tox_event_group_peer_exit_set_part_message(group_peer_exit, state->mem, part_message, part_message_length);
 }

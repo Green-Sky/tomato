@@ -1,4 +1,7 @@
+// clang-format off
+#include "../testing/support/public/simulated_environment.hh"
 #include "network.h"
+// clang-format on
 
 #include <gtest/gtest.h>
 
@@ -6,11 +9,13 @@
 
 namespace {
 
-TEST(TestUtil, ProducesNonNullNetwork)
+TEST(SimulatedEnvironment, ProducesNonNullNetwork)
 {
-    Test_Network net;
-    const Network *ns = net;
-    EXPECT_NE(ns, nullptr);
+    tox::test::SimulatedEnvironment env;
+    auto node = env.create_node(0);
+    struct Network net = node->c_network;
+    EXPECT_NE(net.funcs, nullptr);
+    EXPECT_NE(net.obj, nullptr);
 }
 
 TEST(IpNtoa, DoesntWriteOutOfBounds)

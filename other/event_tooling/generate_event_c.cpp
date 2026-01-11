@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright © 2023-2025 The TokTok team.
+// Copyright © 2023-2026 The TokTok team.
 
 // this file can be used to generate event.c files
 // requires c++17
@@ -27,6 +27,7 @@ std::string output_folder = "out";
 struct EventTypeTrivial {
     std::string type; // eg uint32_t
     std::string name; // eg friend_number
+    std::string cb_type = "";
 };
 
 struct EventTypeByteRange {
@@ -34,11 +35,17 @@ struct EventTypeByteRange {
     std::string name_data; // eg data
     std::string name_length; // eg data_length
     std::string name_length_cb; // eg length // TODO: merge with normal?
+    std::string type_c_arg = "uint8_t";
+    std::string type_length_cb = "size_t";
+    bool null_terminated = false;
 };
 
-// TODO: EventTypeByteArray
+struct EventTypeByteArray {
+    std::string name; // eg public_key
+    std::string length_constant; // eg TOX_PUBLIC_KEY_SIZE;
+};
 
-using EventType = std::variant<EventTypeTrivial, EventTypeByteRange>;
+using EventType = std::variant<EventTypeTrivial, EventTypeByteRange, EventTypeByteArray>;
 
 // helper type for the visitor #4
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
@@ -125,6 +132,40 @@ std::string bin_unpack_name_from_type(const std::string& type) {
     }
 }
 
+std::string zero_initializer_for_type(const std::string& type) {
+    if (type == "uint64_t" || type == "uint32_t" || type == "uint16_t" || type == "uint8_t") {
+        return "0";
+    } else if (type == "bool") {
+        return "false";
+    } else if (type == "Tox_User_Status") {
+        return "TOX_USER_STATUS_NONE";
+    } else if (type == "Tox_Conference_Type") {
+        return "TOX_CONFERENCE_TYPE_TEXT";
+    } else if (type == "Tox_Message_Type") {
+        return "TOX_MESSAGE_TYPE_NORMAL";
+    } else if (type == "Tox_File_Control") {
+        return "TOX_FILE_CONTROL_RESUME";
+    } else if (type == "Tox_Connection") {
+        return "TOX_CONNECTION_NONE";
+    } else if (type == "Tox_Group_Privacy_State") {
+        return "TOX_GROUP_PRIVACY_STATE_PUBLIC";
+    } else if (type == "Tox_Group_Voice_State") {
+        return "TOX_GROUP_VOICE_STATE_NON_MUTED";
+    } else if (type == "Tox_Group_Topic_Lock") {
+        return "TOX_GROUP_TOPIC_LOCK_UNLOCKED";
+    } else if (type == "Tox_Group_Join_Fail") {
+        return "TOX_GROUP_JOIN_FAIL_NULL";
+    } else if (type == "Tox_Group_Mod_Event") {
+        return "TOX_GROUP_MOD_EVENT_MOD";
+    } else if (type == "Tox_Group_Exit_Type") {
+        return "TOX_GROUP_EXIT_TYPE_KICK";
+    } else {
+        std::cerr << "unknown type " << type << "\n";
+        exit(1);
+        return "0";
+    }
+}
+
 void generate_event_impl(const std::string& event_name, const std::vector<EventType>& event_types) {
     const std::string event_name_l = str_tolower(event_name);
     std::string file_name = output_folder + "/" + event_name_l + ".c";
@@ -135,7 +176,6 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         exit(1);
     }
 
-    bool need_stdlib_h = false;
     bool need_string_h = false;
     bool need_tox_unpack_h = false;
     for (const auto& t : event_types) {
@@ -147,7 +187,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     }
                 },
                 [&](const EventTypeByteRange&) {
-                    need_stdlib_h = true;
+                    need_string_h = true;
+                },
+                [&](const EventTypeByteArray&) {
                     need_string_h = true;
                 }
             },
@@ -156,16 +198,12 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
 
     f << R"(/* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
 
 #include <assert.h>)";
-    if (need_stdlib_h) {
-        f << R"(
-#include <stdlib.h>)";
-    }
     if (need_string_h) {
         f << R"(
 #include <string.h>)";
@@ -206,6 +244,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 [&](const EventTypeByteRange& t) {
                     f << "    " << "uint8_t" << " *" << t.name_data << ";\n";
                     f << "    " << "uint32_t" << " " << t.name_length << ";\n";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "    uint8_t " << t.name << "[" << t.length_constant << "];\n";
                 }
             },
             t
@@ -224,6 +265,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 },
                 [&](const EventTypeByteRange& t) {
                     f << t.name_data;
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << t.name;
                 }
             },
             t
@@ -235,7 +279,10 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << " " << t.type << " " << t.name << ")\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "\n        const uint8_t *_Nullable " << t.name_data << ", uint32_t " << t.name_length << ")\n";
+                    f << "\n        const Memory *_Nonnull mem, const uint8_t *_Nullable " << t.name_data << ", uint32_t " << t.name_length << ")\n";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << " const uint8_t " << t.name << "[" << t.length_constant << "])\n";
                 }
             },
             t
@@ -248,19 +295,30 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 },
                 [&](const EventTypeByteRange& t) {
                     f << "    if (" << event_name_l << "->" << t.name_data << " != nullptr) {\n";
-                    f << "        free(" << event_name_l << "->" << t.name_data << ");\n";
+                    f << "        mem_delete(mem, " << event_name_l << "->" << t.name_data << ");\n";
                     f << "        " << event_name_l << "->" << t.name_data << " = nullptr;\n";
                     f << "        " << event_name_l << "->" << t.name_length << " = 0;\n";
                     f << "    }\n\n";
                     f << "    if (" << t.name_data << " == nullptr) {\n";
                     f << "        assert(" << t.name_length << " == 0);\n";
                     f << "        return true;\n    }\n\n";
-                    f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)malloc(" << t.name_length << ");\n\n";
+                    if (t.null_terminated) {
+                        f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)mem_balloc(mem, " << t.name_length << " + 1);\n\n";
+                    } else {
+                        f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)mem_balloc(mem, " << t.name_length << ");\n\n";
+                    }
                     f << "    if (" << t.name_data << "_copy == nullptr) {\n";
                     f << "        return false;\n    }\n\n";
                     f << "    memcpy(" << t.name_data << "_copy, " << t.name_data << ", " << t.name_length << ");\n";
+                    if (t.null_terminated) {
+                        f << "    " << t.name_data << "_copy[" << t.name_length << "] = 0;\n";
+                    }
                     f << "    " << event_name_l << "->" << t.name_data << " = " << t.name_data << "_copy;\n";
                     f << "    " << event_name_l << "->" << t.name_length << " = " << t.name_length << ";\n";
+                    f << "    return true;\n";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "    memcpy(" << event_name_l << "->" << t.name << ", " << t.name << ", " << t.length_constant << ");\n";
                     f << "    return true;\n";
                 }
             },
@@ -288,6 +346,12 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "(const Tox_Event_" << event_name << " *" << event_name_l << ")\n";
                     f << "{\n    assert(" << event_name_l << " != nullptr);\n";
                     f << "    return " << event_name_l << "->" << t.name_data << ";\n}\n\n";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "const uint8_t *tox_event_" << event_name_l << "_get_" << t.name;
+                    f << "(const Tox_Event_" << event_name << " *" << event_name_l << ")\n";
+                    f << "{\n    assert(" << event_name_l << " != nullptr);\n";
+                    f << "    return " << event_name_l << "->" << t.name << ";\n}\n\n";
                 }
             },
             t
@@ -297,10 +361,28 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 
     // gen contruct
     f << "static void tox_event_" << event_name_l << "_construct(Tox_Event_" << event_name << " *_Nonnull " << event_name_l << ")\n{\n";
-    // TODO: initialize all members properly
-    // TODO: check if _NONE is universal
-    // str_toupper(
-    f << "    *" << event_name_l << " = (Tox_Event_" << event_name << ") {\n        0\n    };\n}\n";
+    f << "    *" << event_name_l << " = (Tox_Event_" << event_name << ") {\n";
+
+    if (!event_types.empty()) {
+        std::visit(
+            overloaded{
+                [&](const EventTypeTrivial& t) {
+                    f << "        " << zero_initializer_for_type(t.type);
+                },
+                [&](const EventTypeByteRange& t) {
+                    f << "        nullptr";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "        {\n            0\n        }";
+                }
+            },
+            event_types[0]
+        );
+    } else {
+        f << "        0";
+    }
+
+    f << "\n    };\n}\n";
 
     // gen destruct
     f << "static void tox_event_" << event_name_l << "_destruct(Tox_Event_" << event_name << " *_Nonnull " << event_name_l << ", const Memory *_Nonnull mem)\n{\n";
@@ -310,10 +392,11 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             overloaded{
                 [&](const EventTypeTrivial&) {},
                 [&](const EventTypeByteRange& t) {
-                    f << "    free(" << event_name_l << "->" << t.name_data << ");\n";
+                    f << "    mem_delete(mem, " << event_name_l << "->" << t.name_data << ");\n";
                     //f << "    mem->funcs->free(mem->obj, " << event_name_l << "->" << t.name_data << ");\n";
                     data_count++;
-                }
+                },
+                [&](const EventTypeByteArray&) {}
             },
             t
         );
@@ -353,6 +436,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 },
                 [&](const EventTypeByteRange& t) {
                     f << "bin_pack_bin(bp, event->" << t.name_data << ", event->" << t.name_length << ")";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "bin_pack_bin(bp, event->" << t.name << ", " << t.length_constant << ")";
                 }
             },
             t
@@ -386,6 +472,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 },
                 [&](const EventTypeByteRange& t) {
                     f << "bin_unpack_bin(bu, &event->" << t.name_data << ", &event->" << t.name_length << ")";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "bin_unpack_bin_fixed(bu, event->" << t.name << ", " << t.length_constant << ")";
                 }
             },
             t
@@ -417,7 +506,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     // free
     f << "void tox_event_" << event_name_l << "_free(Tox_Event_" << event_name << " *" << event_name_l << ", const Memory *mem)\n{\n";
     f << "    if (" << event_name_l << " != nullptr) {\n";
-    f << "        tox_event_" << event_name_l << "_destruct(" << event_name_l << ", mem);\n    }\n";
+    f << "        tox_event_" << event_name_l << "_destruct((Tox_Event_" << event_name << " * _Nonnull)" << event_name_l << ", mem);\n    }\n";
     f << "    mem_delete(mem, " << event_name_l << ");\n}\n\n";
 
     // add
@@ -444,9 +533,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    return tox_event_" << event_name_l << "_unpack_into(*event, bu);\n}\n\n";
 
     // alloc
-    f << "static Tox_Event_" << event_name << " *tox_event_" << event_name_l << "_alloc(void *_Nonnull user_data)\n{\n";
-    f << "    Tox_Events_State *state = tox_events_alloc(user_data);\n";
-    f << "    assert(state != nullptr);\n\n";
+    f << "static Tox_Event_" << event_name << " *tox_event_" << event_name_l << "_alloc(Tox_Events_State *_Nonnull state)\n{\n";
     f << "    if (state->events == nullptr) {\n        return nullptr;\n    }\n\n";
     f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_events_add_" << event_name_l << "(state->events, state->mem);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n";
@@ -469,10 +556,13 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         std::visit(
             overloaded{
                 [&](const EventTypeTrivial& t) {
-                    f << ", " << t.type << " " << t.name;
+                    f << ", " << (t.cb_type.empty() ? t.type : t.cb_type) << " " << t.name;
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << ", const uint8_t *" << t.name_data << ", size_t " << t.name_length_cb;
+                    f << ", const " << t.type_c_arg << " *" << t.name_data << ", " << t.type_length_cb << " " << t.name_length_cb;
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << ", const uint8_t *" << t.name;
                 }
             },
             t
@@ -480,7 +570,8 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
 
     f << ",\n    void *user_data)\n{\n";
-    f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(user_data);\n\n";
+    f << "    Tox_Events_State *state = tox_events_alloc(user_data);\n";
+    f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(state);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n        return;\n    }\n\n";
 
     for (const auto& t : event_types) {
@@ -490,7 +581,14 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "    tox_event_" << event_name_l << "_set_" << t.name << "(" << event_name_l << ", " << t.name << ");\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "    tox_event_" << event_name_l << "_set_" << t.name_data << "(" << event_name_l << ", " << t.name_data << ", " << t.name_length_cb << ");\n";
+                    f << "    tox_event_" << event_name_l << "_set_" << t.name_data << "(" << event_name_l << ", state->mem, ";
+                    if (t.type_c_arg != "uint8_t") {
+                        f << "(const uint8_t *)";
+                    }
+                    f << t.name_data << ", " << t.name_length_cb << ");\n";
+                },
+                [&](const EventTypeByteArray& t) {
+                    f << "    tox_event_" << event_name_l << "_set_" << t.name << "(" << event_name_l << ", " << t.name << ");\n";
                 }
             },
             t
@@ -548,14 +646,21 @@ int main(int argc, char** argv) {
                 EventTypeByteRange{"title", "title_length", "length"}, // the latter two are ideally the same
             }
         },
-
+        {
+            "Dht_Nodes_Response",
+            {
+                EventTypeByteArray{"public_key", "TOX_PUBLIC_KEY_SIZE"},
+                EventTypeByteRange{"ip", "ip_length", "ip_length", "char", "uint32_t", true},
+                EventTypeTrivial{"uint16_t", "port"},
+            }
+        },
         {
             "File_Chunk_Request",
             {
                 EventTypeTrivial{"uint32_t", "friend_number"},
                 EventTypeTrivial{"uint32_t", "file_number"},
                 EventTypeTrivial{"uint64_t", "position"},
-                EventTypeTrivial{"uint16_t", "length"},
+                EventTypeTrivial{"uint16_t", "length", "size_t"},
             }
         },
         {
@@ -629,15 +734,13 @@ int main(int argc, char** argv) {
                 EventTypeTrivial{"uint32_t", "message_id"},
             }
         },
-#if 0
         {
             "Friend_Request",
             {
-                //EventTypeTrivial{"uint32_t", "friend_number"}, // public_key ByteArray
+                EventTypeByteArray{"public_key", "TOX_PUBLIC_KEY_SIZE"},
                 EventTypeByteRange{"message", "message_length", "length"}, // the latter two are ideally the same
             }
         },
-#endif
         {
             "Friend_Status",
             {

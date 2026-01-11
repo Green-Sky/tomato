@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -105,7 +105,7 @@ Tox_Event_Friend_Read_Receipt *tox_event_friend_read_receipt_new(const Memory *m
 void tox_event_friend_read_receipt_free(Tox_Event_Friend_Read_Receipt *friend_read_receipt, const Memory *mem)
 {
     if (friend_read_receipt != nullptr) {
-        tox_event_friend_read_receipt_destruct(friend_read_receipt, mem);
+        tox_event_friend_read_receipt_destruct((Tox_Event_Friend_Read_Receipt * _Nonnull)friend_read_receipt, mem);
     }
     mem_delete(mem, friend_read_receipt);
 }
@@ -143,11 +143,8 @@ bool tox_event_friend_read_receipt_unpack(
     return tox_event_friend_read_receipt_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Read_Receipt *tox_event_friend_read_receipt_alloc(void *_Nonnull user_data)
+static Tox_Event_Friend_Read_Receipt *tox_event_friend_read_receipt_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -172,7 +169,8 @@ void tox_events_handle_friend_read_receipt(
     Tox *tox, uint32_t friend_number, uint32_t message_id,
     void *user_data)
 {
-    Tox_Event_Friend_Read_Receipt *friend_read_receipt = tox_event_friend_read_receipt_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Friend_Read_Receipt *friend_read_receipt = tox_event_friend_read_receipt_alloc(state);
 
     if (friend_read_receipt == nullptr) {
         return;

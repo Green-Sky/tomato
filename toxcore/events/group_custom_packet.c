@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023-2025 The TokTok team.
+ * Copyright © 2023-2026 The TokTok team.
  */
 
 #include "events_alloc.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../attributes.h"
@@ -53,11 +52,11 @@ uint32_t tox_event_group_custom_packet_get_peer_id(const Tox_Event_Group_Custom_
 }
 
 static bool tox_event_group_custom_packet_set_data(Tox_Event_Group_Custom_Packet *_Nonnull group_custom_packet,
-        const uint8_t *_Nullable data, uint32_t data_length)
+        const Memory *_Nonnull mem, const uint8_t *_Nullable data, uint32_t data_length)
 {
     assert(group_custom_packet != nullptr);
     if (group_custom_packet->data != nullptr) {
-        free(group_custom_packet->data);
+        mem_delete(mem, group_custom_packet->data);
         group_custom_packet->data = nullptr;
         group_custom_packet->data_length = 0;
     }
@@ -67,7 +66,7 @@ static bool tox_event_group_custom_packet_set_data(Tox_Event_Group_Custom_Packet
         return true;
     }
 
-    uint8_t *data_copy = (uint8_t *)malloc(data_length);
+    uint8_t *data_copy = (uint8_t *)mem_balloc(mem, data_length);
 
     if (data_copy == nullptr) {
         return false;
@@ -97,7 +96,7 @@ static void tox_event_group_custom_packet_construct(Tox_Event_Group_Custom_Packe
 }
 static void tox_event_group_custom_packet_destruct(Tox_Event_Group_Custom_Packet *_Nonnull group_custom_packet, const Memory *_Nonnull mem)
 {
-    free(group_custom_packet->data);
+    mem_delete(mem, group_custom_packet->data);
 }
 
 bool tox_event_group_custom_packet_pack(
@@ -148,7 +147,7 @@ Tox_Event_Group_Custom_Packet *tox_event_group_custom_packet_new(const Memory *m
 void tox_event_group_custom_packet_free(Tox_Event_Group_Custom_Packet *group_custom_packet, const Memory *mem)
 {
     if (group_custom_packet != nullptr) {
-        tox_event_group_custom_packet_destruct(group_custom_packet, mem);
+        tox_event_group_custom_packet_destruct((Tox_Event_Group_Custom_Packet * _Nonnull)group_custom_packet, mem);
     }
     mem_delete(mem, group_custom_packet);
 }
@@ -186,11 +185,8 @@ bool tox_event_group_custom_packet_unpack(
     return tox_event_group_custom_packet_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Custom_Packet *tox_event_group_custom_packet_alloc(void *_Nonnull user_data)
+static Tox_Event_Group_Custom_Packet *tox_event_group_custom_packet_alloc(Tox_Events_State *_Nonnull state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
     if (state->events == nullptr) {
         return nullptr;
     }
@@ -215,7 +211,8 @@ void tox_events_handle_group_custom_packet(
     Tox *tox, uint32_t group_number, uint32_t peer_id, const uint8_t *data, size_t data_length,
     void *user_data)
 {
-    Tox_Event_Group_Custom_Packet *group_custom_packet = tox_event_group_custom_packet_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    Tox_Event_Group_Custom_Packet *group_custom_packet = tox_event_group_custom_packet_alloc(state);
 
     if (group_custom_packet == nullptr) {
         return;
@@ -223,5 +220,5 @@ void tox_events_handle_group_custom_packet(
 
     tox_event_group_custom_packet_set_group_number(group_custom_packet, group_number);
     tox_event_group_custom_packet_set_peer_id(group_custom_packet, peer_id);
-    tox_event_group_custom_packet_set_data(group_custom_packet, data, data_length);
+    tox_event_group_custom_packet_set_data(group_custom_packet, state->mem, data, data_length);
 }

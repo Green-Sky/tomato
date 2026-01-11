@@ -439,7 +439,7 @@ int sanctions_list_unpack(Mod_Sanction *_Nonnull sanctions, Mod_Sanction_Creds *
  * Return true on success.
  */
 static bool sanctions_list_make_hash(const Memory *_Nonnull mem, const Mod_Sanction *_Nullable sanctions, uint32_t new_version, uint16_t num_sanctions,
-                                     uint8_t *_Nonnull hash)
+                                     bool sort, uint8_t *_Nonnull hash)
 {
     if (num_sanctions == 0 || sanctions == nullptr) {
         memzero(hash, MOD_SANCTION_HASH_SIZE);
@@ -464,7 +464,9 @@ static bool sanctions_list_make_hash(const Memory *_Nonnull mem, const Mod_Sanct
         memcpy(&data[i * SIGNATURE_SIZE], sanctions[i].signature, SIGNATURE_SIZE);
     }
 
-    qsort(data, num_sanctions, SIGNATURE_SIZE, compare_signatures);
+    if (sort) {
+        qsort(data, num_sanctions, SIGNATURE_SIZE, compare_signatures);
+    }
 
     memcpy(&data[sig_data_size], &new_version, sizeof(uint32_t));
     crypto_sha256(hash, data, data_buf_size);
@@ -524,7 +526,7 @@ bool sanctions_list_make_creds(Moderation *_Nonnull moderation)
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
     if (!sanctions_list_make_hash(moderation->mem, moderation->sanctions, moderation->sanctions_creds.version,
-                                  moderation->num_sanctions, hash)) {
+                                  moderation->num_sanctions, true, hash)) {
         moderation->sanctions_creds = old_creds;
         return false;
     }
@@ -563,15 +565,23 @@ static bool sanctions_creds_validate(const Moderation *_Nonnull moderation, cons
 
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
-    if (!sanctions_list_make_hash(moderation->mem, sanctions, creds->version, num_sanctions, hash)) {
+    if (!sanctions_list_make_hash(moderation->mem, sanctions, creds->version, num_sanctions, true, hash)) {
         return false;
     }
 
     if (memcmp(hash, creds->hash, MOD_SANCTION_HASH_SIZE) != 0) {
-        LOGGER_WARNING(moderation->log, "Invalid credentials hash");
-        return false;
-    }
+        /* Some older/other clients might not sort the signatures.
+         * Try calculating the hash without sorting.
+         */
+        if (!sanctions_list_make_hash(moderation->mem, sanctions, creds->version, num_sanctions, false, hash)) {
+            return false;
+        }
 
+        if (memcmp(hash, creds->hash, MOD_SANCTION_HASH_SIZE) != 0) {
+            LOGGER_WARNING(moderation->log, "Invalid credentials hash");
+            return false;
+        }
+    }
     if (creds->checksum != sanctions_creds_get_checksum(creds)) {
         LOGGER_WARNING(moderation->log, "Invalid credentials checksum");
         return false;
@@ -684,6 +694,9 @@ static bool sanctions_list_remove_index(Moderation *_Nonnull moderation, uint16_
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
+    if (moderation->sanctions == nullptr) {
+        return false;
+    }
     Mod_Sanction *sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
 
     if (sanctions_copy == nullptr) {
@@ -782,6 +795,9 @@ bool sanctions_list_add_entry(Moderation *_Nonnull moderation, const Mod_Sanctio
     Mod_Sanction *sanctions_copy = nullptr;
 
     if (moderation->num_sanctions > 0) {
+        if (moderation->sanctions == nullptr) {
+            return false;
+        }
         sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
 
         if (sanctions_copy == nullptr) {

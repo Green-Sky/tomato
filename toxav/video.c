@@ -42,6 +42,7 @@ struct VCSession {
     void *user_data;
 
     pthread_mutex_t queue_mutex[1];
+    pthread_mutex_t *mutable_queue_mutex;
     const Logger *log;
 
     vpx_codec_iter_t iter;
@@ -71,11 +72,11 @@ struct VCSession {
 #define VIDEO_MAX_FRAME_SIZE (10 * 1024 * 1024)
 #define VIDEO_MAX_RESOLUTION_LIMIT 4096
 
-static vpx_codec_iface_t *video_codec_decoder_interface(void)
+static vpx_codec_iface_t *_Nonnull video_codec_decoder_interface(void)
 {
     return vpx_codec_vp8_dx();
 }
-static vpx_codec_iface_t *video_codec_encoder_interface(void)
+static vpx_codec_iface_t *_Nonnull video_codec_encoder_interface(void)
 {
     return vpx_codec_vp8_cx();
 }
@@ -89,7 +90,7 @@ static vpx_codec_iface_t *video_codec_encoder_interface(void)
 #define VPX_MAX_DECODER_THREADS 4
 #define VIDEO_VP8_DECODER_POST_PROCESSING_ENABLED 0
 
-static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int16_t kf_max_dist)
+static void vc_init_encoder_cfg(const Logger *_Nonnull log, vpx_codec_enc_cfg_t *_Nonnull cfg, int16_t kf_max_dist)
 {
     const vpx_codec_err_t rc = vpx_codec_enc_config_default(video_codec_encoder_interface(), cfg, 0);
 
@@ -178,6 +179,7 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend
         free(vc);
         return nullptr;
     }
+    vc->mutable_queue_mutex = vc->queue_mutex;
 
     const int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
 
@@ -224,7 +226,7 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend
         }
     } else {
         vp8_postproc_cfg_t pp = {0, 0, 0};
-        vpx_codec_err_t cc_res = vpx_codec_control(vc->decoder, VP8_SET_POSTPROC, &pp);
+        const vpx_codec_err_t cc_res = vpx_codec_control(vc->decoder, VP8_SET_POSTPROC, &pp);
 
         if (cc_res != VPX_CODEC_OK) {
             LOGGER_WARNING(log, "Failed to turn OFF postproc");
@@ -509,9 +511,9 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
         /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
          * http://fourcc.org/yuv.php#IYUV
          */
-        memcpy(img.planes[VPX_PLANE_Y], y, width * height);
-        memcpy(img.planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
-        memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
+        memcpy(img.planes[VPX_PLANE_Y], y, (size_t)width * height);
+        memcpy(img.planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
+        memcpy(img.planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
     }
 
     int vpx_flags = 0;
@@ -555,7 +557,11 @@ int vc_get_cx_data(VCSession *vc, uint8_t **data, uint32_t *size, bool *is_keyfr
 
 uint32_t vc_get_lcfd(const VCSession *vc)
 {
-    return vc->lcfd;
+    uint32_t lcfd;
+    pthread_mutex_lock(vc->mutable_queue_mutex);
+    lcfd = vc->lcfd;
+    pthread_mutex_unlock(vc->mutable_queue_mutex);
+    return lcfd;
 }
 
 pthread_mutex_t *vc_get_queue_mutex(VCSession *vc)

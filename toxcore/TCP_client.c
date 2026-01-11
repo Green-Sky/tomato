@@ -52,23 +52,23 @@ struct TCP_Client_Connection {
     uint64_t ping_request_id;
 
     TCP_Client_Conn connections[NUM_CLIENT_CONNECTIONS];
-    tcp_routing_response_cb *response_callback;
-    void *response_callback_object;
-    tcp_routing_status_cb *status_callback;
-    void *status_callback_object;
-    tcp_routing_data_cb *data_callback;
-    void *data_callback_object;
-    tcp_oob_data_cb *oob_data_callback;
-    void *oob_data_callback_object;
+    tcp_routing_response_cb *_Nullable response_callback;
+    void *_Nullable response_callback_object;
+    tcp_routing_status_cb *_Nullable status_callback;
+    void *_Nullable status_callback_object;
+    tcp_routing_data_cb *_Nullable data_callback;
+    void *_Nullable data_callback_object;
+    tcp_oob_data_cb *_Nullable oob_data_callback;
+    void *_Nullable oob_data_callback_object;
 
-    tcp_onion_response_cb *onion_callback;
-    void *onion_callback_object;
+    tcp_onion_response_cb *_Nullable onion_callback;
+    void *_Nullable onion_callback_object;
 
-    forwarded_response_cb *forwarded_response_callback;
-    void *forwarded_response_callback_object;
+    forwarded_response_cb *_Nullable forwarded_response_callback;
+    void *_Nullable forwarded_response_callback_object;
 
     /* Can be used by user. */
-    void *custom_object;
+    void *_Nullable custom_object;
     uint32_t custom_uint;
 };
 
@@ -399,6 +399,11 @@ int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, 
         return 0;
     }
 
+    if (1 + length > MAX_PACKET_SIZE) {
+        LOGGER_ERROR(logger, "Packet length too long: %u", length);
+        return -1;
+    }
+
     const uint16_t packet_size = 1 + length;
     VLA(uint8_t, packet, packet_size);
     packet[0] = con_id + NUM_RESERVED_PORTS;
@@ -541,6 +546,11 @@ int send_disconnect_request(const Logger *logger, TCP_Client_Connection *con, ui
  */
 int send_onion_request(const Logger *logger, TCP_Client_Connection *con, const uint8_t *data, uint16_t length)
 {
+    if (1 + length > MAX_PACKET_SIZE) {
+        LOGGER_ERROR(logger, "Packet length too long: %u", length);
+        return -1;
+    }
+
     const uint16_t packet_size = 1 + length;
     VLA(uint8_t, packet, packet_size);
     packet[0] = TCP_PACKET_ONION_REQUEST;

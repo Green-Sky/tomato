@@ -3,123 +3,19 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/network.h"
 #include "../toxcore/os_memory.h"
+#include "av_test_support.hh"
 #include "rtp.h"
 
 namespace {
 
-struct VideoTimeMock {
-    uint64_t t;
-};
-
-uint64_t video_mock_time_cb(void *ud) { return static_cast<VideoTimeMock *>(ud)->t; }
-
-void test_logger_cb(void *context, Logger_Level level, const char *file, uint32_t line,
-    const char *func, const char *message, void *userdata)
-{
-    (void)context;
-    (void)userdata;
-    const char *level_str = "UNKNOWN";
-    switch (level) {
-    case LOGGER_LEVEL_TRACE:
-        level_str = "TRACE";
-        break;
-    case LOGGER_LEVEL_DEBUG:
-        level_str = "DEBUG";
-        break;
-    case LOGGER_LEVEL_INFO:
-        level_str = "INFO";
-        break;
-    case LOGGER_LEVEL_WARNING:
-        level_str = "WARN";
-        break;
-    case LOGGER_LEVEL_ERROR:
-        level_str = "ERROR";
-        break;
-    }
-    printf("[%s] %s:%u %s: %s\n", level_str, file, line, func, message);
-}
-
-struct VideoTestData {
-    uint32_t friend_number = 0;
-    uint16_t width = 0;
-    uint16_t height = 0;
-    std::vector<uint8_t> y, u, v;
-    int32_t ystride = 0, ustride = 0, vstride = 0;
-
-    VideoTestData();
-    ~VideoTestData();
-
-    static void receive_frame(uint32_t friend_number, uint16_t width, uint16_t height,
-        const uint8_t *y, const uint8_t *u, const uint8_t *v, int32_t ystride, int32_t ustride,
-        int32_t vstride, void *user_data)
-    {
-        auto *self = static_cast<VideoTestData *>(user_data);
-        self->friend_number = friend_number;
-        self->width = width;
-        self->height = height;
-        self->ystride = ystride;
-        self->ustride = ustride;
-        self->vstride = vstride;
-
-        self->y.assign(y, y + static_cast<size_t>(std::abs(ystride)) * height);
-        self->u.assign(u, u + static_cast<size_t>(std::abs(ustride)) * (height / 2));
-        self->v.assign(v, v + static_cast<size_t>(std::abs(vstride)) * (height / 2));
-    }
-};
-
-VideoTestData::VideoTestData() = default;
-VideoTestData::~VideoTestData() = default;
-
-struct VideoRtpMock {
-    RTPSession *recv_session = nullptr;
-    std::vector<std::vector<uint8_t>> captured_packets;
-    bool auto_forward = true;
-
-    static int send_packet(void *user_data, const uint8_t *data, uint16_t length)
-    {
-        auto *self = static_cast<VideoRtpMock *>(user_data);
-        self->captured_packets.push_back(std::vector<uint8_t>(data, data + length));
-        if (self->auto_forward && self->recv_session) {
-            rtp_receive_packet(self->recv_session, data, length);
-        }
-        return 0;
-    }
-
-    static int video_cb(const Mono_Time *mono_time, void *cs, RTPMessage *msg)
-    {
-        return vc_queue_message(mono_time, cs, msg);
-    }
-};
-
-class VideoTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        const Memory *mem = os_memory();
-        log = logger_new(mem);
-        logger_callback_log(log, test_logger_cb, nullptr, nullptr);
-        tm.t = 1000;
-        mono_time = mono_time_new(mem, video_mock_time_cb, &tm);
-        mono_time_update(mono_time);
-    }
-
-    void TearDown() override
-    {
-        const Memory *mem = os_memory();
-        mono_time_free(mem, mono_time);
-        logger_kill(log);
-    }
-
-    Logger *log;
-    Mono_Time *mono_time;
-    VideoTimeMock tm;
-};
+using VideoTest = AvTest;
 
 TEST_F(VideoTest, BasicNewKill)
 {
@@ -135,11 +31,11 @@ TEST_F(VideoTest, EncodeDecodeLoop)
     VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
     ASSERT_NE(vc, nullptr);
 
-    VideoRtpMock rtp_mock;
-    RTPSession *send_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
-    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
+    RtpMock rtp_mock;
+    RTPSession *send_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = recv_rtp;
 
     uint16_t width = 320;
@@ -174,6 +70,197 @@ TEST_F(VideoTest, EncodeDecodeLoop)
     rtp_kill(log, send_rtp);
     rtp_kill(log, recv_rtp);
     vc_kill(vc);
+}
+
+TEST_F(VideoTest, EncodeDecodeSequence)
+{
+    VideoTestData data;
+    VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
+    ASSERT_NE(vc, nullptr);
+
+    RtpMock rtp_mock;
+    RTPSession *send_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    rtp_mock.recv_session = recv_rtp;
+
+    uint16_t width = 320;
+    uint16_t height = 240;
+    uint32_t bitrate = 2000;
+
+    ASSERT_EQ(vc_reconfigure_encoder(vc, bitrate, width, height, -1), 0);
+
+    for (int i = 0; i < 20; ++i) {
+        std::vector<uint8_t> y(width * height);
+        std::vector<uint8_t> u((width / 2) * (height / 2));
+        std::vector<uint8_t> v((width / 2) * (height / 2));
+
+        // Background
+        std::fill(y.begin(), y.end(), 16);
+        std::fill(u.begin(), u.end(), 128);
+        std::fill(v.begin(), v.end(), 128);
+
+        // Moving square
+        int sq_size = 64;
+        int x0 = (i * 8) % (width - sq_size);
+        int y0 = (i * 4) % (height - sq_size);
+        for (int r = 0; r < sq_size; ++r) {
+            for (int c = 0; c < sq_size; ++c) {
+                y[(y0 + r) * width + (x0 + c)] = 200;
+            }
+        }
+
+        ASSERT_EQ(vc_encode(vc, width, height, y.data(), u.data(), v.data(),
+                      i == 0 ? VC_EFLAG_FORCE_KF : VC_EFLAG_NONE),
+            0);
+        vc_increment_frame_counter(vc);
+
+        uint8_t *pkt_data;
+        uint32_t pkt_size;
+        bool is_keyframe;
+
+        while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
+            rtp_send_data(log, send_rtp, pkt_data, pkt_size, is_keyframe);
+        }
+
+        vc_iterate(vc);
+
+        ASSERT_EQ(data.width, width);
+        ASSERT_EQ(data.height, height);
+
+        double mse = data.calculate_mse(y);
+        // Expect MSE to be reasonably low for high bitrate
+        EXPECT_LT(mse, 100.0) << "Frame " << i << " MSE too high: " << mse;
+    }
+
+    rtp_kill(log, send_rtp);
+    rtp_kill(log, recv_rtp);
+    vc_kill(vc);
+}
+
+TEST_F(VideoTest, EncodeDecodeResolutionChange)
+{
+    VideoTestData data;
+    VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
+    ASSERT_NE(vc, nullptr);
+
+    RtpMock rtp_mock;
+    RTPSession *send_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    rtp_mock.recv_session = recv_rtp;
+
+    uint16_t widths[] = {320, 160, 480};
+    uint16_t heights[] = {240, 120, 360};
+
+    for (int res = 0; res < 3; ++res) {
+        uint16_t width = widths[res];
+        uint16_t height = heights[res];
+        ASSERT_EQ(vc_reconfigure_encoder(vc, 2000, width, height, -1), 0);
+
+        for (int i = 0; i < 5; ++i) {
+            std::vector<uint8_t> y(width * height);
+            std::vector<uint8_t> u((width / 2) * (height / 2));
+            std::vector<uint8_t> v((width / 2) * (height / 2));
+
+            std::fill(y.begin(), y.end(), static_cast<uint8_t>((res * 50 + i * 10) % 256));
+            std::fill(u.begin(), u.end(), 128);
+            std::fill(v.begin(), v.end(), 128);
+
+            ASSERT_EQ(vc_encode(vc, width, height, y.data(), u.data(), v.data(),
+                          i == 0 ? VC_EFLAG_FORCE_KF : VC_EFLAG_NONE),
+                0);
+            vc_increment_frame_counter(vc);
+
+            uint8_t *pkt_data;
+            uint32_t pkt_size;
+            bool is_keyframe;
+
+            while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
+                rtp_send_data(log, send_rtp, pkt_data, pkt_size, is_keyframe);
+            }
+
+            vc_iterate(vc);
+
+            ASSERT_EQ(data.width, width);
+            ASSERT_EQ(data.height, height);
+
+            double mse = data.calculate_mse(y);
+            EXPECT_LT(mse, 100.0) << "Res " << res << " Frame " << i << " MSE too high: " << mse;
+        }
+    }
+
+    rtp_kill(log, send_rtp);
+    rtp_kill(log, recv_rtp);
+    vc_kill(vc);
+}
+
+TEST_F(VideoTest, EncodeDecodeBitrateImpact)
+{
+    uint32_t bitrates[] = {100, 500, 2000};
+    double mses[3];
+
+    uint16_t width = 320;
+    uint16_t height = 240;
+
+    for (int b = 0; b < 3; ++b) {
+        VideoTestData data;
+        VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
+        ASSERT_NE(vc, nullptr);
+
+        RtpMock rtp_mock;
+        RTPSession *send_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet,
+            &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+        RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet,
+            &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+        rtp_mock.recv_session = recv_rtp;
+
+        ASSERT_EQ(vc_reconfigure_encoder(vc, bitrates[b], width, height, -1), 0);
+
+        double total_mse = 0;
+        int frames = 10;
+        for (int i = 0; i < frames; ++i) {
+            std::vector<uint8_t> y(width * height);
+            std::vector<uint8_t> u((width / 2) * (height / 2));
+            std::vector<uint8_t> v((width / 2) * (height / 2));
+
+            for (size_t j = 0; j < y.size(); ++j)
+                y[j] = static_cast<uint8_t>((j + i * 10) % 256);
+            std::fill(u.begin(), u.end(), 128);
+            std::fill(v.begin(), v.end(), 128);
+
+            ASSERT_EQ(vc_encode(vc, width, height, y.data(), u.data(), v.data(),
+                          i == 0 ? VC_EFLAG_FORCE_KF : VC_EFLAG_NONE),
+                0);
+            vc_increment_frame_counter(vc);
+
+            uint8_t *pkt_data;
+            uint32_t pkt_size;
+            bool is_keyframe;
+
+            while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
+                rtp_send_data(log, send_rtp, pkt_data, pkt_size, is_keyframe);
+            }
+
+            vc_iterate(vc);
+            total_mse += data.calculate_mse(y);
+        }
+
+        mses[b] = total_mse / frames;
+
+        rtp_kill(log, send_rtp);
+        rtp_kill(log, recv_rtp);
+        vc_kill(vc);
+    }
+
+    // Quality should generally improve (MSE decrease) as bitrate increases.
+    // 100kbps should have significantly higher MSE than 2000kbps for this complex pattern.
+    EXPECT_GT(mses[0], mses[1]);
+    EXPECT_GT(mses[1], mses[2]);
+
+    printf("MSE results: 100kbps: %f, 500kbps: %f, 2000kbps: %f\n", mses[0], mses[1], mses[2]);
 }
 
 TEST_F(VideoTest, ReconfigureEncoder)
@@ -215,12 +302,12 @@ TEST_F(VideoTest, QueueInvalidMessage)
     VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
     ASSERT_NE(vc, nullptr);
 
-    VideoRtpMock rtp_mock;
+    RtpMock rtp_mock;
     // Create an audio RTP session but try to queue to video session
-    RTPSession *audio_rtp = rtp_new(log, RTP_TYPE_AUDIO, mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
-    RTPSession *video_recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
+    RTPSession *audio_rtp = rtp_new(log, RTP_TYPE_AUDIO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    RTPSession *video_recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet,
+        &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = video_recv_rtp;
 
     std::vector<uint8_t> dummy_audio(100, 0);
@@ -262,9 +349,9 @@ TEST_F(VideoTest, LcfdAndSpecialPackets)
     VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
     ASSERT_NE(vc, nullptr);
 
-    VideoRtpMock rtp_mock;
-    RTPSession *video_recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
+    RtpMock rtp_mock;
+    RTPSession *video_recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet,
+        &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = video_recv_rtp;
 
     // 1. Test lcfd update
@@ -286,8 +373,8 @@ TEST_F(VideoTest, LcfdAndSpecialPackets)
     EXPECT_EQ(vc_get_lcfd(vc), 50u);  // Should still be 50
 
     // 3. Test dummy packet PT = (RTP_TYPE_VIDEO + 2) % 128
-    RTPSession *dummy_rtp = rtp_new(log, (RTP_TYPE_VIDEO + 2), mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
+    RTPSession *dummy_rtp = rtp_new(log, (RTP_TYPE_VIDEO + 2), mono_time, RtpMock::send_packet,
+        &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = dummy_rtp;
     rtp_send_data(
         log, dummy_rtp, dummy_frame.data(), static_cast<uint32_t>(dummy_frame.size()), false);
@@ -321,13 +408,6 @@ TEST_F(VideoTest, MultiReconfigureEncode)
     vc_kill(vc);
 }
 
-TEST_F(VideoTest, NewWithNullMonoTime)
-{
-    VideoTestData data;
-    VCSession *vc = vc_new(log, nullptr, 123, VideoTestData::receive_frame, &data);
-    EXPECT_EQ(vc, nullptr);
-}
-
 TEST_F(VideoTest, ReconfigureFailDoS)
 {
     VideoTestData data;
@@ -354,9 +434,9 @@ TEST_F(VideoTest, LyingLengthOOB)
     VCSession *vc = vc_new(log, mono_time, 123, VideoTestData::receive_frame, &data);
     ASSERT_NE(vc, nullptr);
 
-    VideoRtpMock rtp_mock;
-    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, VideoRtpMock::send_packet,
-        &rtp_mock, nullptr, nullptr, nullptr, vc, VideoRtpMock::video_cb);
+    RtpMock rtp_mock;
+    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = recv_rtp;
 
     // Craft a malicious RTP packet
