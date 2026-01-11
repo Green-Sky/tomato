@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.9...3.24 FATAL_ERROR)
 
+add_subdirectory(./font_loading)
+
 ########################################
 
 if (TOMATO_MAIN_SO)
@@ -198,6 +200,8 @@ target_link_libraries(tomato PUBLIC
 	solanaceae_tox_messages
 
 	solanaceae_object_store
+
+	font_loading
 
 	SDL3::SDL3
 
