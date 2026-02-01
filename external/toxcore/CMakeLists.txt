@@ -54,8 +54,8 @@ configure_file(
 	@ONLY
 )
 configure_file(
-	./c-toxcore/toxcore/attributes.h
-	${CMAKE_CURRENT_BINARY_DIR}/include/tox/attributes.h
+	./c-toxcore/toxcore/tox_attributes.h
+	${CMAKE_CURRENT_BINARY_DIR}/include/tox/tox_attributes.h
 	@ONLY
 )
 configure_file(
