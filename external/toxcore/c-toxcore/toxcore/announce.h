@@ -5,6 +5,7 @@
 #ifndef C_TOXCORE_TOXCORE_ANNOUNCE_H
 #define C_TOXCORE_TOXCORE_ANNOUNCE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "DHT.h"
@@ -15,6 +16,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "rng.h"
 
 #define MAX_ANNOUNCEMENT_SIZE 512
 

@@ -11,6 +11,7 @@
 #define C_TOXCORE_TOXCORE_GROUP_PACK_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "attributes.h"
 #include "bin_pack.h"

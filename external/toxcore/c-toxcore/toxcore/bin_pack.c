@@ -19,7 +19,7 @@ struct Bin_Pack {
     cmp_ctx_t ctx;
 };
 
-static bool null_reader(cmp_ctx_t *_Nonnull ctx, void *_Nonnull data, size_t limit)
+static bool null_reader(cmp_ctx_t *_Nonnull ctx, void *_Nullable data, size_t limit)
 {
     assert(limit == 0);
     return false;
@@ -31,10 +31,18 @@ static bool null_skipper(cmp_ctx_t *_Nonnull ctx, size_t count)
     return false;
 }
 
-static size_t buf_writer(cmp_ctx_t *_Nonnull ctx, const void *_Nonnull data, size_t count)
+static size_t buf_writer(cmp_ctx_t *_Nonnull ctx, const void *_Nullable data, size_t count)
 {
-    const uint8_t *bytes = (const uint8_t *)data;
-    Bin_Pack *bp = (Bin_Pack *)ctx->buf;
+    const uint8_t *const bytes = (const uint8_t *)data;
+
+    if (count == 0) {
+        return 0;
+    }
+
+    if (bytes == nullptr) {
+        return 0;
+    }
+    Bin_Pack *const bp = (Bin_Pack *)ctx->buf;
     assert(bp != nullptr);
     const uint32_t new_pos = bp->bytes_pos + count;
     if (new_pos < bp->bytes_pos) {
@@ -159,7 +167,28 @@ bool bin_pack_u64(Bin_Pack *bp, uint64_t val)
 
 bool bin_pack_bin(Bin_Pack *bp, const uint8_t *data, uint32_t length)
 {
+    if (length == 0) {
+        return cmp_write_bin_marker(&bp->ctx, 0);
+    }
+
+    if (data == nullptr) {
+        return false;
+    }
+
     return cmp_write_bin(&bp->ctx, data, length);
+}
+
+bool bin_pack_str(Bin_Pack *bp, const char *data, uint32_t length)
+{
+    if (length == 0) {
+        return cmp_write_str_marker(&bp->ctx, 0);
+    }
+
+    if (data == nullptr) {
+        return false;
+    }
+
+    return cmp_write_str(&bp->ctx, data, length);
 }
 
 bool bin_pack_nil(Bin_Pack *bp)
@@ -197,5 +226,9 @@ bool bin_pack_u64_b(Bin_Pack *bp, uint64_t val)
 
 bool bin_pack_bin_b(Bin_Pack *bp, const uint8_t *data, uint32_t length)
 {
+    if (length > 0 && data == nullptr) {
+        return false;
+    }
+
     return bp->ctx.write(&bp->ctx, data, length) == length;
 }

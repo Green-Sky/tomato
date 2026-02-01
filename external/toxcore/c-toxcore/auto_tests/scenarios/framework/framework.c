@@ -159,15 +159,16 @@ ToxScenario *tox_scenario_new(int argc, char *const argv[], uint64_t timeout_ms)
 
     ToxScenario *s = (ToxScenario *)calloc(1, sizeof(ToxScenario));
     ck_assert(s != nullptr);
-    s->timeout_ms = timeout_ms;
-    s->virtual_clock = 1000;
-    s->trace_enabled = (getenv("TOX_TRACE") != nullptr);
-    s->event_log_enabled = (getenv("TOX_EVENT_LOG") != nullptr);
 
     pthread_mutex_init(&s->mutex, nullptr);
     pthread_mutex_init(&s->clock_mutex, nullptr);
     pthread_cond_init(&s->cond_runner, nullptr);
     pthread_cond_init(&s->cond_nodes, nullptr);
+
+    s->timeout_ms = timeout_ms;
+    s->virtual_clock = 1000;
+    s->trace_enabled = (getenv("TOX_TRACE") != nullptr);
+    s->event_log_enabled = (getenv("TOX_EVENT_LOG") != nullptr);
     return s;
 }
 
@@ -660,10 +661,10 @@ ToxScenarioStatus tox_scenario_run(ToxScenario *s)
 
     pthread_mutex_lock(&s->mutex);
 
-    uint64_t start_clock = s->virtual_clock;
+    uint64_t start_clock = tox_scenario_get_time(s);
     uint64_t deadline = start_clock + s->timeout_ms;
 
-    while (s->num_active > 0 && s->virtual_clock < deadline) {
+    while (s->num_active > 0 && tox_scenario_get_time(s) < deadline) {
         // 1. Wait until all nodes (including finished ones) have reached the barrier
         while (s->num_ready < s->num_nodes) {
             pthread_cond_wait(&s->cond_runner, &s->mutex);
@@ -700,7 +701,7 @@ ToxScenarioStatus tox_scenario_run(ToxScenario *s)
 
     ToxScenarioStatus result = (s->num_active == 0) ? TOX_SCENARIO_DONE : TOX_SCENARIO_TIMEOUT;
     if (result == TOX_SCENARIO_TIMEOUT) {
-        tox_scenario_log(s, "Scenario TIMEOUT after %lu ms (virtual time)", (unsigned long)(s->virtual_clock - start_clock));
+        tox_scenario_log(s, "Scenario TIMEOUT after %lu ms (virtual time)", (unsigned long)(tox_scenario_get_time(s) - start_clock));
     }
 
     // Stop nodes

@@ -13,6 +13,10 @@
 #include "mem.h"
 #include "mono_time.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * This implements a cache for shared keys, since key generation is expensive.
  */
@@ -45,5 +49,9 @@ void shared_key_cache_free(Shared_Key_Cache *_Nullable cache);
  * @return nullptr on error.
  */
 const uint8_t *_Nullable shared_key_cache_lookup(Shared_Key_Cache *_Nonnull cache, const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE]);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_SHARED_KEY_CACHE_H */

@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -107,7 +108,7 @@ Tox_Event_Group_Voice_State *tox_event_group_voice_state_new(const Memory *mem)
 void tox_event_group_voice_state_free(Tox_Event_Group_Voice_State *group_voice_state, const Memory *mem)
 {
     if (group_voice_state != nullptr) {
-        tox_event_group_voice_state_destruct((Tox_Event_Group_Voice_State * _Nonnull)group_voice_state, mem);
+        tox_event_group_voice_state_destruct(group_voice_state, mem);
     }
     mem_delete(mem, group_voice_state);
 }
@@ -168,7 +169,9 @@ static Tox_Event_Group_Voice_State *tox_event_group_voice_state_alloc(Tox_Events
  *****************************************************/
 
 void tox_events_handle_group_voice_state(
-    Tox *tox, uint32_t group_number, Tox_Group_Voice_State voice_state,
+    Tox *tox,
+    uint32_t group_number,
+    Tox_Group_Voice_State voice_state,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -180,4 +183,15 @@ void tox_events_handle_group_voice_state(
 
     tox_event_group_voice_state_set_group_number(group_voice_state, group_number);
     tox_event_group_voice_state_set_voice_state(group_voice_state, voice_state);
+}
+
+void tox_events_handle_group_voice_state_dispatch(Tox *tox, const Tox_Event_Group_Voice_State *event, void *user_data)
+{
+    if (tox->group_voice_state_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->group_voice_state_callback(tox, event->group_number, event->voice_state, user_data);
+    tox_lock(tox);
 }

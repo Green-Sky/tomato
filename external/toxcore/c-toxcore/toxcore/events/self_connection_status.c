@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -88,7 +89,7 @@ Tox_Event_Self_Connection_Status *tox_event_self_connection_status_new(const Mem
 void tox_event_self_connection_status_free(Tox_Event_Self_Connection_Status *self_connection_status, const Memory *mem)
 {
     if (self_connection_status != nullptr) {
-        tox_event_self_connection_status_destruct((Tox_Event_Self_Connection_Status * _Nonnull)self_connection_status, mem);
+        tox_event_self_connection_status_destruct(self_connection_status, mem);
     }
     mem_delete(mem, self_connection_status);
 }
@@ -149,7 +150,8 @@ static Tox_Event_Self_Connection_Status *tox_event_self_connection_status_alloc(
  *****************************************************/
 
 void tox_events_handle_self_connection_status(
-    Tox *tox, Tox_Connection connection_status,
+    Tox *tox,
+    Tox_Connection connection_status,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -160,4 +162,15 @@ void tox_events_handle_self_connection_status(
     }
 
     tox_event_self_connection_status_set_connection_status(self_connection_status, connection_status);
+}
+
+void tox_events_handle_self_connection_status_dispatch(Tox *tox, const Tox_Event_Self_Connection_Status *event, void *user_data)
+{
+    if (tox->self_connection_status_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->self_connection_status_callback(tox, event->connection_status, user_data);
+    tox_lock(tox);
 }

@@ -98,5 +98,10 @@ tox.spec
 .cache/
 compile_commands.json
 
+# gtags
+/GPATH
+/GRTAGS
+/GTAGS
+
 /infer
 .idea/

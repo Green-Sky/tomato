@@ -24,7 +24,7 @@ bool rb_read(RingBuffer *_Nonnull b, void *_Nonnull *_Nullable p);
 RingBuffer *_Nullable rb_new(int size);
 void rb_kill(RingBuffer *_Nullable b);
 uint16_t rb_size(const RingBuffer *_Nonnull b);
-uint16_t rb_data(const RingBuffer *_Nonnull b, void *_Nonnull *_Nonnull dest);
+uint16_t rb_data(const RingBuffer *_Nonnull b, void *_Nonnull *_Nonnull dest, uint16_t dest_size);
 
 #ifdef __cplusplus
 } /* extern "C" */

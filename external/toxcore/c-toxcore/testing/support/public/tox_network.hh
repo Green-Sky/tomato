@@ -5,21 +5,25 @@
 #ifndef C_TOXCORE_TESTING_SUPPORT_TOX_NETWORK_H
 #define C_TOXCORE_TESTING_SUPPORT_TOX_NETWORK_H
 
+#include <memory>
+#include <utility>
 #include <vector>
 
+#include "../../../toxcore/attributes.h"
 #include "simulation.hh"
+#include "tox_runner.hh"
 
 namespace tox::test {
 
 struct ConnectedFriend {
     std::unique_ptr<SimulatedNode> node;
-    SimulatedNode::ToxPtr tox;
+    std::unique_ptr<ToxRunner> runner;
     uint32_t friend_number;
 
-    ConnectedFriend(std::unique_ptr<SimulatedNode> node_in, SimulatedNode::ToxPtr tox_in,
+    ConnectedFriend(std::unique_ptr<SimulatedNode> node_in, std::unique_ptr<ToxRunner> runner_in,
         uint32_t friend_number_in)
         : node(std::move(node_in))
-        , tox(std::move(tox_in))
+        , runner(std::move(runner_in))
         , friend_number(friend_number_in)
     {
     }
@@ -43,8 +47,9 @@ struct ConnectedFriend {
  * @param options Optional Tox_Options to use for the friend Tox instances.
  * @return A vector of ConnectedFriend structures, each representing a friend.
  */
-std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *main_tox,
-    SimulatedNode &main_node, int num_friends, const Tox_Options *options = nullptr);
+std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *_Nonnull main_tox,
+    SimulatedNode &main_node, int num_friends, const Tox_Options *_Nullable options = nullptr,
+    bool verbose = false);
 
 /**
  * @brief Connects two existing Tox instances as friends.
@@ -59,8 +64,8 @@ std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *main_
  * @param tox2 The second Tox instance.
  * @return True if connected successfully, false otherwise.
  */
-bool connect_friends(
-    Simulation &sim, SimulatedNode &node1, Tox *tox1, SimulatedNode &node2, Tox *tox2);
+bool connect_friends(Simulation &sim, SimulatedNode &node1, Tox *_Nonnull tox1,
+    SimulatedNode &node2, Tox *_Nonnull tox2);
 
 /**
  * @brief Sets up a group and has all friends join it.
@@ -75,7 +80,7 @@ bool connect_friends(
  * @return The group number on the main Tox instance, or UINT32_MAX on failure.
  */
 uint32_t setup_connected_group(
-    Simulation &sim, Tox *main_tox, const std::vector<ConnectedFriend> &friends);
+    Simulation &sim, Tox *_Nonnull main_tox, const std::vector<ConnectedFriend> &friends);
 
 }  // namespace tox::test
 

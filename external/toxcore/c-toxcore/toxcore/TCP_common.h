@@ -6,12 +6,21 @@
 #ifndef C_TOXCORE_TOXCORE_TCP_COMMON_H
 #define C_TOXCORE_TOXCORE_TCP_COMMON_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
+#include "net.h"
 #include "net_profile.h"
 #include "network.h"
+#include "rng.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct TCP_Priority_List TCP_Priority_List;
 struct TCP_Priority_List {
@@ -39,6 +48,9 @@ typedef enum Tcp_Packet {
     TCP_PACKET_FORWARD_REQUEST          = 10,
     TCP_PACKET_FORWARDING               = 11,
 } Tcp_Packet;
+
+const char *_Nonnull tcp_packet_type_to_string(Tcp_Packet type);
+bool tcp_packet_from_int(uint32_t value, Tcp_Packet *_Nonnull out_enum);
 
 #define TCP_HANDSHAKE_PLAIN_SIZE (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE)
 #define TCP_SERVER_HANDSHAKE_SIZE (CRYPTO_NONCE_SIZE + TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE)
@@ -105,5 +117,9 @@ int read_tcp_packet(const Logger *_Nonnull logger, const Memory *_Nonnull mem, c
  */
 int read_packet_tcp_secure_connection(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Network *_Nonnull ns, Socket sock, uint16_t *_Nonnull next_packet_length,
                                       const uint8_t *_Nonnull shared_key, uint8_t *_Nonnull recv_nonce, uint8_t *_Nonnull data, uint16_t max_len, const IP_Port *_Nonnull ip_port);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_TCP_COMMON_H */

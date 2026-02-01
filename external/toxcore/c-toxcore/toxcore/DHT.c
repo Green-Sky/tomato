@@ -55,6 +55,19 @@
 #define MAX_KEYS_PER_SLOT 4
 #define KEYS_TIMEOUT 600
 
+typedef struct NAT {
+    /* true if currently hole punching */
+    bool        hole_punching;
+    uint32_t    punching_index;
+    uint32_t    tries;
+    uint32_t    punching_index2;
+
+    uint64_t    punching_timestamp;
+    uint64_t    recv_nat_ping_timestamp;
+    uint64_t    nat_ping_id;
+    uint64_t    nat_ping_timestamp;
+} NAT;
+
 typedef struct DHT_Friend_Callback {
     dht_ip_cb *_Nullable ip_callback;
     void *_Nullable data;
@@ -2002,7 +2015,7 @@ static uint32_t foreach_ip_port(const DHT *_Nonnull dht, const DHT_Friend *_Nonn
 
             /* If ip is not zero and node is good. */
             if (!ip_isset(&assoc->ret_ip_port.ip)
-                    && !mono_time_is_timeout(dht->mono_time, assoc->ret_timestamp, BAD_NODE_TIMEOUT)) {
+                    || mono_time_is_timeout(dht->mono_time, assoc->ret_timestamp, BAD_NODE_TIMEOUT)) {
                 continue;
             }
 

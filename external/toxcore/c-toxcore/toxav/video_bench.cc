@@ -4,8 +4,12 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <vector>
 
+#include "../toxcore/attributes.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/os_memory.h"
@@ -19,20 +23,20 @@ class VideoBench : public benchmark::Fixture {
 public:
     void SetUp(const ::benchmark::State &state) override
     {
-        const Memory *mem = os_memory();
+        const Memory *_Nonnull mem = os_memory();
         log = logger_new(mem);
         tm.t = 1000;
         mono_time = mono_time_new(mem, mock_time_cb, &tm);
-        vc = vc_new(log, mono_time, 123, nullptr, nullptr);
+        vc = vc_new(mem, log, mono_time, 123, nullptr, nullptr);
 
-        width = static_cast<uint16_t>(state.range(0));
-        height = static_cast<uint16_t>(state.range(1));
+        width = static_cast<std::uint16_t>(state.range(0));
+        height = static_cast<std::uint16_t>(state.range(1));
         // Use a standard bitrate for benchmarks
         vc_reconfigure_encoder(vc, 2000, width, height, -1);
 
-        y.resize(static_cast<size_t>(width) * height);
-        u.resize((static_cast<size_t>(width) / 2) * (static_cast<size_t>(height) / 2));
-        v.resize((static_cast<size_t>(width) / 2) * (static_cast<size_t>(height) / 2));
+        y.resize(static_cast<std::size_t>(width) * height);
+        u.resize((static_cast<std::size_t>(width) / 2) * (static_cast<std::size_t>(height) / 2));
+        v.resize((static_cast<std::size_t>(width) / 2) * (static_cast<std::size_t>(height) / 2));
 
         rtp_mock.capture_packets = false;  // Disable capturing for benchmarks
         rtp_mock.auto_forward = true;
@@ -58,13 +62,13 @@ public:
         }
     }
 
-    Logger *log = nullptr;
-    Mono_Time *mono_time = nullptr;
+    Logger *_Nullable log = nullptr;
+    Mono_Time *_Nullable mono_time = nullptr;
     MockTime tm;
-    VCSession *vc = nullptr;
+    VCSession *_Nullable vc = nullptr;
     RtpMock rtp_mock;
-    uint16_t width = 0, height = 0;
-    std::vector<uint8_t> y, u, v;
+    std::uint16_t width = 0, height = 0;
+    std::vector<std::uint8_t> y, u, v;
 };
 
 // Benchmark encoding a sequence of frames.
@@ -74,11 +78,12 @@ BENCHMARK_DEFINE_F(VideoBench, EncodeSequence)(benchmark::State &state)
     int frame_index = 0;
     // Pre-fill frames to avoid measuring fill_frame time
     const int num_prefilled = 100;
-    std::vector<std::vector<uint8_t>> ys(num_prefilled, std::vector<uint8_t>(width * height));
-    std::vector<std::vector<uint8_t>> us(
-        num_prefilled, std::vector<uint8_t>((width / 2) * (height / 2)));
-    std::vector<std::vector<uint8_t>> vs(
-        num_prefilled, std::vector<uint8_t>((width / 2) * (height / 2)));
+    std::vector<std::vector<std::uint8_t>> ys(
+        num_prefilled, std::vector<std::uint8_t>(width * height));
+    std::vector<std::vector<std::uint8_t>> us(
+        num_prefilled, std::vector<std::uint8_t>((width / 2) * (height / 2)));
+    std::vector<std::vector<std::uint8_t>> vs(
+        num_prefilled, std::vector<std::uint8_t>((width / 2) * (height / 2)));
     for (int i = 0; i < num_prefilled; ++i) {
         fill_video_frame(width, height, i, ys[i], us[i], vs[i]);
     }
@@ -90,8 +95,8 @@ BENCHMARK_DEFINE_F(VideoBench, EncodeSequence)(benchmark::State &state)
         vc_encode(vc, width, height, ys[idx].data(), us[idx].data(), vs[idx].data(), flags);
         vc_increment_frame_counter(vc);
 
-        uint8_t *pkt_data;
-        uint32_t pkt_size;
+        std::uint8_t *pkt_data;
+        std::uint32_t pkt_size;
         bool is_keyframe;
         while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
             benchmark::DoNotOptimize(pkt_data);
@@ -112,7 +117,7 @@ BENCHMARK_REGISTER_F(VideoBench, EncodeSequence)
 BENCHMARK_DEFINE_F(VideoBench, DecodeSequence)(benchmark::State &state)
 {
     const int num_frames = 100;
-    std::vector<std::vector<uint8_t>> encoded_frames(num_frames);
+    std::vector<std::vector<std::uint8_t>> encoded_frames(num_frames);
     std::vector<bool> is_keyframe_list(num_frames);
 
     // Pre-encode
@@ -122,8 +127,8 @@ BENCHMARK_DEFINE_F(VideoBench, DecodeSequence)(benchmark::State &state)
         vc_encode(vc, width, height, y.data(), u.data(), v.data(), flags);
         vc_increment_frame_counter(vc);
 
-        uint8_t *pkt_data;
-        uint32_t pkt_size;
+        std::uint8_t *pkt_data;
+        std::uint32_t pkt_size;
         bool is_kf;
         while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_kf)) {
             encoded_frames[i].insert(encoded_frames[i].end(), pkt_data, pkt_data + pkt_size);
@@ -136,7 +141,7 @@ BENCHMARK_DEFINE_F(VideoBench, DecodeSequence)(benchmark::State &state)
         int idx = frame_index % num_frames;
         const auto &encoded_data = encoded_frames[idx];
         rtp_send_data(log, rtp_mock.recv_session, encoded_data.data(),
-            static_cast<uint32_t>(encoded_data.size()), is_keyframe_list[idx]);
+            static_cast<std::uint32_t>(encoded_data.size()), is_keyframe_list[idx]);
         vc_iterate(vc);
         frame_index++;
     }
@@ -153,11 +158,12 @@ BENCHMARK_DEFINE_F(VideoBench, FullSequence)(benchmark::State &state)
 {
     int frame_index = 0;
     const int num_prefilled = 100;
-    std::vector<std::vector<uint8_t>> ys(num_prefilled, std::vector<uint8_t>(width * height));
-    std::vector<std::vector<uint8_t>> us(
-        num_prefilled, std::vector<uint8_t>((width / 2) * (height / 2)));
-    std::vector<std::vector<uint8_t>> vs(
-        num_prefilled, std::vector<uint8_t>((width / 2) * (height / 2)));
+    std::vector<std::vector<std::uint8_t>> ys(
+        num_prefilled, std::vector<std::uint8_t>(width * height));
+    std::vector<std::vector<std::uint8_t>> us(
+        num_prefilled, std::vector<std::uint8_t>((width / 2) * (height / 2)));
+    std::vector<std::vector<std::uint8_t>> vs(
+        num_prefilled, std::vector<std::uint8_t>((width / 2) * (height / 2)));
     for (int i = 0; i < num_prefilled; ++i) {
         fill_video_frame(width, height, i, ys[i], us[i], vs[i]);
     }
@@ -168,17 +174,17 @@ BENCHMARK_DEFINE_F(VideoBench, FullSequence)(benchmark::State &state)
         vc_encode(vc, width, height, ys[idx].data(), us[idx].data(), vs[idx].data(), flags);
         vc_increment_frame_counter(vc);
 
-        uint8_t *pkt_data;
-        uint32_t pkt_size;
+        std::uint8_t *pkt_data;
+        std::uint32_t pkt_size;
         bool is_keyframe = false;
         // We need to collect all packets for the frame before sending to decoder
-        std::vector<uint8_t> frame_data;
+        std::vector<std::uint8_t> frame_data;
         while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
             frame_data.insert(frame_data.end(), pkt_data, pkt_data + pkt_size);
         }
 
         rtp_send_data(log, rtp_mock.recv_session, frame_data.data(),
-            static_cast<uint32_t>(frame_data.size()), is_keyframe);
+            static_cast<std::uint32_t>(frame_data.size()), is_keyframe);
         vc_iterate(vc);
 
         frame_index++;

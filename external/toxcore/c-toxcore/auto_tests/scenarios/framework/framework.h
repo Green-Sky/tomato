@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../../check_compat.h"
 #include "../../../toxcore/attributes.h"
 #include "../../../toxcore/ccompat.h"
 #include "../../../toxcore/tox.h"
@@ -193,23 +194,5 @@ void tox_node_friend_add(ToxNode *a, ToxNode *b);
  * This simulates a client restart.
  */
 void tox_node_reload(ToxNode *node);
-
-#ifndef ck_assert
-#define ck_assert(ok) do {                                              \
-  if (!(ok)) {                                                          \
-    fprintf(stderr, "%s:%d: failed `%s'\n", __FILE__, __LINE__, #ok);   \
-    exit(7);                                                            \
-  }                                                                     \
-} while (0)
-
-#define ck_assert_msg(ok, ...) do {                                     \
-  if (!(ok)) {                                                          \
-    fprintf(stderr, "%s:%d: failed `%s': ", __FILE__, __LINE__, #ok);   \
-    fprintf(stderr, __VA_ARGS__);                                       \
-    fprintf(stderr, "\n");                                              \
-    exit(7);                                                            \
-  }                                                                     \
-} while (0)
-#endif
 
 #endif // TOX_TEST_FRAMEWORK_H

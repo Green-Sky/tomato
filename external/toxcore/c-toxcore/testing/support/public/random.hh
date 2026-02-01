@@ -4,6 +4,11 @@
 #include <cstdint>
 #include <vector>
 
+#include "../../../toxcore/attributes.h"
+
+// Forward declaration
+struct Random;
+
 namespace tox::test {
 
 /**
@@ -14,7 +19,12 @@ public:
     virtual ~RandomSystem();
 
     virtual uint32_t uniform(uint32_t upper_bound) = 0;
-    virtual void bytes(uint8_t *out, size_t count) = 0;
+    virtual void bytes(uint8_t *_Nonnull out, size_t count) = 0;
+
+    /**
+     * @brief Returns C-compatible Random struct.
+     */
+    virtual struct Random c_random() = 0;
 };
 
 }  // namespace tox::test

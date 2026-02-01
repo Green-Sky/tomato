@@ -2,6 +2,7 @@
 #define C_TOXCORE_TOXCORE_DHT_TEST_UTIL_H
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <map>
@@ -9,10 +10,13 @@
 #include <vector>
 
 #include "DHT.h"
+#include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mono_time.h"
+#include "net.h"
 #include "net_crypto.h"
+#include "rng.h"
 #include "test_util.hh"
 
 namespace tox::test {
@@ -27,21 +31,21 @@ bool operator==(Node_format const &a, Node_format const &b);
 
 std::ostream &operator<<(std::ostream &out, Node_format const &v);
 
-Node_format random_node_format(const Random *rng);
+Node_format random_node_format(const Random *_Nonnull rng);
 
 // --- Mock DHT ---
 struct MockDHT {
-    uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
+    std::uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    std::uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     // Cache for shared keys: Public Key -> Shared Key
-    std::map<std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE>,
-        std::array<uint8_t, CRYPTO_SHARED_KEY_SIZE>>
+    std::map<std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE>,
+        std::array<std::uint8_t, CRYPTO_SHARED_KEY_SIZE>>
         shared_keys;
     int computation_count = 0;
 
-    explicit MockDHT(const Random *rng);
+    explicit MockDHT(const Random *_Nonnull rng);
 
-    const uint8_t *get_shared_key(const uint8_t *pk);
+    const std::uint8_t *_Nullable get_shared_key(const std::uint8_t *_Nonnull pk);
 
     static const Net_Crypto_DHT_Funcs funcs;
 };
@@ -50,11 +54,11 @@ struct MockDHT {
 // Wraps a MockDHT instance and its dependencies (networking, etc.) within a SimulatedEnvironment
 class WrappedMockDHT {
 public:
-    WrappedMockDHT(tox::test::SimulatedEnvironment &env, uint16_t port);
+    WrappedMockDHT(tox::test::SimulatedEnvironment &env, std::uint16_t port);
 
-    MockDHT *get_dht() { return &dht_; }
-    const uint8_t *dht_public_key() const { return dht_.self_public_key; }
-    const uint8_t *dht_secret_key() const { return dht_.self_secret_key; }
+    MockDHT *_Nonnull get_dht() { return &dht_; }
+    const std::uint8_t *_Nonnull dht_public_key() const { return dht_.self_public_key; }
+    const std::uint8_t *_Nonnull dht_secret_key() const { return dht_.self_secret_key; }
     int dht_computation_count() const { return dht_.computation_count; }
 
     // Returns a valid IP_Port for this node in the simulation (Localhost IPv6)
@@ -64,9 +68,9 @@ public:
 
     tox::test::ScopedToxSystem &node() { return *node_; }
     const tox::test::ScopedToxSystem &node() const { return *node_; }
-    Networking_Core *networking() { return networking_.get(); }
-    Mono_Time *mono_time() { return mono_time_.get(); }
-    Logger *logger() { return logger_.get(); }
+    Networking_Core *_Nonnull networking() { return networking_.get(); }
+    Mono_Time *_Nonnull mono_time() { return mono_time_.get(); }
+    Logger *_Nonnull logger() { return logger_.get(); }
 
     ~WrappedMockDHT();
 
@@ -74,9 +78,9 @@ public:
 
 private:
     std::unique_ptr<tox::test::ScopedToxSystem> node_;
-    std::unique_ptr<Logger, void (*)(Logger *)> logger_;
-    std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time_;
-    std::unique_ptr<Networking_Core, void (*)(Networking_Core *)> networking_;
+    std::unique_ptr<Logger, void (*_Nonnull)(Logger *_Nullable)> logger_;
+    std::unique_ptr<Mono_Time, std::function<void(Mono_Time *_Nullable)>> mono_time_;
+    std::unique_ptr<Networking_Core, void (*_Nonnull)(Networking_Core *_Nullable)> networking_;
     MockDHT dht_;
 };
 
@@ -84,11 +88,11 @@ private:
 // Wraps a DHT instance and its dependencies within a SimulatedEnvironment
 class WrappedDHT {
 public:
-    WrappedDHT(tox::test::SimulatedEnvironment &env, uint16_t port);
+    WrappedDHT(tox::test::SimulatedEnvironment &env, std::uint16_t port);
 
-    DHT *get_dht() { return dht_.get(); }
-    const uint8_t *dht_public_key() const;
-    const uint8_t *dht_secret_key() const;
+    DHT *_Nonnull get_dht() { return dht_.get(); }
+    const std::uint8_t *_Nonnull dht_public_key() const;
+    const std::uint8_t *_Nonnull dht_secret_key() const;
 
     // Returns a valid IP_Port for this node in the simulation (Localhost IPv6)
     IP_Port get_ip_port() const;
@@ -97,9 +101,9 @@ public:
 
     tox::test::ScopedToxSystem &node() { return *node_; }
     const tox::test::ScopedToxSystem &node() const { return *node_; }
-    Networking_Core *networking() { return networking_.get(); }
-    Mono_Time *mono_time() { return mono_time_.get(); }
-    Logger *logger() { return logger_.get(); }
+    Networking_Core *_Nonnull networking() { return networking_.get(); }
+    Mono_Time *_Nonnull mono_time() { return mono_time_.get(); }
+    Logger *_Nonnull logger() { return logger_.get(); }
 
     ~WrappedDHT();
 
@@ -107,10 +111,10 @@ public:
 
 private:
     std::unique_ptr<tox::test::ScopedToxSystem> node_;
-    std::unique_ptr<Logger, void (*)(Logger *)> logger_;
-    std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time_;
-    std::unique_ptr<Networking_Core, void (*)(Networking_Core *)> networking_;
-    std::unique_ptr<DHT, void (*)(DHT *)> dht_;
+    std::unique_ptr<Logger, void (*_Nonnull)(Logger *_Nullable)> logger_;
+    std::unique_ptr<Mono_Time, std::function<void(Mono_Time *_Nullable)>> mono_time_;
+    std::unique_ptr<Networking_Core, void (*_Nonnull)(Networking_Core *_Nullable)> networking_;
+    std::unique_ptr<DHT, void (*_Nonnull)(DHT *_Nullable)> dht_;
 };
 
 #endif  // C_TOXCORE_TOXCORE_DHT_TEST_UTIL_H

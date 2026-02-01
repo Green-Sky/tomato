@@ -9,9 +9,11 @@
 #include <type_traits>
 #include <vector>
 
-template <typename T, void (*Delete)(T *)>
+#include "attributes.h"
+
+template <typename T, void (*_Nonnull Delete)(T *_Nullable)>
 struct Function_Deleter {
-    void operator()(T *ptr) const { Delete(ptr); }
+    void operator()(T *_Nullable ptr) const { Delete(ptr); }
 };
 
 // No default deleter, because we want to catch when we forget to specialise this one.
@@ -25,9 +27,9 @@ template <typename Func, typename Class>
 struct Method;
 
 template <typename R, typename Class, typename... Args>
-struct Method<R(void *, Args...), Class> {
-    template <R (Class::*M)(void *, Args...)>
-    static R invoke(void *self, Args... args)
+struct Method<R(void *_Nullable, Args...), Class> {
+    template <R (Class::*M)(void *_Nullable, Args...)>
+    static R invoke(void *_Nonnull self, Args... args)
     {
         return (static_cast<Class *>(self)->*M)(self, args...);
     }
@@ -69,7 +71,7 @@ Container sorted(Container arr, Less less)
 }
 
 template <typename T>
-T *require_not_null(const char *file, int line, T *ptr)
+T *_Nonnull require_not_null(const char *_Nonnull file, int line, T *_Nullable ptr)
 {
     if (ptr == nullptr) {
         std::fprintf(stderr, "unexpected null pointer at %s:%d\n", file, line);

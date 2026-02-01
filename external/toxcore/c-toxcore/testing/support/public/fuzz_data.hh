@@ -7,6 +7,8 @@
 #include <cstring>
 #include <vector>
 
+#include "../../../toxcore/attributes.h"
+
 namespace tox::test {
 
 struct Fuzz_Data {
@@ -14,12 +16,12 @@ struct Fuzz_Data {
     static constexpr std::size_t TRACE_TRAP = -1;
 
 private:
-    const uint8_t *data_;
-    const uint8_t *base_;
+    const uint8_t *_Nonnull data_;
+    const uint8_t *_Nonnull base_;
     std::size_t size_;
 
 public:
-    Fuzz_Data(const uint8_t *input_data, std::size_t input_size)
+    Fuzz_Data(const uint8_t *_Nonnull input_data, std::size_t input_size)
         : data_(input_data)
         , base_(input_data)
         , size_(input_size)
@@ -30,7 +32,7 @@ public:
     Fuzz_Data(const Fuzz_Data &rhs) = delete;
 
     struct Consumer {
-        const char *func;
+        const char *_Nonnull func;
         Fuzz_Data &fd;
 
         operator bool()
@@ -51,14 +53,14 @@ public:
         {
             if (sizeof(T) > fd.size())
                 return T{};
-            const uint8_t *bytes = fd.consume(func, sizeof(T));
+            const uint8_t *_Nonnull bytes = fd.consume(func, sizeof(T));
             T val;
             std::memcpy(&val, bytes, sizeof(T));
             return val;
         }
     };
 
-    Consumer consume1(const char *func) { return Consumer{func, *this}; }
+    Consumer consume1(const char *_Nonnull func) { return Consumer{func, *this}; }
 
     template <typename T>
     T consume_integral()
@@ -81,7 +83,7 @@ public:
     {
         if (count == 0 || count > size_)
             return {};
-        const uint8_t *start = consume("consume_bytes", count);
+        const uint8_t *_Nullable start = consume("consume_bytes", count);
         if (!start)
             return {};
         return std::vector<uint8_t>(start, start + count);
@@ -92,20 +94,20 @@ public:
         if (empty())
             return {};
         std::size_t count = size();
-        const uint8_t *start = consume("consume_remaining_bytes", count);
+        const uint8_t *_Nonnull start = consume("consume_remaining_bytes", count);
         return std::vector<uint8_t>(start, start + count);
     }
 
     std::size_t size() const { return size_; }
     std::size_t pos() const { return data_ - base_; }
-    const uint8_t *data() const { return data_; }
+    const uint8_t *_Nonnull data() const { return data_; }
     bool empty() const { return size_ == 0; }
 
-    const uint8_t *consume(const char *func, std::size_t count)
+    const uint8_t *_Nullable consume(const char *_Nonnull func, std::size_t count)
     {
         if (count > size_)
             return nullptr;
-        const uint8_t *val = data_;
+        const uint8_t *_Nonnull val = data_;
         if (FUZZ_DEBUG) {
             if (count == 1) {
                 std::printf("consume@%zu(%s): %d (0x%02x)\n", pos(), func, val[0], val[0]);
@@ -170,7 +172,7 @@ struct Fuzz_Target_Selector<> {
 };
 
 template <Fuzz_Target... Args>
-void fuzz_select_target(const uint8_t *data, std::size_t size)
+void fuzz_select_target(const uint8_t *_Nonnull data, std::size_t size)
 {
     Fuzz_Data input{data, size};
 

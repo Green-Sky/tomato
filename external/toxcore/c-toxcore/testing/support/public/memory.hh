@@ -4,6 +4,11 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "../../../toxcore/attributes.h"
+
+// Forward declaration
+struct Memory;
+
 namespace tox::test {
 
 /**
@@ -13,9 +18,14 @@ class MemorySystem {
 public:
     virtual ~MemorySystem();
 
-    virtual void *malloc(size_t size) = 0;
-    virtual void *realloc(void *ptr, size_t size) = 0;
-    virtual void free(void *ptr) = 0;
+    virtual void *_Nullable malloc(size_t size) = 0;
+    virtual void *_Nullable realloc(void *_Nullable ptr, size_t size) = 0;
+    virtual void free(void *_Nullable ptr) = 0;
+
+    /**
+     * @brief Returns C-compatible Memory struct.
+     */
+    virtual struct Memory c_memory() = 0;
 };
 
 }  // namespace tox::test

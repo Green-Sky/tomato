@@ -2,18 +2,18 @@
 
 #include <algorithm>
 
-#include "../../../toxcore/tox_random_impl.h"
+#include "../../../toxcore/rng.h"
 
 namespace tox::test {
 
-// --- Trampolines for Tox_Random_Funcs ---
+// --- Trampolines for Random_Funcs ---
 
-static const Tox_Random_Funcs kFakeRandomVtable = {
+static const Random_Funcs kFakeRandomVtable = {
     .bytes_callback
-    = [](void *obj, uint8_t *bytes,
+    = [](void *_Nonnull obj, uint8_t *_Nonnull bytes,
           uint32_t length) { static_cast<FakeRandom *>(obj)->bytes(bytes, length); },
     .uniform_callback
-    = [](void *obj,
+    = [](void *_Nonnull obj,
           uint32_t upper_bound) { return static_cast<FakeRandom *>(obj)->uniform(upper_bound); },
 };
 
@@ -44,7 +44,7 @@ uint32_t FakeRandom::uniform(uint32_t upper_bound)
     return dist(rng_);
 }
 
-void FakeRandom::bytes(uint8_t *out, size_t count)
+void FakeRandom::bytes(uint8_t *_Nonnull out, size_t count)
 {
     if (entropy_source_) {
         entropy_source_(out, count);
@@ -58,6 +58,6 @@ void FakeRandom::bytes(uint8_t *out, size_t count)
     }
 }
 
-struct Tox_Random FakeRandom::get_c_random() { return Tox_Random{&kFakeRandomVtable, this}; }
+struct Random FakeRandom::c_random() { return Random{&kFakeRandomVtable, this}; }
 
 }  // namespace tox::test

@@ -4,9 +4,12 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <vector>
 
+#include "../toxcore/attributes.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/os_memory.h"
@@ -19,7 +22,7 @@ class RtpBench : public benchmark::Fixture {
 public:
     void SetUp(const ::benchmark::State &) override
     {
-        const Memory *mem = os_memory();
+        const Memory *_Nonnull mem = os_memory();
         log = logger_new(mem);
         mono_time = mono_time_new(mem, nullptr, nullptr);
 
@@ -37,19 +40,19 @@ public:
         logger_kill(log);
     }
 
-    Logger *log = nullptr;
-    Mono_Time *mono_time = nullptr;
-    RTPSession *session = nullptr;
+    Logger *_Nullable log = nullptr;
+    Mono_Time *_Nullable mono_time = nullptr;
+    RTPSession *_Nullable session = nullptr;
     RtpMock mock;
 };
 
 BENCHMARK_DEFINE_F(RtpBench, SendData)(benchmark::State &state)
 {
-    size_t data_size = static_cast<size_t>(state.range(0));
-    std::vector<uint8_t> data(data_size, 0xAA);
+    std::size_t data_size = static_cast<std::size_t>(state.range(0));
+    std::vector<std::uint8_t> data(data_size, 0xAA);
 
     for (auto _ : state) {
-        rtp_send_data(log, session, data.data(), static_cast<uint32_t>(data.size()), false);
+        rtp_send_data(log, session, data.data(), static_cast<std::uint32_t>(data.size()), false);
         benchmark::DoNotOptimize(mock.captured_packets.back());
     }
 }
@@ -57,10 +60,10 @@ BENCHMARK_REGISTER_F(RtpBench, SendData)->Arg(100)->Arg(1000)->Arg(5000);
 
 BENCHMARK_DEFINE_F(RtpBench, ReceivePacket)(benchmark::State &state)
 {
-    size_t data_size = static_cast<size_t>(state.range(0));
-    std::vector<uint8_t> data(data_size, 0xAA);
-    rtp_send_data(log, session, data.data(), static_cast<uint32_t>(data.size()), false);
-    std::vector<uint8_t> packet = mock.captured_packets.back();
+    std::size_t data_size = static_cast<std::size_t>(state.range(0));
+    std::vector<std::uint8_t> data(data_size, 0xAA);
+    rtp_send_data(log, session, data.data(), static_cast<std::uint32_t>(data.size()), false);
+    std::vector<std::uint8_t> packet = mock.captured_packets.back();
 
     for (auto _ : state) {
         rtp_receive_packet(session, packet.data(), packet.size());

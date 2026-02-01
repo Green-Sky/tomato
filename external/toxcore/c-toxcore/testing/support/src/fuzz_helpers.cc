@@ -56,7 +56,7 @@ void configure_fuzz_memory_source(FakeMemory &memory, Fuzz_Data &input)
 
 void configure_fuzz_random_source(FakeRandom &random, Fuzz_Data &input)
 {
-    random.set_entropy_source([&input](uint8_t *out, size_t count) {
+    random.set_entropy_source([&input](uint8_t *_Nonnull out, size_t count) {
         // Initialize with zeros in case of underflow
         std::memset(out, 0, count);
 

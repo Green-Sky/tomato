@@ -13,7 +13,7 @@
 #include "attributes.h"
 #include "ccompat.h"
 #include "mem.h"
-#include "tox_random.h"
+#include "rng.h"
 #include "util.h"
 
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
@@ -195,7 +195,7 @@ uint64_t random_u64(const Random *rng)
 
 uint32_t random_range_u32(const Random *rng, uint32_t upper_bound)
 {
-    return tox_random_uniform(rng, upper_bound);
+    return rng_uniform(rng, upper_bound);
 }
 
 bool crypto_signature_create(uint8_t signature[CRYPTO_SIGNATURE_SIZE],
@@ -486,5 +486,5 @@ void crypto_sha512(uint8_t hash[CRYPTO_SHA512_SIZE], const uint8_t *data, size_t
 
 void random_bytes(const Random *rng, uint8_t *bytes, size_t length)
 {
-    tox_random_bytes(rng, bytes, length);
+    rng_bytes(rng, bytes, length);
 }

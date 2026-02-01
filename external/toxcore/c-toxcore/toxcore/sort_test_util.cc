@@ -22,7 +22,7 @@ int cmp_uint_array(const std::array<T, N> &a, const std::array<T, N> &b)
 
 const Sort_Funcs Some_Type::funcs = sort_funcs<Some_Type>();
 
-int my_type_cmp(const void *va, const void *vb)
+int my_type_cmp(const void *_Nonnull va, const void *_Nonnull vb)
 {
     const auto *a = static_cast<const Some_Type *>(va);
     const auto *b = static_cast<const Some_Type *>(vb);

@@ -18,6 +18,7 @@ set(support_SOURCES
   src/simulated_environment.cc
   src/simulation.cc
   src/tox_network.cc
+  src/tox_runner.cc
   doubles/fake_clock.hh
   doubles/fake_memory.hh
   doubles/fake_network_stack.hh
@@ -29,11 +30,13 @@ set(support_SOURCES
   public/fuzz_data.hh
   public/fuzz_helpers.hh
   public/memory.hh
+  public/mpsc_queue.hh
   public/network.hh
   public/random.hh
   public/simulated_environment.hh
   public/simulation.hh
   public/tox_network.hh
+  public/tox_runner.hh
 )
 
 add_library(support STATIC ${support_SOURCES})
@@ -66,7 +69,10 @@ if(TARGET GTest::gtest_main)
 
   support_test(fake_sockets_test doubles/fake_sockets_test.cc)
   support_test(fake_network_stack_test doubles/fake_network_stack_test.cc)
+  support_test(fake_network_udp_test doubles/fake_network_udp_test.cc)
+  support_test(fake_network_tcp_test doubles/fake_network_tcp_test.cc)
   support_test(network_universe_test doubles/network_universe_test.cc)
   support_test(bootstrap_scaling_test bootstrap_scaling_test.cc)
-  support_test(tox_network_test tox_network_test.cc)
+  # TODO(iphydf): Re-enable once we migrate TCP server to ev.
+  #support_test(tox_network_test tox_network_test.cc)
 endif()

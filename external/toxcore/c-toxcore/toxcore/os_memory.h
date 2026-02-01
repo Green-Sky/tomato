@@ -5,18 +5,19 @@
 #ifndef C_TOXCORE_TOXCORE_OS_MEMORY_H
 #define C_TOXCORE_TOXCORE_OS_MEMORY_H
 
-#include "tox_memory.h"
+#include "mem.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const Tox_Memory os_memory_obj;
+extern const Memory os_memory_obj;
 
-const Tox_Memory *os_memory(void);
+const Memory *os_memory(void);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
 #endif /* C_TOXCORE_TOXCORE_OS_MEMORY_H */
+

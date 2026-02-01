@@ -18,6 +18,7 @@
 #include "../toxcore/mem.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
+#include "../toxcore/rng.h"
 #include "defines.h"
 
 static_assert(TOX_PASS_SALT_LENGTH == crypto_pwhash_scryptsalsa208sha256_SALTBYTES,
@@ -55,7 +56,7 @@ struct Tox_Pass_Key {
 
 void tox_pass_key_free(Tox_Pass_Key *key)
 {
-    if (key == NULL) {
+    if (key == nullptr) {
         return;
     }
 

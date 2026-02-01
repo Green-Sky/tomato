@@ -87,5 +87,62 @@ namespace {
         ASSERT_NE(net_socket_to_native(accepted), -1);
     }
 
+    TEST_F(FakeNetworkStackTest, LoopbackRedirection)
+    {
+        // 1. Create a stack with a specific IP (20.0.0.1)
+        FakeNetworkStack my_stack{universe, make_ip(0x14000001)};
+        Socket sock = my_stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+        IP_Port bind_addr;
+        ip_init(&bind_addr.ip, false);
+        bind_addr.ip.ip.v4.uint32 = net_htonl(0x14000001);
+        bind_addr.port = net_htons(12345);
+        ASSERT_EQ(my_stack.bind(sock, &bind_addr), 0);
+        ASSERT_EQ(my_stack.listen(sock, 5), 0);
+
+        // 2. Connect to 127.0.0.1:12345 from the same stack
+        Socket client = my_stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+        IP_Port connect_addr;
+        ip_init(&connect_addr.ip, false);
+        connect_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        connect_addr.port = net_htons(12345);
+
+        // Should redirect to 20.0.0.1:12345 because 127.0.0.1 is not bound
+        ASSERT_EQ(my_stack.connect(client, &connect_addr), -1);
+        ASSERT_EQ(errno, EINPROGRESS);
+
+        universe.process_events(0);  // SYN
+
+        Socket accepted = my_stack.accept(sock);
+        ASSERT_NE(net_socket_to_native(accepted), -1);
+    }
+
+    TEST_F(FakeNetworkStackTest, ImplicitBindAvoidsCollision)
+    {
+        // Bind server to 33445 (default start of find_free_port)
+        Socket server = stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        IP_Port addr;
+        ip_init(&addr.ip, false);
+        addr.ip.ip.v4.uint32 = 0;
+        addr.port = net_htons(33445);
+        ASSERT_EQ(stack.bind(server, &addr), 0);
+
+        // Create client and connect (implicit bind)
+        Socket client = stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(33445);
+
+        // Should find a free port (not 33445)
+        ASSERT_EQ(stack.connect(client, &server_addr), -1);
+        ASSERT_EQ(errno, EINPROGRESS);
+
+        auto *client_obj = stack.get_sock(client);
+        ASSERT_NE(client_obj, nullptr);
+        ASSERT_NE(client_obj->local_port(), 33445);
+    }
+
 }  // namespace
 }  // namespace tox::test

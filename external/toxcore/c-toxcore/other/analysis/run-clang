@@ -10,7 +10,7 @@ run() {
     "${CPPFLAGS[@]}" \
     "${LDFLAGS[@]}" \
     "$@" \
-    -std=c++17 \
+    -std=c++20 \
     -Werror \
     -Weverything \
     -Wno-alloca \

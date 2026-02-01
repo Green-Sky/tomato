@@ -8,55 +8,60 @@
 
 namespace tox::test {
 
-static const Network_Funcs kVtable = {
-    .close
-    = [](void *obj, Socket sock) { return static_cast<FakeNetworkStack *>(obj)->close(sock); },
-    .accept
-    = [](void *obj, Socket sock) { return static_cast<FakeNetworkStack *>(obj)->accept(sock); },
-    .bind
-    = [](void *obj, Socket sock,
-          const IP_Port *addr) { return static_cast<FakeNetworkStack *>(obj)->bind(sock, addr); },
+static const Network_Funcs kNetworkVtable = {
+    .close = [](void *_Nonnull obj,
+                 Socket sock) { return static_cast<FakeNetworkStack *>(obj)->close(sock); },
+    .accept = [](void *_Nonnull obj,
+                  Socket sock) { return static_cast<FakeNetworkStack *>(obj)->accept(sock); },
+    .bind =
+        [](void *_Nonnull obj, Socket sock, const IP_Port *_Nonnull addr) {
+            return static_cast<FakeNetworkStack *>(obj)->bind(sock, addr);
+        },
     .listen
-    = [](void *obj, Socket sock,
+    = [](void *_Nonnull obj, Socket sock,
           int backlog) { return static_cast<FakeNetworkStack *>(obj)->listen(sock, backlog); },
     .connect =
-        [](void *obj, Socket sock, const IP_Port *addr) {
+        [](void *_Nonnull obj, Socket sock, const IP_Port *_Nonnull addr) {
             return static_cast<FakeNetworkStack *>(obj)->connect(sock, addr);
         },
-    .recvbuf
-    = [](void *obj, Socket sock) { return static_cast<FakeNetworkStack *>(obj)->recvbuf(sock); },
-    .recv = [](void *obj, Socket sock, uint8_t *buf,
+    .recvbuf = [](void *_Nonnull obj,
+                   Socket sock) { return static_cast<FakeNetworkStack *>(obj)->recvbuf(sock); },
+    .recv = [](void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf,
                 size_t len) { return static_cast<FakeNetworkStack *>(obj)->recv(sock, buf, len); },
     .recvfrom =
-        [](void *obj, Socket sock, uint8_t *buf, size_t len, IP_Port *addr) {
+        [](void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf, size_t len,
+            IP_Port *_Nonnull addr) {
             return static_cast<FakeNetworkStack *>(obj)->recvfrom(sock, buf, len, addr);
         },
-    .send = [](void *obj, Socket sock, const uint8_t *buf,
+    .send = [](void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf,
                 size_t len) { return static_cast<FakeNetworkStack *>(obj)->send(sock, buf, len); },
     .sendto =
-        [](void *obj, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr) {
+        [](void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf, size_t len,
+            const IP_Port *_Nonnull addr) {
             return static_cast<FakeNetworkStack *>(obj)->sendto(sock, buf, len, addr);
         },
     .socket
-    = [](void *obj, int domain, int type,
+    = [](void *_Nonnull obj, int domain, int type,
           int proto) { return static_cast<FakeNetworkStack *>(obj)->socket(domain, type, proto); },
     .socket_nonblock =
-        [](void *obj, Socket sock, bool nonblock) {
+        [](void *_Nonnull obj, Socket sock, bool nonblock) {
             return static_cast<FakeNetworkStack *>(obj)->socket_nonblock(sock, nonblock);
         },
     .getsockopt =
-        [](void *obj, Socket sock, int level, int optname, void *optval, size_t *optlen) {
+        [](void *_Nonnull obj, Socket sock, int level, int optname, void *_Nonnull optval,
+            size_t *_Nonnull optlen) {
             return static_cast<FakeNetworkStack *>(obj)->getsockopt(
                 sock, level, optname, optval, optlen);
         },
     .setsockopt =
-        [](void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen) {
+        [](void *_Nonnull obj, Socket sock, int level, int optname, const void *_Nonnull optval,
+            size_t optlen) {
             return static_cast<FakeNetworkStack *>(obj)->setsockopt(
                 sock, level, optname, optval, optlen);
         },
     .getaddrinfo =
-        [](void *obj, const Memory *mem, const char *address, int family, int protocol,
-            IP_Port **addrs) {
+        [](void *_Nonnull obj, const Memory *_Nonnull mem, const char *_Nonnull address, int family,
+            int protocol, IP_Port *_Nullable *_Nonnull addrs) {
             FakeNetworkStack *self = static_cast<FakeNetworkStack *>(obj);
             if (self->universe().is_verbose()) {
                 std::cerr << "[FakeNetworkStack] getaddrinfo for " << address << std::endl;
@@ -83,7 +88,7 @@ static const Network_Funcs kVtable = {
             return 0;
         },
     .freeaddrinfo =
-        [](void *obj, const Memory *mem, IP_Port *addrs) {
+        [](void *_Nonnull obj, const Memory *_Nonnull mem, IP_Port *_Nullable addrs) {
             mem_delete(mem, addrs);
             return 0;
         },
@@ -97,7 +102,7 @@ FakeNetworkStack::FakeNetworkStack(NetworkUniverse &universe, const IP &node_ip)
 
 FakeNetworkStack::~FakeNetworkStack() = default;
 
-struct Network FakeNetworkStack::get_c_network() { return Network{&kVtable, this}; }
+struct Network FakeNetworkStack::c_network() { return Network{&kNetworkVtable, this}; }
 
 Socket FakeNetworkStack::socket(int domain, int type, int protocol)
 {

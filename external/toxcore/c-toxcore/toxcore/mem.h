@@ -12,13 +12,31 @@
 #include <stdint.h>     // uint*_t
 
 #include "attributes.h"
-#include "tox_memory.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef Tox_Memory Memory;
+/** @brief Allocate a byte array, similar to malloc. */
+typedef void *_Nullable memory_malloc_cb(void *_Nullable self, uint32_t size);
+/** @brief Reallocate a byte array, similar to realloc. */
+typedef void *_Nullable memory_realloc_cb(void *_Nullable self, void *_Nullable ptr, uint32_t size);
+/**
+ * @brief Deallocate a byte or object array, similar to free.
+ */
+typedef void memory_dealloc_cb(void *_Nullable self, void *_Nullable ptr);
+
+/** @brief Functions wrapping standard C memory allocation functions. */
+typedef struct Memory_Funcs {
+    memory_malloc_cb *_Nonnull malloc_callback;
+    memory_realloc_cb *_Nonnull realloc_callback;
+    memory_dealloc_cb *_Nonnull dealloc_callback;
+} Memory_Funcs;
+
+typedef struct Memory {
+    const Memory_Funcs *_Nonnull funcs;
+    void *_Nullable user_data;
+} Memory;
 
 /**
  * @brief Allocate an array of a given size for built-in types.
@@ -37,9 +55,12 @@ void *_Nullable mem_balloc(const Memory *_Nonnull mem, uint32_t size);
 void *_Nullable mem_brealloc(const Memory *_Nonnull mem, void *_Nullable ptr, uint32_t size);
 
 /**
- * @brief Allocate a single object.
+ * @brief Allocate a single zero-initialised object.
  *
  * Always use as `(T *)mem_alloc(mem, sizeof(T))`.
+ *
+ * @param mem The memory allocator.
+ * @param size Size in bytes of each element.
  */
 void *_Nullable mem_alloc(const Memory *_Nonnull mem, uint32_t size);
 
@@ -75,3 +96,4 @@ void mem_delete(const Memory *_Nonnull mem, void *_Nullable ptr);
 #endif
 
 #endif /* C_TOXCORE_TOXCORE_MEM_H */
+

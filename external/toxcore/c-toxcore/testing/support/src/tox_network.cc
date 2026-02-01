@@ -5,17 +5,21 @@
 #include "../public/tox_network.hh"
 
 #include <cstring>
+#include <future>
 #include <iostream>
+#include <vector>
 
 #include "../../../toxcore/network.h"
 #include "../../../toxcore/tox.h"
+#include "../../../toxcore/tox_events.h"
+#include "../public/tox_runner.hh"
 
 namespace tox::test {
 
 ConnectedFriend::~ConnectedFriend() = default;
 
-std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *main_tox,
-    SimulatedNode &main_node, int num_friends, const Tox_Options *options)
+std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *_Nonnull main_tox,
+    SimulatedNode &main_node, int num_friends, const Tox_Options *_Nullable options, bool verbose)
 {
     std::vector<ConnectedFriend> friends;
     friends.reserve(num_friends);
@@ -42,108 +46,115 @@ std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *main_
 
     for (int i = 0; i < num_friends; ++i) {
         auto node = sim.create_node();
-        auto tox = node->create_tox(options);
-        if (!tox) {
-            return {};
-        }
+        auto runner = std::make_unique<ToxRunner>(*node, options);
 
         uint8_t friend_pk[TOX_PUBLIC_KEY_SIZE];
-        tox_self_get_public_key(tox.get(), friend_pk);
+        runner->invoke([&](Tox *_Nonnull tox) { tox_self_get_public_key(tox, friend_pk); });
 
         Tox_Err_Friend_Add err;
         uint32_t fn = tox_friend_add_norequest(main_tox, friend_pk, &err);
         if (fn == UINT32_MAX || err != TOX_ERR_FRIEND_ADD_OK) {
             return {};
         }
-        if (tox_friend_add_norequest(tox.get(), main_pk, &err) == UINT32_MAX
-            || err != TOX_ERR_FRIEND_ADD_OK) {
-            return {};
-        }
 
-        // Bootstrap to the main node AND the PREVIOUS node in the chain
-        tox_bootstrap(tox.get(), main_ip_str, main_port, main_dht_id, nullptr);
-        if (i > 0) {
-            tox_bootstrap(tox.get(), prev_ip_str, prev_port, prev_dht_id, nullptr);
-        }
+        // Execute add friend and bootstrap on runner
+        runner->execute([=](Tox *_Nonnull tox) {
+            tox_friend_add_norequest(tox, main_pk, nullptr);
+            tox_bootstrap(tox, main_ip_str, main_port, main_dht_id, nullptr);
+            if (i > 0) {
+                tox_bootstrap(tox, prev_ip_str, prev_port, prev_dht_id, nullptr);
+            }
+        });
 
-        // Update prev for next node
-        tox_self_get_dht_id(tox.get(), prev_dht_id);
+        // Retrieve previous node's DHT ID and update IP for the next iteration.
+        // We use invoke to safely fetch data from the runner thread.
+        runner->invoke([&](Tox *_Nonnull tox) { tox_self_get_dht_id(tox, prev_dht_id); });
+
         ip_parse_addr(&node->ip, prev_ip_str, sizeof(prev_ip_str));
 
-        FakeUdpSocket *node_socket = node->get_primary_socket();
+        FakeUdpSocket *_Nullable node_socket = node->get_primary_socket();
         if (!node_socket) {
             return {};
         }
         prev_port = node_socket->local_port();
 
-        friends.push_back({std::move(node), std::move(tox), fn});
+        friends.push_back({std::move(node), std::move(runner), fn});
 
-        // Run simulation to let DHT stabilize
-        sim.run_until(
-            [&]() {
-                tox_iterate(main_tox, nullptr);
-                for (auto &f : friends) {
-                    tox_iterate(f.tox.get(), nullptr);
-                }
-                return false;
-            },
-            200);
+        // Run the simulation periodically to allow the DHT to stabilize incrementally
+        // as we add nodes, rather than waiting until the end.
+        if (friends.size() % 10 == 0) {
+            sim.run_until([&]() { return false; }, 20);
+        }
     }
 
-    // Optional: Bootstrap main_tox to the last node to complete the circle
     if (!friends.empty()) {
         tox_bootstrap(main_tox, prev_ip_str, prev_port, prev_dht_id, nullptr);
     }
 
-    // Run simulation until all are connected
+    std::vector<bool> friends_connected(friends.size(), false);
+
     sim.run_until(
         [&]() {
-            bool all_connected = true;
-            int connected_count = 0;
             tox_iterate(main_tox, nullptr);
-            for (auto &f : friends) {
-                tox_iterate(f.tox.get(), nullptr);
-                if (tox_friend_get_connection_status(main_tox, f.friend_number, nullptr)
-                        != TOX_CONNECTION_NONE
-                    && tox_friend_get_connection_status(f.tox.get(), 0, nullptr)
-                        != TOX_CONNECTION_NONE) {
-                    connected_count++;
-                } else {
-                    all_connected = false;
-                }
-            }
-            static uint64_t last_print = 0;
-            if (sim.clock().current_time_ms() - last_print > 1000) {
-                std::cerr << "[setup_connected_friends] Friends connected: " << connected_count
-                          << "/" << friends.size() << " (time: " << sim.clock().current_time_ms()
-                          << "ms)" << std::endl;
 
-                if (connected_count < static_cast<int>(friends.size())
-                    && sim.clock().current_time_ms() > 10000) {
-                    for (size_t i = 0; i < friends.size(); ++i) {
-                        auto s1 = tox_friend_get_connection_status(
-                            main_tox, friends[i].friend_number, nullptr);
-                        auto s2
-                            = tox_friend_get_connection_status(friends[i].tox.get(), 0, nullptr);
-                        if (s1 == TOX_CONNECTION_NONE || s2 == TOX_CONNECTION_NONE) {
-                            std::cerr << "  Friend " << i << " not connected (Main->F: " << s1
-                                      << ", F->Main: " << s2 << ")" << std::endl;
+            // Check connection status
+            int connected_count = 0;
+
+            for (size_t i = 0; i < friends.size(); ++i) {
+                // Check if main sees friend
+                bool main_sees_friend
+                    = tox_friend_get_connection_status(main_tox, friends[i].friend_number, nullptr)
+                    != TOX_CONNECTION_NONE;
+
+                // Check if friend sees main by polling events from the runner
+                auto batches = friends[i].runner->poll_events();
+                for (const auto &batch : batches) {
+                    size_t size = tox_events_get_size(batch.get());
+                    for (size_t k = 0; k < size; ++k) {
+                        const Tox_Event *e = tox_events_get(batch.get(), k);
+                        if (tox_event_get_type(e) == TOX_EVENT_FRIEND_CONNECTION_STATUS) {
+                            auto *ev = tox_event_get_friend_connection_status(e);
+                            if (tox_event_friend_connection_status_get_connection_status(ev)
+                                != TOX_CONNECTION_NONE) {
+                                friends_connected[i] = true;
+                            } else {
+                                friends_connected[i] = false;
+                            }
                         }
                     }
                 }
 
+                if (main_sees_friend && friends_connected[i]) {
+                    connected_count++;
+                }
+            }
+
+            if (connected_count == static_cast<int>(friends.size())) {
+                return true;
+            }
+
+            static uint64_t last_print = 0;
+            if (verbose && sim.clock().current_time_ms() - last_print > 1000) {
+                std::cerr << "[setup_connected_friends] Friends connected: " << connected_count
+                          << "/" << friends.size() << " (time: " << sim.clock().current_time_ms()
+                          << "ms)" << std::endl;
                 last_print = sim.clock().current_time_ms();
             }
-            return all_connected;
+
+            return false;
         },
-        300000);  // 5 minutes simulation time for 100 nodes to converge
+        300000);
 
     return friends;
 }
 
-bool connect_friends(
-    Simulation &sim, SimulatedNode &node1, Tox *tox1, SimulatedNode &node2, Tox *tox2)
+bool connect_friends(Simulation &sim, SimulatedNode &node1, Tox *_Nonnull tox1,
+    SimulatedNode &node2, Tox *_Nonnull tox2)
 {
+    // This helper function assumes the Tox instances are running in the current thread
+    // (e.g., standard unit test) or that the caller is handling thread safety if they
+    // are part of a runner. It uses direct tox_iterate calls.
+
     uint8_t pk1[TOX_PUBLIC_KEY_SIZE];
     uint8_t pk2[TOX_PUBLIC_KEY_SIZE];
     tox_self_get_public_key(tox1, pk1);
@@ -199,7 +210,7 @@ bool connect_friends(
 }
 
 uint32_t setup_connected_group(
-    Simulation &sim, Tox *main_tox, const std::vector<ConnectedFriend> &friends)
+    Simulation &sim, Tox *_Nonnull main_tox, const std::vector<ConnectedFriend> &friends)
 {
     struct NodeGroupState {
         uint32_t peer_count = 0;
@@ -207,9 +218,10 @@ uint32_t setup_connected_group(
     };
 
     NodeGroupState main_state;
-    tox_callback_group_peer_join(main_tox, [](Tox *, uint32_t, uint32_t, void *user_data) {
-        static_cast<NodeGroupState *>(user_data)->peer_count++;
-    });
+    tox_callback_group_peer_join(
+        main_tox, [](Tox *_Nonnull, uint32_t, uint32_t, void *_Nullable user_data) {
+            static_cast<NodeGroupState *>(user_data)->peer_count++;
+        });
 
     Tox_Err_Group_New err_new;
     main_state.group_number = tox_group_new(main_tox, TOX_GROUP_PRIVACY_STATE_PUBLIC,
@@ -217,52 +229,26 @@ uint32_t setup_connected_group(
         &err_new);
 
     if (main_state.group_number == UINT32_MAX || err_new != TOX_ERR_GROUP_NEW_OK) {
-        std::cerr << "tox_group_new failed with error: " << err_new << std::endl;
         return UINT32_MAX;
     }
 
-    std::vector<std::unique_ptr<NodeGroupState>> friend_states;
-    friend_states.reserve(friends.size());
+    // Friend states tracked via events
+    std::vector<NodeGroupState> friend_states(friends.size());
 
-    for (size_t i = 0; i < friends.size(); ++i) {
-        auto state = std::make_unique<NodeGroupState>();
-        tox_callback_group_peer_join(
-            friends[i].tox.get(), [](Tox *, uint32_t, uint32_t, void *user_data) {
-                static_cast<NodeGroupState *>(user_data)->peer_count++;
-            });
+    // Main tox sends invites; friends accept via events polled from their runners.
 
-        tox_callback_group_invite(friends[i].tox.get(),
-            [](Tox *tox, uint32_t friend_number, const uint8_t *invite_data,
-                size_t invite_data_length, const uint8_t *, size_t, void *user_data) {
-                NodeGroupState *ng_state = static_cast<NodeGroupState *>(user_data);
-                Tox_Err_Group_Invite_Accept err_accept;
-                ng_state->group_number
-                    = tox_group_invite_accept(tox, friend_number, invite_data, invite_data_length,
-                        reinterpret_cast<const uint8_t *>("peer"), 4, nullptr, 0, &err_accept);
-                if (ng_state->group_number == UINT32_MAX
-                    || err_accept != TOX_ERR_GROUP_INVITE_ACCEPT_OK) {
-                    ng_state->group_number = UINT32_MAX;
-                }
-            });
-
-        friend_states.push_back(std::move(state));
-    }
-
-    // Run until all have joined and see everyone
     bool success = false;
-    uint64_t last_print = 0;
     size_t invites_sent = 0;
 
     sim.run_until(
         [&]() {
             tox_iterate(main_tox, &main_state);
 
-            // Throttle invites: keep max 5 pending
+            // Throttle invites
             size_t accepted_count = 0;
-            for (size_t k = 0; k < invites_sent; ++k) {
-                if (friend_states[k]->group_number != UINT32_MAX) {
+            for (const auto &fs : friend_states) {
+                if (fs.group_number != UINT32_MAX)
                     accepted_count++;
-                }
             }
 
             while (invites_sent < friends.size() && (invites_sent - accepted_count) < 5) {
@@ -271,58 +257,58 @@ uint32_t setup_connected_group(
                         friends[invites_sent].friend_number, &err_invite)) {
                     invites_sent++;
                 } else {
-                    if (err_invite != TOX_ERR_GROUP_INVITE_FRIEND_FAIL_SEND) {
-                        std::cerr << "Invite failed for friend " << invites_sent << ": "
-                                  << err_invite << std::endl;
-                    }
-                    break;  // Stop trying to send for this tick if we failed
+                    break;
                 }
             }
 
-            bool all_see_all = true;
-
-            if (main_state.peer_count < friends.size()) {
-                all_see_all = false;
-            }
-
+            // Process friend events
             for (size_t i = 0; i < friends.size(); ++i) {
-                tox_iterate(friends[i].tox.get(), friend_states[i].get());
-                if (friend_states[i]->group_number == UINT32_MAX
-                    || friend_states[i]->peer_count < friends.size()) {
-                    all_see_all = false;
-                }
-            }
+                auto batches = friends[i].runner->poll_events();
+                for (const auto &batch : batches) {
+                    size_t size = tox_events_get_size(batch.get());
+                    for (size_t k = 0; k < size; ++k) {
+                        const Tox_Event *e = tox_events_get(batch.get(), k);
+                        Tox_Event_Type type = tox_event_get_type(e);
 
-            if ((sim.clock().current_time_ms() - last_print) % 5000 == 0) {
-                int joined = 0;
-                int fully_connected = 0;
-                if (main_state.group_number != UINT32_MAX)
-                    joined++;
-                if (main_state.peer_count >= friends.size())
-                    fully_connected++;
+                        if (type == TOX_EVENT_GROUP_INVITE) {
+                            auto *ev = tox_event_get_group_invite(e);
+                            uint32_t friend_number = tox_event_group_invite_get_friend_number(ev);
+                            const uint8_t *data = tox_event_group_invite_get_invite_data(ev);
+                            size_t len = tox_event_group_invite_get_invite_data_length(ev);
 
-                for (const auto &fs : friend_states) {
-                    if (fs->group_number != UINT32_MAX) {
-                        joined++;
-                        if (fs->peer_count >= friends.size())
-                            fully_connected++;
+                            // Accept invite on runner thread.
+                            // We must copy data because the event structure will be freed.
+                            std::vector<uint8_t> invite_data(data, data + len);
+
+                            friends[i].runner->execute([=](Tox *_Nonnull tox) {
+                                Tox_Err_Group_Invite_Accept err;
+                                tox_group_invite_accept(tox, friend_number, invite_data.data(),
+                                    invite_data.size(), reinterpret_cast<const uint8_t *>("peer"),
+                                    4, nullptr, 0, &err);
+                            });
+                        } else if (type == TOX_EVENT_GROUP_PEER_JOIN) {
+                            friend_states[i].peer_count++;
+                        } else if (type == TOX_EVENT_GROUP_SELF_JOIN) {
+                            auto *ev = tox_event_get_group_self_join(e);
+                            friend_states[i].group_number
+                                = tox_event_group_self_join_get_group_number(ev);
+                        }
                     }
                 }
-                std::cerr << "[setup_connected_group] Main peer count: " << main_state.peer_count
-                          << "/" << friends.size() << ", Nodes joined: " << joined << "/"
-                          << (friends.size() + 1) << ", fully connected: " << fully_connected << "/"
-                          << (friends.size() + 1) << " (time: " << sim.clock().current_time_ms()
-                          << "ms)" << std::endl;
-                last_print = sim.clock().current_time_ms();
             }
 
-            if (all_see_all) {
-                success = true;
-                return true;
+            if (main_state.peer_count < friends.size())
+                return false;
+
+            for (const auto &fs : friend_states) {
+                if (fs.group_number == UINT32_MAX || fs.peer_count < friends.size())
+                    return false;
             }
-            return false;
+
+            success = true;
+            return true;
         },
-        300000);  // 5 minutes
+        300000);
 
     return success ? main_state.group_number : UINT32_MAX;
 }

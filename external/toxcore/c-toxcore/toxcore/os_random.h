@@ -5,19 +5,19 @@
 #ifndef C_TOXCORE_TOXCORE_OS_RANDOM_H
 #define C_TOXCORE_TOXCORE_OS_RANDOM_H
 
-#include "tox_random.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const Tox_Random os_random_obj;
+extern const Random os_random_obj;
 
 /** @brief System random number generator.
  *
  * Uses libsodium's CSPRNG (on Linux, `/dev/urandom`).
  */
-const Tox_Random *os_random(void);
+const Random *os_random(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

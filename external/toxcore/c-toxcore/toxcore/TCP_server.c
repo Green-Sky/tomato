@@ -974,7 +974,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     temp->socks_listening = socks_listening;
 
 #ifdef TCP_SERVER_USE_EPOLL
-    temp->efd = epoll_create(8);
+    temp->efd = epoll_create1(EPOLL_CLOEXEC);
 
     if (temp->efd == -1) {
         LOGGER_ERROR(logger, "epoll initialisation failed");

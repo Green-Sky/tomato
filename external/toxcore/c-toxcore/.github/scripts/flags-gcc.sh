@@ -22,7 +22,6 @@ add_flag -Wframe-larger-than=9000
 add_flag -Wignored-attributes
 add_flag -Wignored-qualifiers
 add_flag -Winit-self
-add_flag -Winline
 add_flag -Wlarger-than=530000
 add_flag -Wmaybe-uninitialized
 add_flag -Wmemset-transposed-args
@@ -45,6 +44,8 @@ add_flag -Wunused-value
 
 # Disable specific warning flags for both C and C++.
 
+# Not important, and bothersome with lambdas in C++.
+add_flag -Wno-inline
 # struct Foo foo = {0}; is a common idiom.
 add_flag -Wno-missing-field-initializers
 # Checked by clang, but gcc is warning when it's not necessary.

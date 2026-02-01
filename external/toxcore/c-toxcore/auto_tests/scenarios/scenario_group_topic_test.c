@@ -305,6 +305,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-#undef GROUP_NAME
+#undef TOPIC2
+#undef TOPIC1
 #undef GROUP_NAME_LEN
+#undef GROUP_NAME
 #undef NUM_PEERS

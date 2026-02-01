@@ -82,6 +82,46 @@ namespace {
         EXPECT_EQ(std::string(reinterpret_cast<char *>(recv_buf), 5), "Hello");
     }
 
+    TEST_F(FakeTcpSocketTest, RecvBuffering)
+    {
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(8082);
+
+        server.bind(&server_addr);
+        server.listen(5);
+        client.connect(&server_addr);
+
+        universe.process_events(0);  // SYN
+        universe.process_events(0);  // SYN-ACK
+        universe.process_events(0);  // ACK
+
+        auto accepted = server.accept(nullptr);
+        ASSERT_NE(accepted, nullptr);
+
+        uint8_t msg1[] = "Part1";
+        uint8_t msg2[] = "Part2";
+        client.send(msg1, 5);
+        client.send(msg2, 5);
+
+        universe.process_events(0);  // Deliver Part1
+        universe.process_events(0);  // Deliver Part2
+
+        EXPECT_EQ(accepted->recv_buffer_size(), 10);
+
+        uint8_t recv_buf[20];
+        // Read partial
+        ASSERT_EQ(accepted->recv(recv_buf, 3), 3);
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(recv_buf), 3), "Par");
+        EXPECT_EQ(accepted->recv_buffer_size(), 7);
+
+        // Read rest
+        ASSERT_EQ(accepted->recv(recv_buf, 7), 7);
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(recv_buf), 7), "t1Part2");
+        EXPECT_EQ(accepted->recv_buffer_size(), 0);
+    }
+
     class FakeUdpSocketTest : public ::testing::Test {
     public:
         ~FakeUdpSocketTest() override;
@@ -117,6 +157,40 @@ namespace {
         ASSERT_GT(len, 0);
         EXPECT_EQ(std::string(reinterpret_cast<char *>(recv_buf), len), message);
         EXPECT_EQ(sender_addr.port, net_htons(client.local_port()));
+    }
+
+    TEST_F(FakeUdpSocketTest, RecvBuffering)
+    {
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(9001);
+
+        server.bind(&server_addr);
+
+        const char *msg1 = "Msg1";
+        const char *msg2 = "Msg2";
+
+        client.sendto(reinterpret_cast<const uint8_t *>(msg1), strlen(msg1), &server_addr);
+        client.sendto(reinterpret_cast<const uint8_t *>(msg2), strlen(msg2), &server_addr);
+
+        universe.process_events(0);  // Deliver msg1
+        universe.process_events(0);  // Deliver msg2
+
+        EXPECT_EQ(server.recv_buffer_size(), 2);
+
+        IP_Port sender;
+        uint8_t buf[10];
+
+        int len = server.recvfrom(buf, sizeof(buf), &sender);
+        ASSERT_EQ(len, 4);
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), len), "Msg1");
+        EXPECT_EQ(server.recv_buffer_size(), 1);
+
+        len = server.recvfrom(buf, sizeof(buf), &sender);
+        ASSERT_EQ(len, 4);
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), len), "Msg2");
+        EXPECT_EQ(server.recv_buffer_size(), 0);
     }
 
 }  // namespace

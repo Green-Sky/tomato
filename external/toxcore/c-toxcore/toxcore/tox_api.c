@@ -26,6 +26,10 @@ uint32_t tox_secret_key_size(void)
 {
     return TOX_SECRET_KEY_SIZE;
 }
+uint32_t tox_dht_id_size(void)
+{
+    return TOX_DHT_ID_SIZE;
+}
 uint32_t tox_conference_uid_size(void)
 {
     return TOX_CONFERENCE_UID_SIZE;
@@ -508,6 +512,24 @@ const char *tox_err_file_get_to_string(Tox_Err_File_Get value)
 
     return "<invalid Tox_Err_File_Get>";
 }
+const char *tox_err_file_by_id_to_string(Tox_Err_File_By_Id value)
+{
+    switch (value) {
+        case TOX_ERR_FILE_BY_ID_OK:
+            return "TOX_ERR_FILE_BY_ID_OK";
+
+        case TOX_ERR_FILE_BY_ID_NULL:
+            return "TOX_ERR_FILE_BY_ID_NULL";
+
+        case TOX_ERR_FILE_BY_ID_FRIEND_NOT_FOUND:
+            return "TOX_ERR_FILE_BY_ID_FRIEND_NOT_FOUND";
+
+        case TOX_ERR_FILE_BY_ID_NOT_FOUND:
+            return "TOX_ERR_FILE_BY_ID_NOT_FOUND";
+    }
+
+    return "<invalid Tox_Err_File_By_Id>";
+}
 const char *tox_err_file_send_to_string(Tox_Err_File_Send value)
 {
     switch (value) {
@@ -882,6 +904,21 @@ const char *tox_err_group_new_to_string(Tox_Err_Group_New value)
     }
 
     return "<invalid Tox_Err_Group_New>";
+}
+const char *tox_err_group_by_id_to_string(Tox_Err_Group_By_Id value)
+{
+    switch (value) {
+        case TOX_ERR_GROUP_BY_ID_OK:
+            return "TOX_ERR_GROUP_BY_ID_OK";
+
+        case TOX_ERR_GROUP_BY_ID_NULL:
+            return "TOX_ERR_GROUP_BY_ID_NULL";
+
+        case TOX_ERR_GROUP_BY_ID_NOT_FOUND:
+            return "TOX_ERR_GROUP_BY_ID_NOT_FOUND";
+    }
+
+    return "<invalid Tox_Err_Group_By_Id>";
 }
 const char *tox_err_group_join_to_string(Tox_Err_Group_Join value)
 {

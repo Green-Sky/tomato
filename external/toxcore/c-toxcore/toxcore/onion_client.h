@@ -11,6 +11,7 @@
 #define C_TOXCORE_TOXCORE_ONION_CLIENT_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "DHT.h"
 #include "attributes.h"
@@ -18,6 +19,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_announce.h"

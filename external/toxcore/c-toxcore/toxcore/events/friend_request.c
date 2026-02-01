@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -24,7 +25,7 @@
 
 struct Tox_Event_Friend_Request {
     uint8_t public_key[TOX_PUBLIC_KEY_SIZE];
-    uint8_t *message;
+    uint8_t *_Nullable message;
     uint32_t message_length;
 };
 
@@ -52,6 +53,12 @@ static bool tox_event_friend_request_set_message(Tox_Event_Friend_Request *_Nonn
 
     if (message == nullptr) {
         assert(message_length == 0);
+        return true;
+    }
+
+    if (message_length == 0) {
+        friend_request->message = nullptr;
+        friend_request->message_length = 0;
         return true;
     }
 
@@ -136,7 +143,7 @@ Tox_Event_Friend_Request *tox_event_friend_request_new(const Memory *mem)
 void tox_event_friend_request_free(Tox_Event_Friend_Request *friend_request, const Memory *mem)
 {
     if (friend_request != nullptr) {
-        tox_event_friend_request_destruct((Tox_Event_Friend_Request * _Nonnull)friend_request, mem);
+        tox_event_friend_request_destruct(friend_request, mem);
     }
     mem_delete(mem, friend_request);
 }
@@ -197,7 +204,9 @@ static Tox_Event_Friend_Request *tox_event_friend_request_alloc(Tox_Events_State
  *****************************************************/
 
 void tox_events_handle_friend_request(
-    Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length,
+    Tox *tox,
+    const uint8_t *public_key,
+    const uint8_t *message, size_t length,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -208,5 +217,18 @@ void tox_events_handle_friend_request(
     }
 
     tox_event_friend_request_set_public_key(friend_request, public_key);
-    tox_event_friend_request_set_message(friend_request, state->mem, message, length);
+    if (!tox_event_friend_request_set_message(friend_request, state->mem, message, length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_friend_request_dispatch(Tox *tox, const Tox_Event_Friend_Request *event, void *user_data)
+{
+    if (tox->friend_request_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->friend_request_callback(tox, event->public_key, event->message, event->message_length, user_data);
+    tox_lock(tox);
 }

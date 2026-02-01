@@ -43,6 +43,7 @@ TESTS = \
 	scenario_friend_read_receipt_test \
 	scenario_friend_request_spam_test \
 	scenario_friend_request_test \
+	scenario_group_by_id_test \
 	scenario_group_general_test \
 	scenario_group_invite_test \
 	scenario_group_message_test \
@@ -231,6 +232,10 @@ scenario_friend_read_receipt_test_LDADD = $(AUTOTEST_LDADD) libscenario_framewor
 scenario_friend_request_spam_test_SOURCES = ../auto_tests/scenarios/scenario_friend_request_spam_test.c
 scenario_friend_request_spam_test_CFLAGS = $(AUTOTEST_CFLAGS)
 scenario_friend_request_spam_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
+
+scenario_group_by_id_test_SOURCES = ../auto_tests/scenarios/scenario_group_by_id_test.c
+scenario_group_by_id_test_CFLAGS = $(AUTOTEST_CFLAGS)
+scenario_group_by_id_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
 
 scenario_group_general_test_SOURCES = ../auto_tests/scenarios/scenario_group_general_test.c
 scenario_group_general_test_CFLAGS = $(AUTOTEST_CFLAGS)

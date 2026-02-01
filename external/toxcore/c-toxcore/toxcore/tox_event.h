@@ -5,6 +5,8 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_EVENT_H
 #define C_TOXCORE_TOXCORE_TOX_EVENT_H
 
+#include <stdbool.h>
+
 #include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
@@ -252,6 +254,47 @@ bool tox_event_group_self_join_unpack(Tox_Event_Group_Self_Join *_Nonnull *_Nonn
 bool tox_event_group_join_fail_unpack(Tox_Event_Group_Join_Fail *_Nonnull *_Nonnull event, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem);
 bool tox_event_group_moderation_unpack(Tox_Event_Group_Moderation *_Nonnull *_Nonnull event, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem);
 bool tox_event_dht_nodes_response_unpack(Tox_Event_Dht_Nodes_Response *_Nonnull *_Nonnull event, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem);
+
+void tox_events_handle_conference_connected_dispatch(Tox *_Nonnull tox, const Tox_Event_Conference_Connected *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_conference_invite_dispatch(Tox *_Nonnull tox, const Tox_Event_Conference_Invite *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_conference_message_dispatch(Tox *_Nonnull tox, const Tox_Event_Conference_Message *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_conference_peer_list_changed_dispatch(Tox *_Nonnull tox, const Tox_Event_Conference_Peer_List_Changed *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_conference_peer_name_dispatch(Tox *_Nonnull tox, const Tox_Event_Conference_Peer_Name *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_conference_title_dispatch(Tox *_Nonnull tox, const Tox_Event_Conference_Title *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_dht_nodes_response_dispatch(Tox *_Nonnull tox, const Tox_Event_Dht_Nodes_Response *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_file_chunk_request_dispatch(Tox *_Nonnull tox, const Tox_Event_File_Chunk_Request *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_file_recv_chunk_dispatch(Tox *_Nonnull tox, const Tox_Event_File_Recv_Chunk *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_file_recv_control_dispatch(Tox *_Nonnull tox, const Tox_Event_File_Recv_Control *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_file_recv_dispatch(Tox *_Nonnull tox, const Tox_Event_File_Recv *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_connection_status_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Connection_Status *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_lossless_packet_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Lossless_Packet *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_lossy_packet_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Lossy_Packet *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_message_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Message *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_name_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Name *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_read_receipt_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Read_Receipt *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_request_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Request *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_status_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Status *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_status_message_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Status_Message *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_friend_typing_dispatch(Tox *_Nonnull tox, const Tox_Event_Friend_Typing *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_self_connection_status_dispatch(Tox *_Nonnull tox, const Tox_Event_Self_Connection_Status *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_peer_name_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Peer_Name *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_peer_status_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Peer_Status *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_topic_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Topic *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_privacy_state_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Privacy_State *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_voice_state_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Voice_State *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_topic_lock_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Topic_Lock *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_peer_limit_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Peer_Limit *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_password_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Password *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_message_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Message *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_private_message_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Private_Message *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_custom_packet_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Custom_Packet *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_custom_private_packet_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Custom_Private_Packet *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_invite_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Invite *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_peer_join_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Peer_Join *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_peer_exit_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Peer_Exit *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_self_join_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Self_Join *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_join_fail_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Join_Fail *_Nonnull event, void *_Nullable user_data);
+void tox_events_handle_group_moderation_dispatch(Tox *_Nonnull tox, const Tox_Event_Group_Moderation *_Nonnull event, void *_Nullable user_data);
 
 #ifdef __cplusplus
 } /* extern "C" */

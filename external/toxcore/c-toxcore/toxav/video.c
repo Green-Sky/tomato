@@ -28,6 +28,9 @@ struct VCSession {
     vpx_codec_ctx_t encoder[1];
     uint32_t frame_counter;
 
+    vpx_image_t raw_encoder_frame;
+    bool raw_encoder_frame_allocated;
+
     /* decoding */
     vpx_codec_ctx_t decoder[1];
     struct RingBuffer *vbuf_raw; /* Un-decoded data */
@@ -41,9 +44,9 @@ struct VCSession {
     vc_video_receive_frame_cb *vcb;
     void *user_data;
 
-    pthread_mutex_t queue_mutex[1];
-    pthread_mutex_t *mutable_queue_mutex;
+    pthread_mutex_t *queue_mutex;
     const Logger *log;
+    const Memory *mem;
 
     vpx_codec_iter_t iter;
 };
@@ -159,7 +162,7 @@ static void vc_init_encoder_cfg(const Logger *_Nonnull log, vpx_codec_enc_cfg_t 
 #endif /* 0 */
 }
 
-VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend_number,
+VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_time, uint32_t friend_number,
                   vc_video_receive_frame_cb *cb, void *user_data)
 {
     if (mono_time == nullptr) {
@@ -174,12 +177,21 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend
         return nullptr;
     }
 
-    if (create_recursive_mutex(vc->queue_mutex) != 0) {
-        LOGGER_WARNING(log, "Failed to create recursive mutex!");
+    vc->mem = mem;
+
+    vc->queue_mutex = (pthread_mutex_t *)mem_alloc(mem, sizeof(pthread_mutex_t));
+    if (vc->queue_mutex == nullptr) {
+        LOGGER_WARNING(log, "Allocation failed! Application might misbehave!");
         free(vc);
         return nullptr;
     }
-    vc->mutable_queue_mutex = vc->queue_mutex;
+
+    if (create_recursive_mutex(vc->queue_mutex) != 0) {
+        LOGGER_WARNING(log, "Failed to create recursive mutex!");
+        mem_delete(mem, vc->queue_mutex);
+        free(vc);
+        return nullptr;
+    }
 
     const int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
 
@@ -284,6 +296,7 @@ BASE_CLEANUP_1:
     vpx_codec_destroy(vc->decoder);
 BASE_CLEANUP:
     pthread_mutex_destroy(vc->queue_mutex);
+    mem_delete(vc->mem, vc->queue_mutex);
     rb_kill(vc->vbuf_raw);
     free(vc);
 
@@ -296,6 +309,10 @@ void vc_kill(VCSession *vc)
         return;
     }
 
+    if (vc->raw_encoder_frame_allocated) {
+        vpx_img_free(&vc->raw_encoder_frame);
+    }
+
     vpx_codec_destroy(vc->encoder);
     vpx_codec_destroy(vc->decoder);
     void *p;
@@ -306,6 +323,7 @@ void vc_kill(VCSession *vc)
 
     rb_kill(vc->vbuf_raw);
     pthread_mutex_destroy(vc->queue_mutex);
+    mem_delete(vc->mem, vc->queue_mutex);
     LOGGER_DEBUG(vc->log, "Terminated video handler: %p", (void *)vc);
     free(vc);
 }
@@ -493,27 +511,34 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
 int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
               const uint8_t *u, const uint8_t *v, int encode_flags)
 {
-    vpx_image_t img;
+    if (vc->raw_encoder_frame_allocated && (vc->raw_encoder_frame.d_w != width || vc->raw_encoder_frame.d_h != height)) {
+        vpx_img_free(&vc->raw_encoder_frame);
+        vc->raw_encoder_frame_allocated = false;
+    }
 
-    // TODO(Green-Sky): figure out stride_align
-    // TODO(Green-Sky): check memory alignment?
-    if (vpx_img_wrap(&img, VPX_IMG_FMT_I420, width, height, 0, (uint8_t *)y) != nullptr) {
+    vpx_image_t *img = nullptr;
+    vpx_image_t img_wrapped;
+    if (vpx_img_wrap(&img_wrapped, VPX_IMG_FMT_I420, width, height, 1, (uint8_t *)y) != nullptr) {
+        img = &img_wrapped;
         // vpx_img_wrap assumes contigues memory, so we fix that
-        img.planes[VPX_PLANE_U] = (uint8_t *)u;
-        img.planes[VPX_PLANE_V] = (uint8_t *)v;
+        img->planes[VPX_PLANE_U] = (uint8_t *)u;
+        img->planes[VPX_PLANE_V] = (uint8_t *)v;
     } else {
         // call to wrap failed, falling back to copy
-        if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
-            LOGGER_ERROR(vc->log, "Could not allocate image for frame");
-            return -1;
+        if (!vc->raw_encoder_frame_allocated) {
+            if (vpx_img_alloc(&vc->raw_encoder_frame, VPX_IMG_FMT_I420, width, height, 1) == nullptr) {
+                LOGGER_ERROR(vc->log, "Could not allocate image for frame");
+                return -1;
+            }
+
+            vc->raw_encoder_frame_allocated = true;
         }
 
-        /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
-         * http://fourcc.org/yuv.php#IYUV
-         */
-        memcpy(img.planes[VPX_PLANE_Y], y, (size_t)width * height);
-        memcpy(img.planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
-        memcpy(img.planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
+        img = &vc->raw_encoder_frame;
+
+        memcpy(img->planes[VPX_PLANE_Y], y, (size_t)width * height);
+        memcpy(img->planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
+        memcpy(img->planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
     }
 
     int vpx_flags = 0;
@@ -522,10 +547,8 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
         vpx_flags |= VPX_EFLAG_FORCE_KF;
     }
 
-    const vpx_codec_err_t vrc = vpx_codec_encode(vc->encoder, &img,
+    const vpx_codec_err_t vrc = vpx_codec_encode(vc->encoder, img,
                                 vc->frame_counter, 1, vpx_flags, VPX_DL_REALTIME);
-
-    vpx_img_free(&img);
 
     if (vrc != VPX_CODEC_OK) {
         LOGGER_ERROR(vc->log, "Could not encode video frame: %s", vpx_codec_err_to_string(vrc));
@@ -558,15 +581,15 @@ int vc_get_cx_data(VCSession *vc, uint8_t **data, uint32_t *size, bool *is_keyfr
 uint32_t vc_get_lcfd(const VCSession *vc)
 {
     uint32_t lcfd;
-    pthread_mutex_lock(vc->mutable_queue_mutex);
+    pthread_mutex_lock(vc->queue_mutex);
     lcfd = vc->lcfd;
-    pthread_mutex_unlock(vc->mutable_queue_mutex);
+    pthread_mutex_unlock(vc->queue_mutex);
     return lcfd;
 }
 
 pthread_mutex_t *vc_get_queue_mutex(VCSession *vc)
 {
-    return &vc->queue_mutex[0];
+    return vc->queue_mutex;
 }
 
 void vc_increment_frame_counter(VCSession *vc)

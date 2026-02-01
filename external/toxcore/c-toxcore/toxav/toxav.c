@@ -86,7 +86,7 @@ typedef struct DecodeTimeStats {
 } DecodeTimeStats;
 
 struct ToxAV {
-    const struct Tox_Memory *mem;
+    const struct Memory *mem;
     Logger *log;
     Tox *tox;
     MSISession *msi;
@@ -95,8 +95,7 @@ struct ToxAV {
     ToxAVCall **calls;
     uint32_t calls_tail;
     uint32_t calls_head;
-    pthread_mutex_t mutex[1];
-    pthread_mutex_t *mutable_mutex;
+    pthread_mutex_t *mutex;
 
     /* Call callback */
     toxav_call_cb *ccb;
@@ -345,11 +344,17 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
         goto RETURN;
     }
 
-    if (create_recursive_mutex(av->mutex) != 0) {
+    av->mutex = (pthread_mutex_t *)mem_alloc(tox->sys.mem, sizeof(pthread_mutex_t));
+    if (av->mutex == nullptr) {
         rc = TOXAV_ERR_NEW_MALLOC;
         goto RETURN;
     }
-    av->mutable_mutex = av->mutex;
+
+    if (create_recursive_mutex(av->mutex) != 0) {
+        mem_delete(tox->sys.mem, av->mutex);
+        rc = TOXAV_ERR_NEW_MALLOC;
+        goto RETURN;
+    }
 
     av->mem = tox->sys.mem;
     av->log = tox->m->log;
@@ -365,7 +370,15 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr, nullptr);
 
     if (av->msi == nullptr) {
+        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_AUDIO);
+        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_VIDEO);
+        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, BWC_PACKET_ID);
+        tox_callback_friend_lossless_packet_per_pktid(av->tox, nullptr, PACKET_ID_MSI);
+
+        mono_time_free(tox->sys.mem, av->toxav_mono_time);
+
         pthread_mutex_destroy(av->mutex);
+        mem_delete(tox->sys.mem, av->mutex);
         rc = TOXAV_ERR_NEW_MALLOC;
         goto RETURN;
     }
@@ -431,6 +444,7 @@ void toxav_kill(ToxAV *av)
 
     pthread_mutex_unlock(av->mutex);
     pthread_mutex_destroy(av->mutex);
+    mem_delete(av->tox->sys.mem, av->mutex);
 
     // set ToxAV object to NULL in toxcore, to signal ToxAV has been shutdown
     tox_set_av_object(av->tox, nullptr);
@@ -441,9 +455,9 @@ void toxav_kill(ToxAV *av)
 Tox *toxav_get_tox(const ToxAV *av)
 {
     Tox *tox;
-    pthread_mutex_lock(av->mutable_mutex);
+    pthread_mutex_lock(av->mutex);
     tox = av->tox;
-    pthread_mutex_unlock(av->mutable_mutex);
+    pthread_mutex_unlock(av->mutex);
     return tox;
 }
 
@@ -465,15 +479,15 @@ uint32_t toxav_iteration_interval(const ToxAV *av)
 
 /**
  * @brief calc_interval Calculates the needed iteration interval based on previous decode times
- * @param av ToxAV struct to work on
+ * @param mono_time Mono_Time struct to work on
  * @param stats Statistics to update
  * @param frame_time the duration of the current frame in ms
  * @param start_time the timestamp when decoding of this frame started
  */
-static void calc_interval(const ToxAV *_Nonnull av, DecodeTimeStats *_Nonnull stats, int32_t frame_time, uint64_t start_time)
+static void calc_interval(const Mono_Time *_Nonnull mono_time, DecodeTimeStats *_Nonnull stats, int32_t frame_time, uint64_t start_time)
 {
     stats->interval = frame_time < stats->average ? 0 : (frame_time - stats->average);
-    stats->total += current_time_monotonic(av->toxav_mono_time) - start_time;
+    stats->total += current_time_monotonic(mono_time) - start_time;
 
     if (++stats->count == 3) {
         /* NOTE: Magic Offset for precision */
@@ -497,7 +511,8 @@ static void iterate_common(ToxAV *_Nonnull av, bool audio)
         return;
     }
 
-    const uint64_t start = current_time_monotonic(av->toxav_mono_time);
+    const Mono_Time *mono_time = av->toxav_mono_time;
+    const uint64_t start = current_time_monotonic(mono_time);
     int32_t frame_time = IDLE_ITERATION_INTERVAL_MS;
 
     for (ToxAVCall *i = av->calls[av->calls_head]; i != nullptr; i = i->next) {
@@ -547,7 +562,7 @@ static void iterate_common(ToxAV *_Nonnull av, bool audio)
     }
 
     DecodeTimeStats *stats = audio ? &av->audio_stats : &av->video_stats;
-    calc_interval(av, stats, frame_time, start);
+    calc_interval(mono_time, stats, frame_time, start);
 
     pthread_mutex_unlock(av->mutex);
 }
@@ -1324,6 +1339,16 @@ static int callback_invite(void *_Nonnull object, MSICall *_Nonnull call)
     return 0;
 }
 
+static void handle_call_error(ToxAV *toxav, MSICall *call)
+{
+    invoke_call_state_callback(toxav, call->friend_number, TOXAV_FRIEND_CALL_STATE_ERROR);
+
+    if (call->user_data != nullptr) {
+        call_kill_transmission((ToxAVCall *)call->user_data);
+        call_remove((ToxAVCall *)call->user_data);
+    }
+}
+
 static int callback_start(void *_Nonnull object, MSICall *_Nonnull call)
 {
     ToxAV *toxav = (ToxAV *)object;
@@ -1338,13 +1363,13 @@ static int callback_start(void *_Nonnull object, MSICall *_Nonnull call)
     }
 
     if (!call_prepare_transmission(av_call)) {
-        callback_error(toxav, call);
+        handle_call_error(toxav, call);
         pthread_mutex_unlock(toxav->mutex);
         return -1;
     }
 
     if (!invoke_call_state_callback(toxav, call->friend_number, call->peer_capabilities)) {
-        callback_error(toxav, call);
+        handle_call_error(toxav, call);
         pthread_mutex_unlock(toxav->mutex);
         return -1;
     }
@@ -1374,12 +1399,7 @@ static int callback_error(void *_Nonnull object, MSICall *_Nonnull call)
     ToxAV *toxav = (ToxAV *)object;
     pthread_mutex_lock(toxav->mutex);
 
-    invoke_call_state_callback(toxav, call->friend_number, TOXAV_FRIEND_CALL_STATE_ERROR);
-
-    if (call->user_data != nullptr) {
-        call_kill_transmission((ToxAVCall *)call->user_data);
-        call_remove((ToxAVCall *)call->user_data);
-    }
+    handle_call_error(toxav, call);
 
     pthread_mutex_unlock(toxav->mutex);
     return 0;
@@ -1637,7 +1657,7 @@ static bool call_prepare_transmission(ToxAVCall *_Nullable call)
     { /* Prepare video */
         call->vcb = av->vcb;
         call->vcb_user_data = av->vcb_user_data;
-        call->video = vc_new(av->log, av->toxav_mono_time, call->friend_number, handle_video_frame, call);
+        call->video = vc_new(av->mem, av->log, av->toxav_mono_time, call->friend_number, handle_video_frame, call);
 
         if (call->video == nullptr) {
             LOGGER_ERROR(av->log, "Failed to create video codec session");
