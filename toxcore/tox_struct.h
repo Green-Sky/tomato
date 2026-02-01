@@ -18,6 +18,7 @@ extern "C" {
 #endif
 
 struct Tox {
+    struct Logger *_Nonnull log;
     struct Messenger *_Nonnull m;
     Mono_Time *_Nonnull mono_time;
     Tox_System sys;

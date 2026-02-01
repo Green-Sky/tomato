@@ -5,13 +5,18 @@
 #ifndef C_TOXCORE_TOXCORE_FORWARDING_H
 #define C_TOXCORE_TOXCORE_FORWARDING_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "DHT.h"
 #include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "network.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -5,6 +5,9 @@
 #ifndef C_TOXCORE_TOXCORE_EVENTS_EVENTS_ALLOC_H
 #define C_TOXCORE_TOXCORE_EVENTS_EVENTS_ALLOC_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "../attributes.h"
 #include "../tox.h"
 #include "../tox_events.h"
@@ -14,20 +17,20 @@
 extern "C" {
 #endif
 
-struct Tox_Memory;
+struct Memory;
 
 struct Tox_Events {
-    Tox_Event *_Nonnull events;
+    Tox_Event *_Nullable events;
     uint32_t events_size;
     uint32_t events_capacity;
 
-    const struct Tox_Memory *_Nonnull mem;
+    const struct Memory *_Nonnull mem;
 };
 
 typedef struct Tox_Events_State {
     Tox_Err_Events_Iterate error;
-    const struct Tox_Memory *_Nonnull mem;
-    Tox_Events *_Nonnull events;
+    const struct Memory *_Nonnull mem;
+    Tox_Events *_Nullable events;
 } Tox_Events_State;
 
 tox_conference_connected_cb tox_events_handle_conference_connected;

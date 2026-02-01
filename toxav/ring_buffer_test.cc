@@ -4,7 +4,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <vector>
+
+#include "../toxcore/attributes.h"
 
 namespace {
 
@@ -23,37 +26,39 @@ public:
 
     bool full() const { return rb_full(rb_); }
     bool empty() const { return rb_empty(rb_); }
-    T *write(T *p) { return static_cast<T *>(rb_write(rb_, p)); }
-    bool read(T **p)
+    T *_Nullable write(T *_Nullable p) { return static_cast<T *>(rb_write(rb_, p)); }
+    bool read(T *_Nullable *_Nonnull p)
     {
-        void *vp;
+        void *_Nullable vp;
         bool res = rb_read(rb_, &vp);
         *p = static_cast<T *>(vp);
         return res;
     }
 
-    uint16_t size() const { return rb_size(rb_); }
-    uint16_t data(T **dest) const
+    std::uint16_t size() const { return rb_size(rb_); }
+    std::uint16_t data(T *_Nullable *_Nonnull dest, std::uint16_t dest_size) const
     {
-        std::vector<void *> vdest(size());
-        uint16_t res = rb_data(rb_, vdest.data());
-        for (uint16_t i = 0; i < size(); i++) {
+        const std::uint16_t current_size = std::min(size(), dest_size);
+        std::vector<void *_Nullable> vdest(current_size);
+        const std::uint16_t res = rb_data(rb_, vdest.data(), current_size);
+        for (std::uint16_t i = 0; i < res; i++) {
             dest[i] = static_cast<T *>(vdest.at(i));
         }
         return res;
     }
 
-    bool contains(T *p) const
+    bool contains(T *_Nullable p) const
     {
-        std::vector<T *> elts(size());
-        data(elts.data());
+        const std::uint16_t current_size = size();
+        std::vector<T *_Nullable> elts(current_size);
+        data(elts.data(), current_size);
         return std::find(elts.begin(), elts.end(), p) != elts.end();
     }
 
     bool ok() const { return rb_ != nullptr; }
 
 private:
-    RingBuffer *rb_;
+    RingBuffer *_Nullable rb_;
 };
 
 TEST(RingBuffer, EmptyBufferReportsEmpty)
@@ -209,6 +214,29 @@ TEST(RingBuffer, SizeIsLimitedByMaxSize)
     rb.write(&value0);
     // Still size is 4.
     EXPECT_EQ(rb.size(), 4);
+}
+
+TEST(RingBuffer, NewWithInvalidSizeReturnsNull)
+{
+    EXPECT_EQ(nullptr, rb_new(-1));
+    EXPECT_EQ(nullptr, rb_new(65535));
+}
+
+TEST(RingBuffer, DataWithSmallerDestSizeIsTruncated)
+{
+    TypedRingBuffer<int *> rb(4);
+    ASSERT_TRUE(rb.ok());
+    int values[] = {1, 2, 3, 4};
+    rb.write(&values[0]);
+    rb.write(&values[1]);
+    rb.write(&values[2]);
+    rb.write(&values[3]);
+
+    int *dest[2];
+    std::uint16_t res = rb.data(dest, 2);
+    EXPECT_EQ(res, 2);
+    EXPECT_EQ(dest[0], &values[0]);
+    EXPECT_EQ(dest[1], &values[1]);
 }
 
 }  // namespace

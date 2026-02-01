@@ -17,7 +17,7 @@
 
 #include "attributes.h"
 #include "mem.h"
-#include "tox_random.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -189,11 +189,6 @@ bool crypto_sha512_eq(const uint8_t cksum1[_Nonnull CRYPTO_SHA512_SIZE], const u
  * @return true if both mem locations of length are equal, false if they are not.
  */
 bool crypto_sha256_eq(const uint8_t cksum1[_Nonnull CRYPTO_SHA256_SIZE], const uint8_t cksum2[_Nonnull CRYPTO_SHA256_SIZE]);
-
-/**
- * @brief Shorter internal name for the RNG type.
- */
-typedef Tox_Random Random;
 
 /**
  * @brief Return a random 8 bit integer.

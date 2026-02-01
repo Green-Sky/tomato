@@ -20,10 +20,18 @@ struct Bin_Unpack {
     cmp_ctx_t ctx;
 };
 
-static bool buf_reader(cmp_ctx_t *_Nonnull ctx, void *_Nonnull data, size_t limit)
+static bool buf_reader(cmp_ctx_t *_Nonnull ctx, void *_Nullable data, size_t limit)
 {
-    uint8_t *bytes = (uint8_t *)data;
-    Bin_Unpack *reader = (Bin_Unpack *)ctx->buf;
+    uint8_t *const bytes = (uint8_t *)data;
+
+    if (limit == 0) {
+        return true;
+    }
+
+    if (bytes == nullptr) {
+        return false;
+    }
+    Bin_Unpack *const reader = (Bin_Unpack *)ctx->buf;
     assert(reader != nullptr && reader->bytes != nullptr);
     if (limit > reader->bytes_size) {
         return false;
@@ -36,7 +44,10 @@ static bool buf_reader(cmp_ctx_t *_Nonnull ctx, void *_Nonnull data, size_t limi
 
 static bool buf_skipper(cmp_ctx_t *_Nonnull ctx, size_t count)
 {
-    Bin_Unpack *reader = (Bin_Unpack *)ctx->buf;
+    if (count == 0) {
+        return true;
+    }
+    Bin_Unpack *const reader = (Bin_Unpack *)ctx->buf;
     assert(reader != nullptr && reader->bytes != nullptr);
     if (count > reader->bytes_size) {
         return false;
@@ -46,7 +57,7 @@ static bool buf_skipper(cmp_ctx_t *_Nonnull ctx, size_t count)
     return true;
 }
 
-static size_t null_writer(cmp_ctx_t *_Nonnull ctx, const void *_Nonnull data, size_t count)
+static size_t null_writer(cmp_ctx_t *_Nonnull ctx, const void *_Nullable data, size_t count)
 {
     assert(count == 0);
     return 0;
@@ -119,6 +130,13 @@ bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_pt
         // There aren't as many bytes as this bin claims to want to allocate.
         return false;
     }
+
+    if (bin_size == 0) {
+        *data_ptr = nullptr;
+        *data_length_ptr = 0;
+        return true;
+    }
+
     uint8_t *const data = (uint8_t *)mem_balloc(bu->mem, bin_size);
 
     if (data == nullptr) {
@@ -132,6 +150,36 @@ bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_pt
 
     *data_ptr = data;
     *data_length_ptr = bin_size;
+    return true;
+}
+
+bool bin_unpack_str(Bin_Unpack *bu, char **str_ptr, uint32_t *str_length_ptr)
+{
+    uint32_t str_size;
+    if (!cmp_read_str_size(&bu->ctx, &str_size) || str_size > bu->bytes_size) {
+        return false;
+    }
+
+    if (str_size == UINT32_MAX) {
+        return false;
+    }
+
+    char *const str = (char *)mem_balloc(bu->mem, str_size + 1);
+
+    if (str == nullptr) {
+        return false;
+    }
+
+    if (str_size > 0) {
+        if (!bin_unpack_bin_b(bu, (uint8_t *)str, str_size)) {
+            mem_delete(bu->mem, str);
+            return false;
+        }
+    }
+
+    str[str_size] = 0;
+    *str_ptr = str;
+    *str_length_ptr = str_size;
     return true;
 }
 

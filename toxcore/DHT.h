@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -10,14 +10,17 @@
 #define C_TOXCORE_TOXCORE_DHT_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "network.h"
 #include "ping_array.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -155,19 +158,6 @@ typedef struct Client_data {
 } Client_data;
 
 /*----------------------------------------------------------------------------------*/
-
-typedef struct NAT {
-    /* true if currently hole punching */
-    bool        hole_punching;
-    uint32_t    punching_index;
-    uint32_t    tries;
-    uint32_t    punching_index2;
-
-    uint64_t    punching_timestamp;
-    uint64_t    recv_nat_ping_timestamp;
-    uint64_t    nat_ping_id;
-    uint64_t    nat_ping_timestamp;
-} NAT;
 
 typedef struct Node_format {
     uint8_t     public_key[CRYPTO_PUBLIC_KEY_SIZE];

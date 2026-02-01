@@ -11,7 +11,7 @@ run() {
     "${CPPFLAGS[@]}" \
     "${LDFLAGS[@]}" \
     "$@" \
-    -std=c++17 \
+    -std=c++20 \
     -fdiagnostics-color=always \
     -Wall \
     -Wextra \
@@ -20,6 +20,7 @@ run() {
     -Wno-aggressive-loop-optimizations \
     -Wno-float-conversion \
     -Wno-format-signedness \
+    -Wno-inline \
     -Wno-missing-field-initializers \
     -Wno-nonnull-compare \
     -Wno-padded \
@@ -46,7 +47,6 @@ run() {
     -Wignored-attributes \
     -Wignored-qualifiers \
     -Winit-self \
-    -Winline \
     -Wlarger-than=530000 \
     -Wmaybe-uninitialized \
     -Wmemset-transposed-args \

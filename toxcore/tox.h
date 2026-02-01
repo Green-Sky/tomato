@@ -207,11 +207,13 @@ bool tox_version_is_compatible(uint32_t major, uint32_t minor, uint32_t patch);
  */
 
 /**
- * @brief The size of a Tox Public Key in bytes.
+ * @brief The size of a long term Tox Public Key in bytes.
  */
 #define TOX_PUBLIC_KEY_SIZE            32
 
 uint32_t tox_public_key_size(void);
+
+typedef uint8_t Tox_Public_Key[TOX_PUBLIC_KEY_SIZE];
 
 /**
  * @brief The size of a Tox Secret Key in bytes.
@@ -219,6 +221,21 @@ uint32_t tox_public_key_size(void);
 #define TOX_SECRET_KEY_SIZE            32
 
 uint32_t tox_secret_key_size(void);
+
+typedef uint8_t Tox_Secret_Key[TOX_SECRET_KEY_SIZE];
+
+/**
+ * @brief The size of a Tox DHT Public Key in bytes.
+ *
+ * A DHT public key is never the same as the long term public key part of the
+ * Tox address. It can be long-term (for DHT bootstrap nodes) or short term
+ * ephemeral (for Tox client nodes).
+ */
+#define TOX_DHT_ID_SIZE                32
+
+uint32_t tox_dht_id_size(void);
+
+typedef uint8_t Tox_Dht_Id[TOX_DHT_ID_SIZE];
 
 /**
  * @brief The size of a Tox Conference unique id in bytes.
@@ -229,12 +246,16 @@ uint32_t tox_secret_key_size(void);
 
 uint32_t tox_conference_uid_size(void);
 
+typedef uint8_t Tox_Conference_Uid[TOX_CONFERENCE_UID_SIZE];
+
 /**
  * @brief The size of a Tox Conference unique id in bytes.
  */
 #define TOX_CONFERENCE_ID_SIZE         32
 
 uint32_t tox_conference_id_size(void);
+
+typedef uint8_t Tox_Conference_Id[TOX_CONFERENCE_ID_SIZE];
 
 /**
  * @brief The size of the nospam in bytes when written in a Tox address.
@@ -256,6 +277,8 @@ uint32_t tox_nospam_size(void);
 #define TOX_ADDRESS_SIZE               38
 
 uint32_t tox_address_size(void);
+
+typedef uint8_t Tox_Address[TOX_ADDRESS_SIZE];
 
 /**
  * @brief Maximum length of a nickname in bytes.
@@ -309,12 +332,16 @@ uint32_t tox_max_custom_packet_size(void);
 
 uint32_t tox_hash_length(void);
 
+typedef uint8_t Tox_Hash[TOX_HASH_LENGTH];
+
 /**
  * @brief The number of bytes in a file id.
  */
 #define TOX_FILE_ID_LENGTH             32
 
 uint32_t tox_file_id_length(void);
+
+typedef uint8_t Tox_File_Id[TOX_FILE_ID_LENGTH];
 
 /**
  * @brief Maximum file name length for file transfers.
@@ -541,7 +568,7 @@ const char *tox_err_bootstrap_to_string(Tox_Err_Bootstrap value);
 
 /**
  * @brief Sends a "nodes request" to the given bootstrap node with IP, port,
- *   and public key to setup connections.
+ *   and DHT public key to setup connections.
  *
  * This function will attempt to connect to the node using UDP. You must use
  * this function even if Tox_Options.udp_enabled was set to false.
@@ -550,11 +577,11 @@ const char *tox_err_bootstrap_to_string(Tox_Err_Bootstrap value);
  *   at most TOX_MAX_HOSTNAME_LENGTH chars, including the NUL byte.
  * @param port The port on the host on which the bootstrap Tox instance is
  *   listening.
- * @param public_key The long term public key of the bootstrap node
- *   (TOX_PUBLIC_KEY_SIZE bytes).
+ * @param public_key The DHT public key of the bootstrap node
+ *   (TOX_DHT_ID_SIZE bytes).
  * @return true on success.
  */
-bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Bootstrap *error);
+bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const Tox_Dht_Id public_key, Tox_Err_Bootstrap *error);
 
 /**
  * @brief Adds additional host:port pair as TCP relay.
@@ -566,11 +593,11 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t publ
  * @param host The hostname or IP address (IPv4 or IPv6) of the TCP relay.
  *   Must be at most TOX_MAX_HOSTNAME_LENGTH chars, including the NUL byte.
  * @param port The port on the host on which the TCP relay is listening.
- * @param public_key The long term public key of the TCP relay
- *   (TOX_PUBLIC_KEY_SIZE bytes).
+ * @param public_key The DHT public key of the TCP relay
+ *   (TOX_DHT_ID_SIZE bytes).
  * @return true on success.
  */
-bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Bootstrap *error);
+bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const Tox_Dht_Id public_key, Tox_Err_Bootstrap *error);
 
 /**
  * @brief Protocols that can be used to connect to the network or friends.
@@ -668,7 +695,7 @@ void tox_iterate(Tox *tox, void *user_data);
  *   parameter is NULL, this function has no effect.
  * @see TOX_ADDRESS_SIZE for the address format.
  */
-void tox_self_get_address(const Tox *tox, uint8_t address[TOX_ADDRESS_SIZE]);
+void tox_self_get_address(const Tox *tox, Tox_Address address);
 
 /**
  * @brief Set the 4-byte nospam part of the address.
@@ -693,7 +720,7 @@ uint32_t tox_self_get_nospam(const Tox *tox);
  * @param public_key A memory region of at least TOX_PUBLIC_KEY_SIZE bytes. If
  *   this parameter is NULL, this function has no effect.
  */
-void tox_self_get_public_key(const Tox *tox, uint8_t public_key[TOX_PUBLIC_KEY_SIZE]);
+void tox_self_get_public_key(const Tox *tox, Tox_Public_Key public_key);
 
 /**
  * @brief Copy the Tox Secret Key from the Tox object.
@@ -701,7 +728,7 @@ void tox_self_get_public_key(const Tox *tox, uint8_t public_key[TOX_PUBLIC_KEY_S
  * @param secret_key A memory region of at least TOX_SECRET_KEY_SIZE bytes. If
  *   this parameter is NULL, this function has no effect.
  */
-void tox_self_get_secret_key(const Tox *tox, uint8_t secret_key[TOX_SECRET_KEY_SIZE]);
+void tox_self_get_secret_key(const Tox *tox, Tox_Secret_Key secret_key);
 
 /** @} */
 
@@ -906,7 +933,7 @@ const char *tox_err_friend_add_to_string(Tox_Err_Friend_Add value);
  * @return the friend number on success, an unspecified value on failure.
  */
 Tox_Friend_Number tox_friend_add(
-    Tox *tox, const uint8_t address[TOX_ADDRESS_SIZE],
+    Tox *tox, const Tox_Address address,
     const uint8_t message[], size_t length,
     Tox_Err_Friend_Add *error);
 
@@ -929,7 +956,7 @@ Tox_Friend_Number tox_friend_add(
  * @see tox_friend_add for a more detailed description of friend numbers.
  */
 Tox_Friend_Number tox_friend_add_norequest(
-    Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Friend_Add *error);
+    Tox *tox, const Tox_Public_Key public_key, Tox_Err_Friend_Add *error);
 
 typedef enum Tox_Err_Friend_Delete {
 
@@ -995,7 +1022,7 @@ const char *tox_err_friend_by_public_key_to_string(Tox_Err_Friend_By_Public_Key 
  *
  * @return the friend number on success, an unspecified value on failure.
  */
-Tox_Friend_Number tox_friend_by_public_key(const Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Friend_By_Public_Key *error);
+Tox_Friend_Number tox_friend_by_public_key(const Tox *tox, const Tox_Public_Key public_key, Tox_Err_Friend_By_Public_Key *error);
 
 /**
  * @brief Checks if a friend with the given friend number exists and returns
@@ -1049,7 +1076,7 @@ const char *tox_err_friend_get_public_key_to_string(Tox_Err_Friend_Get_Public_Ke
  * @return true on success.
  */
 bool tox_friend_get_public_key(
-    const Tox *tox, Tox_Friend_Number friend_number, uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
+    const Tox *tox, Tox_Friend_Number friend_number, Tox_Public_Key public_key,
     Tox_Err_Friend_Get_Public_Key *error);
 
 typedef enum Tox_Err_Friend_Get_Last_Online {
@@ -1448,7 +1475,7 @@ void tox_callback_friend_read_receipt(Tox *tox, tox_friend_read_receipt_cb *call
  * @param length The size of the message byte array.
  */
 typedef void tox_friend_request_cb(
-    Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
+    Tox *tox, const Tox_Public_Key public_key,
     const uint8_t message[], size_t length,
     void *user_data);
 
@@ -1507,7 +1534,7 @@ typedef uint32_t Tox_File_Number;
  *
  * @return true if hash was not NULL.
  */
-bool tox_hash(uint8_t hash[TOX_HASH_LENGTH], const uint8_t data[], size_t length);
+bool tox_hash(Tox_Hash hash, const uint8_t data[], size_t length);
 
 /**
  * @brief A list of pre-defined file kinds.
@@ -1516,7 +1543,8 @@ bool tox_hash(uint8_t hash[TOX_HASH_LENGTH], const uint8_t data[], size_t length
  * These are a hint to the client telling it what use the sender intended for
  * the file. The `kind` parameter in the send function and recv callback are
  * `uint32_t`, not Tox_File_Kind, because clients can invent their own file
- * kind. Unknown file kinds should be treated as TOX_FILE_KIND_DATA.
+ * kind. To avoid collisions, new client invented file kinds should avoid the first 256.
+ * Unknown file kinds should be treated as TOX_FILE_KIND_DATA.
  */
 enum Tox_File_Kind {
 
@@ -1524,7 +1552,7 @@ enum Tox_File_Kind {
      * Arbitrary file data. Clients can choose to handle it based on the file
      * name or magic or any other way they choose.
      */
-    TOX_FILE_KIND_DATA,
+    TOX_FILE_KIND_DATA = 0,
 
     /**
      * Avatar file_id. This consists of tox_hash(image).
@@ -1546,7 +1574,18 @@ enum Tox_File_Kind {
      * When file_size is set to 0 in the transfer request it means that the
      * client has no avatar.
      */
-    TOX_FILE_KIND_AVATAR,
+    TOX_FILE_KIND_AVATAR = 1,
+
+    /**
+     * To be specified.
+     */
+    TOX_FILE_KIND_STICKER = 2,
+
+    /**
+     * Here the file_id is the specified hash of the data.
+     */
+    TOX_FILE_KIND_SHA1 = 3,
+    TOX_FILE_KIND_SHA256 = 4,
 
 };
 
@@ -1759,8 +1798,46 @@ const char *tox_err_file_get_to_string(Tox_Err_File_Get value);
  */
 bool tox_file_get_file_id(
     const Tox *tox, Tox_Friend_Number friend_number, Tox_File_Number file_number,
-    uint8_t file_id[TOX_FILE_ID_LENGTH],
+    Tox_File_Id file_id,
     Tox_Err_File_Get *error);
+
+typedef enum Tox_Err_File_By_Id {
+
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_FILE_BY_ID_OK,
+
+    /**
+     * One of the arguments to the function was NULL when it was not expected.
+     */
+    TOX_ERR_FILE_BY_ID_NULL,
+
+    /**
+     * The friend_number passed did not designate a valid friend.
+     */
+    TOX_ERR_FILE_BY_ID_FRIEND_NOT_FOUND,
+
+    /**
+     * No file transfer with the given ID exists.
+     */
+    TOX_ERR_FILE_BY_ID_NOT_FOUND,
+
+} Tox_Err_File_By_Id;
+
+const char *tox_err_file_by_id_to_string(Tox_Err_File_By_Id value);
+
+/**
+ * Return the file number associated with the specified friend number and File ID.
+ *
+ * @param friend_number The friend number of the friend the file is being sent to or received from.
+ * @param file_id A memory region of at least TOX_FILE_ID_LENGTH bytes.
+ *
+ * @return the file number on success, UINT32_MAX on failure.
+ */
+Tox_File_Number tox_file_by_id(
+    const Tox *tox, Tox_Friend_Number friend_number, const Tox_File_Id file_id,
+    Tox_Err_File_By_Id *error);
 
 /** @} */
 
@@ -1867,7 +1944,7 @@ const char *tox_err_file_send_to_string(Tox_Err_File_Send value);
  */
 Tox_File_Number tox_file_send(
     Tox *tox, Tox_Friend_Number friend_number, uint32_t kind, uint64_t file_size,
-    const uint8_t file_id[TOX_FILE_ID_LENGTH], const uint8_t filename[], size_t filename_length,
+    const Tox_File_Id file_id, const uint8_t filename[], size_t filename_length,
     Tox_Err_File_Send *error);
 
 typedef enum Tox_Err_File_Send_Chunk {
@@ -2323,7 +2400,7 @@ bool tox_conference_peer_get_name(
  */
 bool tox_conference_peer_get_public_key(
     const Tox *tox, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number,
-    uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Conference_Peer_Query *error);
+    Tox_Public_Key public_key, Tox_Err_Conference_Peer_Query *error);
 
 /**
  * @brief Return true if passed peer_number corresponds to our own.
@@ -2378,7 +2455,7 @@ bool tox_conference_offline_peer_get_name(
  */
 bool tox_conference_offline_peer_get_public_key(
     const Tox *tox, Tox_Conference_Number conference_number,
-    Tox_Conference_Offline_Peer_Number offline_peer_number, uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Conference_Peer_Query *error);
+    Tox_Conference_Offline_Peer_Number offline_peer_number, Tox_Public_Key public_key, Tox_Err_Conference_Peer_Query *error);
 
 /**
  * @brief Return a unix-time timestamp of the last time offline_peer_number was
@@ -2707,7 +2784,7 @@ Tox_Conference_Type tox_conference_get_type(
  * @return true on success.
  */
 bool tox_conference_get_id(
-    const Tox *tox, Tox_Conference_Number conference_number, uint8_t id[TOX_CONFERENCE_ID_SIZE]);
+    const Tox *tox, Tox_Conference_Number conference_number, Tox_Conference_Id id);
 
 typedef enum Tox_Err_Conference_By_Id {
 
@@ -2738,7 +2815,7 @@ const char *tox_err_conference_by_id_to_string(Tox_Err_Conference_By_Id value);
  * @return the conference number on success, an unspecified value on failure.
  */
 Tox_Conference_Number tox_conference_by_id(
-    const Tox *tox, const uint8_t id[TOX_CONFERENCE_ID_SIZE], Tox_Err_Conference_By_Id *error);
+    const Tox *tox, const Tox_Conference_Id id, Tox_Err_Conference_By_Id *error);
 
 #ifndef TOX_HIDE_DEPRECATED
 /**
@@ -2754,7 +2831,7 @@ Tox_Conference_Number tox_conference_by_id(
  *   just renamed).
  */
 bool tox_conference_get_uid(
-    const Tox *tox, Tox_Conference_Number conference_number, uint8_t uid[TOX_CONFERENCE_UID_SIZE]);
+    const Tox *tox, Tox_Conference_Number conference_number, Tox_Conference_Uid uid);
 #endif /* TOX_HIDE_DEPRECATED */
 
 typedef enum Tox_Err_Conference_By_Uid {
@@ -2790,7 +2867,7 @@ const char *tox_err_conference_by_uid_to_string(Tox_Err_Conference_By_Uid value)
  *   just renamed).
  */
 Tox_Conference_Number tox_conference_by_uid(
-    const Tox *tox, const uint8_t uid[TOX_CONFERENCE_UID_SIZE], Tox_Err_Conference_By_Uid *error);
+    const Tox *tox, const Tox_Conference_Uid uid, Tox_Err_Conference_By_Uid *error);
 #endif /* TOX_HIDE_DEPRECATED */
 
 /** @} */
@@ -2962,10 +3039,10 @@ const char *tox_err_get_port_to_string(Tox_Err_Get_Port value);
  * Be aware that every time a new instance is created, the DHT public key
  * changes, meaning this cannot be used to run a permanent bootstrap node.
  *
- * @param dht_id A memory region of at least TOX_PUBLIC_KEY_SIZE bytes. If this
+ * @param dht_id A memory region of at least TOX_DHT_ID_SIZE bytes. If this
  *   parameter is NULL, this function has no effect.
  */
-void tox_self_get_dht_id(const Tox *tox, uint8_t dht_id[TOX_PUBLIC_KEY_SIZE]);
+void tox_self_get_dht_id(const Tox *tox, Tox_Dht_Id dht_id);
 
 /**
  * @brief Return the UDP port this Tox instance is bound to.
@@ -3051,12 +3128,16 @@ uint32_t tox_group_max_password_size(void);
 
 uint32_t tox_group_chat_id_size(void);
 
+typedef uint8_t Tox_Group_Chat_Id[TOX_GROUP_CHAT_ID_SIZE];
+
 /**
  * Size of a peer public key.
  */
 #define TOX_GROUP_PEER_PUBLIC_KEY_SIZE 32
 
 uint32_t tox_group_peer_public_key_size(void);
+
+typedef uint8_t Tox_Group_Peer_Public_Key[TOX_GROUP_PEER_PUBLIC_KEY_SIZE];
 
 /*******************************************************************************
  *
@@ -3317,7 +3398,7 @@ const char *tox_err_group_join_to_string(Tox_Err_Group_Join value);
  * @return group_number on success, UINT32_MAX on failure.
  */
 Tox_Group_Number tox_group_join(
-    Tox *tox, const uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE],
+    Tox *tox, const Tox_Group_Chat_Id chat_id,
     const uint8_t name[], size_t name_length,
     const uint8_t password[], size_t password_length,
     Tox_Err_Group_Join *error);
@@ -3633,7 +3714,7 @@ Tox_Group_Peer_Number tox_group_self_get_peer_id(const Tox *tox, Tox_Group_Numbe
  *
  * @return true on success.
  */
-bool tox_group_self_get_public_key(const Tox *tox, Tox_Group_Number group_number, uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
+bool tox_group_self_get_public_key(const Tox *tox, Tox_Group_Number group_number, Tox_Public_Key public_key,
                                    Tox_Err_Group_Self_Query *error);
 
 /*******************************************************************************
@@ -3758,7 +3839,7 @@ Tox_Connection tox_group_peer_get_connection_status(const Tox *tox, Tox_Group_Nu
  */
 bool tox_group_peer_get_public_key(
     const Tox *tox, Tox_Group_Number group_number, Tox_Group_Peer_Number peer_id,
-    uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Group_Peer_Query *error);
+    Tox_Public_Key public_key, Tox_Err_Group_Peer_Query *error);
 
 /**
  * @param group_number The group number of the group the name change is intended
@@ -3957,8 +4038,38 @@ bool tox_group_get_name(
  * @return true on success.
  */
 bool tox_group_get_chat_id(
-    const Tox *tox, Tox_Group_Number group_number, uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE],
+    const Tox *tox, Tox_Group_Number group_number, Tox_Group_Chat_Id chat_id,
     Tox_Err_Group_State_Query *error);
+
+typedef enum Tox_Err_Group_By_Id {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_BY_ID_OK,
+
+    /**
+     * One of the arguments to the function was NULL when it was not expected.
+     */
+    TOX_ERR_GROUP_BY_ID_NULL,
+
+    /**
+     * No group with the given ID exists on the group list.
+     */
+    TOX_ERR_GROUP_BY_ID_NOT_FOUND,
+
+} Tox_Err_Group_By_Id;
+
+const char *tox_err_group_by_id_to_string(Tox_Err_Group_By_Id value);
+
+/**
+ * Return the group number associated with the specified Chat ID.
+ *
+ * @param chat_id A byte array containing the Chat ID (TOX_GROUP_CHAT_ID_SIZE).
+ *
+ * @return the group number on success, UINT32_MAX on failure.
+ */
+Tox_Group_Number tox_group_by_id(
+    const Tox *tox, const Tox_Group_Chat_Id chat_id, Tox_Err_Group_By_Id *error);
 
 /**
  * Return the number of groups in the Tox chats array.

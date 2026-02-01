@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -135,7 +136,7 @@ Tox_Event_Group_Moderation *tox_event_group_moderation_new(const Memory *mem)
 void tox_event_group_moderation_free(Tox_Event_Group_Moderation *group_moderation, const Memory *mem)
 {
     if (group_moderation != nullptr) {
-        tox_event_group_moderation_destruct((Tox_Event_Group_Moderation * _Nonnull)group_moderation, mem);
+        tox_event_group_moderation_destruct(group_moderation, mem);
     }
     mem_delete(mem, group_moderation);
 }
@@ -196,7 +197,11 @@ static Tox_Event_Group_Moderation *tox_event_group_moderation_alloc(Tox_Events_S
  *****************************************************/
 
 void tox_events_handle_group_moderation(
-    Tox *tox, uint32_t group_number, uint32_t source_peer_id, uint32_t target_peer_id, Tox_Group_Mod_Event mod_type,
+    Tox *tox,
+    uint32_t group_number,
+    uint32_t source_peer_id,
+    uint32_t target_peer_id,
+    Tox_Group_Mod_Event mod_type,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -210,4 +215,15 @@ void tox_events_handle_group_moderation(
     tox_event_group_moderation_set_source_peer_id(group_moderation, source_peer_id);
     tox_event_group_moderation_set_target_peer_id(group_moderation, target_peer_id);
     tox_event_group_moderation_set_mod_type(group_moderation, mod_type);
+}
+
+void tox_events_handle_group_moderation_dispatch(Tox *tox, const Tox_Event_Group_Moderation *event, void *user_data)
+{
+    if (tox->group_moderation_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->group_moderation_callback(tox, event->group_number, event->source_peer_id, event->target_peer_id, event->mod_type, user_data);
+    tox_lock(tox);
 }

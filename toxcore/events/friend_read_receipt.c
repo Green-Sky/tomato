@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -105,7 +106,7 @@ Tox_Event_Friend_Read_Receipt *tox_event_friend_read_receipt_new(const Memory *m
 void tox_event_friend_read_receipt_free(Tox_Event_Friend_Read_Receipt *friend_read_receipt, const Memory *mem)
 {
     if (friend_read_receipt != nullptr) {
-        tox_event_friend_read_receipt_destruct((Tox_Event_Friend_Read_Receipt * _Nonnull)friend_read_receipt, mem);
+        tox_event_friend_read_receipt_destruct(friend_read_receipt, mem);
     }
     mem_delete(mem, friend_read_receipt);
 }
@@ -166,7 +167,9 @@ static Tox_Event_Friend_Read_Receipt *tox_event_friend_read_receipt_alloc(Tox_Ev
  *****************************************************/
 
 void tox_events_handle_friend_read_receipt(
-    Tox *tox, uint32_t friend_number, uint32_t message_id,
+    Tox *tox,
+    uint32_t friend_number,
+    uint32_t message_id,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -178,4 +181,15 @@ void tox_events_handle_friend_read_receipt(
 
     tox_event_friend_read_receipt_set_friend_number(friend_read_receipt, friend_number);
     tox_event_friend_read_receipt_set_message_id(friend_read_receipt, message_id);
+}
+
+void tox_events_handle_friend_read_receipt_dispatch(Tox *tox, const Tox_Event_Friend_Read_Receipt *event, void *user_data)
+{
+    if (tox->friend_read_receipt_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->friend_read_receipt_callback(tox, event->friend_number, event->message_id, user_data);
+    tox_lock(tox);
 }

@@ -316,3 +316,69 @@ int read_packet_tcp_secure_connection(
 
     return len;
 }
+
+const char *tcp_packet_type_to_string(Tcp_Packet type)
+{
+    switch (type) {
+        case TCP_PACKET_ROUTING_REQUEST:
+            return "TCP_PACKET_ROUTING_REQUEST";
+
+        case TCP_PACKET_ROUTING_RESPONSE:
+            return "TCP_PACKET_ROUTING_RESPONSE";
+
+        case TCP_PACKET_CONNECTION_NOTIFICATION:
+            return "TCP_PACKET_CONNECTION_NOTIFICATION";
+
+        case TCP_PACKET_DISCONNECT_NOTIFICATION:
+            return "TCP_PACKET_DISCONNECT_NOTIFICATION";
+
+        case TCP_PACKET_PING:
+            return "TCP_PACKET_PING";
+
+        case TCP_PACKET_PONG:
+            return "TCP_PACKET_PONG";
+
+        case TCP_PACKET_OOB_SEND:
+            return "TCP_PACKET_OOB_SEND";
+
+        case TCP_PACKET_OOB_RECV:
+            return "TCP_PACKET_OOB_RECV";
+
+        case TCP_PACKET_ONION_REQUEST:
+            return "TCP_PACKET_ONION_REQUEST";
+
+        case TCP_PACKET_ONION_RESPONSE:
+            return "TCP_PACKET_ONION_RESPONSE";
+
+        case TCP_PACKET_FORWARD_REQUEST:
+            return "TCP_PACKET_FORWARD_REQUEST";
+
+        case TCP_PACKET_FORWARDING:
+            return "TCP_PACKET_FORWARDING";
+    }
+
+    return "<invalid Tcp_Packet>";
+}
+
+bool tcp_packet_from_int(uint32_t value, Tcp_Packet *_Nonnull out_enum)
+{
+    switch (value) {
+        case TCP_PACKET_ROUTING_REQUEST:
+        case TCP_PACKET_ROUTING_RESPONSE:
+        case TCP_PACKET_CONNECTION_NOTIFICATION:
+        case TCP_PACKET_DISCONNECT_NOTIFICATION:
+        case TCP_PACKET_PING:
+        case TCP_PACKET_PONG:
+        case TCP_PACKET_OOB_SEND:
+        case TCP_PACKET_OOB_RECV:
+        case TCP_PACKET_ONION_REQUEST:
+        case TCP_PACKET_ONION_RESPONSE:
+        case TCP_PACKET_FORWARD_REQUEST:
+        case TCP_PACKET_FORWARDING: {
+            *out_enum = (Tcp_Packet)value;
+            return true;
+        }
+    }
+
+    return false;
+}

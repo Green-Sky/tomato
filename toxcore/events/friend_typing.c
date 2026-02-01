@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -105,7 +106,7 @@ Tox_Event_Friend_Typing *tox_event_friend_typing_new(const Memory *mem)
 void tox_event_friend_typing_free(Tox_Event_Friend_Typing *friend_typing, const Memory *mem)
 {
     if (friend_typing != nullptr) {
-        tox_event_friend_typing_destruct((Tox_Event_Friend_Typing * _Nonnull)friend_typing, mem);
+        tox_event_friend_typing_destruct(friend_typing, mem);
     }
     mem_delete(mem, friend_typing);
 }
@@ -166,7 +167,9 @@ static Tox_Event_Friend_Typing *tox_event_friend_typing_alloc(Tox_Events_State *
  *****************************************************/
 
 void tox_events_handle_friend_typing(
-    Tox *tox, uint32_t friend_number, bool typing,
+    Tox *tox,
+    uint32_t friend_number,
+    bool typing,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -178,4 +181,15 @@ void tox_events_handle_friend_typing(
 
     tox_event_friend_typing_set_friend_number(friend_typing, friend_number);
     tox_event_friend_typing_set_typing(friend_typing, typing);
+}
+
+void tox_events_handle_friend_typing_dispatch(Tox *tox, const Tox_Event_Friend_Typing *event, void *user_data)
+{
+    if (tox->friend_typing_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->friend_typing_callback(tox, event->friend_number, event->typing, user_data);
+    tox_lock(tox);
 }

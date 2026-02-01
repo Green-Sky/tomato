@@ -9,12 +9,15 @@
 #ifndef C_TOXCORE_TOXCORE_ONION_ANNOUNCE_H
 #define C_TOXCORE_TOXCORE_ONION_ANNOUNCE_H
 
+#include <stdint.h>
+
 #include "DHT.h"
 #include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "network.h"
 #include "onion.h"
 #include "timed_auth.h"
@@ -40,6 +43,10 @@
 
 #define ONION_DATA_REQUEST_MIN_SIZE (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
 #define MAX_DATA_REQUEST_SIZE (ONION_MAX_DATA_SIZE - ONION_DATA_REQUEST_MIN_SIZE)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct Onion_Announce Onion_Announce;
 
@@ -128,4 +135,9 @@ Onion_Announce *_Nullable new_onion_announce(const Logger *_Nonnull log, const M
         Networking_Core *_Nonnull net);
 
 void kill_onion_announce(Onion_Announce *_Nullable onion_a);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
 #endif /* C_TOXCORE_TOXCORE_ONION_ANNOUNCE_H */

@@ -10,6 +10,9 @@
 #ifndef C_TOXCORE_TOXCORE_GROUP_CONNECTION_H
 #define C_TOXCORE_TOXCORE_GROUP_CONNECTION_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "DHT.h"
 #include "TCP_connection.h"
 #include "attributes.h"
@@ -18,6 +21,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "network.h"
 
 /* Max number of TCP relays we share with a peer on handshake */

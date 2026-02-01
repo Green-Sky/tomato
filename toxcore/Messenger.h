@@ -10,6 +10,9 @@
 #ifndef C_TOXCORE_TOXCORE_MESSENGER_H
 #define C_TOXCORE_TOXCORE_MESSENGER_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "DHT.h"
 #include "TCP_client.h"
 #include "TCP_server.h"
@@ -24,6 +27,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "net_crypto.h"
 #include "net_profile.h"
 #include "network.h"
@@ -70,6 +74,8 @@ typedef struct Messenger_State_Plugin {
 } Messenger_State_Plugin;
 
 typedef struct Messenger_Options {
+    Logger *_Nonnull log;
+
     bool ipv6enabled;
     bool udp_disabled;
     TCP_Proxy_Info proxy_info;
@@ -80,10 +86,6 @@ typedef struct Messenger_Options {
     bool local_discovery_enabled;
     bool dht_announcements_enabled;
     bool groups_persistence_enabled;
-
-    logger_cb *_Nullable log_callback;
-    void *_Nullable log_context;
-    void *_Nullable log_user_data;
 
     Messenger_State_Plugin *_Nullable state_plugins;
     uint8_t state_plugins_length;
@@ -626,6 +628,7 @@ void callback_file_reqchunk(Messenger *_Nonnull m, m_file_chunk_request_cb *_Non
  * @retval -2 if filenumber not valid
  */
 int file_get_id(const Messenger *_Nonnull m, int32_t friendnumber, uint32_t filenumber, uint8_t *_Nonnull file_id);
+int32_t file_by_id(const Messenger *_Nonnull m, uint32_t friendnumber, const uint8_t *_Nonnull file_id);
 
 /** @brief Send a file send request.
  *

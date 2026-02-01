@@ -27,7 +27,7 @@ typedef struct VCSession VCSession;
 
 struct RTPMessage;
 
-VCSession *_Nullable vc_new(const Logger *_Nonnull log, const Mono_Time *_Nonnull mono_time, uint32_t friend_number,
+VCSession *_Nullable vc_new(const Memory *_Nonnull mem, const Logger *_Nonnull log, const Mono_Time *_Nonnull mono_time, uint32_t friend_number,
                             vc_video_receive_frame_cb *_Nullable cb, void *_Nullable user_data);
 void vc_kill(VCSession *_Nullable vc);
 void vc_iterate(VCSession *_Nullable vc);

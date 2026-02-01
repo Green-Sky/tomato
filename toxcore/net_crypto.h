@@ -9,6 +9,9 @@
 #ifndef C_TOXCORE_TOXCORE_NET_CRYPTO_H
 #define C_TOXCORE_TOXCORE_NET_CRYPTO_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "DHT.h" // Node_format
 #include "TCP_client.h"
 #include "TCP_connection.h"
@@ -17,8 +20,10 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "net_profile.h"
 #include "network.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {

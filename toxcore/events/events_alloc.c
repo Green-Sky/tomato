@@ -61,7 +61,13 @@ bool tox_events_add(Tox_Events *events, const Tox_Event *event)
     }
 
     if (events->events_size == events->events_capacity) {
-        const uint32_t new_events_capacity = events->events_capacity * 2 + 1;
+        const uint64_t new_events_capacity_64 = (uint64_t)events->events_capacity * 2 + 1;
+
+        if (new_events_capacity_64 > UINT32_MAX) {
+            return false;
+        }
+
+        const uint32_t new_events_capacity = (uint32_t)new_events_capacity_64;
         Tox_Event *new_events = (Tox_Event *)mem_vrealloc(
                                     events->mem, events->events, new_events_capacity, sizeof(Tox_Event));
 

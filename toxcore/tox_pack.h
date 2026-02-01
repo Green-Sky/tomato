@@ -5,6 +5,8 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_PACK_H
 #define C_TOXCORE_TOXCORE_TOX_PACK_H
 
+#include <stdbool.h>
+
 #include "attributes.h"
 #include "bin_pack.h"
 #include "tox.h"

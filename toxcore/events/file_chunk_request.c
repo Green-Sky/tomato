@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -133,7 +134,7 @@ Tox_Event_File_Chunk_Request *tox_event_file_chunk_request_new(const Memory *mem
 void tox_event_file_chunk_request_free(Tox_Event_File_Chunk_Request *file_chunk_request, const Memory *mem)
 {
     if (file_chunk_request != nullptr) {
-        tox_event_file_chunk_request_destruct((Tox_Event_File_Chunk_Request * _Nonnull)file_chunk_request, mem);
+        tox_event_file_chunk_request_destruct(file_chunk_request, mem);
     }
     mem_delete(mem, file_chunk_request);
 }
@@ -194,7 +195,11 @@ static Tox_Event_File_Chunk_Request *tox_event_file_chunk_request_alloc(Tox_Even
  *****************************************************/
 
 void tox_events_handle_file_chunk_request(
-    Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
+    Tox *tox,
+    uint32_t friend_number,
+    uint32_t file_number,
+    uint64_t position,
+    size_t length,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -208,4 +213,15 @@ void tox_events_handle_file_chunk_request(
     tox_event_file_chunk_request_set_file_number(file_chunk_request, file_number);
     tox_event_file_chunk_request_set_position(file_chunk_request, position);
     tox_event_file_chunk_request_set_length(file_chunk_request, length);
+}
+
+void tox_events_handle_file_chunk_request_dispatch(Tox *tox, const Tox_Event_File_Chunk_Request *event, void *user_data)
+{
+    if (tox->file_chunk_request_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->file_chunk_request_callback(tox, event->friend_number, event->file_number, event->position, event->length, user_data);
+    tox_lock(tox);
 }

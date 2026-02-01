@@ -9,15 +9,20 @@
 #ifndef C_TOXCORE_TOXCORE_TCP_SERVER_H
 #define C_TOXCORE_TOXCORE_TCP_SERVER_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "net_profile.h"
 #include "network.h"
 #include "onion.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,12 +1,13 @@
 #ifndef C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_MEMORY_H
 #define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_MEMORY_H
 
+#include <atomic>
 #include <functional>
 
 #include "../public/memory.hh"
 
 // Forward declaration
-struct Tox_Memory;
+struct Memory;
 
 namespace tox::test {
 
@@ -18,9 +19,9 @@ public:
     FakeMemory();
     ~FakeMemory() override;
 
-    void *malloc(size_t size) override;
-    void *realloc(void *ptr, size_t size) override;
-    void free(void *ptr) override;
+    void *_Nullable malloc(size_t size) override;
+    void *_Nullable realloc(void *_Nullable ptr, size_t size) override;
+    void free(void *_Nullable ptr) override;
 
     // Configure failure injection
     void set_failure_injector(FailureInjector injector);
@@ -28,10 +29,18 @@ public:
     // Configure observer
     void set_observer(Observer observer);
 
-    // Get the C-compatible struct
-    struct Tox_Memory get_c_memory();
+    /**
+     * @brief Returns C-compatible Memory struct.
+     */
+    struct Memory c_memory() override;
+
+    size_t current_allocation() const;
+    size_t max_allocation() const;
 
 private:
+    void on_allocation(size_t size);
+    void on_deallocation(size_t size);
+
     struct Header {
         size_t size;
         size_t magic;
@@ -39,8 +48,8 @@ private:
     static constexpr size_t kMagic = 0xDEADC0DE;
     static constexpr size_t kFreeMagic = 0xBAADF00D;
 
-    size_t current_allocation_ = 0;
-    size_t max_allocation_ = 0;
+    std::atomic<size_t> current_allocation_{0};
+    std::atomic<size_t> max_allocation_{0};
 
     FailureInjector failure_injector_;
     Observer observer_;

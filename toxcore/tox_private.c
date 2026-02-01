@@ -19,10 +19,12 @@
 #include "group_common.h"
 #include "logger.h"
 #include "mem.h"
+#include "net.h"
 #include "net_crypto.h"
 #include "net_profile.h"
 #include "network.h"
 #include "os_memory.h"
+#include "os_network.h"
 #include "os_random.h"
 #include "tox.h"
 #include "tox_struct.h"  // IWYU pragma: keep

@@ -18,6 +18,7 @@ cc_library(
         "src/simulated_environment.cc",
         "src/simulation.cc",
         "src/tox_network.cc",
+        "src/tox_runner.cc",
     ],
     hdrs = [
         "doubles/fake_clock.hh",
@@ -31,11 +32,13 @@ cc_library(
         "public/fuzz_data.hh",
         "public/fuzz_helpers.hh",
         "public/memory.hh",
+        "public/mpsc_queue.hh",
         "public/network.hh",
         "public/random.hh",
         "public/simulated_environment.hh",
         "public/simulation.hh",
         "public/tox_network.hh",
+        "public/tox_runner.hh",
     ],
     copts = select({
         "//tools/config:windows": ["/wd4200"],  # Zero-sized array in struct/union
@@ -43,12 +46,14 @@ cc_library(
     }),
     visibility = ["//visibility:public"],
     deps = [
+        "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:mem",
+        "//c-toxcore/toxcore:net",
         "//c-toxcore/toxcore:network",
+        "//c-toxcore/toxcore:rng",
         "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:tox_memory",
+        "//c-toxcore/toxcore:tox_events",
         "//c-toxcore/toxcore:tox_options",
-        "//c-toxcore/toxcore:tox_random",
         "@psocket",
     ],
 )
@@ -56,6 +61,28 @@ cc_library(
 cc_test(
     name = "fake_sockets_test",
     srcs = ["doubles/fake_sockets_test.cc"],
+    deps = [
+        ":support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@psocket",
+    ],
+)
+
+cc_test(
+    name = "fake_network_udp_test",
+    srcs = ["doubles/fake_network_udp_test.cc"],
+    deps = [
+        ":support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@psocket",
+    ],
+)
+
+cc_test(
+    name = "fake_network_tcp_test",
+    srcs = ["doubles/fake_network_tcp_test.cc"],
     deps = [
         ":support",
         "@com_google_googletest//:gtest",
@@ -99,11 +126,23 @@ cc_test(
 )
 
 cc_test(
+    name = "simulation_test",
+    srcs = ["simulation_test.cc"],
+    deps = [
+        ":support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "tox_network_test",
     timeout = "long",
     srcs = ["tox_network_test.cc"],
     deps = [
         ":support",
+        "//c-toxcore/toxcore:attributes",
+        "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:tox",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",

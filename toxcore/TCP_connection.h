@@ -21,8 +21,10 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "net_profile.h"
 #include "network.h"
+#include "rng.h"
 
 #define TCP_CONN_NONE 0
 #define TCP_CONN_VALID 1

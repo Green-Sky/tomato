@@ -16,6 +16,7 @@
 #include "crypto_core.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "rng.h"
 
 #ifdef __cplusplus
 extern "C" {

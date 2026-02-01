@@ -11,6 +11,7 @@
 
 #include "attributes.h"
 #include "logger.h"
+#include "net.h"
 #include "network.h"
 
 #ifdef __cplusplus

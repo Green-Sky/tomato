@@ -66,6 +66,10 @@ bool rb_read(RingBuffer *b, void **p)
 
 RingBuffer *rb_new(int size)
 {
+    if (size < 0 || size >= 65535) {
+        return nullptr;
+    }
+
     RingBuffer *buf = (RingBuffer *)calloc(1, sizeof(RingBuffer));
 
     if (buf == nullptr) {
@@ -103,10 +107,14 @@ uint16_t rb_size(const RingBuffer *b)
         (b->size - b->start) + b->end;
 }
 
-uint16_t rb_data(const RingBuffer *b, void **dest)
+uint16_t rb_data(const RingBuffer *b, void **dest, uint16_t dest_size)
 {
     uint16_t i;
-    const uint16_t size = rb_size(b);
+    uint16_t size = rb_size(b);
+
+    if (size > dest_size) {
+        size = dest_size;
+    }
 
     for (i = 0; i < size; ++i) {
         dest[i] = b->data[(b->start + i) % b->size];

@@ -106,6 +106,34 @@ static void sender_script(ToxNode *self, void *ctx)
     uint32_t fnum = tox_file_send(tox_node_get_tox(self), 0, TOX_FILE_KIND_DATA, FILE_SIZE, nullptr, (const uint8_t *)FILENAME, sizeof(FILENAME), nullptr);
     tox_node_log(self, "Started sending file %u", fnum);
 
+    Tox_File_Id file_id;
+    if (!tox_file_get_file_id(tox_node_get_tox(self), 0, fnum, file_id, nullptr)) {
+        tox_node_log(self, "Failed to get file id for file %u", fnum);
+        abort();
+    }
+
+    Tox_Err_File_By_Id err;
+    Tox_File_Number found_fnum = tox_file_by_id(tox_node_get_tox(self), 0, file_id, &err);
+    if (found_fnum != fnum) {
+        tox_node_log(self, "tox_file_by_id failed: expected %u, got %u, error %u", fnum, found_fnum, err);
+        abort();
+    }
+
+    /* Test with invalid friend number */
+    found_fnum = tox_file_by_id(tox_node_get_tox(self), 1234, file_id, &err);
+    if (found_fnum != UINT32_MAX || err != TOX_ERR_FILE_BY_ID_FRIEND_NOT_FOUND) {
+        tox_node_log(self, "tox_file_by_id with invalid friend failed: expected UINT32_MAX and FRIEND_NOT_FOUND, got %u and error %u", found_fnum, err);
+        abort();
+    }
+
+    /* Test with invalid file id */
+    Tox_File_Id invalid_id = {0};
+    found_fnum = tox_file_by_id(tox_node_get_tox(self), 0, invalid_id, &err);
+    if (found_fnum != UINT32_MAX || err != TOX_ERR_FILE_BY_ID_NOT_FOUND) {
+        tox_node_log(self, "tox_file_by_id with invalid id failed: expected UINT32_MAX and NOT_FOUND, got %u and error %u", found_fnum, err);
+        abort();
+    }
+
     WAIT_UNTIL(state->file_sending_done);
     tox_node_log(self, "Done");
 }

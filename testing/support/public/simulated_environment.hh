@@ -13,9 +13,10 @@
 #include <sys/socket.h>
 #endif
 
-#include "../../../toxcore/tox_memory_impl.h"
+#include "../../../toxcore/attributes.h"
+#include "../../../toxcore/mem.h"
+#include "../../../toxcore/rng.h"
 #include "../../../toxcore/tox_private.h"
-#include "../../../toxcore/tox_random_impl.h"
 #include "../doubles/fake_clock.hh"
 #include "../doubles/fake_memory.hh"
 #include "../doubles/fake_random.hh"
@@ -29,12 +30,12 @@ struct ScopedToxSystem {
     std::unique_ptr<SimulatedNode> node;
 
     // Direct access to primary socket (for fuzzer injection)
-    FakeUdpSocket *endpoint;
+    FakeUdpSocket *_Nullable endpoint;
 
     // C structs
     struct Network c_network;
-    struct Tox_Random c_random;
-    struct Tox_Memory c_memory;
+    struct Random c_random;
+    struct Memory c_memory;
 
     // The main struct passed to tox_new
     Tox_System system;

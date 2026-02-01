@@ -14,8 +14,8 @@ IP make_ip(uint32_t ipv4)
 
 IP make_node_ip(uint32_t node_id)
 {
-    // Use 10.x.y.z range: 10. (id >> 16) . (id >> 8) . (id & 0xFF)
-    return make_ip(0x0A000000 | (node_id & 0x00FFFFFF));
+    // Use 20.x.y.z range: 20. (id >> 16) . (id >> 8) . (id & 0xFF)
+    return make_ip(0x14000000 | (node_id & 0x00FFFFFF));
 }
 
 }  // namespace tox::test

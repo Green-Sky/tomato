@@ -3,13 +3,15 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <iosfwd>
 
+#include "attributes.h"
 #include "crypto_core.h"
 #include "test_util.hh"
 
-struct PublicKey : private std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> {
-    using Base = std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE>;
+struct PublicKey : private std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE> {
+    using Base = std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE>;
 
     using Base::begin;
     using Base::data;
@@ -18,16 +20,16 @@ struct PublicKey : private std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> {
     using Base::operator[];
 
     PublicKey() = default;
-    explicit PublicKey(uint8_t const (&arr)[CRYPTO_PUBLIC_KEY_SIZE])
+    explicit PublicKey(std::uint8_t const (&arr)[CRYPTO_PUBLIC_KEY_SIZE])
         : PublicKey(to_array(arr))
     {
     }
-    explicit PublicKey(std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> const &arr)
+    explicit PublicKey(std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE> const &arr)
     {
         std::copy(arr.begin(), arr.end(), begin());
     }
 
-    PublicKey(std::initializer_list<uint8_t> const &arr)
+    PublicKey(std::initializer_list<std::uint8_t> const &arr)
     {
         std::copy(arr.begin(), arr.end(), begin());
     }
@@ -52,6 +54,8 @@ inline bool operator==(PublicKey::Base const &pk1, PublicKey const &pk2)
 
 std::ostream &operator<<(std::ostream &out, PublicKey const &pk);
 
-PublicKey random_pk(const Tox_Random *rng);
+PublicKey random_pk(const Random *_Nonnull rng);
+
+std::array<std::uint8_t, CRYPTO_SECRET_KEY_SIZE> random_sk(const Random *_Nonnull rng);
 
 #endif  // C_TOXCORE_TOXCORE_CRYPTO_CORE_TEST_UTIL_H

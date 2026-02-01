@@ -84,7 +84,9 @@ bool bin_unpack_nil(Bin_Unpack *_Nonnull bu);
  * remaining to be unpacked as the bin claims to need, so it's not possible to cause an arbitrarily
  * large allocation unless the input array was already that large.
  */
-bool bin_unpack_bin(Bin_Unpack *_Nonnull bu, uint8_t *_Nonnull *_Nonnull data_ptr, uint32_t *_Nonnull data_length_ptr);
+bool bin_unpack_bin(Bin_Unpack *_Nonnull bu, uint8_t *_Nullable *_Nonnull data_ptr, uint32_t *_Nonnull data_length_ptr);
+/** @brief Unpack a MessagePack str into a newly allocated string. */
+bool bin_unpack_str(Bin_Unpack *_Nonnull bu, char *_Nonnull *_Nonnull str_ptr, uint32_t *_Nonnull str_length_ptr);
 /** @brief Unpack a variable size MessagePack bin into a fixed size byte array.
  *
  * Stores unpacked data into `data` with its length stored in `data_length_ptr`. This function does
@@ -114,7 +116,7 @@ bool bin_unpack_u32_b(Bin_Unpack *_Nonnull bu, uint32_t *_Nonnull val);
 bool bin_unpack_u64_b(Bin_Unpack *_Nonnull bu, uint64_t *_Nonnull val);
 
 /** @brief Read a byte array directly from the packer, consuming `length` bytes. */
-bool bin_unpack_bin_b(Bin_Unpack *_Nonnull bu, uint8_t *_Nonnull data, uint32_t length);
+bool bin_unpack_bin_b(Bin_Unpack *_Nonnull bu, uint8_t *_Nullable data, uint32_t length);
 
 #ifdef __cplusplus
 } /* extern "C" */

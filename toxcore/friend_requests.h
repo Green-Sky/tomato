@@ -10,6 +10,7 @@
 #define C_TOXCORE_TOXCORE_FRIEND_REQUESTS_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "attributes.h"
 #include "friend_connection.h"

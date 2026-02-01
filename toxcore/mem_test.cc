@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "attributes.h"
 #include "os_memory.h"
 
 namespace {
@@ -9,9 +10,9 @@ namespace {
 TEST(Mem, AllocLarge)
 {
     // Mebi prefix: https://en.wikipedia.org/wiki/Binary_prefix.
-    constexpr uint32_t MI = 1024 * 1024;
+    constexpr std::uint32_t MI = 1024 * 1024;
 
-    const Memory *mem = os_memory();
+    const Memory *_Nonnull mem = os_memory();
 
     void *ptr = mem_valloc(mem, 4, MI);
     EXPECT_NE(ptr, nullptr);
@@ -22,9 +23,9 @@ TEST(Mem, AllocLarge)
 TEST(Mem, AllocOverflow)
 {
     // Gibi prefix.
-    constexpr uint32_t GI = 1024 * 1024 * 1024;
+    constexpr std::uint32_t GI = 1024 * 1024 * 1024;
 
-    const Memory *mem = os_memory();
+    const Memory *_Nonnull mem = os_memory();
 
     // 1 gibi-elements of 100 bytes each.
     void *ptr = mem_valloc(mem, GI, 100);

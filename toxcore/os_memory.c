@@ -6,8 +6,7 @@
 #include <stdlib.h>
 
 #include "attributes.h"
-#include "tox_memory.h"
-#include "tox_memory_impl.h" // IWYU pragma: keep
+#include "mem.h"
 
 static void *os_malloc(void *_Nonnull self, uint32_t size)
 {
@@ -27,14 +26,14 @@ static void os_dealloc(void *_Nonnull self, void *_Nullable ptr)
     free(ptr);
 }
 
-static const Tox_Memory_Funcs os_memory_funcs = {
+static const Memory_Funcs os_memory_funcs = {
     os_malloc,
     os_realloc,
     os_dealloc,
 };
-const Tox_Memory os_memory_obj = {&os_memory_funcs};
+const Memory os_memory_obj = {&os_memory_funcs};
 
-const Tox_Memory *os_memory(void)
+const Memory *os_memory(void)
 {
     return &os_memory_obj;
 }

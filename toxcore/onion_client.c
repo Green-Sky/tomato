@@ -959,7 +959,7 @@ static int handle_announce_response(void *_Nonnull object, const IP_Port *_Nonnu
     }
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE] = {0};
-    IP_Port ip_port = {0};
+    IP_Port ip_port = {{{0}}};
     uint32_t path_num = 0;
     const uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
 
@@ -1066,7 +1066,7 @@ static int handle_announce_response_old(void *_Nonnull object, const IP_Port *_N
     const uint16_t len_nodes = length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE] = {0};
-    IP_Port ip_port = {0};
+    IP_Port ip_port = {{{0}}};
     uint32_t path_num = 0;
     const uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
 

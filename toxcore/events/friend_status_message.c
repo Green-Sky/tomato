@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -24,7 +25,7 @@
 
 struct Tox_Event_Friend_Status_Message {
     uint32_t friend_number;
-    uint8_t *message;
+    uint8_t *_Nullable message;
     uint32_t message_length;
 };
 
@@ -51,6 +52,12 @@ static bool tox_event_friend_status_message_set_message(Tox_Event_Friend_Status_
 
     if (message == nullptr) {
         assert(message_length == 0);
+        return true;
+    }
+
+    if (message_length == 0) {
+        friend_status_message->message = nullptr;
+        friend_status_message->message_length = 0;
         return true;
     }
 
@@ -133,7 +140,7 @@ Tox_Event_Friend_Status_Message *tox_event_friend_status_message_new(const Memor
 void tox_event_friend_status_message_free(Tox_Event_Friend_Status_Message *friend_status_message, const Memory *mem)
 {
     if (friend_status_message != nullptr) {
-        tox_event_friend_status_message_destruct((Tox_Event_Friend_Status_Message * _Nonnull)friend_status_message, mem);
+        tox_event_friend_status_message_destruct(friend_status_message, mem);
     }
     mem_delete(mem, friend_status_message);
 }
@@ -194,7 +201,9 @@ static Tox_Event_Friend_Status_Message *tox_event_friend_status_message_alloc(To
  *****************************************************/
 
 void tox_events_handle_friend_status_message(
-    Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length,
+    Tox *tox,
+    uint32_t friend_number,
+    const uint8_t *message, size_t length,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -205,5 +214,18 @@ void tox_events_handle_friend_status_message(
     }
 
     tox_event_friend_status_message_set_friend_number(friend_status_message, friend_number);
-    tox_event_friend_status_message_set_message(friend_status_message, state->mem, message, length);
+    if (!tox_event_friend_status_message_set_message(friend_status_message, state->mem, message, length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_friend_status_message_dispatch(Tox *tox, const Tox_Event_Friend_Status_Message *event, void *user_data)
+{
+    if (tox->friend_status_message_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->friend_status_message_callback(tox, event->friend_number, event->message, event->message_length, user_data);
+    tox_lock(tox);
 }

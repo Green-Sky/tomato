@@ -195,8 +195,6 @@ This project uses various tools supporting Static Application Security Testing:
 - [cppcheck](https://cppcheck.sourceforge.io/): A static analyzer for C/C++
   code.
 - [cpplint](https://github.com/cpplint/cpplint): Static code checker for C++
-- [goblint](https://goblint.in.tum.de/): A static analyzer for multi-threaded C
-  programs, specializing in finding concurrency bugs.
 - [infer](https://github.com/facebook/infer): A static analyzer for Java, C,
   C++, and Objective-C.
 - [PVS-Studio](https://pvs-studio.com/en/pvs-studio/?utm_source=website&utm_medium=github&utm_campaign=open_source):

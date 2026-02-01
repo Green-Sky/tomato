@@ -1967,7 +1967,7 @@ static bool sync_response_send_state(GC_Chat *_Nonnull chat, GC_Connection *_Non
  * Return -3 if we fail to send a response packet.
  * Return -4 if `peer_number` does not designate a valid peer.
  */
-static int handle_gc_sync_request(GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nonnull data, uint16_t length)
+static int handle_gc_sync_request(GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nullable data, uint16_t length)
 {
     GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
@@ -2067,7 +2067,7 @@ static bool send_gc_tcp_relays(const GC_Chat *_Nonnull chat, GC_Connection *_Non
  * Return -1 if packet has invalid size.
  * Return -2 if packet contains invalid data.
  */
-static int handle_gc_tcp_relays(GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nonnull data, uint16_t length)
+static int handle_gc_tcp_relays(GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nullable data, uint16_t length)
 {
     if (length == 0) {
         return -1;
@@ -2203,7 +2203,7 @@ static bool send_gc_invite_response_reject(const GC_Chat *_Nonnull chat, GC_Conn
  * Return -3 if we fail to send an invite response.
  * Return -4 if peer_number does not designate a valid peer.
  */
-static int handle_gc_invite_request(GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nonnull data, uint16_t length)
+static int handle_gc_invite_request(GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nullable data, uint16_t length)
 {
     if (chat->shared_state.version == 0) {  // we aren't synced yet; ignore request
         return 0;
@@ -2682,7 +2682,7 @@ static bool send_gc_peer_exchange(const GC_Chat *chat, GC_Connection *gconn)
  * Return -8 if memory allocation fails.
  */
 static int handle_gc_peer_info_response(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number,
-                                        const uint8_t *_Nonnull data, uint16_t length, void *_Nullable userdata)
+                                        const uint8_t *_Nullable data, uint16_t length, void *_Nullable userdata)
 {
     if (length < PACKED_GC_PEER_SIZE) {
         return -1;
@@ -2918,7 +2918,7 @@ static int handle_gc_shared_state_error(GC_Chat *_Nonnull chat, GC_Connection *_
  * Return 0 if packet is successfully handled.
  * Return -1 if packet is invalid and this is not successfully handled.
  */
-static int handle_gc_shared_state(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nonnull data,
+static int handle_gc_shared_state(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nullable data,
                                   uint16_t length, void *_Nullable userdata)
 {
     if (length < GC_SHARED_STATE_ENC_PACKET_SIZE) {
@@ -3015,7 +3015,7 @@ static int validate_unpack_mod_list(GC_Chat *_Nonnull chat, const uint8_t *_Nonn
  * Return -1 if packet has invalid size.
  * Return -2 if packet contained invalid data or validation failed.
  */
-static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const uint8_t *_Nonnull data, uint16_t length, void *_Nullable userdata)
+static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const uint8_t *_Nullable data, uint16_t length, void *_Nullable userdata)
 {
     if (length < sizeof(uint16_t)) {
         return -1;
@@ -3094,7 +3094,7 @@ static int handle_gc_sanctions_list_error(GC_Chat *_Nonnull chat)
  * Return -1 if we failed to gracefully handle a sanctions list error.
  * Return -2 if packet has invalid size.
  */
-static int handle_gc_sanctions_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const uint8_t *_Nonnull data, uint16_t length,
+static int handle_gc_sanctions_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const uint8_t *_Nullable data, uint16_t length,
                                     void *_Nullable userdata)
 {
     if (length < sizeof(uint16_t)) {
@@ -3869,7 +3869,7 @@ static bool handle_gc_topic_validate(const GC_Chat *_Nonnull chat, const GC_Peer
  * Return 0 if packet is correctly handled.
  * Return -1 if packet has invalid size.
  */
-static int handle_gc_topic(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const GC_Peer *_Nonnull peer, const uint8_t *_Nonnull data,
+static int handle_gc_topic(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const GC_Peer *_Nonnull peer, const uint8_t *_Nullable data,
                            uint16_t length, void *_Nullable userdata)
 {
     if (length < SIGNATURE_SIZE + GC_MIN_PACKED_TOPIC_INFO_SIZE) {
@@ -3931,7 +3931,7 @@ static int handle_gc_topic(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat,
  * Return -2 if we fail to create a new session keypair.
  * Return -3 if response packet fails to send.
  */
-static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nonnull data, uint16_t length)
+static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nullable data, uint16_t length)
 {
     if (length < 1 + ENC_PUBLIC_KEY_SIZE) {
         return -1;
@@ -4995,7 +4995,7 @@ int gc_send_custom_private_packet(const GC_Chat *chat, bool lossless, GC_Peer_Id
  * @retval -1 if packet has invalid size.
  */
 static int handle_gc_custom_private_packet(const GC_Session *_Nonnull c, const GC_Chat *_Nonnull chat, const GC_Peer *_Nonnull peer,
-        const uint8_t *_Nonnull data, uint16_t length, bool lossless, void *_Nullable userdata)
+        const uint8_t *_Nullable data, uint16_t length, bool lossless, void *_Nullable userdata)
 {
     if (!custom_gc_packet_length_is_valid(length, lossless)) {
         return -1;
@@ -5038,7 +5038,7 @@ int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *dat
  * Return 0 if packet is handled correctly.
  * Return -1 if packet has invalid size.
  */
-static int handle_gc_custom_packet(const GC_Session *_Nonnull c, const GC_Chat *_Nonnull chat, const GC_Peer *_Nonnull peer, const uint8_t *_Nonnull data,
+static int handle_gc_custom_packet(const GC_Session *_Nonnull c, const GC_Chat *_Nonnull chat, const GC_Peer *_Nonnull peer, const uint8_t *_Nullable data,
                                    uint16_t length, bool lossless, void *_Nullable userdata)
 {
     if (!custom_gc_packet_length_is_valid(length, lossless)) {
@@ -5301,7 +5301,7 @@ int gc_set_ignore(const GC_Chat *chat, GC_Peer_Id peer_id, bool ignore)
  * Returns 0 if packet is handled correctly.
  * Returns -1 on failure.
  */
-static int handle_gc_broadcast(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nonnull data,
+static int handle_gc_broadcast(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nullable data,
                                uint16_t length, void *_Nullable userdata)
 {
     if (length < GC_BROADCAST_ENC_HEADER_SIZE) {
@@ -5483,7 +5483,7 @@ static int make_gc_handshake_packet(const GC_Chat *_Nonnull chat, const GC_Conne
 
     uint8_t data[GC_MIN_HS_PACKET_PAYLOAD_SIZE + sizeof(Node_format)];
 
-    uint16_t length = sizeof(uint8_t);
+    uint32_t length = sizeof(uint8_t);
 
     data[0] = handshake_type;
     memcpy(data + length, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
@@ -5505,7 +5505,7 @@ static int make_gc_handshake_packet(const GC_Chat *_Nonnull chat, const GC_Conne
 
     const int enc_len = wrap_group_handshake_packet(
                             chat->log, chat->mem, chat->rng, chat->self_public_key.enc, chat->self_secret_key.enc,
-                            gconn->addr.public_key.enc, packet, (uint16_t)packet_size, data, length);
+                            gconn->addr.public_key.enc, packet, (uint16_t)packet_size, data, (uint16_t)length);
 
     if (enc_len != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + nodes_size) {
         LOGGER_WARNING(chat->log, "Failed to wrap handshake packet: %d", enc_len);
@@ -7766,6 +7766,11 @@ int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
 
     mem_delete(chat->mem, packet);
 
+    if (chat->saved_invites[chat->saved_invites_index] != -1) {
+        LOGGER_WARNING(chat->log, "Overwriting pending group invite for friend %d due to buffer overflow",
+                       chat->saved_invites[chat->saved_invites_index]);
+    }
+
     chat->saved_invites[chat->saved_invites_index] = friend_number;
     chat->saved_invites_index = (chat->saved_invites_index + 1) % MAX_GC_SAVED_INVITES;
 
@@ -7992,6 +7997,8 @@ bool handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, co
     const int peer_number = peer_add(chat, nullptr, invite_chat_pk);
 
     if (!friend_was_invited(m, chat, friend_number)) {
+        LOGGER_WARNING(chat->log, "Group invite acceptance from friend %d rejected (not invited or invite buffer overflowed)",
+                       friend_number);
         return false;
     }
 

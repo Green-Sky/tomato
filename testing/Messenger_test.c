@@ -102,14 +102,27 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    Messenger_Options options = {0};
+    Messenger_Options options = {nullptr};
     options.ipv6enabled = ipv6enabled;
+
+    Logger *logger = logger_new(mem);
+
+    if (logger == nullptr) {
+        fputs("Failed to allocate logger datastructure\n", stderr);
+        mono_time_free(mem, mono_time);
+        exit(1);
+    }
+
+    options.log = logger;
+
     Messenger_Error err;
     m = new_messenger(mono_time, mem, os_random(), os_network(), &options, &err);
 
     if (!m) {
         fprintf(stderr, "Failed to allocate messenger datastructure: %u\n", err);
-        exit(0);
+        logger_kill(logger);
+        mono_time_free(mem, mono_time);
+        exit(1);
     }
 
     if (argc == argvoffset + 4) {
@@ -117,6 +130,9 @@ int main(int argc, char *argv[])
 
         if (port_conv <= 0 || port_conv > UINT16_MAX) {
             printf("Failed to convert \"%s\" into a valid port. Exiting...\n", argv[argvoffset + 2]);
+            kill_messenger(m);
+            logger_kill(logger);
+            mono_time_free(mem, mono_time);
             exit(1);
         }
 
@@ -131,6 +147,9 @@ int main(int argc, char *argv[])
 
         if (!res) {
             printf("Failed to convert \"%s\" into an IP address. Exiting...\n", argv[argvoffset + 1]);
+            kill_messenger(m);
+            logger_kill(logger);
+            mono_time_free(mem, mono_time);
             exit(1);
         }
     }
@@ -157,6 +176,9 @@ int main(int argc, char *argv[])
     printf("\nEnter the address of the friend you wish to add (38 bytes HEX format):\n");
 
     if (!fgets(temp_hex_id, sizeof(temp_hex_id), stdin)) {
+        kill_messenger(m);
+        logger_kill(logger);
+        mono_time_free(mem, mono_time);
         exit(0);
     }
 
@@ -186,6 +208,8 @@ int main(int argc, char *argv[])
         if (file == nullptr) {
             printf("Failed to open file %s\n", filename);
             kill_messenger(m);
+            logger_kill(logger);
+            mono_time_free(mem, mono_time);
             return 1;
         }
 
@@ -195,6 +219,8 @@ int main(int argc, char *argv[])
             fputs("Failed to allocate memory\n", stderr);
             fclose(file);
             kill_messenger(m);
+            logger_kill(logger);
+            mono_time_free(mem, mono_time);
             return 1;
         }
 
@@ -205,6 +231,8 @@ int main(int argc, char *argv[])
             free(buffer);
             fclose(file);
             kill_messenger(m);
+            logger_kill(logger);
+            mono_time_free(mem, mono_time);
             return 1;
         }
 

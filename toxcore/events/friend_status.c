@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -107,7 +108,7 @@ Tox_Event_Friend_Status *tox_event_friend_status_new(const Memory *mem)
 void tox_event_friend_status_free(Tox_Event_Friend_Status *friend_status, const Memory *mem)
 {
     if (friend_status != nullptr) {
-        tox_event_friend_status_destruct((Tox_Event_Friend_Status * _Nonnull)friend_status, mem);
+        tox_event_friend_status_destruct(friend_status, mem);
     }
     mem_delete(mem, friend_status);
 }
@@ -168,7 +169,9 @@ static Tox_Event_Friend_Status *tox_event_friend_status_alloc(Tox_Events_State *
  *****************************************************/
 
 void tox_events_handle_friend_status(
-    Tox *tox, uint32_t friend_number, Tox_User_Status status,
+    Tox *tox,
+    uint32_t friend_number,
+    Tox_User_Status status,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -180,4 +183,15 @@ void tox_events_handle_friend_status(
 
     tox_event_friend_status_set_friend_number(friend_status, friend_number);
     tox_event_friend_status_set_status(friend_status, status);
+}
+
+void tox_events_handle_friend_status_dispatch(Tox *tox, const Tox_Event_Friend_Status *event, void *user_data)
+{
+    if (tox->friend_status_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->friend_status_callback(tox, event->friend_number, event->status, user_data);
+    tox_lock(tox);
 }

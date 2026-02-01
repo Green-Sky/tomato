@@ -29,7 +29,8 @@ endif()
 
 set_source_files_properties(
   toxcore/mono_time.c
-  toxcore/network.c
+  toxcore/os_event.c
+  toxcore/os_network.c
   toxcore/tox.c
   toxcore/util.c
   PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
@@ -70,13 +71,27 @@ include(CTest)
 include(ModulePackage)
 include(StrictAbi)
 include(GNUInstallDirs)
+include(CheckIncludeFile)
+include(CheckSymbolExists)
 
 if(APPLE)
   include(MacRpath)
 endif()
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  check_include_file(sys/epoll.h HAVE_SYS_EPOLL_H)
+  if(HAVE_SYS_EPOLL_H)
+    check_symbol_exists(epoll_create "sys/epoll.h" HAVE_EPOLL_CREATE)
+    if(HAVE_EPOLL_CREATE)
+      add_definitions(-DEV_USE_EPOLL=1)
+      add_definitions(-DTCP_SERVER_USE_EPOLL=1)
+    endif()
+  endif()
+endif()
+
 enable_testing()
 find_package(GTest)
+find_package(benchmark QUIET)
 
 set(CMAKE_MACOSX_RPATH ON)
 
@@ -232,6 +247,8 @@ set(toxcore_SOURCES
   toxcore/crypto_core_pack.h
   toxcore/DHT.c
   toxcore/DHT.h
+  toxcore/ev.c
+  toxcore/ev.h
   toxcore/events/conference_connected.c
   toxcore/events/conference_invite.c
   toxcore/events/conference_message.c
@@ -307,6 +324,8 @@ set(toxcore_SOURCES
   toxcore/mem.h
   toxcore/mono_time.c
   toxcore/mono_time.h
+  toxcore/net.c
+  toxcore/net.h
   toxcore/net_crypto.c
   toxcore/net_crypto.h
   toxcore/net_log.c
@@ -321,14 +340,20 @@ set(toxcore_SOURCES
   toxcore/onion_client.c
   toxcore/onion_client.h
   toxcore/onion.h
+  toxcore/os_event.c
+  toxcore/os_event.h
   toxcore/os_memory.c
   toxcore/os_memory.h
+  toxcore/os_network.c
+  toxcore/os_network.h
   toxcore/os_random.c
   toxcore/os_random.h
   toxcore/ping_array.c
   toxcore/ping_array.h
   toxcore/ping.c
   toxcore/ping.h
+  toxcore/rng.c
+  toxcore/rng.h
   toxcore/shared_key_cache.c
   toxcore/shared_key_cache.h
   toxcore/sort.c
@@ -357,18 +382,12 @@ set(toxcore_SOURCES
   toxcore/tox_events.h
   toxcore/tox_log_level.c
   toxcore/tox_log_level.h
-  toxcore/tox_memory.c
-  toxcore/tox_memory.h
-  toxcore/tox_memory_impl.h
   toxcore/tox_options.c
   toxcore/tox_options.h
   toxcore/tox_private.c
   toxcore/tox_private.h
   toxcore/tox_pack.c
   toxcore/tox_pack.h
-  toxcore/tox_random.c
-  toxcore/tox_random.h
-  toxcore/tox_random_impl.h
   toxcore/tox_unpack.c
   toxcore/tox_unpack.h
   toxcore/util.c
@@ -390,10 +409,10 @@ set(toxcore_API_HEADERS
   ${toxcore_SOURCE_DIR}/toxcore/tox_options.h^tox)
 if(EXPERIMENTAL_API)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
+    ${toxcore_SOURCE_DIR}/toxcore/tox_attributes.h^tox
     ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox
     ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox
-    ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox
-    ${toxcore_SOURCE_DIR}/toxcore/tox_random.h^tox)
+    ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox)
 endif()
 
 ################################################################################
@@ -547,12 +566,22 @@ if(UNITTEST)
     toxcore/DHT_test_util.hh
     toxcore/crypto_core_test_util.cc
     toxcore/crypto_core_test_util.hh
+    toxcore/ev_test_util.cc
+    toxcore/ev_test_util.hh
     toxcore/mono_time_test_util.cc
     toxcore/mono_time_test_util.hh
     toxcore/network_test_util.cc
     toxcore/network_test_util.hh
+    toxcore/sort_test_util.cc
+    toxcore/sort_test_util.hh
     toxcore/test_util.cc
     toxcore/test_util.hh)
+  target_link_libraries(test_util PUBLIC support)
+  if(TARGET toxcore_static)
+    target_link_libraries(test_util PRIVATE toxcore_static)
+  else()
+    target_link_libraries(test_util PRIVATE toxcore_shared)
+  endif()
 endif()
 
 function(unit_test subdir target)
@@ -563,12 +592,8 @@ function(unit_test subdir target)
   else()
     target_link_libraries(unit_${target}_test PRIVATE toxcore_shared)
   endif()
-  if(TARGET pthreads4w::pthreads4w)
-    target_link_libraries(unit_${target}_test PRIVATE pthreads4w::pthreads4w)
-  elseif(TARGET PThreads4W::PThreads4W)
-    target_link_libraries(unit_${target}_test PRIVATE PThreads4W::PThreads4W)
-  elseif(TARGET Threads::Threads)
-    target_link_libraries(unit_${target}_test PRIVATE Threads::Threads)
+  if(WIN32)
+    target_link_libraries(unit_${target}_test PRIVATE ws2_32)
   endif()
   target_link_libraries(unit_${target}_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock)
   set_target_properties(unit_${target}_test PROPERTIES COMPILE_FLAGS "${TEST_CXX_FLAGS}")
@@ -588,7 +613,7 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
     else()
       target_link_libraries(av_test_support PRIVATE toxcore_shared)
     endif()
-    target_link_libraries(av_test_support PRIVATE GTest::gtest)
+    target_link_libraries(av_test_support PUBLIC support GTest::gtest)
 
     unit_test(toxav audio)
     target_link_libraries(unit_audio_test PRIVATE av_test_support)
@@ -601,16 +626,27 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   endif()
 
   unit_test(toxcore DHT)
+  unit_test(toxcore TCP_client)
+  unit_test(toxcore TCP_common)
+  unit_test(toxcore TCP_connection)
   unit_test(toxcore bin_pack)
   unit_test(toxcore crypto_core)
+  unit_test(toxcore ev)
+  unit_test(toxcore friend_connection)
   unit_test(toxcore group_announce)
   unit_test(toxcore group_moderation)
   unit_test(toxcore list)
   unit_test(toxcore mem)
   unit_test(toxcore mono_time)
+  unit_test(toxcore net_crypto)
+  unit_test(toxcore network)
+  unit_test(toxcore onion_client)
   unit_test(toxcore ping_array)
+  unit_test(toxcore shared_key_cache)
+  unit_test(toxcore sort)
   unit_test(toxcore test_util)
   unit_test(toxcore tox)
+  unit_test(toxcore tox_events)
   unit_test(toxcore util)
 endif()
 
@@ -645,13 +681,6 @@ if(DHT_BOOTSTRAP)
   elseif(TARGET unofficial-sodium::sodium)
     target_link_libraries(DHT_bootstrap PRIVATE unofficial-sodium::sodium)
   endif()
-  if(TARGET pthreads4w::pthreads4w)
-    target_link_libraries(DHT_bootstrap PRIVATE pthreads4w::pthreads4w)
-  elseif(TARGET PThreads4W::PThreads4W)
-    target_link_libraries(DHT_bootstrap PRIVATE PThreads4W::PThreads4W)
-  elseif(TARGET Threads::Threads)
-    target_link_libraries(DHT_bootstrap PRIVATE Threads::Threads)
-  endif()
   install(TARGETS DHT_bootstrap RUNTIME DESTINATION bin)
 endif()
 
@@ -670,4 +699,54 @@ endif()
 
 if (BUILD_FUZZ_TESTS)
   add_subdirectory(testing/fuzzing)
+endif()
+
+################################################################################
+#
+# :: Benchmarks
+#
+################################################################################
+
+if(UNITTEST AND benchmark_FOUND)
+  if(BUILD_TOXAV AND TARGET av_test_support)
+    add_executable(rtp_bench toxav/rtp_bench.cc)
+    target_link_libraries(rtp_bench PRIVATE
+      toxcore_static
+      av_test_support
+      benchmark::benchmark
+    )
+
+    add_executable(audio_bench toxav/audio_bench.cc)
+    target_link_libraries(audio_bench PRIVATE
+      toxcore_static
+      av_test_support
+      benchmark::benchmark
+    )
+
+    add_executable(video_bench toxav/video_bench.cc)
+    target_link_libraries(video_bench PRIVATE
+      toxcore_static
+      av_test_support
+      benchmark::benchmark
+    )
+  endif()
+
+  add_executable(sort_bench
+    toxcore/sort_bench.cc
+    toxcore/sort_test_util.cc
+    toxcore/sort_test_util.hh
+  )
+  target_link_libraries(sort_bench PRIVATE
+    toxcore_static
+    benchmark::benchmark
+  )
+
+  add_executable(ev_bench
+    toxcore/ev_bench.cc
+  )
+  target_link_libraries(ev_bench PRIVATE
+    test_util
+    toxcore_static
+    benchmark::benchmark
+  )
 endif()

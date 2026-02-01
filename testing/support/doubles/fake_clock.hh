@@ -1,6 +1,9 @@
 #ifndef C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_CLOCK_H
 #define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_CLOCK_H
 
+#include <atomic>
+#include <cstdint>
+
 #include "../public/clock.hh"
 
 namespace tox::test {
@@ -15,7 +18,7 @@ public:
     void advance(uint64_t ms);
 
 private:
-    uint64_t now_ms_;
+    std::atomic<uint64_t> now_ms_;
 };
 
 }  // namespace tox::test

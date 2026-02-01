@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #endif
 
+#include "../../../toxcore/attributes.h"
 #include "../../../toxcore/network.h"
 
 namespace tox::test {
@@ -33,21 +34,23 @@ public:
     FakeSocket(NetworkUniverse &universe, int type);
     virtual ~FakeSocket();
 
-    virtual int bind(const IP_Port *addr) = 0;
-    virtual int connect(const IP_Port *addr) = 0;
+    virtual int bind(const IP_Port *_Nonnull addr) = 0;
+    virtual int connect(const IP_Port *_Nonnull addr) = 0;
     virtual int listen(int backlog) = 0;
-    virtual std::unique_ptr<FakeSocket> accept(IP_Port *addr) = 0;
+    virtual std::unique_ptr<FakeSocket> accept(IP_Port *_Nullable addr) = 0;
 
-    virtual int send(const uint8_t *buf, size_t len) = 0;
-    virtual int recv(uint8_t *buf, size_t len) = 0;
+    virtual int send(const uint8_t *_Nonnull buf, size_t len) = 0;
+    virtual int recv(uint8_t *_Nonnull buf, size_t len) = 0;
 
     virtual size_t recv_buffer_size() { return 0; }
+    virtual bool is_readable() { return recv_buffer_size() > 0; }
+    virtual bool is_writable() { return true; }
 
-    virtual int sendto(const uint8_t *buf, size_t len, const IP_Port *addr) = 0;
-    virtual int recvfrom(uint8_t *buf, size_t len, IP_Port *addr) = 0;
+    virtual int sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr) = 0;
+    virtual int recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) = 0;
 
-    virtual int getsockopt(int level, int optname, void *optval, size_t *optlen);
-    virtual int setsockopt(int level, int optname, const void *optval, size_t optlen);
+    virtual int getsockopt(int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen);
+    virtual int setsockopt(int level, int optname, const void *_Nonnull optval, size_t optlen);
     virtual int socket_nonblock(bool nonblock);
 
     virtual int close();
@@ -76,17 +79,18 @@ public:
     explicit FakeUdpSocket(NetworkUniverse &universe);
     ~FakeUdpSocket() override;
 
-    int bind(const IP_Port *addr) override;
-    int connect(const IP_Port *addr) override;
+    int bind(const IP_Port *_Nonnull addr) override;
+    int connect(const IP_Port *_Nonnull addr) override;
     int listen(int backlog) override;
-    std::unique_ptr<FakeSocket> accept(IP_Port *addr) override;
+    std::unique_ptr<FakeSocket> accept(IP_Port *_Nullable addr) override;
     int close() override;
 
-    int send(const uint8_t *buf, size_t len) override;
-    int recv(uint8_t *buf, size_t len) override;
+    int send(const uint8_t *_Nonnull buf, size_t len) override;
+    int recv(uint8_t *_Nonnull buf, size_t len) override;
+    size_t recv_buffer_size() override;
 
-    int sendto(const uint8_t *buf, size_t len, const IP_Port *addr) override;
-    int recvfrom(uint8_t *buf, size_t len, IP_Port *addr) override;
+    int sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr) override;
+    int recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) override;
 
     // Called by Universe to deliver a packet
     void push_packet(std::vector<uint8_t> data, IP_Port from);
@@ -124,21 +128,25 @@ public:
     explicit FakeTcpSocket(NetworkUniverse &universe);
     ~FakeTcpSocket() override;
 
-    int bind(const IP_Port *addr) override;
-    int connect(const IP_Port *addr) override;
+    int bind(const IP_Port *_Nonnull addr) override;
+    int connect(const IP_Port *_Nonnull addr) override;
     int listen(int backlog) override;
-    std::unique_ptr<FakeSocket> accept(IP_Port *addr) override;
+    std::unique_ptr<FakeSocket> accept(IP_Port *_Nullable addr) override;
     int close() override;
 
-    int send(const uint8_t *buf, size_t len) override;
-    int recv(uint8_t *buf, size_t len) override;
+    int send(const uint8_t *_Nonnull buf, size_t len) override;
+    int recv(uint8_t *_Nonnull buf, size_t len) override;
     size_t recv_buffer_size() override;
+    bool is_readable() override;
+    bool is_writable() override;
 
-    int sendto(const uint8_t *buf, size_t len, const IP_Port *addr) override;
-    int recvfrom(uint8_t *buf, size_t len, IP_Port *addr) override;
+    int sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr) override;
+    int recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) override;
+
+    int getsockopt(int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen) override;
 
     // Internal events
-    void handle_packet(const Packet &p);
+    bool handle_packet(const Packet &p);
 
     State state() const { return state_; }
     const IP_Port &remote_addr() const { return remote_addr_; }
@@ -159,6 +167,8 @@ private:
     uint32_t next_seq_ = 0;
     uint32_t last_ack_ = 0;
 };
+
+std::ostream &operator<<(std::ostream &os, FakeTcpSocket::State state);
 
 }  // namespace tox::test
 

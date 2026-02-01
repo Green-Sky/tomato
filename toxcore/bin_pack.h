@@ -162,7 +162,9 @@ bool bin_pack_u64(Bin_Pack *_Nonnull bp, uint64_t val);
 /** @brief Pack an empty array member as a MessagePack nil value. */
 bool bin_pack_nil(Bin_Pack *_Nonnull bp);
 /** @brief Pack a byte array as MessagePack bin. */
-bool bin_pack_bin(Bin_Pack *_Nonnull bp, const uint8_t *_Nonnull data, uint32_t length);
+bool bin_pack_bin(Bin_Pack *_Nonnull bp, const uint8_t *_Nullable data, uint32_t length);
+/** @brief Pack a string as MessagePack str. */
+bool bin_pack_str(Bin_Pack *_Nonnull bp, const char *_Nullable data, uint32_t length);
 /** @brief Start packing a custom binary representation.
  *
  * A call to this function must be followed by exactly `size` bytes packed by functions below.
@@ -183,7 +185,7 @@ bool bin_pack_u64_b(Bin_Pack *_Nonnull bp, uint64_t val);
  * Note that unless you prepend the array length manually, there is no record of it in the resulting
  * serialised representation.
  */
-bool bin_pack_bin_b(Bin_Pack *_Nonnull bp, const uint8_t *_Nonnull data, uint32_t length);
+bool bin_pack_bin_b(Bin_Pack *_Nonnull bp, const uint8_t *_Nullable data, uint32_t length);
 
 #ifdef __cplusplus
 } /* extern "C" */

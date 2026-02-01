@@ -9,8 +9,12 @@
 #ifndef C_TOXCORE_TOXCORE_LAN_DISCOVERY_H
 #define C_TOXCORE_TOXCORE_LAN_DISCOVERY_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "attributes.h"
 #include "mem.h"
+#include "net.h"
 #include "network.h"
 
 /**

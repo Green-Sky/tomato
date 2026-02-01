@@ -20,8 +20,10 @@ cc_library(
         ":defines",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:crypto_core",
+        "//c-toxcore/toxcore:mem",
         "//c-toxcore/toxcore:os_memory",
         "//c-toxcore/toxcore:os_random",
+        "//c-toxcore/toxcore:rng",
         "@libsodium",
     ],
 )

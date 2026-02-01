@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -24,7 +25,7 @@
 
 struct Tox_Event_Group_Password {
     uint32_t group_number;
-    uint8_t *password;
+    uint8_t *_Nullable password;
     uint32_t password_length;
 };
 
@@ -51,6 +52,12 @@ static bool tox_event_group_password_set_password(Tox_Event_Group_Password *_Non
 
     if (password == nullptr) {
         assert(password_length == 0);
+        return true;
+    }
+
+    if (password_length == 0) {
+        group_password->password = nullptr;
+        group_password->password_length = 0;
         return true;
     }
 
@@ -133,7 +140,7 @@ Tox_Event_Group_Password *tox_event_group_password_new(const Memory *mem)
 void tox_event_group_password_free(Tox_Event_Group_Password *group_password, const Memory *mem)
 {
     if (group_password != nullptr) {
-        tox_event_group_password_destruct((Tox_Event_Group_Password * _Nonnull)group_password, mem);
+        tox_event_group_password_destruct(group_password, mem);
     }
     mem_delete(mem, group_password);
 }
@@ -194,7 +201,9 @@ static Tox_Event_Group_Password *tox_event_group_password_alloc(Tox_Events_State
  *****************************************************/
 
 void tox_events_handle_group_password(
-    Tox *tox, uint32_t group_number, const uint8_t *password, size_t password_length,
+    Tox *tox,
+    uint32_t group_number,
+    const uint8_t *password, size_t password_length,
     void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
@@ -205,5 +214,18 @@ void tox_events_handle_group_password(
     }
 
     tox_event_group_password_set_group_number(group_password, group_number);
-    tox_event_group_password_set_password(group_password, state->mem, password, password_length);
+    if (!tox_event_group_password_set_password(group_password, state->mem, password, password_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_group_password_dispatch(Tox *tox, const Tox_Event_Group_Password *event, void *user_data)
+{
+    if (tox->group_password_callback == nullptr) {
+        return;
+    }
+
+    tox_unlock(tox);
+    tox->group_password_callback(tox, event->group_number, event->password, event->password_length, user_data);
+    tox_lock(tox);
 }
