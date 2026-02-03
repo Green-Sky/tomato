@@ -26,7 +26,7 @@ if (NOT TARGET SDL3::SDL3)
 	set(SDL_DISABLE_ANDROID_JAR OFF CACHE INTERNAL "")
 
 	FetchContent_Declare(SDL3
-		GIT_REPOSITORY https://github.com/libsdl-org/SDL
+		#GIT_REPOSITORY https://github.com/libsdl-org/SDL
 		#GIT_TAG 0429f5d6a36fc35b551bcc2acd4a40c2db6dab82 # tip when looking
 		#GIT_TAG 14f584a94bfd49cf1524db75bf3c419fdf9436cd # tip 26-04-2024
 		#GIT_TAG 06d6f2cb2518622593570985589700910cf4399f # 13-05-2024 - before
@@ -57,7 +57,10 @@ if (NOT TARGET SDL3::SDL3)
 		#GIT_TAG 5ac37a8ffcf89da390404c1016833d56e2d67ae4 # 3.2.12
 		#GIT_TAG a8589a84226a6202831a3d49ff4edda4acab9acd # 3.2.24
 		#GIT_TAG badbf8da4ee72b3ef599c721ffc9899e8d7c8d90 # 3.2.26
-		GIT_TAG f5e5f6588921eed3d7d048ce43d9eb1ff0da0ffc # 3.2.30
+		#GIT_TAG f5e5f6588921eed3d7d048ce43d9eb1ff0da0ffc # 3.2.30
+
+		GIT_REPOSITORY https://github.com/Green-Sky/SDL
+		GIT_TAG camera_test_for_tomato
 	)
 	FetchContent_MakeAvailable(SDL3)
 endif()
