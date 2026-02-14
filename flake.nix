@@ -6,14 +6,14 @@
   # $ nix bundle --bundler github:ralismark/nix-appimage 'git+file:///home/green/workspace/tox/tomato?submodules=1#'
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-25.11";
     flake-utils.url = "github:numtide/flake-utils";
     nlohmann-json = {
       url = "github:nlohmann/json/v3.11.3"; # TODO: read version from file
       flake = false;
     };
     sdl3 = {
-      url = "github:libsdl-org/SDL/f5e5f6588921eed3d7d048ce43d9eb1ff0da0ffc"; # keep in sync with cmake
+      url = "github:libsdl-org/SDL/a962f40bbba175e9716557a25d5d7965f134a3d3"; # keep in sync with cmake
       flake = false;
     };
     sdl3_image = {
@@ -72,9 +72,11 @@
           xorg.libXcursor
           xorg.libXinerama
           xorg.libXrandr
-          xorg.libXxf86vm
+          libxtst
+          libxcb
 
           libGL
+          vulkan-loader
 
           pipewire
 
