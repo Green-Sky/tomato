@@ -29,7 +29,7 @@ jobs:
         submodules: recursive
 
     - name: Install Dependencies
-      run: sudo apt update && sudo apt -y install cmake libsodium-dev libx11-dev libxext-dev libxrandr-dev
+      run: sudo apt update && sudo apt -y install libsodium-dev cmake libasound2-dev libpulse-dev libjack-dev libsndio-dev libpipewire-0.3-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev libvpx-dev libopus-dev liburing-dev
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
@@ -51,7 +51,7 @@ jobs:
 
     steps:
     - name: Install Dependencies
-      run: apt update && apt -y install git build-essential pkg-config cmake ccache libsodium-dev libx11-dev libxext-dev libxrandr-dev
+      run: apt update && apt -y install git build-essential pkg-config cmake ccache ninja-build libsodium-dev libasound2-dev libpulse-dev libjack-dev libsndio-dev libpipewire-0.3-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev libvpx-dev libopus-dev liburing-dev
 
     - uses: actions/checkout@v5
       with:
