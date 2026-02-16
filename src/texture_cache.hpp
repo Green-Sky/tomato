@@ -229,7 +229,7 @@ struct TextureCache {
 	// returns true if there is still work queued up
 	bool workLoadQueue(void) {
 		auto it = _to_load.cbegin();
-		for (; it != _to_load.cend(); it++) {
+		while (it != _to_load.cend()) {
 			const auto& load_key = it->first;
 			auto new_entry_opt = _l.load(_tu, load_key, it->second.w, it->second.h);
 			if (_cache.count(load_key)) {
@@ -254,6 +254,8 @@ struct TextureCache {
 				} else if (!new_entry_opt.keep_trying) {
 					// failed to load and the loader is done
 					it = _to_load.erase(it);
+				} else {
+					it++;
 				}
 			} else {
 				if (new_entry_opt.texture.has_value()) {
@@ -266,6 +268,8 @@ struct TextureCache {
 				} else if (!new_entry_opt.keep_trying) {
 					// failed to load and the loader is done
 					it = _to_load.erase(it);
+				} else {
+					it++;
 				}
 			}
 		}
