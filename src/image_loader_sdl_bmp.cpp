@@ -10,6 +10,7 @@ ImageLoaderSDLBMP::ImageInfo ImageLoaderSDLBMP::loadInfoFromMemory(const uint8_t
 
 	auto* ios = SDL_IOFromConstMem(data, data_size);
 
+	// frees ios for us
 	SDL_Surface* surf = SDL_LoadBMP_IO(ios, true);
 	if (surf == nullptr) {
 		return res;
@@ -31,6 +32,7 @@ ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8
 
 	auto* ios = SDL_IOFromConstMem(data, data_size);
 
+	// frees ios for us
 	SDL_Surface* surf = SDL_LoadBMP_IO(ios, true);
 	if (surf == nullptr) {
 		return {};
