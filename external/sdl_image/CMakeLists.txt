@@ -47,7 +47,8 @@ if (NOT TARGET SDL3_image::SDL3_image)
 		#GIT_TAG 6f4584340b9b78542d11bf0232a1a0862de1f0a9 # tip 25-09-2024
 		#GIT_TAG 4ff27afa450eabd2a827e49ed86fab9e3bf826c5 # prerelease-3.1.1
 		#GIT_TAG 11154afb7855293159588b245b446a4ef09e574f # release-3.2.4
-		GIT_TAG d78dd65454f442bfdbc373201165f1ef579484ab # release-3.2.6
+		#GIT_TAG d78dd65454f442bfdbc373201165f1ef579484ab # release-3.2.6
+		GIT_TAG ad58ecfc27a1bd09e510ceff8bbbdb1094806476 # release-3.4.0
 		FIND_PACKAGE_ARGS # for the future
 	)
 	FetchContent_MakeAvailable(SDL3_image)
