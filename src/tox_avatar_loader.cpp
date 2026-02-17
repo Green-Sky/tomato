@@ -97,8 +97,8 @@ ByteSpanWithOwnership ToxAvatarLoader::loadData(Contact4 cv) {
 }
 
 ToxAvatarLoader::ToxAvatarLoader(ContactStore4I& cs, ObjectStore2& os) : _cs(cs), _os(os) {
-	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 }

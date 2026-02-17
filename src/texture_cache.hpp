@@ -11,8 +11,6 @@
 #include <vector>
 #include <cassert>
 
-#include <iostream>
-
 struct TextureEntry {
 	uint32_t width {0};
 	uint32_t height {0};
@@ -116,10 +114,7 @@ struct TextureCache {
 	const size_t min_count_before_purge {0}; // starts purging after that
 
 	TextureCache(Loader& l, TextureUploaderI& tu) : _l(l), _tu(tu) {
-		//_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
-		//_image_loaders.push_back(std::make_unique<ImageLoaderSTB>());
 		_default_texture = generateTestAnim(_tu);
-		//_default_texture = loadTestWebPAnim();
 	}
 
 	~TextureCache(void) {

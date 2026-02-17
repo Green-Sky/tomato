@@ -18,8 +18,8 @@
 #include <iostream>
 
 SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
-	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 }

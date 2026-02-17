@@ -124,9 +124,9 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 
 MediaMetaInfoLoader::MediaMetaInfoLoader(RegistryMessageModelI& rmm) : _rmm(rmm), _rmm_sr(_rmm.newSubRef(this)) {
 	// HACK: make them be added externally?
-	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
-	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
+	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLImage>());
 
 	_rmm_sr
