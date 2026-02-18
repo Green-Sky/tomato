@@ -33,7 +33,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
 	if (TOMATO_ASAN)
 		if (NOT WIN32) # exclude mingw
 			add_compile_options(-fno-omit-frame-pointer)
-			add_compile_options(-fsanitize=address,undefined)
+			add_compile_options(-fsanitize=address)
 
 			#add_compile_options(-fsanitize=address,undefined,pointer-compare,pointer-subtract)
 			#add_compile_options(-fhardened)
