@@ -30,7 +30,7 @@ bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, void*, 
 	if (succeeded) {
 		fprintf(stderr, "Crash detected, MiniDump written to: %s\n", descriptor.path());
 	} else {
-		fprintf(stderr, "Crash detected, failed to write MiniDump. (path: %s)\n", descriptor.path());
+		fprintf(stderr, "Crash detected, FAILED to write MiniDump! (would have been path: %s)\n", descriptor.path());
 	}
 	return succeeded;
 }
