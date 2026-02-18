@@ -25,7 +25,7 @@ std::optional<TextureEntry> BitsetImageLoader::haveToTexture(TextureUploaderI& t
 	}
 
 	SDL_Color colors[] {
-		{0, 0, 0, 0},
+		{255, 255, 255, 0},
 		{255, 255, 255, 255},
 	};
 
