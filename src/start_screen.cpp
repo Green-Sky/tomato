@@ -6,6 +6,8 @@
 
 #include "./chat_gui/about.hpp"
 
+#include "./font_loading/font_finder.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <imgui.h>
@@ -84,7 +86,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 
 	ImGui::GetIO().FontGlobalScale = display_scale;
 	ImGui::GetStyle().FontSizeBase = _conf.get_int("ImGuiFonts", "size").value_or(13);
-	{
+	if constexpr (false) {
 		auto* font_atlas = ImGui::GetIO().Fonts;
 		font_atlas->ClearFonts();
 		// for now we also always merge
@@ -139,6 +141,121 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		}
 
 		font_atlas->Build();
+	} else if (true) {
+		ImGui::GetStyle().FontSizeBase = _conf.get_int("ImGuiFonts", "size").value_or(13);
+
+		auto* font_atlas = ImGui::GetIO().Fonts;
+		ImGui::GetIO().FontGlobalScale = display_scale;
+		font_atlas->ClearFonts();
+
+		const auto ff_backends = constructPlatformDefaultFinderBackends();
+
+		ImFontConfig fontcfg;
+
+		// defaults
+		fontcfg.OversampleH = fontcfg.OversampleV = 1;
+		fontcfg.PixelSnapH = true;
+
+		//if (font_atlas->AddFontFromFileTTF("/home/green/Downloads/msgothic.ttc", 0.f, &fontcfg)) {
+		//    fontcfg.MergeMode = true;
+		//    std::cout  << "Font: added msgothic.ttc\n";
+		//}
+
+		if constexpr (false) {
+			const auto ui_families = getPlatformDefaultUIFamilies();
+
+			auto findUIPath = [&ff_backends](const auto& families, std::string_view lang) {
+				std::string font_path;
+				for (const auto family : families) {
+					font_path = getBestMatch(ff_backends, family, lang);
+					if (!font_path.empty()) {
+						break;
+					}
+				}
+				return font_path;
+			};
+
+			{
+				const std::string font_path = findUIPath(ui_families, "");
+				if (!font_path.empty()) {
+					auto* font = font_atlas->AddFontFromFileTTF(font_path.c_str(), 0.f, &fontcfg);
+					if (font == nullptr) {
+						std::cerr << "Font error: failed adding '" << font_path << "' to font atlas\n";
+					}
+				} else {
+					std::cerr << "FontFinding error: unable to find base ui font; tried families: '";
+					for (const auto f : ui_families) {
+						std::cerr << f << ",";
+					}
+					std::cerr << "'\n";
+				}
+			}
+
+			if (!font_atlas->Fonts.empty()) {
+				fontcfg.MergeMode = true; // always after first one
+			}
+
+			// TODO: figure out a good default for extra langs
+			{
+				const std::string font_path = findUIPath(ui_families, "ja");
+				if (!font_path.empty()) {
+					auto* font = font_atlas->AddFontFromFileTTF(font_path.c_str(), 0.f, &fontcfg);
+					if (font == nullptr) {
+						std::cerr << "Font error: failed adding '" << font_path << "' to font atlas\n";
+					}
+				} else {
+					std::cerr << "FontFinding error: unable to find cjk ui font\n";
+				}
+			}
+
+			if (!font_atlas->Fonts.empty()) {
+				fontcfg.MergeMode = true; // always after first one
+			}
+		}
+
+		// last text font is always built-in
+		font_atlas->AddFontDefault(&fontcfg);
+
+		if constexpr (true) { // emojies after text
+			fontcfg.MergeMode = true;
+			const auto emoji_families = getPlatformDefaultColorEmojiFamilies();
+
+			std::string font_path;
+
+			// TODO: also enable loadcolor + bitmap generally??
+#if defined(IMGUI_ENABLE_FREETYPE)
+	#if defined(IMGUI_ENABLE_FREETYPE_PLUTOSVG)
+			std::cout << "Font: enabling freetype color loading\n";
+			fontcfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+			for (const auto family : emoji_families) {
+				font_path = getBestMatch(ff_backends, family, "", true);
+				if (!font_path.empty()) {
+					break;
+				}
+			}
+	#else
+			// fallback to monochrome
+			for (const auto family : emoji_families) {
+				font_path = getBestMatch(ff_backends, family);
+				if (!font_path.empty()) {
+					break;
+				}
+			}
+	#endif
+			// this forces bitmap -> imgui layout bugs (
+			fontcfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_Bitmap;
+#endif
+			if (!font_path.empty()) {
+				auto* emoji_font = font_atlas->AddFontFromFileTTF(font_path.c_str(), 0.f, &fontcfg);
+				if (emoji_font == nullptr) {
+					std::cerr << "Font error: failed adding '" << font_path << "' to font atlas\n";
+				} else {
+					std::cout << "Font: adding '" << font_path << "' to font atlas\n";
+				}
+			} else {
+				std::cerr << "FontFinding error: unable to find emoji font\n";
+			}
+		}
 	}
 
 	if (config_loaded) { // pull plugins from config
