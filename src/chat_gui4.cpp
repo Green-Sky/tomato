@@ -10,6 +10,7 @@
 #include <solanaceae/tox_messages/obj_components.hpp>
 #include <solanaceae/object_store/meta_components_file.hpp>
 #include <solanaceae/contact/components.hpp>
+#include <solanaceae/message3/contact_components.hpp>
 
 #include "./frame_streams/voip_model.hpp"
 
@@ -519,6 +520,15 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							input_state->ReloadUserBufAndMoveToEnd();
 						}
 						ImGui::SetKeyboardFocusHere(-1);
+					}
+					if (
+						const auto* ml = _cs.contactHandle(*_selected_contact).try_get<Contact::Components::MessageLengths>();
+						ml != nullptr && _text_input_buffer.size() > ml->max_extended
+					) {
+						// FIXME: theme
+						ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.3f, 0.3f, 1.f});
+						ImGui::SetTooltip("!! exceeded max message length of %lu bytes !!", ml->max_extended);
+						ImGui::PopStyleColor();
 					}
 
 					// welcome to linux
