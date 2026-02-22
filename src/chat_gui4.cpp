@@ -27,6 +27,7 @@
 #include <SDL3/SDL.h>
 
 #include "./chat_gui/contact_list.hpp"
+#include "./chat_gui/contact_info.hpp"
 
 #include "./sdl_clipboard_utils.hpp"
 
@@ -187,7 +188,7 @@ ChatGui4::ChatGui4(
 	ConfigModelI& conf,
 	ObjectStore2& os,
 	RegistryMessageModelI& rmm,
-	ContactStore4I& cs,
+	ContactStore4Impl& cs,
 	TextureUploaderI& tu,
 	ContactTextureCache& contact_tc,
 	MessageTextureCache& msg_tc,
@@ -273,6 +274,11 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
 				if (ImGui::BeginMenuBar()) {
+					if (ImGui::BeginMenu("ContactInfo")) {
+						renderContactInfo(_cs, _cs.contactHandle(*_selected_contact));
+
+						ImGui::EndMenu();
+					}
 					// check if contact has voip model
 					// use activesessioncomp instead?
 					if (cr.all_of<VoIPModelI*>(*_selected_contact)) {

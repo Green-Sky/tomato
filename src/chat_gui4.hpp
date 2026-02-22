@@ -1,6 +1,7 @@
 #pragma once
 
 #include <solanaceae/object_store/object_store.hpp>
+#include <solanaceae/contact/contact_store_impl.hpp>
 #include <solanaceae/message3/registry_message_model.hpp>
 #include <solanaceae/util/config_model.hpp>
 
@@ -8,9 +9,6 @@
 #include "./chat_gui/texture_cache_defs.hpp"
 
 #include "./texture_uploader.hpp"
-#include "./texture_cache.hpp"
-#include "./tox_avatar_loader.hpp"
-#include "./message_image_loader.hpp"
 #include "./bitset_image_loader.hpp"
 #include "./chat_gui/file_selector.hpp"
 #include "./chat_gui/send_image_popup.hpp"
@@ -30,7 +28,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	ObjectStore2& _os;
 	ObjectStoreEventProviderI::SubscriptionReference _os_sr;
 	RegistryMessageModelI& _rmm;
-	ContactStore4I& _cs;
+	ContactStore4Impl& _cs;
 
 	ContactTextureCache& _contact_tc;
 	MessageTextureCache& _msg_tc;
@@ -70,7 +68,7 @@ class ChatGui4 : public ObjectStoreEventI {
 			ConfigModelI& conf,
 			ObjectStore2& os,
 			RegistryMessageModelI& rmm,
-			ContactStore4I& cs,
+			ContactStore4Impl& cs,
 			TextureUploaderI& tu,
 			ContactTextureCache& contact_tc,
 			MessageTextureCache& msg_tc,

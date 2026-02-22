@@ -19,6 +19,10 @@
 #include <cmath>
 #include <string_view>
 
+
+// temp
+#include <solanaceae/util/utils.hpp>
+
 static std::unique_ptr<SystemTray> constructSystemTray(SimpleConfigModel& conf, SDL_Window* window) {
 	bool conf_system_tray {false};
 	if (auto value_stt = conf.get_bool("tomato", "start_to_tray"); value_stt.has_value) {
@@ -169,6 +173,17 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	}
 
 	conf.dump();
+
+	{ // TODO: move
+		cs.registerComponentToString(
+			entt::type_id<Contact::Components::ID>().hash(),
+			+[](ContactHandle4 c, bool verbose) -> std::string { return bin2hex(c.get<Contact::Components::ID>().data); },
+			"", // general
+			"ID",
+			entt::type_id<Contact::Components::ID>().name(),
+			false // maybe
+		);
+	}
 
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
 		// add system audio devices
