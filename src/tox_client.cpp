@@ -241,6 +241,12 @@ void ToxClient::saveToxProfile(void) {
 		return;
 	}
 
+	std::filesystem::copy_file(
+		_tox_profile_path,
+		_tox_profile_path + ".old",
+		std::filesystem::copy_options::overwrite_existing
+	);
+
 	std::filesystem::rename(
 		tmp_path,
 		_tox_profile_path
