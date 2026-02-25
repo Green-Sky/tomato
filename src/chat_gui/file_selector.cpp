@@ -139,11 +139,11 @@ void FileSelector::render(void) {
 					auto& dirs = cd.dirs;
 					auto& files = cd.files;
 					try {
-						for (auto const& dir_entry : std::filesystem::directory_iterator(path)) {
+						for (auto&& dir_entry : std::filesystem::directory_iterator(path)) {
 							if (dir_entry.is_directory()) {
-								dirs.push_back(dir_entry);
+								dirs.push_back(std::move(dir_entry));
 							} else if (dir_entry.is_regular_file()) {
-								files.push_back(dir_entry);
+								files.push_back(std::move(dir_entry));
 							}
 						}
 
