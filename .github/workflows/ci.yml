@@ -24,7 +24,7 @@ jobs:
         os: ['ubuntu-latest', 'ubuntu-24.04-arm']
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -53,7 +53,7 @@ jobs:
     - name: Install Dependencies
       run: apt update && apt -y install git build-essential pkg-config cmake ccache ninja-build libsodium-dev libasound2-dev libpulse-dev libjack-dev libsndio-dev libpipewire-0.3-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev libvpx-dev libopus-dev liburing-dev
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -93,11 +93,11 @@ jobs:
             ndk_abi: x86_64
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         repository: 'Green-Sky/vcpkg_android_triplets'
         path: 'vcpkg_android_triplets'
@@ -144,7 +144,7 @@ jobs:
     - name: Build (apk)
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j 4 -t tomato-apk
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: ${{ github.event.repository.name }}-${{matrix.platform.vcpkg_toolkit}}
         # TODO: do propper packing
@@ -157,7 +157,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -186,7 +186,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 

@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -41,7 +41,7 @@ jobs:
       run: |
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu24.04-x86_64.tar.gz -C ${{github.workspace}}/build/bin/ .
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-ubuntu24.04-x86_64
         # TODO: do propper packing
@@ -59,7 +59,7 @@ jobs:
     - name: Install Dependencies
       run: apt update && apt -y install git build-essential pkg-config cmake ninja-build libsodium-dev libasound2-dev libpulse-dev libjack-dev libsndio-dev libpipewire-0.3-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev libvpx-dev libopus-dev liburing-dev
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -83,7 +83,7 @@ jobs:
       run: |
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-debian12-x86_64.tar.gz -C ${{github.workspace}}/build/bin/ .
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-debian12-x86_64
         path: |
@@ -111,12 +111,12 @@ jobs:
             ndk_abi: x86_64
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         repository: 'Green-Sky/vcpkg_android_triplets'
         path: 'vcpkg_android_triplets'
@@ -181,7 +181,7 @@ jobs:
       shell: bash
       run: mv "${{github.workspace}}/build/android/tomato.apk" "${{github.workspace}}/build/android/${{github.event.repository.name}}-${{steps.tag.outputs.name}}-Android-${{matrix.platform.ndk_abi}}.apk"
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: ${{github.event.repository.name}}-${{steps.tag.outputs.name}}-${{runner.os}}-Android-${{matrix.platform.ndk_abi}}
         path: |
@@ -203,7 +203,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -268,7 +268,7 @@ jobs:
       run: |
         Compress-Archive -Path ${{github.workspace}}/build/bin/* -Destination ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-${{ runner.os }}-msvc${{matrix.type == 'asan' && '-asan' || ''}}-x86_64.zip
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: ${{github.event.repository.name}}-${{steps.tag.outputs.name}}-${{runner.os}}-msvc${{matrix.type == 'asan' && '-asan' || ''}}-x86_64
         # TODO: do propper packing
@@ -293,7 +293,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -340,7 +340,7 @@ jobs:
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-debian12-x86_64-symbol_store.tar.gz -C ./tomato-dev-debian12-x86_64-sym .
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz -C ./tomato-dev-Windows-msvc-x86_64-sym .
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-symbol_stores
         path: |
@@ -364,7 +364,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
