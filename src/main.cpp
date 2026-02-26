@@ -144,6 +144,9 @@ int main(int argc, char** argv) {
 		theme = getDefaultThemeDark();
 	}
 
+#if SDL_VERSION_ATLEAST(3, 4, 0)
+	SDL_SetRenderTextureAddressMode(renderer.get(), SDL_TEXTURE_ADDRESS_CLAMP, SDL_TEXTURE_ADDRESS_CLAMP);
+#endif
 
 	ImGui_ImplSDL3_InitForSDLRenderer(window.get(), renderer.get());
 	ImGui_ImplSDLRenderer3_Init(renderer.get());
