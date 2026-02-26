@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
 
 	auto last_time_render = std::chrono::steady_clock::now();
 	auto last_time_tick = std::chrono::steady_clock::now();
+	auto last_time_sdl_events = std::chrono::steady_clock::now();
 
 	std::cout
 		<< "SDL version: "
@@ -160,6 +161,7 @@ int main(int argc, char** argv) {
 
 		const float time_delta_tick = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_tick).count();
 		const float time_delta_render = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_render).count();
+		const float time_delta_sdl_events = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_sdl_events).count();
 
 		bool tick = time_delta_tick >= screen->nextTick();
 		bool render = time_delta_render >= screen->nextRender();
@@ -173,22 +175,25 @@ int main(int argc, char** argv) {
 		}
 
 		// do events outside of tick/render, so they can influence reported intervals
-		SDL_Event event;
-		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_EVENT_QUIT) {
-				quit = true;
-				break;
-			} else if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND) {
-				is_background = true;
-			} else if (event.type == SDL_EVENT_DID_ENTER_FOREGROUND) {
-				is_background = false;
-			}
+		if (render || time_delta_sdl_events >= 1.f/60.f) {
+			last_time_sdl_events = new_time;
+			SDL_Event event;
+			while (SDL_PollEvent(&event)) {
+				if (event.type == SDL_EVENT_QUIT) {
+					quit = true;
+					break;
+				} else if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND) {
+					is_background = true;
+				} else if (event.type == SDL_EVENT_DID_ENTER_FOREGROUND) {
+					is_background = false;
+				}
 
-			if (screen->handleEvent(event)) {
-				continue;
-			}
+				if (screen->handleEvent(event)) {
+					continue;
+				}
 
-			ImGui_ImplSDL3_ProcessEvent(&event);
+				ImGui_ImplSDL3_ProcessEvent(&event);
+			}
 		}
 		if (quit) {
 			break;
@@ -249,12 +254,12 @@ int main(int argc, char** argv) {
 			// mix both worlds to try to reasonable improve responsivenes
 			if (min_delay > 200.f) {
 				SDL_Delay(uint32_t(min_delay - 200.f));
-			} else if (min_delay > 0.f) {
-				// you are annoyingly in efficent
-				SDL_WaitEventTimeout(nullptr, int32_t(min_delay));
+			} else if (min_delay >= 1.f) {
+				SDL_Delay(uint32_t(min_delay));
 			}
 
 			// better in theory, but consumes more cpu on linux for some reason
+			// update: had to remove it again, its just 50% of compute
 			//SDL_WaitEventTimeout(nullptr, int32_t(min_delay));
 		}
 	}
