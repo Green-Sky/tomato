@@ -60,6 +60,8 @@ namespace Components {
 		int tm_mday {0};
 		int tm_hour {0};
 		int tm_min {0};
+
+		std::string h_m;
 	};
 
 } // Components
@@ -890,16 +892,22 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 
 				if (!msg_reg.all_of<Message::Components::ReceivedBy>(e)) {
 					// TODO: dedup?
-					ImGui::TextDisabled("_");
+					ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+					ImGui::TextUnformatted("_");
+					ImGui::PopStyleColor();
 				} else {
 					const auto& list = msg_reg.get<Message::Components::ReceivedBy>(e).ts;
 					// wrongly assumes contacts never get removed from a group
 					if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 						// if partically delivered
-						ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "d");
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.8f, 0.8f, 0.1f, 0.7f});
+						ImGui::TextUnformatted("d");
+						ImGui::PopStyleColor();
 					} else {
 						// if fully delivered
-						ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "D");
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.1f, 0.8f, 0.1f, 0.7f});
+						ImGui::TextUnformatted("D");
+						ImGui::PopStyleColor();
 					}
 
 					if (ImGui::BeginItemTooltip()) {
@@ -934,7 +942,11 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 				ImGui::SameLine();
 
 				// TODO: dedup
-				if (msg_reg.all_of<Message::Components::ReadBy>(e)) {
+				if (!msg_reg.all_of<Message::Components::ReadBy>(e)) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+					ImGui::TextUnformatted("_");
+					ImGui::PopStyleColor();
+				} else {
 					const auto list = msg_reg.get<Message::Components::ReadBy>(e).ts;
 					// wrongly assumes contacts never get removed from a group
 					if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
@@ -966,8 +978,6 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 
 						ImGui::EndTooltip();
 					}
-				} else {
-					ImGui::TextDisabled("_");
 				}
 			}
 
@@ -978,6 +988,8 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 						std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::milliseconds{ts.ts}}
 					);
 					auto localtime = std::localtime(&time);
+					char h_m_buf[6]; // 2+1+2
+					std::snprintf(h_m_buf, sizeof(h_m_buf), "%.2d:%.2d", localtime->tm_hour, localtime->tm_min);
 					msg_reg.emplace<Components::ConvertedTimeCache>(
 						e,
 						localtime->tm_year,
@@ -985,12 +997,14 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 						localtime->tm_mon,
 						localtime->tm_mday,
 						localtime->tm_hour,
-						localtime->tm_min
+						localtime->tm_min,
+						h_m_buf
 					);
 				}
 				const auto& ctc = msg_reg.get<Components::ConvertedTimeCache>(e);
 
-				ImGui::Text("%.2d:%.2d", ctc.tm_hour, ctc.tm_min);
+				//ImGui::Text("%.2d:%.2d", ctc.tm_hour, ctc.tm_min);
+				ImGui::TextUnformatted(ctc.h_m.c_str());
 			}
 
 			// extra
