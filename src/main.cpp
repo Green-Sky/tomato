@@ -67,9 +67,10 @@ int main(int argc, char** argv) {
 	}
 #endif
 
-	auto last_time_render = std::chrono::steady_clock::now();
-	auto last_time_tick = std::chrono::steady_clock::now();
-	auto last_time_sdl_events = std::chrono::steady_clock::now();
+	constexpr double steady_second_factor = double(std::chrono::steady_clock::period::num) / double(std::chrono::steady_clock::period::den);
+	auto last_time_render = double(std::chrono::steady_clock::now().time_since_epoch().count()) * steady_second_factor;
+	auto last_time_tick = double(std::chrono::steady_clock::now().time_since_epoch().count()) * steady_second_factor;
+	auto last_time_sdl_events = double(std::chrono::steady_clock::now().time_since_epoch().count()) * steady_second_factor;
 
 	std::cout
 		<< "SDL version: "
@@ -157,11 +158,11 @@ int main(int argc, char** argv) {
 	bool is_background = false;
 	bool quit = false;
 	while (!quit) {
-		auto new_time = std::chrono::steady_clock::now();
+		auto new_time = double(std::chrono::steady_clock::now().time_since_epoch().count()) * steady_second_factor;
 
-		const float time_delta_tick = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_tick).count();
-		const float time_delta_render = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_render).count();
-		const float time_delta_sdl_events = std::chrono::duration<float, std::chrono::seconds::period>(new_time - last_time_sdl_events).count();
+		const float time_delta_tick = float(new_time - last_time_tick);
+		const float time_delta_render = float(new_time - last_time_render);
+		const float time_delta_sdl_events = float(new_time - last_time_sdl_events);
 
 		bool tick = time_delta_tick >= screen->nextTick();
 		bool render = time_delta_render >= screen->nextRender();
