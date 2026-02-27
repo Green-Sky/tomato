@@ -277,7 +277,12 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
 				if (ImGui::BeginMenuBar()) {
 					if (ImGui::BeginMenu("ContactInfo")) {
-						renderContactInfo(_cs, _cs.contactHandle(*_selected_contact));
+						static bool advanced {false};
+						static bool verbose {false};
+						ImGui::Checkbox("advanced", &advanced);
+						ImGui::SameLine();
+						ImGui::Checkbox("verbose", &verbose);
+						renderContactInfo(_cs, _cs.contactHandle(*_selected_contact), advanced, verbose);
 
 						ImGui::EndMenu();
 					}
