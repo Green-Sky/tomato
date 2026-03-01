@@ -4,6 +4,7 @@
 #include <exception>
 #include <memory>
 #include <system_error>
+#include <tox/tox_private.h>
 #include <tox/toxencryptsave.h>
 
 #include <sodium.h>
@@ -136,8 +137,12 @@ ToxClient::~ToxClient(void) {
 }
 
 bool ToxClient::iterate(float time_delta) {
+	// TODO: keep allocated
+	std::unique_ptr<Tox_Iterate_Options, decltype(&tox_iterate_options_free)> iter_opts{tox_iterate_options_new(nullptr), &tox_iterate_options_free};
+	tox_iterate_options_set_fail_hard(iter_opts.get(), false);
+
 	Tox_Err_Events_Iterate err_e_it = TOX_ERR_EVENTS_ITERATE_OK;
-	auto* events = tox_events_iterate(_tox, false, &err_e_it);
+	auto* events = tox_events_iterate(_tox, iter_opts.get(), &err_e_it);
 	if (err_e_it == TOX_ERR_EVENTS_ITERATE_OK && events != nullptr) {
 		_subscriber_raw(events);
 
