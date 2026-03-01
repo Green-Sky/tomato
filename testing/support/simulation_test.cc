@@ -62,7 +62,7 @@ TEST(LogFilterTest, LevelComparison)
 
 TEST(LogFilterTest, SimulationIntegration)
 {
-    Simulation sim;
+    Simulation sim{0};
     sim.net().set_verbose(true);
 
     sim.set_log_filter(log_filter::level(TOX_LOG_LEVEL_ERROR) && log_filter::node(1));

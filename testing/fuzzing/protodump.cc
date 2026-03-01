@@ -22,6 +22,7 @@
  */
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -49,10 +50,13 @@ public:
 
     void push(bool val) { data.push_back(val); }
     void push(uint8_t val) { data.push_back(val); }
-    void push(const uint8_t *bytes, size_t size) { data.insert(data.end(), bytes, bytes + size); }
+    void push(const uint8_t *bytes, std::size_t size)
+    {
+        data.insert(data.end(), bytes, bytes + size);
+    }
 
     // Format: 2 bytes length (big-endian), then data.
-    void push_packet(const uint8_t *bytes, size_t size)
+    void push_packet(const uint8_t *bytes, std::size_t size)
     {
         assert(size <= 65535);
         push(static_cast<uint8_t>(size >> 8));
@@ -192,21 +196,21 @@ void dump(std::vector<uint8_t> recording, const char *filename)
 
 void RecordBootstrap(const char *init, const char *bootstrap)
 {
-    SimulatedEnvironment env1;
-    SimulatedEnvironment env2;
+    SimulatedEnvironment env1{12345};
+    SimulatedEnvironment env2{12346};
 
     // Set deterministic seeds.
     std::minstd_rand rng1(4);
-    env1.fake_random().set_entropy_source([&](uint8_t *out, size_t count) {
+    env1.fake_random().set_entropy_source([&](uint8_t *out, std::size_t count) {
         std::uniform_int_distribution<uint16_t> dist(0, 255);
-        for (size_t i = 0; i < count; ++i)
+        for (std::size_t i = 0; i < count; ++i)
             out[i] = static_cast<uint8_t>(dist(rng1));
     });
 
     std::minstd_rand rng2(5);
-    env2.fake_random().set_entropy_source([&](uint8_t *out, size_t count) {
+    env2.fake_random().set_entropy_source([&](uint8_t *out, std::size_t count) {
         std::uniform_int_distribution<uint16_t> dist(0, 255);
-        for (size_t i = 0; i < count; ++i)
+        for (std::size_t i = 0; i < count; ++i)
             out[i] = static_cast<uint8_t>(dist(rng2));
     });
 
@@ -216,7 +220,7 @@ void RecordBootstrap(const char *init, const char *bootstrap)
     env1.fake_memory().set_observer([&](bool success) { recorder1.push(success); });
 
     env1.fake_random().set_observer(
-        [&](const uint8_t *data, size_t count) { recorder1.push(data, count); });
+        [&](const uint8_t *data, std::size_t count) { recorder1.push(data, count); });
 
     auto node1 = env1.create_node(33445);
     auto node2 = env2.create_node(33446);
@@ -275,14 +279,17 @@ void RecordBootstrap(const char *init, const char *bootstrap)
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events;
 
-        events = tox_events_iterate(tox1, true, &error_iterate);
+        std::unique_ptr<Tox_Iterate_Options, void (*)(Tox_Iterate_Options *)> iterate_opts(
+            tox_iterate_options_new(nullptr), tox_iterate_options_free);
+        tox_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
+        events = tox_events_iterate(tox1, iterate_opts.get(), &error_iterate);
         tox_dispatch_invoke(dispatch, events, &state1);
         tox_events_free(events);
 
-        events = tox_events_iterate(tox2, true, &error_iterate);
+        events = tox_events_iterate(tox2, iterate_opts.get(), &error_iterate);
         tox_dispatch_invoke(dispatch, events, &state2);
         tox_events_free(events);
-
         // Record the clock increment.
         env1.fake_clock().advance(clock_increment);
         recorder1.push(clock_increment);

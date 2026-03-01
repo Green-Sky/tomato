@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022-2025 The TokTok team.
+ * Copyright © 2022-2026 The TokTok team.
  */
 
 #ifndef C_TOXCORE_TOXCORE_OS_RANDOM_H
@@ -17,7 +17,7 @@ extern const Random os_random_obj;
  *
  * Uses libsodium's CSPRNG (on Linux, `/dev/urandom`).
  */
-const Random *os_random(void);
+const Random *_Nullable os_random(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

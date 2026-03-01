@@ -2,22 +2,21 @@ name: coverity-scan
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # Once a day
+    - cron: "0 10 * * *" # Once a day
 
 jobs:
   latest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Install libraries
-        run:
-          sudo apt-get update &&
+        run: sudo apt-get update &&
           sudo apt-get install -y --no-install-recommends
-            libopus-dev
-            libsodium-dev
-            libvpx-dev
+          libopus-dev
+          libsodium-dev
+          libvpx-dev
 
       - name: Download Coverity Build Tool
         run: |
@@ -37,15 +36,14 @@ jobs:
         run: cov-analysis-linux64/bin/cov-build --dir cov-int make
 
       - name: Submit the result to Coverity Scan
-        run:
-          tar czvf c-toxcore.tgz cov-int &&
+        run: tar czvf c-toxcore.tgz cov-int &&
           curl
-            --form project=TokTok/c-toxcore
-            --form token=$TOKEN
-            --form email=iphydf@gmail.com
-            --form file=@c-toxcore.tgz
-            --form version="$(git rev-list --count HEAD)"
-            --form description="CI build of $(git rev-parse --abbrev-ref HEAD) branch"
-            https://scan.coverity.com/builds
+          --form project=TokTok/c-toxcore
+          --form token=$TOKEN
+          --form email=iphydf@gmail.com
+          --form file=@c-toxcore.tgz
+          --form version="$(git rev-list --count HEAD)"
+          --form description="CI build of $(git rev-parse --abbrev-ref HEAD) branch"
+          https://scan.coverity.com/builds
         env:
           TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}

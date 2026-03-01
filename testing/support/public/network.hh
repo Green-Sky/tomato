@@ -1,6 +1,7 @@
 #ifndef C_TOXCORE_TESTING_SUPPORT_NETWORK_H
 #define C_TOXCORE_TESTING_SUPPORT_NETWORK_H
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -21,26 +22,27 @@ public:
     virtual int bind(Socket sock, const IP_Port *_Nonnull addr) = 0;
     virtual int close(Socket sock) = 0;
     virtual int sendto(
-        Socket sock, const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr)
+        Socket sock, const uint8_t *_Nonnull buf, std::size_t len, const IP_Port *_Nonnull addr)
         = 0;
-    virtual int recvfrom(Socket sock, uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr)
+    virtual int recvfrom(
+        Socket sock, uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr)
         = 0;
 
     // TCP Support
     virtual int listen(Socket sock, int backlog) = 0;
     virtual Socket accept(Socket sock) = 0;
     virtual int connect(Socket sock, const IP_Port *_Nonnull addr) = 0;
-    virtual int send(Socket sock, const uint8_t *_Nonnull buf, size_t len) = 0;
-    virtual int recv(Socket sock, uint8_t *_Nonnull buf, size_t len) = 0;
+    virtual int send(Socket sock, const uint8_t *_Nonnull buf, std::size_t len) = 0;
+    virtual int recv(Socket sock, uint8_t *_Nonnull buf, std::size_t len) = 0;
     virtual int recvbuf(Socket sock) = 0;
 
     // Auxiliary
     virtual int socket_nonblock(Socket sock, bool nonblock) = 0;
     virtual int getsockopt(
-        Socket sock, int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen)
+        Socket sock, int level, int optname, void *_Nonnull optval, std::size_t *_Nonnull optlen)
         = 0;
     virtual int setsockopt(
-        Socket sock, int level, int optname, const void *_Nonnull optval, size_t optlen)
+        Socket sock, int level, int optname, const void *_Nonnull optval, std::size_t optlen)
         = 0;
 
     /**

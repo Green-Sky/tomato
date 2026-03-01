@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -41,7 +42,7 @@ public:
         sim.reset();
 
         int num_friends = state.range(0);
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         main_node = sim->create_node();
         main_tox = main_node->create_tox();
 
@@ -85,7 +86,7 @@ public:
         sim.reset();
 
         int num_friends = state.range(0);
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         sim->net().set_latency(1);  // Low latency to encourage traffic
         sim->net().set_verbose(kVerbose);
 
@@ -211,7 +212,7 @@ struct ConnectedContext {
         main_node.reset();
         sim.reset();
 
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         sim->net().set_latency(5);
         main_node = sim->create_node();
         main_tox = main_node->create_tox();
@@ -249,7 +250,7 @@ struct GroupScalingContext {
         main_node.reset();
         sim.reset();
 
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         sim->net().set_latency(5);
         main_node = sim->create_node();
 
@@ -267,8 +268,8 @@ struct GroupScalingContext {
                 static_cast<GroupContext *>(user_data)->peer_count++;
             });
         tox_callback_group_peer_exit(main_tox.get(),
-            [](Tox *, uint32_t, uint32_t, Tox_Group_Exit_Type, const uint8_t *, size_t,
-                const uint8_t *, size_t,
+            [](Tox *, uint32_t, uint32_t, Tox_Group_Exit_Type, const uint8_t *, std::size_t,
+                const uint8_t *, std::size_t,
                 void *user_data) { static_cast<GroupContext *>(user_data)->peer_count--; });
 
         Tox_Err_Group_New err_new;
@@ -299,11 +300,11 @@ struct GroupScalingContext {
                     tox_iterate(main_tox.get(), &main_ctx);
 
                     // Poll events
-                    for (size_t i = 0; i < friends.size(); ++i) {
+                    for (std::size_t i = 0; i < friends.size(); ++i) {
                         auto batches = friends[i].runner->poll_events();
                         for (const auto &batch : batches) {
-                            size_t size = tox_events_get_size(batch.get());
-                            for (size_t k = 0; k < size; ++k) {
+                            std::size_t size = tox_events_get_size(batch.get());
+                            for (std::size_t k = 0; k < size; ++k) {
                                 const Tox_Event *e = tox_events_get(batch.get(), k);
                                 if (tox_event_get_type(e) == TOX_EVENT_GROUP_INVITE) {
                                     auto *ev = tox_event_get_group_invite(e);
@@ -311,7 +312,8 @@ struct GroupScalingContext {
                                         = tox_event_group_invite_get_friend_number(ev);
                                     const uint8_t *data
                                         = tox_event_group_invite_get_invite_data(ev);
-                                    size_t len = tox_event_group_invite_get_invite_data_length(ev);
+                                    std::size_t len
+                                        = tox_event_group_invite_get_invite_data_length(ev);
                                     std::vector<uint8_t> invite_data(data, data + len);
                                     friends[i].runner->execute([=](Tox *tox) {
                                         tox_group_invite_accept(tox, friend_number,
@@ -427,7 +429,7 @@ static void BM_MassDiscovery(benchmark::State &state)
     const int num_friends = state.range(0);
 
     for (auto _ : state) {
-        Simulation sim;
+        Simulation sim{12345};
         // Set a realistic latency to ensure packets are in flight and DHT/Onion logic
         // has to run multiple iterations.
         sim.net().set_latency(10);

@@ -4,6 +4,7 @@
 
 #include "../public/tox_network.hh"
 
+#include <cstddef>
 #include <cstring>
 #include <future>
 #include <iostream>
@@ -100,7 +101,7 @@ std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *_Nonn
             // Check connection status
             int connected_count = 0;
 
-            for (size_t i = 0; i < friends.size(); ++i) {
+            for (std::size_t i = 0; i < friends.size(); ++i) {
                 // Check if main sees friend
                 bool main_sees_friend
                     = tox_friend_get_connection_status(main_tox, friends[i].friend_number, nullptr)
@@ -109,8 +110,8 @@ std::vector<ConnectedFriend> setup_connected_friends(Simulation &sim, Tox *_Nonn
                 // Check if friend sees main by polling events from the runner
                 auto batches = friends[i].runner->poll_events();
                 for (const auto &batch : batches) {
-                    size_t size = tox_events_get_size(batch.get());
-                    for (size_t k = 0; k < size; ++k) {
+                    std::size_t size = tox_events_get_size(batch.get());
+                    for (std::size_t k = 0; k < size; ++k) {
                         const Tox_Event *e = tox_events_get(batch.get(), k);
                         if (tox_event_get_type(e) == TOX_EVENT_FRIEND_CONNECTION_STATUS) {
                             auto *ev = tox_event_get_friend_connection_status(e);
@@ -238,14 +239,14 @@ uint32_t setup_connected_group(
     // Main tox sends invites; friends accept via events polled from their runners.
 
     bool success = false;
-    size_t invites_sent = 0;
+    std::size_t invites_sent = 0;
 
     sim.run_until(
         [&]() {
             tox_iterate(main_tox, &main_state);
 
             // Throttle invites
-            size_t accepted_count = 0;
+            std::size_t accepted_count = 0;
             for (const auto &fs : friend_states) {
                 if (fs.group_number != UINT32_MAX)
                     accepted_count++;
@@ -262,11 +263,11 @@ uint32_t setup_connected_group(
             }
 
             // Process friend events
-            for (size_t i = 0; i < friends.size(); ++i) {
+            for (std::size_t i = 0; i < friends.size(); ++i) {
                 auto batches = friends[i].runner->poll_events();
                 for (const auto &batch : batches) {
-                    size_t size = tox_events_get_size(batch.get());
-                    for (size_t k = 0; k < size; ++k) {
+                    std::size_t size = tox_events_get_size(batch.get());
+                    for (std::size_t k = 0; k < size; ++k) {
                         const Tox_Event *e = tox_events_get(batch.get(), k);
                         Tox_Event_Type type = tox_event_get_type(e);
 
@@ -274,7 +275,7 @@ uint32_t setup_connected_group(
                             auto *ev = tox_event_get_group_invite(e);
                             uint32_t friend_number = tox_event_group_invite_get_friend_number(ev);
                             const uint8_t *data = tox_event_group_invite_get_invite_data(ev);
-                            size_t len = tox_event_group_invite_get_invite_data_length(ev);
+                            std::size_t len = tox_event_group_invite_get_invite_data_length(ev);
 
                             // Accept invite on runner thread.
                             // We must copy data because the event structure will be freed.

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cstddef>
+
 #include "fake_network_stack.hh"
 #include "network_universe.hh"
 
@@ -48,7 +50,7 @@ namespace {
         ASSERT_EQ(stack2.bind(sock2, &addr2), 0);
 
         const char *msg = "Hello UDP";
-        size_t msg_len = strlen(msg) + 1;
+        std::size_t msg_len = strlen(msg) + 1;
 
         // Send from 1 to 2
         ASSERT_EQ(stack1.sendto(sock1, reinterpret_cast<const uint8_t *>(msg), msg_len, &addr2),

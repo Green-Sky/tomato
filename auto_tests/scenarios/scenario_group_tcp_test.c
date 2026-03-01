@@ -85,7 +85,7 @@ static void alice_script(ToxNode *self, void *ctx)
 
     char chat_id_str[TOX_GROUP_CHAT_ID_SIZE * 2 + 1];
     for (int i = 0; i < TOX_GROUP_CHAT_ID_SIZE; ++i) {
-        sprintf(chat_id_str + i * 2, "%02X", state->chat_id[i]);
+        snprintf(chat_id_str + i * 2, sizeof(chat_id_str) - i * 2, "%02X", state->chat_id[i]);
     }
     tox_node_log(self, "Created group with chat_id: %s", chat_id_str);
 

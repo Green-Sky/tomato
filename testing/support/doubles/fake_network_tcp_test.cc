@@ -407,6 +407,51 @@ namespace {
         EXPECT_EQ(accepted->recv_buffer_size(), strlen(data));
     }
 
+    TEST_F(FakeNetworkTcpTest, DataInSynAck)
+    {
+        universe.set_verbose(true);
+        IP ipA = make_ip(10, 0, 0, 1);
+        IP ipB = make_ip(10, 0, 0, 2);
+        uint16_t portA = 10001;
+        uint16_t portB = 10002;
+
+        FakeTcpSocket sockA(universe);
+        sockA.set_ip(ipA);
+        IP_Port addrA{ipA, net_htons(portA)};
+        sockA.bind(&addrA);
+        sockA.listen(5);
+
+        FakeTcpSocket sockB(universe);
+        sockB.set_ip(ipB);
+        IP_Port addrB{ipB, net_htons(portB)};
+        sockB.bind(&addrB);
+        sockB.listen(5);
+
+        // A connects to B
+        sockA.connect(&addrB);
+        // B connects to A
+        sockB.connect(&addrA);
+
+        universe.process_events(0);  // SYN from A to B
+        universe.process_events(0);  // SYN from B to A
+
+        // Now A receives B's SYN and transitions to SYN_RECEIVED, sending SYN-ACK.
+        // We want to simulate B sending SYN-ACK WITH DATA to A.
+        Packet syn_ack_data{};
+        syn_ack_data.from = addrB;
+        syn_ack_data.to = addrA;
+        syn_ack_data.is_tcp = true;
+        syn_ack_data.tcp_flags = 0x12;  // SYN | ACK
+        const char *msg = "SynAckData";
+        syn_ack_data.data.assign(msg, msg + strlen(msg));
+
+        universe.send_packet(syn_ack_data);
+        universe.process_events(0);  // A receives SYN-ACK with data
+
+        EXPECT_EQ(sockA.state(), FakeTcpSocket::ESTABLISHED);
+        EXPECT_EQ(sockA.recv_buffer_size(), strlen(msg));
+    }
+
     TEST_F(FakeNetworkTcpTest, LoopbackWithNodeIPMixed)
     {
         universe.set_verbose(true);

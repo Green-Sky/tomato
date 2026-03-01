@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
+
 #include "logger.h"
 #include "os_memory.h"
 #include "os_random.h"
@@ -21,7 +23,7 @@ TEST(TCP_common, PriorityQueueOrderingAndIntegrity)
         nullptr,
         // Mock net_send to simulate a full buffer (returns 0)
         // This forces packets into the priority queue.
-        [](void *obj, Socket sock, const uint8_t *buf, size_t len) {
+        [](void *obj, Socket sock, const uint8_t *buf, std::size_t len) {
             (void)obj;
             (void)sock;
             (void)buf;

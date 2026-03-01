@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
 #include <cstdlib>
 #include <vector>
 
@@ -32,7 +33,7 @@ public:
 
     void TearDown(const ::benchmark::State &state) override
     {
-        for (size_t i = 0; i < sockets_r.size(); ++i) {
+        for (std::size_t i = 0; i < sockets_r.size(); ++i) {
             close_pair(sockets_r[i], sockets_w[i]);
         }
         sockets_r.clear();

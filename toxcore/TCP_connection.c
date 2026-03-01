@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2015 Tox project.
  */
 
@@ -260,7 +260,7 @@ static int wipe_tcp_connection(TCP_Connections *_Nonnull tcp_c, int tcp_connecti
     return 0;
 }
 
-static TCP_Connection_to *get_connection(const TCP_Connections *_Nonnull tcp_c, int connections_number)
+static TCP_Connection_to *_Nullable get_connection(const TCP_Connections *_Nonnull tcp_c, int connections_number)
 {
     if (!connections_number_is_valid(tcp_c, connections_number)) {
         return nullptr;
@@ -269,7 +269,7 @@ static TCP_Connection_to *get_connection(const TCP_Connections *_Nonnull tcp_c, 
     return &tcp_c->connections[connections_number];
 }
 
-static TCP_con *get_tcp_connection(const TCP_Connections *_Nonnull tcp_c, int tcp_connections_number)
+static TCP_con *_Nullable get_tcp_connection(const TCP_Connections *_Nonnull tcp_c, int tcp_connections_number)
 {
     if (!tcp_connections_number_is_valid(tcp_c, tcp_connections_number)) {
         return nullptr;

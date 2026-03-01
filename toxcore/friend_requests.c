@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -109,7 +109,7 @@ static bool request_received(const Friend_Requests *_Nonnull fr, const uint8_t *
  * @retval 0 if it removed it successfully.
  * @retval -1 if it didn't find it.
  */
-int remove_request_received(Friend_Requests *_Nonnull fr, const uint8_t *_Nonnull real_pk)
+int remove_request_received(Friend_Requests *fr, const uint8_t *real_pk)
 {
     for (uint32_t i = 0; i < MAX_RECEIVED_STORED; ++i) {
         if (pk_equal(fr->received.requests[i], real_pk)) {

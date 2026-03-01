@@ -2,6 +2,7 @@
 #define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_MEMORY_H
 
 #include <atomic>
+#include <cstddef>
 #include <functional>
 
 #include "../public/memory.hh"
@@ -13,14 +14,14 @@ namespace tox::test {
 
 class FakeMemory : public MemorySystem {
 public:
-    using FailureInjector = std::function<bool(size_t size)>;  // Return true to fail
+    using FailureInjector = std::function<bool(std::size_t size)>;  // Return true to fail
     using Observer = std::function<void(bool success)>;
 
     FakeMemory();
     ~FakeMemory() override;
 
-    void *_Nullable malloc(size_t size) override;
-    void *_Nullable realloc(void *_Nullable ptr, size_t size) override;
+    void *_Nullable malloc(std::size_t size) override;
+    void *_Nullable realloc(void *_Nullable ptr, std::size_t size) override;
     void free(void *_Nullable ptr) override;
 
     // Configure failure injection
@@ -34,22 +35,22 @@ public:
      */
     struct Memory c_memory() override;
 
-    size_t current_allocation() const;
-    size_t max_allocation() const;
+    std::size_t current_allocation() const;
+    std::size_t max_allocation() const;
 
 private:
-    void on_allocation(size_t size);
-    void on_deallocation(size_t size);
+    void on_allocation(std::size_t size);
+    void on_deallocation(std::size_t size);
 
     struct Header {
-        size_t size;
-        size_t magic;
+        std::size_t size;
+        std::size_t magic;
     };
-    static constexpr size_t kMagic = 0xDEADC0DE;
-    static constexpr size_t kFreeMagic = 0xBAADF00D;
+    static constexpr std::size_t kMagic = 0xDEADC0DE;
+    static constexpr std::size_t kFreeMagic = 0xBAADF00D;
 
-    std::atomic<size_t> current_allocation_{0};
-    std::atomic<size_t> max_allocation_{0};
+    std::atomic<std::size_t> current_allocation_{0};
+    std::atomic<std::size_t> max_allocation_{0};
 
     FailureInjector failure_injector_;
     Observer observer_;

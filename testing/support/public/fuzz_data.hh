@@ -2,6 +2,7 @@
 #define C_TOXCORE_TESTING_SUPPORT_PUBLIC_FUZZ_DATA_H
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>

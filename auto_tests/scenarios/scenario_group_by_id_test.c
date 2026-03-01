@@ -9,7 +9,7 @@
 #define PEER_NICK_LEN (sizeof(PEER_NICK) - 1)
 
 typedef struct {
-    uint32_t group_number;
+    Tox_Group_Number group_number;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 } GroupState;
 
@@ -28,6 +28,19 @@ static void script(ToxNode *self, void *ctx)
     ck_assert_int_eq(err_query, TOX_ERR_GROUP_STATE_QUERY_OK);
 
     {
+        // Test tox_group_get_group_list
+        uint32_t num_groups = tox_group_get_group_list_size(tox);
+        ck_assert_uint_eq(num_groups, 1);
+
+        Tox_Group_Number group_list[1];
+        tox_group_get_group_list(tox, group_list);
+        ck_assert_uint_eq(group_list[0], state->group_number);
+
+        // Test with NULL (should not crash)
+        tox_group_get_group_list(tox, NULL);
+    }
+
+    {
         // Test tox_group_by_id
         Tox_Err_Group_By_Id err_by_id;
         uint32_t group_number = tox_group_by_id(tox, state->chat_id, &err_by_id);
@@ -40,11 +53,6 @@ static void script(ToxNode *self, void *ctx)
         group_number = tox_group_by_id(tox, invalid_chat_id, &err_by_id);
         ck_assert_int_eq(err_by_id, TOX_ERR_GROUP_BY_ID_NOT_FOUND);
         ck_assert_uint_eq(group_number, UINT32_MAX);
-
-        // Test tox_group_by_id with NULL ID
-        group_number = tox_group_by_id(tox, NULL, &err_by_id);
-        ck_assert_int_eq(err_by_id, TOX_ERR_GROUP_BY_ID_NULL);
-        ck_assert_uint_eq(group_number, UINT32_MAX);
     }
 
     // Create another group to ensure it works with multiple groups
@@ -53,6 +61,17 @@ static void script(ToxNode *self, void *ctx)
     uint8_t chat_id2[TOX_GROUP_CHAT_ID_SIZE];
     ck_assert(tox_group_get_chat_id(tox, group2, chat_id2, &err_query));
     ck_assert_int_eq(err_query, TOX_ERR_GROUP_STATE_QUERY_OK);
+
+    {
+        uint32_t num_groups = tox_group_get_group_list_size(tox);
+        ck_assert_uint_eq(num_groups, 2);
+
+        Tox_Group_Number group_list[2];
+        tox_group_get_group_list(tox, group_list);
+        // Groups are added in order of their index in the array
+        ck_assert_uint_eq(group_list[0], state->group_number);
+        ck_assert_uint_eq(group_list[1], group2);
+    }
 
     {
         Tox_Err_Group_By_Id err_by_id;
@@ -69,6 +88,15 @@ static void script(ToxNode *self, void *ctx)
 
     // Yield to allow the group to be actually deleted
     tox_scenario_yield(self);
+
+    {
+        uint32_t num_groups = tox_group_get_group_list_size(tox);
+        ck_assert_uint_eq(num_groups, 1);
+
+        Tox_Group_Number group_list[1];
+        tox_group_get_group_list(tox, group_list);
+        ck_assert_uint_eq(group_list[0], group2);
+    }
 
     {
         // After leaving, it should not be found

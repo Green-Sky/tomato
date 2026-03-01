@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <deque>
 #include <functional>
@@ -31,11 +32,12 @@ int FakeSocket::close()
     return 0;
 }
 
-int FakeSocket::getsockopt(int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen)
+int FakeSocket::getsockopt(
+    int level, int optname, void *_Nonnull optval, std::size_t *_Nonnull optlen)
 {
     return 0;
 }
-int FakeSocket::setsockopt(int level, int optname, const void *_Nonnull optval, size_t optlen)
+int FakeSocket::setsockopt(int level, int optname, const void *_Nonnull optval, std::size_t optlen)
 {
     return 0;
 }
@@ -107,24 +109,25 @@ std::unique_ptr<FakeSocket> FakeUdpSocket::accept(IP_Port *_Nullable addr)
     errno = EOPNOTSUPP;
     return nullptr;
 }
-int FakeUdpSocket::send(const uint8_t *_Nonnull buf, size_t len)
+int FakeUdpSocket::send(const uint8_t *_Nonnull buf, std::size_t len)
 {
     errno = EDESTADDRREQ;
     return -1;
 }
-int FakeUdpSocket::recv(uint8_t *_Nonnull buf, size_t len)
+int FakeUdpSocket::recv(uint8_t *_Nonnull buf, std::size_t len)
 {
     errno = EOPNOTSUPP;
     return -1;
 }
 
-size_t FakeUdpSocket::recv_buffer_size()
+std::size_t FakeUdpSocket::recv_buffer_size()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return recv_queue_.size();
 }
 
-int FakeUdpSocket::sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr)
+int FakeUdpSocket::sendto(
+    const uint8_t *_Nonnull buf, std::size_t len, const IP_Port *_Nonnull addr)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (local_port_ == 0) {
@@ -156,12 +159,12 @@ int FakeUdpSocket::sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port
     return len;
 }
 
-int FakeUdpSocket::recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr)
+int FakeUdpSocket::recvfrom(uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr)
 {
     RecvObserver observer_copy;
     std::vector<uint8_t> data_copy;
     IP_Port from_copy;
-    size_t copy_len = 0;
+    std::size_t copy_len = 0;
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -210,6 +213,12 @@ int FakeUdpSocket::recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull
 void FakeUdpSocket::push_packet(std::vector<uint8_t> data, IP_Port from)
 {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (recv_queue_.size() >= kMaxQueueSize) {
+        if (universe_.is_verbose()) {
+            std::cerr << "[FakeUdpSocket] queue full, dropping packet" << std::endl;
+        }
+        return;
+    }
     if (universe_.is_verbose()) {
         Ip_Ntoa local_ip_str, from_ip_str;
         net_ip_ntoa(&ip_, &local_ip_str);
@@ -337,8 +346,7 @@ int FakeTcpSocket::connect(const IP_Port *_Nonnull addr)
     p.seq = next_seq_;
 
     universe_.send_packet(p);
-
-    // Non-blocking connect not fully simulated (we return 0 but state is SYN_SENT).
+    // Non-blocking connect not fully simulated.
     // Real connect() blocks or returns EINPROGRESS.
     // For simplicity, we assume the test will pump events until connected.
     errno = EINPROGRESS;
@@ -370,7 +378,7 @@ std::unique_ptr<FakeSocket> FakeTcpSocket::accept(IP_Port *_Nullable addr)
     return client;
 }
 
-int FakeTcpSocket::send(const uint8_t *_Nonnull buf, size_t len)
+int FakeTcpSocket::send(const uint8_t *_Nonnull buf, std::size_t len)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (state_ != ESTABLISHED) {
@@ -403,7 +411,7 @@ int FakeTcpSocket::send(const uint8_t *_Nonnull buf, size_t len)
     return len;
 }
 
-int FakeTcpSocket::recv(uint8_t *_Nonnull buf, size_t len)
+int FakeTcpSocket::recv(uint8_t *_Nonnull buf, std::size_t len)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (recv_buffer_.empty()) {
@@ -413,7 +421,7 @@ int FakeTcpSocket::recv(uint8_t *_Nonnull buf, size_t len)
         return -1;
     }
 
-    size_t actual = std::min(len, recv_buffer_.size());
+    std::size_t actual = std::min(len, recv_buffer_.size());
     if (universe_.is_verbose() && actual > 0) {
         char remote_ip_str[TOX_INET_ADDRSTRLEN];
         ip_parse_addr(&remote_addr_.ip, remote_ip_str, sizeof(remote_ip_str));
@@ -421,14 +429,14 @@ int FakeTcpSocket::recv(uint8_t *_Nonnull buf, size_t len)
                   << net_ntohs(remote_addr_.port) << ") recv requested " << len << " got " << actual
                   << " (remaining " << recv_buffer_.size() - actual << ")" << std::endl;
     }
-    for (size_t i = 0; i < actual; ++i) {
+    for (std::size_t i = 0; i < actual; ++i) {
         buf[i] = recv_buffer_.front();
         recv_buffer_.pop_front();
     }
     return actual;
 }
 
-size_t FakeTcpSocket::recv_buffer_size()
+std::size_t FakeTcpSocket::recv_buffer_size()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return recv_buffer_.size();
@@ -450,19 +458,20 @@ bool FakeTcpSocket::is_writable()
     return state_ == ESTABLISHED;
 }
 
-int FakeTcpSocket::sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr)
+int FakeTcpSocket::sendto(
+    const uint8_t *_Nonnull buf, std::size_t len, const IP_Port *_Nonnull addr)
 {
     errno = EOPNOTSUPP;
     return -1;
 }
-int FakeTcpSocket::recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr)
+int FakeTcpSocket::recvfrom(uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr)
 {
     errno = EOPNOTSUPP;
     return -1;
 }
 
 int FakeTcpSocket::getsockopt(
-    int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen)
+    int level, int optname, void *_Nonnull optval, std::size_t *_Nonnull optlen)
 {
     if (universe_.is_verbose()) {
         std::cerr << "[FakeTcpSocket] getsockopt level=" << level << " optname=" << optname
@@ -512,17 +521,21 @@ bool FakeTcpSocket::handle_packet(const Packet &p)
         }
 
         if (p.tcp_flags & 0x04) {  // RST
-            state_ = CLOSED;
-            if (local_port_ != 0) {
-                universe_.unbind_tcp(ip_, local_port_, this);
-                local_port_ = 0;
-            }
+            close_impl();
             return true;
         }
     }
 
-    if (state_ == LISTEN) {
+    switch (state_) {
+    case LISTEN:
         if (p.tcp_flags & 0x02) {  // SYN
+            // Check backlog
+            std::size_t effective_backlog
+                = std::clamp(static_cast<std::size_t>(backlog_), std::size_t{1}, kMaxBacklog);
+            if (pending_connections_.size() >= effective_backlog) {
+                return false;  // Drop packet
+            }
+
             // Check for duplicate SYN from same peer
             for (const auto &pending : pending_connections_) {
                 if (ipport_equal(&p.from, &pending->remote_addr_)) {
@@ -557,7 +570,9 @@ bool FakeTcpSocket::handle_packet(const Packet &p)
             pending_connections_.push_back(std::move(new_sock));
             return true;
         }
-    } else if (state_ == SYN_SENT) {
+        return false;
+
+    case SYN_SENT:
         if ((p.tcp_flags & 0x12) == 0x12) {  // SYN | ACK
             state_ = ESTABLISHED;
             last_ack_ = p.seq + 1;
@@ -572,7 +587,7 @@ bool FakeTcpSocket::handle_packet(const Packet &p)
             ack.seq = next_seq_;
             ack.ack = last_ack_;
             universe_.send_packet(ack);
-            return true;
+            // Fall through to handle data if any
         } else if (p.tcp_flags & 0x02) {  // SYN (Simultaneous Open)
             state_ = SYN_RECEIVED;
             last_ack_ = p.seq + 1;
@@ -587,13 +602,27 @@ bool FakeTcpSocket::handle_packet(const Packet &p)
             resp.ack = last_ack_;
             universe_.send_packet(resp);
             return true;
-        }
-    } else if (state_ == SYN_RECEIVED) {
-        if (p.tcp_flags & 0x10) {  // ACK
-            state_ = ESTABLISHED;
         } else {
             return false;
         }
+        break;
+
+    case SYN_RECEIVED:
+        if (p.tcp_flags & 0x10) {  // ACK
+            state_ = ESTABLISHED;
+            // Fall through to handle data if any
+        } else {
+            return false;
+        }
+        break;
+
+    case ESTABLISHED:
+        break;
+
+    case CLOSED:
+    case CLOSE_WAIT:
+    default:
+        return false;
     }
 
     if (state_ == ESTABLISHED) {
@@ -611,15 +640,25 @@ bool FakeTcpSocket::handle_packet(const Packet &p)
             return true;
         } else {
             if (!p.data.empty()) {
-                if (universe_.is_verbose()) {
-                    char remote_ip_str[TOX_INET_ADDRSTRLEN];
-                    ip_parse_addr(&remote_addr_.ip, remote_ip_str, sizeof(remote_ip_str));
-                    std::cerr << "[FakeTcpSocket] Port " << local_port_
-                              << " (Peer: " << remote_ip_str << ":" << net_ntohs(remote_addr_.port)
-                              << ") adding " << p.data.size() << " bytes to buffer (currently "
-                              << recv_buffer_.size() << ")" << std::endl;
+                if (recv_buffer_.size() + p.data.size() <= kMaxBufferSize) {
+                    if (universe_.is_verbose()) {
+                        char remote_ip_str[TOX_INET_ADDRSTRLEN];
+                        ip_parse_addr(&remote_addr_.ip, remote_ip_str, sizeof(remote_ip_str));
+                        std::cerr << "[FakeTcpSocket] Port " << local_port_
+                                  << " (Peer: " << remote_ip_str << ":"
+                                  << net_ntohs(remote_addr_.port) << ") adding " << p.data.size()
+                                  << " bytes to buffer (currently " << recv_buffer_.size() << ")"
+                                  << std::endl;
+                    }
+                    recv_buffer_.insert(recv_buffer_.end(), p.data.begin(), p.data.end());
+                    last_ack_ += p.data.size();
+                } else {
+                    if (universe_.is_verbose()) {
+                        std::cerr << "[FakeTcpSocket] Port " << local_port_
+                                  << " Buffer full, dropping " << p.data.size() << " bytes"
+                                  << std::endl;
+                    }
                 }
-                recv_buffer_.insert(recv_buffer_.end(), p.data.begin(), p.data.end());
             }
             return true;
         }

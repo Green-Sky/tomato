@@ -12,6 +12,7 @@ RUN ["apk", "--no-cache", "add",\
  "linux-headers",\
  "musl-dev",\
  "ninja",\
+ "patch",\
  "python3"]
 
 WORKDIR /src/c-toxcore
@@ -32,6 +33,12 @@ COPY toxencryptsave toxencryptsave
 COPY third_party third_party
 COPY CMakeLists.txt so.version ./
 COPY other/bootstrap_daemon/CMakeLists.txt other/bootstrap_daemon/CMakeLists.txt
+# Copy the patch if it exists (glob prevents failure if missing)
+COPY other/bootstrap_daemon/docker/release.patc[h] other/bootstrap_daemon/docker/
+
+RUN if [ -f other/bootstrap_daemon/docker/release.patch ] && [ -s other/bootstrap_daemon/docker/release.patch ]; then \
+      patch -p1 < other/bootstrap_daemon/docker/release.patch; \
+    fi
 
 RUN CC=clang cmake -B_build -H. \
   -GNinja \
@@ -42,6 +49,8 @@ RUN CC=clang cmake -B_build -H. \
   -DMIN_LOGGER_LEVEL=TRACE \
   -DBUILD_TOXAV=OFF \
   -DBOOTSTRAP_DAEMON=ON \
+  -DDHT_BOOTSTRAP=OFF \
+  -DUNITTEST=OFF \
   && cmake --build _build --target install
 
 # Verify checksum from dev-built binary, so we can be sure Docker Hub doesn't

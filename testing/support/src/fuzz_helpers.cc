@@ -1,6 +1,7 @@
 #include "../public/fuzz_helpers.hh"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <vector>
 
@@ -23,7 +24,7 @@ void configure_fuzz_packet_source(FakeUdpSocket &socket, Fuzz_Data &input)
             return false;
         }
 
-        size_t actual_len = std::min(static_cast<size_t>(len), input.size());
+        std::size_t actual_len = std::min(static_cast<std::size_t>(len), input.size());
         const uint8_t *payload = input.consume("recv_payload", actual_len);
 
         if (!payload && actual_len > 0)
@@ -42,7 +43,7 @@ void configure_fuzz_packet_source(FakeUdpSocket &socket, Fuzz_Data &input)
 
 void configure_fuzz_memory_source(FakeMemory &memory, Fuzz_Data &input)
 {
-    memory.set_failure_injector([&input](size_t size) -> bool {
+    memory.set_failure_injector([&input](std::size_t size) -> bool {
         if (input.size() < 1) {
             // Legacy behavior: if input runs out, allocation succeeds.
             return false;
@@ -56,7 +57,7 @@ void configure_fuzz_memory_source(FakeMemory &memory, Fuzz_Data &input)
 
 void configure_fuzz_random_source(FakeRandom &random, Fuzz_Data &input)
 {
-    random.set_entropy_source([&input](uint8_t *_Nonnull out, size_t count) {
+    random.set_entropy_source([&input](uint8_t *_Nonnull out, std::size_t count) {
         // Initialize with zeros in case of underflow
         std::memset(out, 0, count);
 
@@ -71,7 +72,7 @@ void configure_fuzz_random_source(FakeRandom &random, Fuzz_Data &input)
 
         // For large chunks, repeat available data
         if (count == 24 || count == 32) {
-            size_t available = std::min(input.size(), static_cast<size_t>(2));
+            std::size_t available = std::min(input.size(), static_cast<std::size_t>(2));
             if (available > 0) {
                 const uint8_t *chunk = input.consume("rnd_chunk", available);
                 if (available == 2) {
@@ -85,7 +86,7 @@ void configure_fuzz_random_source(FakeRandom &random, Fuzz_Data &input)
         }
 
         // Fallback for other sizes: consume as much as possible
-        size_t taken = std::min(input.size(), count);
+        std::size_t taken = std::min(input.size(), count);
         if (taken > 0) {
             const uint8_t *bytes = input.consume("rnd_generic", taken);
             std::memcpy(out, bytes, taken);

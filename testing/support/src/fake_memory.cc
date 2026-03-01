@@ -1,5 +1,6 @@
 #include "../doubles/fake_memory.hh"
 
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <new>
@@ -25,7 +26,7 @@ static const Memory_Funcs kFakeMemoryVtable = {
 FakeMemory::FakeMemory() = default;
 FakeMemory::~FakeMemory() = default;
 
-void *_Nullable FakeMemory::malloc(size_t size)
+void *_Nullable FakeMemory::malloc(std::size_t size)
 {
     bool fail = failure_injector_ && failure_injector_(size);
 
@@ -51,7 +52,7 @@ void *_Nullable FakeMemory::malloc(size_t size)
     return header + 1;
 }
 
-void *_Nullable FakeMemory::realloc(void *_Nullable ptr, size_t size)
+void *_Nullable FakeMemory::realloc(void *_Nullable ptr, std::size_t size)
 {
     if (!ptr) {
         return malloc(size);
@@ -80,7 +81,7 @@ void *_Nullable FakeMemory::realloc(void *_Nullable ptr, size_t size)
         return nullptr;
     }
 
-    size_t old_size = old_header->size;
+    std::size_t old_size = old_header->size;
     void *new_ptr = std::realloc(old_header, size + sizeof(Header));
     if (!new_ptr) {
         return nullptr;
@@ -115,7 +116,7 @@ void FakeMemory::free(void *_Nullable ptr)
         std::abort();
     }
 
-    size_t size = header->size;
+    std::size_t size = header->size;
     on_deallocation(size);
     header->magic = kFreeMagic;  // Mark as free
     std::free(header);
@@ -130,17 +131,17 @@ void FakeMemory::set_observer(Observer observer) { observer_ = std::move(observe
 
 struct Memory FakeMemory::c_memory() { return Memory{&kFakeMemoryVtable, this}; }
 
-size_t FakeMemory::current_allocation() const { return current_allocation_.load(); }
+std::size_t FakeMemory::current_allocation() const { return current_allocation_.load(); }
 
-size_t FakeMemory::max_allocation() const { return max_allocation_.load(); }
+std::size_t FakeMemory::max_allocation() const { return max_allocation_.load(); }
 
-void FakeMemory::on_allocation(size_t size)
+void FakeMemory::on_allocation(std::size_t size)
 {
-    size_t current = current_allocation_.fetch_add(size) + size;
-    size_t max = max_allocation_.load(std::memory_order_relaxed);
+    std::size_t current = current_allocation_.fetch_add(size) + size;
+    std::size_t max = max_allocation_.load(std::memory_order_relaxed);
     while (current > max && !max_allocation_.compare_exchange_weak(max, current)) { }
 }
 
-void FakeMemory::on_deallocation(size_t size) { current_allocation_.fetch_sub(size); }
+void FakeMemory::on_deallocation(std::size_t size) { current_allocation_.fetch_sub(size); }
 
 }  // namespace tox::test

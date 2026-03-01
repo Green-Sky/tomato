@@ -15,7 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   ################################################################################################
   # Preparation jobs
   ################################################################################################
@@ -36,20 +35,20 @@ jobs:
         arch: [aarch64, x86_64]
     runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Install build tools
         run: sudo apt-get install -y --no-install-recommends ninja-build yasm
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: deps-prefix-linux-${{ matrix.arch }}
           key: ${{ github.job }}-${{ matrix.arch }}-deps
       - name: Run build
         run: other/deploy/linux.sh "${{ matrix.arch }}"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toxcore-linux-${{ matrix.arch }}
           path: toxcore-linux-${{ matrix.arch }}
@@ -96,18 +95,18 @@ jobs:
         arch: [arm64, x86_64]
     runs-on: ${{ matrix.arch == 'arm64' && 'macos-14' || 'macos-15-intel' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: deps-prefix-macos-${{ matrix.arch }}
           key: ${{ github.job }}-${{ matrix.arch }}-deps
       - name: Run build
         run: other/deploy/macos.sh "${{ matrix.arch }}"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toxcore-macos-${{ matrix.arch }}
           path: toxcore-macos-${{ matrix.arch }}
@@ -118,21 +117,28 @@ jobs:
     needs: [prepare]
     strategy:
       matrix:
-        target: [ios-arm64, ios-armv7, ios-armv7s, iphonesimulator-arm64, iphonesimulator-x86_64]
-    runs-on: 'macos-14'
+        target:
+          [
+            ios-arm64,
+            ios-armv7,
+            ios-armv7s,
+            iphonesimulator-arm64,
+            iphonesimulator-x86_64,
+          ]
+    runs-on: "macos-14"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: deps-prefix-${{ matrix.target }}
           key: ${{ github.job }}-${{ matrix.target }}-deps
       - name: Run build
         run: other/deploy/ios.sh "${{ matrix.target }}"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toxcore-${{ matrix.target }}
           path: toxcore-${{ matrix.target }}
@@ -141,21 +147,21 @@ jobs:
   build-xcode-framework:
     name: Xcode Framework
     needs: [build-ios, build-macos]
-    runs-on: 'macos-14'
+    runs-on: "macos-14"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Download artifact for ios
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: toxcore-ios-*
       - name: Download artifact for iphonesimulator
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: toxcore-iphonesimulator-*
       - name: Download artifact for macos
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: toxcore-macos-*
       - name: Run build
@@ -165,7 +171,7 @@ jobs:
           tar -C other/deploy/apple -zcf toxcore-xcframework.tar.gz Tox.xcframework
           shasum -a 256 toxcore-xcframework.tar.gz >toxcore-xcframework.tar.gz.sha256
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toxcore-xcframework
           path: other/deploy/apple/Tox.xcframework
@@ -212,18 +218,18 @@ jobs:
         arch: [armeabi-v7a, arm64-v8a, x86, x86_64]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: deps-prefix-android-${{ matrix.arch }}
           key: ${{ github.job }}-${{ matrix.arch }}-deps
       - name: Run build
         run: other/deploy/android.sh "${{ matrix.arch }}"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toxcore-android-${{ matrix.arch }}
           path: toxcore-android-${{ matrix.arch }}
@@ -287,7 +293,7 @@ jobs:
       - name: Extract wasm build
         run: docker run --rm --entrypoint tar toxchat/c-toxcore:wasm -C /wasm/bin -c libtoxcore.js libtoxcore.wasm >toxcore-wasm.tar
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toxcore-wasm.tar
           path: toxcore-wasm.tar

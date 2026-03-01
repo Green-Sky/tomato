@@ -1,6 +1,7 @@
 #include "../doubles/fake_random.hh"
 
 #include <algorithm>
+#include <cstddef>
 
 #include "../../../toxcore/rng.h"
 
@@ -44,7 +45,7 @@ uint32_t FakeRandom::uniform(uint32_t upper_bound)
     return dist(rng_);
 }
 
-void FakeRandom::bytes(uint8_t *_Nonnull out, size_t count)
+void FakeRandom::bytes(uint8_t *_Nonnull out, std::size_t count)
 {
     if (entropy_source_) {
         entropy_source_(out, count);

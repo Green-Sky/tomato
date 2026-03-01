@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <functional>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
+#include "../../toxcore/tox_private.h"
 #include "../support/public/fuzz_data.hh"
 #include "../support/public/fuzz_helpers.hh"
 #include "../support/public/simulated_environment.hh"
@@ -143,7 +145,7 @@ void setup_callbacks(Tox_Dispatch *dispatch)
 
 void TestEndToEnd(Fuzz_Data &input)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     env.fake_clock().advance(1000000000);  // Match legacy behavior
     auto node = env.create_node(33445);
     configure_fuzz_memory_source(env.fake_memory(), input);
@@ -151,7 +153,7 @@ void TestEndToEnd(Fuzz_Data &input)
     configure_fuzz_random_source(env.fake_random(), input);
 
     // Null system replacement for event comparison
-    SimulatedEnvironment null_env;
+    SimulatedEnvironment null_env{12346};
     auto null_node = null_env.create_node(0);
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
@@ -208,13 +210,18 @@ void TestEndToEnd(Fuzz_Data &input)
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
+    Ptr<Tox_Iterate_Options> iterate_opts(
+        tox_iterate_options_new(nullptr), tox_iterate_options_free);
+    tox_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
     // MIN_ITERATION_INTERVAL = 20
     const uint8_t MIN_ITERATION_INTERVAL = 20;
 
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
-        Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
+        Tox_Events *events = tox_events_iterate(tox, iterate_opts.get(), &error_iterate);
         assert(tox_events_equal(&null_node->system, events, events));
+
         tox_dispatch_invoke(dispatch, events, tox);
         tox_events_free(events);
 
@@ -244,8 +251,8 @@ const std::vector<uint8_t> startup_data = [] {
 
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size)
 {
     std::vector<uint8_t> full_data(startup_data.size() + size);
     std::copy(startup_data.begin(), startup_data.end(), full_data.begin());

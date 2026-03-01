@@ -1,5 +1,7 @@
 #include "group_moderation.h"
 
+#include <cstddef>
+
 #include "../testing/support/public/fuzz_data.hh"
 #include "../testing/support/public/simulated_environment.hh"
 
@@ -11,7 +13,7 @@ using tox::test::SimulatedEnvironment;
 void TestModListUnpack(Fuzz_Data &input)
 {
     CONSUME1_OR_RETURN(const std::uint16_t, num_mods, input);
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Moderation mods{&c_mem};
     mod_list_unpack(&mods, input.data(), input.size(), num_mods);

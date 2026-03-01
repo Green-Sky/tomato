@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
+
 #include "fake_sockets.hh"
 
 namespace tox::test {
@@ -83,11 +85,11 @@ namespace {
 
         int len1 = sock1.recvfrom(buf, sizeof(buf), &from);
         ASSERT_GT(len1, 0);
-        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<size_t>(len1)), msg1);
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<std::size_t>(len1)), msg1);
 
         int len2 = sock2.recvfrom(buf, sizeof(buf), &from);
         ASSERT_GT(len2, 0);
-        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<size_t>(len2)), msg2);
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<std::size_t>(len2)), msg2);
     }
 
     TEST_F(NetworkUniverseTest, FindFreePortIsIpSpecific)
@@ -196,7 +198,7 @@ namespace {
             IP_Port from;
             int len = nodes[num_nodes - 1 - i].sock->recvfrom(buf, sizeof(buf), &from);
             ASSERT_GT(len, 0);
-            EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<size_t>(len)),
+            EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<std::size_t>(len)),
                 "Stress test");
             EXPECT_TRUE(ip_equal(&from.ip, &nodes[i].addr.ip));
         }
@@ -232,8 +234,8 @@ namespace {
 
         // If this fails, it means NetworkUniverse is not robust against padding garbage
         ASSERT_GT(len, 0);
-        EXPECT_EQ(
-            std::string(reinterpret_cast<char *>(buf), static_cast<size_t>(len)), "Padding test");
+        EXPECT_EQ(std::string(reinterpret_cast<char *>(buf), static_cast<std::size_t>(len)),
+            "Padding test");
     }
 
     TEST_F(NetworkUniverseTest, TcpRoutingSpecificity)
