@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2014 Tox project.
  */
 
@@ -360,7 +360,7 @@ const char *tcp_packet_type_to_string(Tcp_Packet type)
     return "<invalid Tcp_Packet>";
 }
 
-bool tcp_packet_from_int(uint32_t value, Tcp_Packet *_Nonnull out_enum)
+bool tcp_packet_from_int(uint32_t value, Tcp_Packet *out_enum)
 {
     switch (value) {
         case TCP_PACKET_ROUTING_REQUEST:

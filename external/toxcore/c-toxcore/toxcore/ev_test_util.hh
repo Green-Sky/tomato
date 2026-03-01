@@ -5,7 +5,7 @@
 #ifndef C_TOXCORE_TOXCORE_EV_TEST_UTIL_HH
 #define C_TOXCORE_TOXCORE_EV_TEST_UTIL_HH
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "net.h"
 
@@ -30,6 +30,6 @@ void close_socket(Socket s);
 /**
  * @brief Writes data to a socket.
  */
-int write_socket(Socket s, const void *buf, size_t count);
+int write_socket(Socket s, const void *buf, std::size_t count);
 
 #endif /* C_TOXCORE_TOXCORE_EV_TEST_UTIL_HH */

@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <vector>
 
 #include "ev_test_util.hh"
@@ -282,7 +283,7 @@ TEST_F(EvTest, ReallocPointers)
 
     // Cleanup
     close_pair(rs, ws);
-    for (size_t i = 0; i < extra_sockets_r.size(); ++i) {
+    for (std::size_t i = 0; i < extra_sockets_r.size(); ++i) {
         close_pair(extra_sockets_r[i], extra_sockets_w[i]);
     }
 }

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -6,6 +7,7 @@
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
+#include "../../toxcore/tox_private.h"
 #include "../support/public/fuzz_data.hh"
 #include "../support/public/fuzz_helpers.hh"
 #include "../support/public/simulated_environment.hh"
@@ -109,14 +111,14 @@ void setup_callbacks(Tox_Dispatch *dispatch)
 
 void TestBootstrap(Fuzz_Data &input)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     env.fake_clock().advance(1000000000);  // Match legacy behavior
     auto node = env.create_node(33445);
     configure_fuzz_memory_source(env.fake_memory(), input);
     configure_fuzz_packet_source(*node->endpoint, input);
 
     // Create a second null system for tox_events_equal check
-    SimulatedEnvironment null_env;
+    SimulatedEnvironment null_env{12346};
     auto null_node = null_env.create_node(0);  // Port 0 (unbound/irrelevant)
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
@@ -196,12 +198,15 @@ void TestBootstrap(Fuzz_Data &input)
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
-    size_t input_size = input.size();
+    Ptr<Tox_Iterate_Options> iterate_opts(
+        tox_iterate_options_new(nullptr), tox_iterate_options_free);
+    tox_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
+    std::size_t input_size = input.size();
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
-        Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
+        Tox_Events *events = tox_events_iterate(tox, iterate_opts.get(), &error_iterate);
         assert(tox_events_equal(&null_node->system, events, events));
-
         tox_dispatch_invoke(dispatch, events, tox);
         tox_events_free(events);
 
@@ -221,8 +226,8 @@ void TestBootstrap(Fuzz_Data &input)
 
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size)
 {
     Fuzz_Data input{data, size};
     TestBootstrap(input);

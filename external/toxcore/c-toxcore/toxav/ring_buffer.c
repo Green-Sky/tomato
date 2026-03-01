@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2013 Tox project.
  * Copyright © 2013 plutooo
  */
@@ -13,7 +13,7 @@ struct RingBuffer {
     uint16_t size; /* Max size */
     uint16_t start;
     uint16_t end;
-    void   **data;
+    void *_Nullable *_Nonnull data;
 };
 
 bool rb_full(const RingBuffer *b)

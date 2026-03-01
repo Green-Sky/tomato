@@ -1,6 +1,7 @@
 #include "forwarding.h"
 
 #include <cassert>
+#include <cstddef>
 #include <cstring>
 #include <memory>
 #include <optional>
@@ -55,7 +56,7 @@ void TestSendForwardRequest(Fuzz_Data &input)
     }
     const auto [ipp, forwarder, data, data_size] = prep.value();
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(ipp.port);
     configure_fuzz_memory_source(env.fake_memory(), input);
 
@@ -86,7 +87,7 @@ void TestForwardReply(Fuzz_Data &input)
     }
     const auto [ipp, forwarder, data, data_size] = prep.value();
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(ipp.port);
     configure_fuzz_memory_source(env.fake_memory(), input);
 

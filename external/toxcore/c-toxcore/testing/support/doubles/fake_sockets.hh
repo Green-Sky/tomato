@@ -2,6 +2,7 @@
 #define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_SOCKETS_H
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -39,18 +40,20 @@ public:
     virtual int listen(int backlog) = 0;
     virtual std::unique_ptr<FakeSocket> accept(IP_Port *_Nullable addr) = 0;
 
-    virtual int send(const uint8_t *_Nonnull buf, size_t len) = 0;
-    virtual int recv(uint8_t *_Nonnull buf, size_t len) = 0;
+    virtual int send(const uint8_t *_Nonnull buf, std::size_t len) = 0;
+    virtual int recv(uint8_t *_Nonnull buf, std::size_t len) = 0;
 
-    virtual size_t recv_buffer_size() { return 0; }
+    virtual std::size_t recv_buffer_size() { return 0; }
     virtual bool is_readable() { return recv_buffer_size() > 0; }
     virtual bool is_writable() { return true; }
 
-    virtual int sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr) = 0;
-    virtual int recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) = 0;
+    virtual int sendto(const uint8_t *_Nonnull buf, std::size_t len, const IP_Port *_Nonnull addr)
+        = 0;
+    virtual int recvfrom(uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr) = 0;
 
-    virtual int getsockopt(int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen);
-    virtual int setsockopt(int level, int optname, const void *_Nonnull optval, size_t optlen);
+    virtual int getsockopt(
+        int level, int optname, void *_Nonnull optval, std::size_t *_Nonnull optlen);
+    virtual int setsockopt(int level, int optname, const void *_Nonnull optval, std::size_t optlen);
     virtual int socket_nonblock(bool nonblock);
 
     virtual int close();
@@ -76,6 +79,8 @@ protected:
  */
 class FakeUdpSocket : public FakeSocket {
 public:
+    static constexpr std::size_t kMaxQueueSize = 1024;
+
     explicit FakeUdpSocket(NetworkUniverse &universe);
     ~FakeUdpSocket() override;
 
@@ -85,12 +90,12 @@ public:
     std::unique_ptr<FakeSocket> accept(IP_Port *_Nullable addr) override;
     int close() override;
 
-    int send(const uint8_t *_Nonnull buf, size_t len) override;
-    int recv(uint8_t *_Nonnull buf, size_t len) override;
-    size_t recv_buffer_size() override;
+    int send(const uint8_t *_Nonnull buf, std::size_t len) override;
+    int recv(uint8_t *_Nonnull buf, std::size_t len) override;
+    std::size_t recv_buffer_size() override;
 
-    int sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr) override;
-    int recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) override;
+    int sendto(const uint8_t *_Nonnull buf, std::size_t len, const IP_Port *_Nonnull addr) override;
+    int recvfrom(uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr) override;
 
     // Called by Universe to deliver a packet
     void push_packet(std::vector<uint8_t> data, IP_Port from);
@@ -125,6 +130,9 @@ class FakeTcpSocket : public FakeSocket {
 public:
     enum State { CLOSED, LISTEN, SYN_SENT, SYN_RECEIVED, ESTABLISHED, CLOSE_WAIT };
 
+    static constexpr std::size_t kMaxBufferSize = 1024 * 1024;
+    static constexpr std::size_t kMaxBacklog = 128;
+
     explicit FakeTcpSocket(NetworkUniverse &universe);
     ~FakeTcpSocket() override;
 
@@ -134,16 +142,17 @@ public:
     std::unique_ptr<FakeSocket> accept(IP_Port *_Nullable addr) override;
     int close() override;
 
-    int send(const uint8_t *_Nonnull buf, size_t len) override;
-    int recv(uint8_t *_Nonnull buf, size_t len) override;
-    size_t recv_buffer_size() override;
+    int send(const uint8_t *_Nonnull buf, std::size_t len) override;
+    int recv(uint8_t *_Nonnull buf, std::size_t len) override;
+    std::size_t recv_buffer_size() override;
     bool is_readable() override;
     bool is_writable() override;
 
-    int sendto(const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr) override;
-    int recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) override;
+    int sendto(const uint8_t *_Nonnull buf, std::size_t len, const IP_Port *_Nonnull addr) override;
+    int recvfrom(uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr) override;
 
-    int getsockopt(int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen) override;
+    int getsockopt(
+        int level, int optname, void *_Nonnull optval, std::size_t *_Nonnull optlen) override;
 
     // Internal events
     bool handle_packet(const Packet &p);

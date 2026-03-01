@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -16,7 +17,7 @@ namespace {
 
     class BootstrapScalingTest : public ::testing::Test {
     protected:
-        Simulation sim;
+        Simulation sim{12345};
     };
 
     TEST_F(BootstrapScalingTest, TwentyNodes)
@@ -51,7 +52,7 @@ namespace {
         std::cerr << "[Test] Bootstrapping to Node 0 at " << bootstrap_ip << ":" << bootstrap_port
                   << std::endl;
 
-        size_t total_packets = 0;
+        std::size_t total_packets = 0;
         sim.net().add_observer([&](const Packet &) { total_packets++; });
 
         // Everyone else bootstraps to Node 0
@@ -69,7 +70,7 @@ namespace {
         sim.run_until(
             [&]() {
                 all_connected = true;
-                size_t connected_count = 0;
+                std::size_t connected_count = 0;
                 for (int i = 0; i < num_nodes; ++i) {
                     tox_iterate(toxes[i].get(), nullptr);
                     if (tox_self_get_connection_status(toxes[i].get()) != TOX_CONNECTION_NONE) {

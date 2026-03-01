@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022-2025 The TokTok team.
+ * Copyright © 2022-2026 The TokTok team.
  */
 
 #include "tox_events.h"
@@ -74,7 +74,7 @@ uint32_t tox_events_get_size(const Tox_Events *events)
     return events == nullptr ? 0 : events->events_size;
 }
 
-static const Tox_Event *tox_events_get_events(const Tox_Events *_Nullable events)
+static const Tox_Event *_Nullable tox_events_get_events(const Tox_Events *_Nullable events)
 {
     return events == nullptr ? nullptr : events->events;
 }
@@ -88,15 +88,18 @@ const Tox_Event *tox_events_get(const Tox_Events *events, uint32_t index)
     return &events->events[index];
 }
 
-Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error)
+Tox_Events *tox_events_iterate(Tox *tox, const Tox_Iterate_Options *options, Tox_Err_Events_Iterate *error)
 {
     const Tox_System *sys = tox_get_system(tox);
-    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem};
-    tox_iterate(tox, &state);
+    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem, nullptr};
+
+    tox_iterate_with_options(tox, options, &state);
 
     if (error != nullptr) {
         *error = state.error;
     }
+
+    const bool fail_hard = tox_iterate_options_get_fail_hard(options);
 
     if (fail_hard && state.error != TOX_ERR_EVENTS_ITERATE_OK) {
         tox_events_free(state.events);

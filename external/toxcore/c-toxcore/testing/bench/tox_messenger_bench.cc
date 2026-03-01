@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
 #include <iostream>
 
 #include "../../testing/support/public/simulation.hh"
@@ -15,12 +16,12 @@ namespace {
 using tox::test::Simulation;
 
 struct Context {
-    size_t count = 0;
+    std::size_t count = 0;
 };
 
 void BM_ToxMessengerThroughput(benchmark::State &state)
 {
-    Simulation sim;
+    Simulation sim{12345};
     sim.net().set_latency(5);
     auto node1 = sim.create_node();
     auto node2 = sim.create_node();
@@ -90,11 +91,11 @@ void BM_ToxMessengerThroughput(benchmark::State &state)
     }
 
     const uint8_t msg[] = "benchmark message";
-    const size_t msg_len = sizeof(msg);
+    const std::size_t msg_len = sizeof(msg);
 
     Context ctx;
     tox_callback_friend_message(tox2.get(),
-        [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, size_t, void *user_data) {
+        [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, std::size_t, void *user_data) {
             static_cast<Context *>(user_data)->count++;
         });
 
@@ -116,7 +117,7 @@ BENCHMARK(BM_ToxMessengerThroughput);
 
 void BM_ToxMessengerBidirectional(benchmark::State &state)
 {
-    Simulation sim;
+    Simulation sim{12345};
     sim.net().set_latency(5);
     auto node1 = sim.create_node();
     auto node2 = sim.create_node();
@@ -186,16 +187,16 @@ void BM_ToxMessengerBidirectional(benchmark::State &state)
     }
 
     const uint8_t msg[] = "benchmark message";
-    const size_t msg_len = sizeof(msg);
+    const std::size_t msg_len = sizeof(msg);
 
     Context ctx1, ctx2;
     tox_callback_friend_message(tox1.get(),
-        [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, size_t, void *user_data) {
+        [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, std::size_t, void *user_data) {
             static_cast<Context *>(user_data)->count++;
         });
 
     tox_callback_friend_message(tox2.get(),
-        [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, size_t, void *user_data) {
+        [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, std::size_t, void *user_data) {
             static_cast<Context *>(user_data)->count++;
         });
 

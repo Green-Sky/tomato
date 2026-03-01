@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022-2025 The TokTok team.
+ * Copyright © 2022-2026 The TokTok team.
  */
 
 /**
@@ -21,6 +21,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct Tox_Iterate_Options Tox_Iterate_Options;
 
 typedef struct Tox_Event_Conference_Connected Tox_Event_Conference_Connected;
 uint32_t tox_event_conference_connected_get_conference_number(
@@ -557,18 +559,21 @@ typedef enum Tox_Err_Events_Iterate {
  * Otherwise it returns an object with the recorded events in it. If an
  * allocation fails while recording events, some events may be dropped.
  *
- * If @p fail_hard is `true`, any failure will result in NULL, so all recorded
- * events will be dropped.
+ * If `fail_hard` in @p options is `true`, any failure will result in NULL, so
+ * all recorded events will be dropped.
  *
  * The result must be freed using `tox_events_free`.
  *
  * @param tox The Tox instance to iterate on.
- * @param fail_hard Drop all events when any allocation fails.
+ * @param options Options for the iteration. If NULL, default options are used.
  * @param error An error code. Will be set to OK on success.
  *
  * @return the recorded events structure.
  */
-Tox_Events *_Nullable tox_events_iterate(Tox *_Nonnull tox, bool fail_hard, Tox_Err_Events_Iterate *_Nullable error);
+Tox_Events *_Nullable tox_events_iterate(
+    Tox *_Nonnull tox,
+    const Tox_Iterate_Options *_Nullable options,
+    Tox_Err_Events_Iterate *_Nullable error);
 
 /**
  * Dispatch all events in the events object to the registered callbacks in the

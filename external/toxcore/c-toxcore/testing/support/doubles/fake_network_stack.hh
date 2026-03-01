@@ -1,6 +1,7 @@
 #ifndef C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_NETWORK_STACK_H
 #define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_NETWORK_STACK_H
 
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -22,22 +23,23 @@ public:
     Socket socket(int domain, int type, int protocol) override;
     int bind(Socket sock, const IP_Port *_Nonnull addr) override;
     int close(Socket sock) override;
-    int sendto(Socket sock, const uint8_t *_Nonnull buf, size_t len,
+    int sendto(Socket sock, const uint8_t *_Nonnull buf, std::size_t len,
         const IP_Port *_Nonnull addr) override;
-    int recvfrom(Socket sock, uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr) override;
+    int recvfrom(
+        Socket sock, uint8_t *_Nonnull buf, std::size_t len, IP_Port *_Nonnull addr) override;
 
     int listen(Socket sock, int backlog) override;
     Socket accept(Socket sock) override;
     int connect(Socket sock, const IP_Port *_Nonnull addr) override;
-    int send(Socket sock, const uint8_t *_Nonnull buf, size_t len) override;
-    int recv(Socket sock, uint8_t *_Nonnull buf, size_t len) override;
+    int send(Socket sock, const uint8_t *_Nonnull buf, std::size_t len) override;
+    int recv(Socket sock, uint8_t *_Nonnull buf, std::size_t len) override;
     int recvbuf(Socket sock) override;
 
     int socket_nonblock(Socket sock, bool nonblock) override;
     int getsockopt(Socket sock, int level, int optname, void *_Nonnull optval,
-        size_t *_Nonnull optlen) override;
-    int setsockopt(
-        Socket sock, int level, int optname, const void *_Nonnull optval, size_t optlen) override;
+        std::size_t *_Nonnull optlen) override;
+    int setsockopt(Socket sock, int level, int optname, const void *_Nonnull optval,
+        std::size_t optlen) override;
 
     /**
      * @brief Returns C-compatible Network struct.

@@ -1,6 +1,7 @@
 #ifndef C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_RANDOM_H
 #define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_RANDOM_H
 
+#include <cstddef>
 #include <functional>
 #include <random>
 
@@ -13,13 +14,13 @@ namespace tox::test {
 
 class FakeRandom : public RandomSystem {
 public:
-    using EntropySource = std::function<void(uint8_t *_Nonnull out, size_t count)>;
-    using Observer = std::function<void(const uint8_t *_Nonnull data, size_t count)>;
+    using EntropySource = std::function<void(uint8_t *_Nonnull out, std::size_t count)>;
+    using Observer = std::function<void(const uint8_t *_Nonnull data, std::size_t count)>;
 
     explicit FakeRandom(uint64_t seed);
 
     uint32_t uniform(uint32_t upper_bound) override;
-    void bytes(uint8_t *_Nonnull out, size_t count) override;
+    void bytes(uint8_t *_Nonnull out, std::size_t count) override;
 
     /**
      * @brief Set a custom entropy source.

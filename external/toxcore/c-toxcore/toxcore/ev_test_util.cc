@@ -4,6 +4,8 @@
 
 #include "ev_test_util.hh"
 
+#include <cstddef>
+
 #include "net.h"
 
 #ifdef _WIN32
@@ -76,7 +78,7 @@ void close_pair(Socket s1, Socket s2)
     closesocket(net_socket_to_native(s2));
 }
 
-int write_socket(Socket s, const void *buf, size_t count)
+int write_socket(Socket s, const void *buf, std::size_t count)
 {
     return send(net_socket_to_native(s), (const char *)buf, (int)count, 0);
 }
@@ -99,7 +101,7 @@ void close_pair(Socket s1, Socket s2)
     close(net_socket_to_native(s2));
 }
 
-int write_socket(Socket s, const void *buf, size_t count)
+int write_socket(Socket s, const void *buf, std::size_t count)
 {
     return write(net_socket_to_native(s), buf, count);
 }

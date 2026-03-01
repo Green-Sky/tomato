@@ -1,6 +1,7 @@
 #include "fake_network_stack.hh"
 
 #include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 
@@ -26,17 +27,19 @@ static const Network_Funcs kNetworkVtable = {
         },
     .recvbuf = [](void *_Nonnull obj,
                    Socket sock) { return static_cast<FakeNetworkStack *>(obj)->recvbuf(sock); },
-    .recv = [](void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf,
-                size_t len) { return static_cast<FakeNetworkStack *>(obj)->recv(sock, buf, len); },
+    .recv
+    = [](void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf,
+          std::size_t len) { return static_cast<FakeNetworkStack *>(obj)->recv(sock, buf, len); },
     .recvfrom =
-        [](void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf, size_t len,
+        [](void *_Nonnull obj, Socket sock, uint8_t *_Nonnull buf, std::size_t len,
             IP_Port *_Nonnull addr) {
             return static_cast<FakeNetworkStack *>(obj)->recvfrom(sock, buf, len, addr);
         },
-    .send = [](void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf,
-                size_t len) { return static_cast<FakeNetworkStack *>(obj)->send(sock, buf, len); },
+    .send
+    = [](void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf,
+          std::size_t len) { return static_cast<FakeNetworkStack *>(obj)->send(sock, buf, len); },
     .sendto =
-        [](void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf, size_t len,
+        [](void *_Nonnull obj, Socket sock, const uint8_t *_Nonnull buf, std::size_t len,
             const IP_Port *_Nonnull addr) {
             return static_cast<FakeNetworkStack *>(obj)->sendto(sock, buf, len, addr);
         },
@@ -49,13 +52,13 @@ static const Network_Funcs kNetworkVtable = {
         },
     .getsockopt =
         [](void *_Nonnull obj, Socket sock, int level, int optname, void *_Nonnull optval,
-            size_t *_Nonnull optlen) {
+            std::size_t *_Nonnull optlen) {
             return static_cast<FakeNetworkStack *>(obj)->getsockopt(
                 sock, level, optname, optval, optlen);
         },
     .setsockopt =
         [](void *_Nonnull obj, Socket sock, int level, int optname, const void *_Nonnull optval,
-            size_t optlen) {
+            std::size_t optlen) {
             return static_cast<FakeNetworkStack *>(obj)->setsockopt(
                 sock, level, optname, optval, optlen);
         },
@@ -213,7 +216,7 @@ Socket FakeNetworkStack::accept(Socket sock)
     return net_socket_from_native(fd);
 }
 
-int FakeNetworkStack::send(Socket sock, const uint8_t *buf, size_t len)
+int FakeNetworkStack::send(Socket sock, const uint8_t *buf, std::size_t len)
 {
     if (auto *s = get_sock(sock))
         return s->send(buf, len);
@@ -221,7 +224,7 @@ int FakeNetworkStack::send(Socket sock, const uint8_t *buf, size_t len)
     return -1;
 }
 
-int FakeNetworkStack::recv(Socket sock, uint8_t *buf, size_t len)
+int FakeNetworkStack::recv(Socket sock, uint8_t *buf, std::size_t len)
 {
     if (auto *s = get_sock(sock))
         return s->recv(buf, len);
@@ -237,7 +240,7 @@ int FakeNetworkStack::recvbuf(Socket sock)
     return -1;
 }
 
-int FakeNetworkStack::sendto(Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr)
+int FakeNetworkStack::sendto(Socket sock, const uint8_t *buf, std::size_t len, const IP_Port *addr)
 {
     if (auto *s = get_sock(sock))
         return s->sendto(buf, len, addr);
@@ -245,7 +248,7 @@ int FakeNetworkStack::sendto(Socket sock, const uint8_t *buf, size_t len, const 
     return -1;
 }
 
-int FakeNetworkStack::recvfrom(Socket sock, uint8_t *buf, size_t len, IP_Port *addr)
+int FakeNetworkStack::recvfrom(Socket sock, uint8_t *buf, std::size_t len, IP_Port *addr)
 {
     if (auto *s = get_sock(sock))
         return s->recvfrom(buf, len, addr);
@@ -261,7 +264,8 @@ int FakeNetworkStack::socket_nonblock(Socket sock, bool nonblock)
     return -1;
 }
 
-int FakeNetworkStack::getsockopt(Socket sock, int level, int optname, void *optval, size_t *optlen)
+int FakeNetworkStack::getsockopt(
+    Socket sock, int level, int optname, void *optval, std::size_t *optlen)
 {
     if (auto *s = get_sock(sock))
         return s->getsockopt(level, optname, optval, optlen);
@@ -270,7 +274,7 @@ int FakeNetworkStack::getsockopt(Socket sock, int level, int optname, void *optv
 }
 
 int FakeNetworkStack::setsockopt(
-    Socket sock, int level, int optname, const void *optval, size_t optlen)
+    Socket sock, int level, int optname, const void *optval, std::size_t optlen)
 {
     if (auto *s = get_sock(sock))
         return s->setsockopt(level, optname, optval, optlen);

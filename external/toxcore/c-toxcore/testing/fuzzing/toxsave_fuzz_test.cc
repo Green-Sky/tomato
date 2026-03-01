@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -21,7 +22,7 @@ void TestSaveDataLoading(Fuzz_Data &input)
     assert(tox_options != nullptr);
     assert(error_options == TOX_ERR_OPTIONS_NEW_OK);
 
-    const size_t savedata_size = input.size();
+    const std::size_t savedata_size = input.size();
     CONSUME_OR_RETURN(const uint8_t *savedata, input, savedata_size);
 
     tox_options_set_experimental_groups_persistence(tox_options, true);
@@ -31,7 +32,7 @@ void TestSaveDataLoading(Fuzz_Data &input)
     tox_options_set_savedata_type(tox_options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
     Tox_Options_Testing tox_options_testing;
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     tox_options_testing.operating_system = &node->system;
 
@@ -52,8 +53,8 @@ void TestSaveDataLoading(Fuzz_Data &input)
 
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size)
 {
     Fuzz_Data input{data, size};
     TestSaveDataLoading(input);

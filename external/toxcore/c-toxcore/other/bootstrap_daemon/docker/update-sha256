@@ -2,6 +2,34 @@
 
 set -eux
 
+PATCH_FILE="other/bootstrap_daemon/docker/release.patch"
+trap 'rm -f "$PATCH_FILE"' EXIT
+
+RELEASE=0
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --release)
+      RELEASE=1
+      shift
+      ;;
+    *)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ $RELEASE -eq 1 ]]; then
+  git fetch upstream
+  RELEASE_BRANCH=$(git branch -r | grep "upstream/release/" | sort -V | tail -n1 | sed 's/^[[:space:]]*//' || true)
+  if [[ -n "$RELEASE_BRANCH" ]]; then
+    echo "Generating release patch from $RELEASE_BRANCH"
+    git diff "HEAD..$RELEASE_BRANCH" -- toxcore/tox.h CMakeLists.txt >"$PATCH_FILE"
+  else
+    echo "No release branch found in upstream"
+  fi
+fi
+
 docker_build() {
   DOCKER_BUILDKIT=1 docker build --progress=plain -f other/bootstrap_daemon/docker/Dockerfile -t toxchat/bootstrap-node .
 }

@@ -1,8 +1,8 @@
 FROM toxchat/pkgsrc:latest
 
 WORKDIR /work
-COPY . /work/c-toxcore-0.2.21
-RUN ["tar", "zcf", "c-toxcore.tar.gz", "c-toxcore-0.2.21"]
+COPY . /work/c-toxcore-0.2.22
+RUN ["tar", "zcf", "c-toxcore.tar.gz", "c-toxcore-0.2.22"]
 
 WORKDIR /work/pkgsrc
 COPY other/docker/pkgsrc/pkgsrc.patch /tmp/pkgsrc.patch

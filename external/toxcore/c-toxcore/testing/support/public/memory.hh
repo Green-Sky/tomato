@@ -18,8 +18,8 @@ class MemorySystem {
 public:
     virtual ~MemorySystem();
 
-    virtual void *_Nullable malloc(size_t size) = 0;
-    virtual void *_Nullable realloc(void *_Nullable ptr, size_t size) = 0;
+    virtual void *_Nullable malloc(std::size_t size) = 0;
+    virtual void *_Nullable realloc(void *_Nullable ptr, std::size_t size) = 0;
     virtual void free(void *_Nullable ptr) = 0;
 
     /**

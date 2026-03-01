@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2014 Tox project.
  */
 
@@ -194,7 +194,7 @@ static int wipe_friend_conn(Friend_Connections *_Nonnull fr_c, int friendcon_id)
     return 0;
 }
 
-Friend_Conn *_Nullable get_conn(const Friend_Connections *fr_c, int friendcon_id)
+Friend_Conn *get_conn(const Friend_Connections *fr_c, int friendcon_id)
 {
     if (!friendconn_id_valid(fr_c, friendcon_id)) {
         return nullptr;
@@ -810,7 +810,7 @@ int new_friend_connection(Friend_Connections *fr_c, const uint8_t *real_public_k
  * @retval -1 on failure.
  * @retval 0 on success.
  */
-int kill_friend_connection(Friend_Connections *_Nonnull fr_c, int friendcon_id)
+int kill_friend_connection(Friend_Connections *fr_c, int friendcon_id)
 {
     Friend_Conn *const friend_con = get_conn(fr_c, friendcon_id);
 

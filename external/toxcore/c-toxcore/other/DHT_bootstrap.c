@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -47,7 +47,7 @@
 #define DAEMON_VERSION_NUMBER (1000000000UL + TOX_VERSION_MAJOR*1000000UL + TOX_VERSION_MINOR*1000UL + TOX_VERSION_PATCH*1UL)
 #endif
 
-static const char *motd_str = ""; //Change this to anything within 256 bytes(but 96 bytes maximum prefered)
+static const char motd_str[] = ""; //Change this to anything within 256 bytes(but 96 bytes maximum prefered)
 #endif
 
 #define PORT 33445
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
     Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht, net);
 
 #ifdef DHT_NODE_EXTRA_PACKETS
-    bootstrap_set_callbacks(net, (uint32_t)DAEMON_VERSION_NUMBER, (const uint8_t *) motd_str, strlen(motd_str) + 1);
+    bootstrap_set_callbacks(net, (uint32_t)DAEMON_VERSION_NUMBER, (const uint8_t *)motd_str, sizeof(motd_str));
 #endif
 
     if (onion == nullptr || forwarding == nullptr || onion_a == nullptr) {

@@ -32,5 +32,10 @@ if(BUILD_MISC_TESTS)
   endif()
 endif()
 
-add_subdirectory(bench)
-add_subdirectory(support)
+if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bench")
+  add_subdirectory(bench)
+endif()
+
+if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/support")
+  add_subdirectory(support)
+endif()

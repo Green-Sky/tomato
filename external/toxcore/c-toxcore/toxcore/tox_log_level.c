@@ -1,10 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2025 The TokTok team.
+ * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 #include "tox_log_level.h"
 
-const char *tox_log_level_to_string(Tox_Log_Level value)
+#include "attributes.h"
+
+const char *_Nonnull tox_log_level_to_string(Tox_Log_Level value)
 {
     switch (value) {
         case TOX_LOG_LEVEL_TRACE:
