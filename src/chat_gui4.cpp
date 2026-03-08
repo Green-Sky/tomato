@@ -48,7 +48,7 @@
 namespace Components {
 
 	struct UnreadFade {
-		// fades form 1 to 0
+		// fades from 1 to 0
 		float fade {1.f};
 	};
 
@@ -455,7 +455,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							if (ImGui::Button("Decline")) {
 							}
 						} else {
-							ImGui::TextUnformatted("You sent a reqeust to add this contact.");
+							ImGui::TextUnformatted("You sent a request to add this contact.");
 						}
 					}
 					ImGui::PopStyleColor();

@@ -1,6 +1,6 @@
 #include "./tox_avatar_manager.hpp"
 
-// TODO: this whole thing needs a rewrite, seperating tcs and rng uid os
+// TODO: this whole thing needs a rewrite, separating tcs and rng uid os
 
 #include <solanaceae/util/config_model.hpp>
 

@@ -81,7 +81,7 @@ TextureLoaderResult MessageImageLoader::load(TextureUploaderI& tu, Message3Handl
 
 	auto read_data = file2->read(file_size, 0);
 	if (read_data.ptr == nullptr) {
-		std::cerr << "MMIL error: reading from file2 returned nullptr\n";
+		std::cerr << "MIL error: reading from file2 returned nullptr\n";
 		return {std::nullopt};
 	}
 

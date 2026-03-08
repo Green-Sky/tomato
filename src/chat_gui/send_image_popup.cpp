@@ -188,7 +188,8 @@ bool SendImagePopup::sendFilePath( // file2 instead?
 
 	File2RFile file2{file_path};
 	if (!file2.isGood() || !file2.can_read) {
-		std::cerr << "filed to read file '" << file_path << "'\n";
+		std::cerr << "failed to read file '" << file_path << "'\n";
+		return false;
 	}
 
 	{ // copy paste data to memory

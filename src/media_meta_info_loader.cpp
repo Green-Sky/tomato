@@ -90,7 +90,7 @@ void MediaMetaInfoLoader::handleMessage(const Message3Handle& m) {
 	}
 
 	if (read_data.size != file_size) {
-		std::cerr << "MMIL error: reading from file2 size missmatch, should be " << file_size << ", is " << read_data.size << "\n";
+		std::cerr << "MMIL error: reading from file2 size mismatch, should be " << file_size << ", is " << read_data.size << "\n";
 		return;
 	}
 

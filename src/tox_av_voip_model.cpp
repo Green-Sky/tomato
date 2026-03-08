@@ -664,7 +664,7 @@ bool ToxAVVoIPModel::accept(ObjectHandle session, const Components::VoIP::Defaul
 	const auto friend_number = cr.get<Contact::Components::ToxFriendEphemeral>(session_contact).friend_number;
 	auto err = _av.toxavAnswer(friend_number, 0, 0);
 	if (err != TOXAV_ERR_ANSWER_OK) {
-		std::cerr << "TOXAVVOIP error: ansering call failed: " << err << "\n";
+		std::cerr << "TOXAVVOIP error: answering call failed: " << err << "\n";
 		// we simply let it be for now, it apears we can try ansering later again
 		// we also get an error here when the call is already in progress (:
 		return false;

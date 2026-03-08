@@ -67,6 +67,7 @@ ImageLoaderSDLBMP::ImageResult ImageLoaderSDLBMP::loadFromMemoryRGBA(const uint8
 
 	auto& new_frame = res.frames.emplace_back();
 	new_frame.ms = 0;
+	// copy
 	new_frame.data = {(const uint8_t*)conv_surf->pixels, ((const uint8_t*)conv_surf->pixels) + (conv_surf->w*conv_surf->h*4)};
 
 	if (SDL_MUSTLOCK(conv_surf)) {
