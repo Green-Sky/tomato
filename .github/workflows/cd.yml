@@ -308,7 +308,7 @@ jobs:
 
     - name: Install dump_syms
       run: |
-        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mozilla/dump_syms/releases/download/v2.3.4/dump_syms-installer.sh | sh
+        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mozilla/dump_syms/releases/download/v2.3.7/dump_syms-installer.sh | sh
 
     - name: Download artifacts
       id: download-artifact
