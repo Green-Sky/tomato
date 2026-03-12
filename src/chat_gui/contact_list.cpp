@@ -335,9 +335,11 @@ bool renderContactList(
 		// TODO: is there a better way?
 		// maybe cache mm?
 		bool has_unread = false;
-		if (const auto* mm = rmm.get(c); mm != nullptr) {
-			if (const auto* unread_storage = mm->storage<Message::Components::TagUnread>(); unread_storage != nullptr && !unread_storage->empty()) {
-				has_unread = true;
+		auto* mm = rmm.get(c);
+		if (mm != nullptr) {
+			const auto* unread_storage = static_cast<const Message3Registry*>(mm)->storage<Message::Components::TagUnread>();
+			if (unread_storage != nullptr) {
+				has_unread = !unread_storage->empty();
 			}
 		}
 
@@ -349,6 +351,12 @@ bool renderContactList(
 
 		// TODO: move to own function
 		if (ImGui::BeginPopupContextItem("contact_context")) {
+			if (mm != nullptr) {
+				if (ImGui::MenuItem("mark all read", nullptr, false, has_unread)) {
+					mm->clear<Message::Components::TagUnread>();
+				}
+			}
+
 			if (c.all_of<Contact::Components::ContactModel>()) {
 				const auto& cm = c.get<Contact::Components::ContactModel>();
 				// TODO: make hookable
