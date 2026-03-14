@@ -104,6 +104,8 @@ target_sources(tomato PUBLIC
 	./chat_gui/contact_list_sorter.cpp
 	./chat_gui/contact_info.hpp
 	./chat_gui/contact_info.cpp
+	./chat_gui/contact_info_window.hpp
+	./chat_gui/contact_info_window.cpp
 	./chat_gui/file_selector.hpp
 	./chat_gui/file_selector.cpp
 	./chat_gui/image_viewer_popup.hpp

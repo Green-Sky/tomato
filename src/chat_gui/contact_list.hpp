@@ -3,6 +3,7 @@
 #include "./texture_cache_defs.hpp"
 
 #include "./theme.hpp"
+#include "./contact_info_window.hpp" // tmp
 
 #include <solanaceae/contact/fwd.hpp>
 
@@ -57,6 +58,7 @@ bool renderContactList(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
 	const contact_const_runtime_view& view,
+	ContactInfoWindows& ciw,
 
 	// in/out
 	ContactHandle4& selected_c

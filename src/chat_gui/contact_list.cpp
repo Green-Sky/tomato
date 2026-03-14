@@ -322,6 +322,7 @@ bool renderContactList(
 	const Theme& th,
 	ContactTextureCache& contact_tc,
 	const contact_const_runtime_view& view,
+	ContactInfoWindows& ciw,
 
 	// in/out
 	ContactHandle4& selected_c
@@ -379,6 +380,10 @@ bool renderContactList(
 					}
 					ImGui::EndMenu();
 				}
+			}
+
+			if (ImGui::MenuItem("open contact info")) {
+				ciw.open(c);
 			}
 
 			ImGui::EndPopup();

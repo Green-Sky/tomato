@@ -1,3 +1,5 @@
+#include "./contact_info.hpp"
+
 #include <solanaceae/contact/contact_store_impl.hpp>
 
 #include <imgui.h>
@@ -7,8 +9,8 @@
 void renderContactInfo(
 	ContactStore4Impl& cs,
 	ContactHandle4 c,
-	bool advanced = false,
-	bool verbose = false
+	bool advanced,
+	bool verbose
 ) {
 	const auto c2s_list = cs.compsToString(c);
 

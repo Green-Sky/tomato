@@ -13,6 +13,7 @@
 #include "./chat_gui/file_selector.hpp"
 #include "./chat_gui/send_image_popup.hpp"
 #include "./chat_gui/image_viewer_popup.hpp"
+#include "./chat_gui/contact_info_window.hpp"
 #include "./chat_gui/contact_list_sorter.hpp"
 
 #include <entt/container/dense_map.hpp>
@@ -40,6 +41,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	FileSelector _fss;
 	SendImagePopup _sip;
 	ImageViewerPopup _ivp;
+	ContactInfoWindows _ciw;
 	ContactListSorter _cls;
 
 	// set to true if not hovered

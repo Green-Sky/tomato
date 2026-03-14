@@ -207,6 +207,7 @@ ChatGui4::ChatGui4(
 	_theme(theme),
 	_sip(tu),
 	_ivp(_msg_tc),
+	_ciw(cs),
 	_cls(cs)
 {
 	_os_sr.subscribe(ObjectStore_Event::object_update);
@@ -227,6 +228,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 	_fss.render();
 	_sip.render(time_delta);
 	_ivp.render(time_delta);
+	_ciw.render();
 	_b_tc.update();
 	_b_tc.workLoadQueue();
 
@@ -409,11 +411,21 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							ImGui::Text("subs: %zu", sub_contacts->size());
 							ImGui::Separator();
 							for (const auto& c : *sub_contacts) {
+								ImGui::PushID(entt::to_integral(c));
 								// TODO: can a sub be selected? no
 								//if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
 								if (renderContactBig(_theme, _contact_tc, {cr, c}, 1)) {
 									_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
 								}
+								if (ImGui::BeginPopupContextItem("sub_contact_context")) {
+									if (ImGui::MenuItem("open contact info")) {
+										_ciw.open(c);
+									}
+
+									ImGui::EndPopup();
+								}
+
+								ImGui::PopID();
 							}
 						}
 						ImGui::EndChild();
@@ -1741,6 +1753,7 @@ void ChatGui4::renderContactList(void) {
 			_theme,
 			_contact_tc,
 			contact_const_runtime_view{}.iterate(cr.storage<Contact::Components::ContactSortTag>()),
+			_ciw,
 			selected_contact
 		)) {
 			_selected_contact = selected_contact.entity();
