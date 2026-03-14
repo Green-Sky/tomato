@@ -4,6 +4,7 @@
 #include <solanaceae/tox_messages/nj/tox_message_components_serializer.hpp>
 
 #include <solanaceae/contact/components.hpp>
+#include <solanaceae/contact/components_to_string.hpp>
 
 #include "./chat_gui/about.hpp"
 
@@ -18,6 +19,7 @@
 #include <memory>
 #include <cmath>
 #include <string_view>
+#include <iostream>
 
 
 // temp
@@ -174,16 +176,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 
 	conf.dump();
 
-	{ // TODO: move
-		cs.registerComponentToString(
-			entt::type_id<Contact::Components::ID>().hash(),
-			+[](ContactHandle4 c, bool verbose) -> std::string { return bin2hex(c.get<Contact::Components::ID>().data); },
-			"", // general
-			"ID",
-			entt::type_id<Contact::Components::ID>().name(),
-			false // maybe
-		);
-	}
+	Contact::registerComponents2Str(cs);
 
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
 		// add system audio devices
