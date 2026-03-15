@@ -5,6 +5,7 @@
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/contact/components_to_string.hpp>
+#include <solanaceae/tox_contacts/tox_components_to_string.hpp>
 
 #include "./chat_gui/about.hpp"
 
@@ -82,6 +83,9 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	dvt(os, sm, sdlrtu)
 {
 	tel.subscribeAll();
+
+	Contact::registerComponents2Str(cs);
+	Contact::registerToxComponents2Str(cs);
 
 	registerMessageComponents(msnj);
 	registerToxMessageComponents(msnj);
@@ -175,8 +179,6 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	}
 
 	conf.dump();
-
-	Contact::registerComponents2Str(cs);
 
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
 		// add system audio devices
