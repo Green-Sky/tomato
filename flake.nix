@@ -8,6 +8,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/release-25.11";
     flake-utils.url = "github:numtide/flake-utils";
+    nix2flatpak.url = "github:neobrain/nix2flatpak";
     nlohmann-json = {
       url = "github:nlohmann/json/v3.11.3"; # TODO: read version from file
       flake = false;
@@ -35,11 +36,16 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, nlohmann-json, sdl3, sdl3_image, imgui, plutosvg, implot }:
+  outputs = { self, nixpkgs, flake-utils, nix2flatpak, nlohmann-json, sdl3, sdl3_image, imgui, plutosvg, implot }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
+      #pkgs = nixpkgs.legacyPackages.${system};
+
+      mkFlatpak = nix2flatpak.lib.${system}.mkFlatpak;
+
       stdenv = (pkgs.stdenvAdapters.keepDebugInfo pkgs.stdenv);
+      #stdenv = (pkgs.stdenvAdapters.keepDebugInfo pkgs.clangStdenv);
       #stdenv = (pkgs.stdenvAdapters.withCFlags [ "-march=x86-64-v3" ] (pkgs.stdenvAdapters.keepDebugInfo pkgs.stdenv));
     in {
       #packages.default = pkgs.stdenv.mkDerivation {
@@ -79,6 +85,7 @@
           vulkan-loader
 
           pipewire
+          pulseaudio
 
           libayatana-appindicator
 
@@ -151,6 +158,21 @@
           nixpkgs.lib.optionalString (pkgs.stdenv.hostPlatform.extensions.sharedLibrary == ".so") ''
             patchelf --set-rpath "$(patchelf --print-rpath $out/bin/tomato):${rpath}" "$out/bin/tomato"
           '';
+      };
+      packages.flatpak = mkFlatpak {
+        appId = "com.sdl.tomato";
+        package = self.packages.${system}.default;
+        command = "tomato";
+        runtime = "org.kde.Platform/6.10";
+        permissions = {
+          share = [ "network" "ipc" ];
+          sockets = [ "fallback-x11" "wayland" "pulseaudio" ];
+          devices = [ "dri" ];
+        };
+        extraEnv = {
+          SDL_CAMERA_DRIVER = "pipewire";
+          SDL_AUDIO_DRIVER = "pulseaudio";
+        };
       };
 
       #packages.debug = pkgs.enableDebugging self.packages.${system}.default;

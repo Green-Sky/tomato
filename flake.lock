@@ -18,6 +18,24 @@
         "type": "github"
       }
     },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_2"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "imgui": {
       "flake": false,
       "locked": {
@@ -52,7 +70,42 @@
         "type": "github"
       }
     },
+    "nix2flatpak": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1773666682,
+        "narHash": "sha256-pxmjdxTA/Ay2SMQWFUDo64H7tJV9ZbrtqG1Gg3VxBbc=",
+        "owner": "neobrain",
+        "repo": "nix2flatpak",
+        "rev": "2020b4c1d4bfcd44a7a141fa2acc90718e3138d9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "neobrain",
+        "repo": "nix2flatpak",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
+      "locked": {
+        "lastModified": 1773389992,
+        "narHash": "sha256-wvfdLLWJ2I9oEpDd9PfMA8osfIZicoQ5MT1jIwNs9Tk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c06b4ae3d6599a672a6210b7021d699c351eebda",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
       "locked": {
         "lastModified": 1771090640,
         "narHash": "sha256-nURjYSvX/VDZWwdDRYg4DsoPXY2166srS+3qHMsYDJg=",
@@ -109,7 +162,8 @@
         "flake-utils": "flake-utils",
         "imgui": "imgui",
         "implot": "implot",
-        "nixpkgs": "nixpkgs",
+        "nix2flatpak": "nix2flatpak",
+        "nixpkgs": "nixpkgs_2",
         "nlohmann-json": "nlohmann-json",
         "plutosvg": "plutosvg",
         "sdl3": "sdl3",
@@ -151,6 +205,21 @@
       }
     },
     "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_2": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
