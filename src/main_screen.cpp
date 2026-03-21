@@ -5,6 +5,7 @@
 
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/contact/components_to_string.hpp>
+#include <solanaceae/message3/contact_components_to_string.hpp>
 #include <solanaceae/tox_contacts/tox_components_to_string.hpp>
 
 #include "./chat_gui/about.hpp"
@@ -85,6 +86,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	tel.subscribeAll();
 
 	Contact::registerComponents2Str(cs);
+	Contact::registerMessageComponents2Str(cs);
 	Contact::registerToxComponents2Str(cs);
 
 	registerMessageComponents(msnj);
