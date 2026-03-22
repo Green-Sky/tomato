@@ -231,7 +231,8 @@ int main(int argc, char** argv) {
 			const auto render_end_time = std::chrono::steady_clock::now();
 
 			float render_duration = std::chrono::duration<float, std::chrono::seconds::period>(render_end_time - render_start_time).count();
-			if (render_duration > 1.f/60.f) { // 60fps
+			if (render_duration > 1.f/6.f) { // 6fps
+				// TODO: maybe move up to also mesure rendering? This includes present, which can contain vblanks
 				std::cerr << "MAIN warning: render took very long: " << render_duration << "s\n";
 			}
 
