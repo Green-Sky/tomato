@@ -40,8 +40,10 @@ inline void setThemeGreen(void) {
 	colors[ImGuiCol_ResizeGrip]             = ImVec4(0.41f, 0.98f, 0.26f, 0.20f);
 	colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.41f, 0.98f, 0.26f, 0.67f);
 	colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.41f, 0.98f, 0.26f, 0.95f);
-	colors[ImGuiCol_Tab]                    = ImVec4(0.26f, 0.58f, 0.18f, 0.86f);
+	//colors[ImGuiCol_Tab]                    = ImVec4(0.26f, 0.58f, 0.18f, 0.86f);
+	colors[ImGuiCol_Tab]                    = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
 	colors[ImGuiCol_TabHovered]             = ImVec4(0.41f, 0.98f, 0.26f, 0.80f);
+	colors[ImGuiCol_TabSelected]            = ImVec4(0.26f, 0.58f, 0.18f, 0.86f);
 	colors[ImGuiCol_TabActive]              = ImVec4(0.30f, 0.68f, 0.20f, 1.00f);
 	colors[ImGuiCol_TabUnfocused]           = ImVec4(0.09f, 0.15f, 0.07f, 0.97f);
 	colors[ImGuiCol_TabUnfocusedActive]     = ImVec4(0.20f, 0.42f, 0.14f, 1.00f);
