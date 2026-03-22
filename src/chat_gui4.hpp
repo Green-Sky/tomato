@@ -90,9 +90,12 @@ class ChatGui4 : public ObjectStoreEventI {
 
 	private:
 		void renderChatLog(Contact4 c, bool window_focused, const std::vector<Contact4>* sub_contacts);
+		void renderChatMessageLogTab(Contact4 c, bool window_focused, float time_delta, const std::vector<Contact4>* sub_contacts); // contents only
 		void renderMessageBodyText(Message3Registry& reg, const Message3 e);
 		void renderMessageBodyFile(Message3Registry& reg, const Message3 e);
 		void renderMessageExtra(Message3Registry& reg, const Message3 e);
+
+		void renderChatFilesTab(Contact4 c);
 
 		void renderContactList(void);
 		bool renderContactListContactSmall(const Contact4 c, const bool selected) const;

@@ -474,30 +474,21 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					ImGui::EndChild();
 				}
 
-				if (ImGui::BeginChild("message_log", {0, -100}, ImGuiChildFlags_None)) {
-					// TODO: background image?
-					//auto p_min = ImGui::GetCursorScreenPos();
-					//auto a_max = ImGui::GetContentRegionAvail();
-					//ImGui::GetWindowDrawList()->AddImage(0, p_min, {p_min.x+a_max.x, p_min.y+a_max.y});
-
-					// do systems TODO: extract
-					auto* msg_reg_ptr = _rmm.get(*_selected_contact);
-					if (msg_reg_ptr != nullptr) {
-						auto& msg_reg = *msg_reg_ptr;
-						if (window_focused) { // fade system
-							std::vector<Message3> to_remove;
-							msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
-								// TODO: configurable
-								const float fade_duration = 5.f;
-								fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/10.f); // fps but not below 10 for smooth-ish fade
-								if (fade.fade <= 0.f) {
-									to_remove.push_back(e);
-								}
-							});
-							msg_reg.remove<Message::Components::TagUnread, Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
+				if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
+					if (ImGui::BeginTabBar("chat_tab_bar")) {
+						if (ImGui::BeginTabItem("MessageLog")) {
+							renderChatMessageLogTab(*_selected_contact, window_focused, time_delta, sub_contacts);
+							ImGui::EndTabItem();
 						}
+						// TODO: think more about fs here
+#if 0
+						if (ImGui::BeginTabItem("Filetransfers")) {
+							renderChatFilesTab(*_selected_contact);
+							ImGui::EndTabItem();
+						}
+#endif
+						ImGui::EndTabBar();
 					}
-					renderChatLog(*_selected_contact, window_focused, sub_contacts);
 				}
 				ImGui::EndChild();
 
@@ -1130,6 +1121,32 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 	}
 }
 
+void ChatGui4::renderChatMessageLogTab(Contact4 c, bool window_focused, float time_delta, const std::vector<Contact4>* sub_contacts) {
+	// TODO: background image?
+	//auto p_min = ImGui::GetCursorScreenPos();
+	//auto a_max = ImGui::GetContentRegionAvail();
+	//ImGui::GetWindowDrawList()->AddImage(0, p_min, {p_min.x+a_max.x, p_min.y+a_max.y});
+
+	// do systems TODO: extract
+	auto* msg_reg_ptr = _rmm.get(c);
+	if (msg_reg_ptr != nullptr) {
+		auto& msg_reg = *msg_reg_ptr;
+		if (window_focused) { // fade system
+			std::vector<Message3> to_remove;
+			msg_reg.view<Components::UnreadFade>().each([&to_remove, time_delta](const Message3 e, Components::UnreadFade& fade) {
+				// TODO: configurable
+				const float fade_duration = 5.f;
+				fade.fade -= 1.f/fade_duration * std::min<float>(time_delta, 1.f/10.f); // fps but not below 10 for smooth-ish fade
+				if (fade.fade <= 0.f) {
+					to_remove.push_back(e);
+				}
+			});
+			msg_reg.remove<Message::Components::TagUnread, Components::UnreadFade>(to_remove.cbegin(), to_remove.cend());
+		}
+	}
+	renderChatLog(c, window_focused, sub_contacts);
+}
+
 // has MessageText
 void ChatGui4::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
 	const auto& msgtext = reg.get<Message::Components::MessageText>(e).text;
@@ -1736,6 +1753,20 @@ void ChatGui4::renderMessageExtra(Message3Registry& reg, const Message3 e) {
 
 		ImGui::TextDisabled("%s", synced_by_text.c_str());
 	}
+}
+
+void ChatGui4::renderChatFilesTab(Contact4 c) {
+	// TODO: we need a way to list objects by contact
+	//_os._reg.view<ObjComp::F::SingleInfo>();
+
+	// go over file messages instead
+	auto* msg_reg_ptr = _rmm.get(c);
+	if (msg_reg_ptr == nullptr) {
+		return;
+	}
+	// TODO: copy/refactor message log view. or do we want something different?
+	//msg_reg_ptr->view<Message::Components::MessageFileObject>();
+	//auto o = reg.get<Message::Components::MessageFileObject>(e).o;
 }
 
 void ChatGui4::renderContactList(void) {
