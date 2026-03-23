@@ -9,6 +9,7 @@
 #include <solanaceae/tox_contacts/tox_components_to_string.hpp>
 
 #include "./chat_gui/about.hpp"
+#include "./chat_gui/voip_chat_tab.hpp"
 
 #include "./frame_streams/sdl/sdl_audio2_frame_stream2.hpp"
 #include "./frame_streams/sdl/sdl_video_frame_stream2.hpp"
@@ -83,6 +84,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	smui(os, sm),
 	dvt(os, sm, sdlrtu)
 {
+	cs.registry().ctx().emplace<ObjectStore2&>(os); // HACK: remove
 	tel.subscribeAll();
 
 	Contact::registerComponents2Str(cs);
@@ -91,6 +93,8 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 
 	registerMessageComponents(msnj);
 	registerToxMessageComponents(msnj);
+
+	registerVoIPChatTab(cs);
 
 	conf.set("tox", "save_file_path", save_path);
 
@@ -221,6 +225,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 
 MainScreen::~MainScreen(void) {
 	pm.stopAll();
+	unregisterVoIPChatTab(cs);
 	// TODO: quit sdl audio
 }
 

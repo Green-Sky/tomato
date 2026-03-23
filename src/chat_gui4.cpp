@@ -267,12 +267,13 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 		ImGui::SameLine();
 
 		if (_selected_contact) {
+			auto c = _cs.contactHandle(*_selected_contact);
 			auto& cr = _cs.registry();
-			const std::string chat_label = "chat " + std::to_string(entt::to_integral(*_selected_contact));
+			const std::string chat_label = "chat " + std::to_string(entt::to_integral(c.entity()));
 
 			const std::vector<Contact4>* sub_contacts = nullptr;
-			if (cr.all_of<Contact::Components::ParentOf>(*_selected_contact)) {
-				sub_contacts = &cr.get<Contact::Components::ParentOf>(*_selected_contact).subs;
+			if (c.all_of<Contact::Components::ParentOf>()) {
+				sub_contacts = &c.get<Contact::Components::ParentOf>().subs;
 			}
 
 
@@ -288,100 +289,6 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 
 						ImGui::EndMenu();
 					}
-					// check if contact has voip model
-					// use activesessioncomp instead?
-					if (cr.all_of<VoIPModelI*>(*_selected_contact)) {
-						if (ImGui::BeginMenu("VoIP")) {
-							auto* voip_model = cr.get<VoIPModelI*>(*_selected_contact);
-
-							std::vector<ObjectHandle> contact_sessions;
-							std::vector<ObjectHandle> acceptable_sessions;
-							for (const auto& [ov, o_vm, sc] : _os.registry().view<VoIPModelI*, Components::VoIP::SessionContact>().each()) {
-								if (o_vm != voip_model) {
-									continue;
-								}
-								if (sc.c != *_selected_contact) {
-									continue;
-								}
-
-								auto o = _os.objectHandle(ov);
-								contact_sessions.push_back(o);
-
-								if (!o.all_of<Components::VoIP::Incoming>()) {
-									continue; // not incoming
-								}
-
-								// state is ringing/not yet accepted
-								const auto* session_state = o.try_get<Components::VoIP::SessionState>();
-								if (session_state == nullptr) {
-									continue;
-								}
-
-								if (session_state->state != Components::VoIP::SessionState::State::RINGING) {
-									continue;
-								}
-								acceptable_sessions.push_back(o);
-							}
-
-							static Components::VoIP::DefaultConfig g_default_connections{
-								true, true,
-								true, false
-							};
-
-							if (ImGui::BeginMenu("default connections")) {
-								ImGui::MenuItem("incoming audio", nullptr, &g_default_connections.incoming_audio);
-								ImGui::MenuItem("incoming video", nullptr, &g_default_connections.incoming_video);
-								ImGui::Separator();
-								ImGui::MenuItem("outgoing audio", nullptr, &g_default_connections.outgoing_audio);
-								ImGui::MenuItem("outgoing video", nullptr, &g_default_connections.outgoing_video);
-								ImGui::EndMenu();
-							}
-
-							if (acceptable_sessions.size() < 2) {
-								if (ImGui::MenuItem("accept call", nullptr, false, !acceptable_sessions.empty())) {
-									voip_model->accept(acceptable_sessions.front(), g_default_connections);
-								}
-							} else {
-								if (ImGui::BeginMenu("accept call", !acceptable_sessions.empty())) {
-									for (const auto o : acceptable_sessions) {
-										std::string label = "accept #";
-										label += std::to_string(entt::to_integral(entt::to_entity(o.entity())));
-
-										if (ImGui::MenuItem(label.c_str())) {
-											voip_model->accept(o, g_default_connections);
-										}
-									}
-									ImGui::EndMenu();
-								}
-							}
-
-							// TODO: disable if already in call?
-							if (ImGui::Button(" call ")) {
-								voip_model->enter(*_selected_contact, g_default_connections);
-							}
-
-							if (contact_sessions.size() < 2) {
-								if (ImGui::MenuItem("leave/reject call", nullptr, false, !contact_sessions.empty())) {
-									voip_model->leave(contact_sessions.front());
-								}
-							} else {
-								if (ImGui::BeginMenu("leave/reject call")) {
-									// list
-									for (const auto o : contact_sessions) {
-										std::string label = "end #";
-										label += std::to_string(entt::to_integral(entt::to_entity(o.entity())));
-
-										if (ImGui::MenuItem(label.c_str())) {
-											voip_model->leave(o);
-										}
-									}
-									ImGui::EndMenu();
-								}
-							}
-
-							ImGui::EndMenu();
-						}
-					}
 					if (ImGui::BeginMenu("debug")) {
 						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
 						ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
@@ -389,9 +296,9 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 						ImGui::SeparatorText("tox");
 
 						// TODO: cheese it and rename to copy id?
-						if (cr.all_of<Contact::Components::ToxGroupPersistent>(*_selected_contact)) {
+						if (c.all_of<Contact::Components::ToxGroupPersistent>()) {
 							if (ImGui::MenuItem("copy ngc chatid")) {
-								const auto& chat_id = cr.get<Contact::Components::ToxGroupPersistent>(*_selected_contact).chat_id.data;
+								const auto& chat_id = c.get<Contact::Components::ToxGroupPersistent>().chat_id.data;
 								const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
 								ImGui::SetClipboardText(chat_id_str.c_str());
 							}
@@ -402,20 +309,20 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					ImGui::EndMenuBar();
 				}
 
-				renderContactBig(_theme, _contact_tc, {cr, *_selected_contact}, 3, false, false, false);
+				renderContactBig(_theme, _contact_tc, c, 3, false, false, false);
 				ImGui::Separator();
 
-				if (sub_contacts != nullptr && !cr.all_of<Contact::Components::TagPrivate>(*_selected_contact) && cr.all_of<Contact::Components::TagGroup>(*_selected_contact)) {
+				if (sub_contacts != nullptr && !c.all_of<Contact::Components::TagPrivate>() && c.all_of<Contact::Components::TagGroup>()) {
 					if (!sub_contacts->empty()) {
 						if (ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
 							ImGui::Text("subs: %zu", sub_contacts->size());
 							ImGui::Separator();
-							for (const auto& c : *sub_contacts) {
-								ImGui::PushID(entt::to_integral(c));
+							for (const auto& c_sub : *sub_contacts) {
+								ImGui::PushID(entt::to_integral(c_sub));
 								// TODO: can a sub be selected? no
 								//if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
-								if (renderContactBig(_theme, _contact_tc, {cr, c}, 1)) {
-									_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c) ? cr.get<Contact::Components::Name>(c).name : "<unk>") + ": ");
+								if (renderContactBig(_theme, _contact_tc, {cr, c_sub}, 1)) {
+									_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c_sub) ? cr.get<Contact::Components::Name>(c_sub).name : "<unk>") + ": ");
 								}
 								if (ImGui::BeginPopupContextItem("sub_contact_context")) {
 									if (ImGui::MenuItem("open contact info")) {
@@ -433,14 +340,14 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 					}
 				}
 
-				const bool request_incoming = cr.all_of<Contact::Components::RequestIncoming>(*_selected_contact);
-				const bool request_outgoing = cr.all_of<Contact::Components::TagRequestOutgoing>(*_selected_contact);
+				const bool request_incoming = c.all_of<Contact::Components::RequestIncoming>();
+				const bool request_outgoing = c.all_of<Contact::Components::TagRequestOutgoing>();
 				if (request_incoming || request_outgoing) {
 					// TODO: theming
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.90f, 0.70f, 0.00f, 0.32f});
 					if (ImGui::BeginChild("request", {0, TEXT_BASE_HEIGHT*6.1f}, true, ImGuiWindowFlags_NoScrollbar)) {
 						if (request_incoming) {
-							const auto& ri = cr.get<Contact::Components::RequestIncoming>(*_selected_contact);
+							const auto& ri = c.get<Contact::Components::RequestIncoming>();
 							ImGui::TextUnformatted("You got a request to add this contact.");
 
 							static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
@@ -460,7 +367,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							}
 
 							if (ImGui::Button("Accept")) {
-								cr.get<Contact::Components::ContactModel>(*_selected_contact)->acceptRequest(*_selected_contact, self_name, password);
+								c.get<Contact::Components::ContactModel>()->acceptRequest(c, self_name, password);
 								password.clear();
 							}
 							ImGui::SameLine();
@@ -475,18 +382,45 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 				}
 
 				if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
-					if (ImGui::BeginTabBar("chat_tab_bar")) {
-						if (ImGui::BeginTabItem("MessageLog")) {
-							renderChatMessageLogTab(*_selected_contact, window_focused, time_delta, sub_contacts);
+					const auto tab_cb_list = _cs.getImGuiChatTab(c);
+					if (tab_cb_list.empty()) {
+						// dont render tab bar if only chatlog
+						renderChatMessageLogTab(c, window_focused, time_delta, sub_contacts);
+						// make sure to account for other hardcoded tabs
+					} else if (ImGui::BeginTabBar("chat_tab_bar")) {
+						bool has_unread = false;
+						{ // has unread // TODO: extract?
+							auto* msg_reg_ptr = _rmm.get(c);
+							if (msg_reg_ptr != nullptr) {
+								const auto* unread_storage = static_cast<const Message3Registry*>(msg_reg_ptr)->storage<Message::Components::TagUnread>();
+								if (unread_storage != nullptr) {
+									has_unread = !unread_storage->empty();
+								}
+							}
+						}
+
+						if (ImGui::BeginTabItem("MessageLog", nullptr, (has_unread ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
+							if (ImGui::BeginChild("tab_content")) {
+								renderChatMessageLogTab(c, window_focused, time_delta, sub_contacts);
+							}
+							ImGui::EndChild();
 							ImGui::EndTabItem();
 						}
+
 						// TODO: think more about fs here
 #if 0
 						if (ImGui::BeginTabItem("Filetransfers")) {
-							renderChatFilesTab(*_selected_contact);
+							if (ImGui::BeginChild("tab_content")) {
+								renderChatFilesTab(c);
+							}
+							ImGui::EndChild();
 							ImGui::EndTabItem();
 						}
 #endif
+
+						for (const auto& it : tab_cb_list) {
+							it.fn(c);
+						}
 						ImGui::EndTabBar();
 					}
 				}

@@ -114,6 +114,8 @@ target_sources(tomato PUBLIC
 	./chat_gui/send_image_popup.cpp
 	./chat_gui/settings_window.hpp
 	./chat_gui/settings_window.cpp
+	./chat_gui/voip_chat_tab.hpp
+	./chat_gui/voip_chat_tab.cpp
 
 	./imgui_entt_entity_editor.hpp
 	./object_store_ui.hpp
