@@ -320,13 +320,13 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 							for (const auto& c_sub : *sub_contacts) {
 								ImGui::PushID(entt::to_integral(c_sub));
 								// TODO: can a sub be selected? no
-								//if (renderSubContactListContact(c, _selected_contact.has_value() && *_selected_contact == c)) {
+								//if (renderSubContactListContact(c_sub, _selected_contact.has_value() && c == c_sub)) {
 								if (renderContactBig(_theme, _contact_tc, {cr, c_sub}, 1)) {
 									_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c_sub) ? cr.get<Contact::Components::Name>(c_sub).name : "<unk>") + ": ");
 								}
 								if (ImGui::BeginPopupContextItem("sub_contact_context")) {
 									if (ImGui::MenuItem("open contact info")) {
-										_ciw.open(c);
+										_ciw.open(c_sub);
 									}
 
 									ImGui::EndPopup();

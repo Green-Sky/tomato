@@ -74,24 +74,6 @@ SDLVideoInputService::SDLVideoInputService(ObjectStore2& os) :
 	}
 	_subsystem_init = true;
 	std::cout << "SDLVIS: SDL Camera Driver: " << SDL_GetCurrentCameraDriver() << "\n";
-
-	// sdl throws all cameras as added events anyway
-#if 0
-	int devcount {0};
-	SDL_CameraID *devices = SDL_GetCameras(&devcount);
-
-	std::cout << "SDLVIS: found cameras:\n";
-	if (devices != nullptr) {
-		ObjectHandle last_src{};
-		for (int i = 0; i < devcount; i++) {
-			addDevice(devices[i]);
-		}
-
-		SDL_free(devices);
-	} else {
-		std::cout << "  none\n";
-	}
-#endif
 }
 
 SDLVideoInputService::~SDLVideoInputService(void) {
