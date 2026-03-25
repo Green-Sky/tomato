@@ -22,6 +22,8 @@ static void renderTab(ContactHandle4 c) {
 	// TODO: make this lookup trivial, so we can indicate running/ringing in tab title
 	std::vector<ObjectHandle> contact_sessions;
 	std::vector<ObjectHandle> acceptable_sessions;
+	size_t ringing = 0;
+	size_t incall = 0;
 	for (const auto& [ov, o_vm, sc] : os.registry().view<VoIPModelI*, Components::VoIP::SessionContact>().each()) {
 		if (o_vm != voip_model) {
 			continue;
@@ -33,28 +35,50 @@ static void renderTab(ContactHandle4 c) {
 		auto o = os.objectHandle(ov);
 		contact_sessions.push_back(o);
 
-		if (!o.all_of<Components::VoIP::Incoming>()) {
-			continue; // not incoming
-		}
-
 		// state is ringing/not yet accepted
 		const auto* session_state = o.try_get<Components::VoIP::SessionState>();
 		if (session_state == nullptr) {
 			continue;
 		}
 
-		if (session_state->state != Components::VoIP::SessionState::State::RINGING) {
-			continue;
+		using Components::VoIP::SessionState;
+		if (session_state->state == SessionState::State::RINGING) {
+			ringing++;
+
+			if (!o.all_of<Components::VoIP::Incoming>()) {
+				continue; // not incoming
+			}
+
+			acceptable_sessions.push_back(o);
+		} else if (session_state->state == SessionState::State::CONNECTED) {
+			incall++;
 		}
-		acceptable_sessions.push_back(o);
 	}
 
-	if (!ImGui::BeginTabItem("VoIP", nullptr, (!contact_sessions.empty() ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
-		return;
-	}
-	if (!ImGui::BeginChild("tab_content")) {
-		ImGui::EndChild(); // always
-		return;
+	{ // header
+		std::string label = "VoIP";
+
+		if (ringing > 1) {
+			label += " (ringing:" + std::to_string(ringing) + ")";
+		} else if (ringing > 0) {
+			label += " (ringing)";
+		}
+
+		if (incall > 1) {
+			label += " (incall:" + std::to_string(incall) + ")";
+		} else if (incall > 0) {
+			label += " (incall)";
+		}
+
+		label += "###VoIP";
+
+		if (!ImGui::BeginTabItem(label.c_str(), nullptr, (!contact_sessions.empty() ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
+			return;
+		}
+		if (!ImGui::BeginChild("tab_content")) {
+			ImGui::EndChild(); // always
+			return;
+		}
 	}
 
 	// TODO: component? context?
