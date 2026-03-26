@@ -133,7 +133,7 @@ jobs:
         java-version: '17'
 
     - name: Install Dependencies (host)
-      run: sudo apt update && sudo apt -y install cmake pkg-config nasm
+      run: sudo apt update && sudo apt -y install cmake pkg-config nasm autoconf autoconf-archive automake libtool
 
     - name: Restore vcpkg cache
       id: vcpkg-cache
