@@ -53,9 +53,9 @@ void ToxUIUtils::render(void) {
 							std::string name;
 							std::string_view id;
 						} groups[] {
+							{"solanaceae/tomato (tomato offical)", "f7a8a98986707c27b72148dd1a3c11d23fc8896670b100d27f8a9d3e098c4bda"},
 							{"TokTok-dev (toxcore dev)", "360497da684bce2a500c1af9b3a5ce949bbb9f6fb1f91589806fb04ca039e313"},
 							{"Lobby (general offtopic)", "d325f0095cb4d10f5ed668b854e2e10c131f7256949625e5e2dddadd8143dffa"},
-							// TODO: offical solanaceae/tomato group
 						};
 
 						for (const auto& [name, id] : groups) {
