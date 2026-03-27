@@ -224,8 +224,8 @@ float DebugVideoTap::render(void) {
 					view._tex_w = new_frame_surf->w;
 					view._tex_h = new_frame_surf->h;
 				} else {
-					//_tu.update(view._tex, static_cast<const uint8_t*>(converted_surf->pixels), converted_surf->w * converted_surf->h * 4);
-					_tu.update(view._tex, static_cast<const uint8_t*>(new_frame_surf->pixels), new_frame_surf->w * new_frame_surf->h * 3/2);
+					// TODO: size is hardcoded to yuv with half sized chroma
+					_tu.update(view._tex, static_cast<const uint8_t*>(new_frame_surf->pixels), (new_frame_surf->w * new_frame_surf->h * 3)/2);
 				}
 				SDL_UnlockSurface(new_frame_surf);
 			}

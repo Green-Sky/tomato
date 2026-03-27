@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
-#include <memory>
 
 #include <iostream>
 
@@ -40,28 +39,11 @@ uint64_t SDLRendererTextureUploader::upload(const uint8_t* data, uint32_t width,
 		return 0;
 	}
 
-	// TODO: why do we even create a non owning surface here???
-	std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)> surf = {
-		SDL_CreateSurfaceFrom(
-			width, height,
-			sdl_format,
-			(void*)data,
-			4*width // ???
-		),
-		&SDL_DestroySurface
-	};
-
-	assert(surf);
-	if (!surf) {
-		std::cerr << "SDLRTU error: surf creation failed " << SDL_GetError() << "\n";
-		return 0;
-	}
-
 	SDL_Texture* tex = SDL_CreateTexture(
 		renderer,
-		surf->format,
+		sdl_format,
 		access == Access::STREAMING ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC,
-		surf->w, surf->h
+		width, height
 	);
 
 	assert(tex);
@@ -70,55 +52,49 @@ uint64_t SDLRendererTextureUploader::upload(const uint8_t* data, uint32_t width,
 		return 0;
 	}
 
-	bool need_to_lock = SDL_MUSTLOCK(surf);
-	if (need_to_lock) {
-		if (!SDL_LockSurface(surf.get())) {
-			std::cerr << "SDLRTU error: failed to lock surface " << SDL_GetError() << "\n";
-			SDL_DestroyTexture(tex);
-			return 0;
-		}
-	}
-
-	// while this split *should* not needed, the opengles renderer might like this more...
+	// while this split *should* not be needed, the opengles renderer might like this more...
 	if (sdl_format == SDL_PIXELFORMAT_IYUV || sdl_format == SDL_PIXELFORMAT_YV12) {
+		const size_t pitch = width;
+		const auto* yplane = data;
+		const auto* uplane = yplane + pitch * height;
+		const auto* vplane = uplane + ((pitch+1)/2) * ((height+1)/2);
 		if (!SDL_UpdateYUVTexture(
 			tex,
 			nullptr,
-			static_cast<const uint8_t*>(surf->pixels),
-			surf->w * 1,
-			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
-			surf->w/2 * 1,
-			static_cast<const uint8_t*>(surf->pixels) + (surf->w/2) * (surf->h/2),
-			surf->w/2 * 1
+			yplane, pitch,
+			uplane, (pitch+1)/2,
+			vplane, (pitch+1)/2
 		)) {
 			std::cerr << "SDLRTU error: tex yuv update failed " << SDL_GetError() << "\n";
 		}
 	} else if (sdl_format == SDL_PIXELFORMAT_NV12 || sdl_format == SDL_PIXELFORMAT_NV21) {
+		const size_t pitch = width;
+		const auto* yplane = data;
+		const auto* uvplane = data + pitch * height;
 		if (!SDL_UpdateNVTexture(
 			tex,
 			nullptr,
-			static_cast<const uint8_t*>(surf->pixels),
-			surf->w * 1,
-			static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
-			surf->w * 1
+			yplane, pitch,
+			uvplane, pitch
 		)) {
 			std::cerr << "SDLRTU error: tex nv update failed " << SDL_GetError() << "\n";
 		}
 	} else {
-		if (!SDL_UpdateTexture(tex, nullptr, surf->pixels, surf->pitch)) {
+		assert(format == Format::RGBA);
+		const size_t pitch = width*4;
+		if (!SDL_UpdateTexture(tex, nullptr, data, pitch)) {
 			std::cerr << "SDLRTU error: tex update failed " << SDL_GetError() << "\n";
 		}
+#if 0
+		SDL_BlendMode surf_blend_mode = SDL_BLENDMODE_NONE;
+		if (SDL_GetSurfaceBlendMode(surf.get(), &surf_blend_mode)) {
+			SDL_SetTextureBlendMode(tex, surf_blend_mode);
+		}
+#endif
+		// TODO: if alpha comp, enable blend, or just always?
+		SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
 	}
 
-	if (need_to_lock) {
-		// error check?
-		SDL_UnlockSurface(surf.get());
-	}
-
-	SDL_BlendMode surf_blend_mode = SDL_BLENDMODE_NONE;
-	if (SDL_GetSurfaceBlendMode(surf.get(), &surf_blend_mode)) {
-		SDL_SetTextureBlendMode(tex, surf_blend_mode);
-	}
 
 	if (filter == NEAREST) {
 		SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
