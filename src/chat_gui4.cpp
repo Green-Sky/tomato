@@ -12,8 +12,6 @@
 #include <solanaceae/contact/components.hpp>
 #include <solanaceae/message3/contact_components.hpp>
 
-#include "./frame_streams/voip_model.hpp"
-
 // HACK: remove them
 #include <solanaceae/tox_contacts/components.hpp>
 
@@ -43,6 +41,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <optional>
 
 // TODO: split into msg and c
 namespace Components {
@@ -264,296 +263,16 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 		if (_contact_list_sortable) {
 			_cls.sort();
 		}
-		ImGui::SameLine();
 
 		if (_selected_contact) {
-			auto c = _cs.contactHandle(*_selected_contact);
-			auto& cr = _cs.registry();
-			const std::string chat_label = "chat " + std::to_string(entt::to_integral(c.entity()));
-
-			const std::vector<Contact4>* sub_contacts = nullptr;
-			if (c.all_of<Contact::Components::ParentOf>()) {
-				sub_contacts = &c.get<Contact::Components::ParentOf>().subs;
-			}
-
-
-			if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
-				if (ImGui::BeginMenuBar()) {
-					if (ImGui::BeginMenu("ContactInfo")) {
-						static bool advanced {false};
-						static bool verbose {false};
-						ImGui::Checkbox("advanced", &advanced);
-						ImGui::SameLine();
-						ImGui::Checkbox("verbose", &verbose);
-						renderContactInfo(_cs, _cs.contactHandle(*_selected_contact), advanced, verbose);
-
-						ImGui::EndMenu();
-					}
-					if (ImGui::BeginMenu("debug")) {
-						ImGui::Checkbox("show extra info", &_show_chat_extra_info);
-						ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
-
-						ImGui::SeparatorText("tox");
-
-						// TODO: cheese it and rename to copy id?
-						if (c.all_of<Contact::Components::ToxGroupPersistent>()) {
-							if (ImGui::MenuItem("copy ngc chatid")) {
-								const auto& chat_id = c.get<Contact::Components::ToxGroupPersistent>().chat_id.data;
-								const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
-								ImGui::SetClipboardText(chat_id_str.c_str());
-							}
-						}
-
-						ImGui::EndMenu();
-					}
-					ImGui::EndMenuBar();
-				}
-
-				renderContactBig(_theme, _contact_tc, c, 3, false, false, false);
-				ImGui::Separator();
-
-				if (sub_contacts != nullptr && !c.all_of<Contact::Components::TagPrivate>() && c.all_of<Contact::Components::TagGroup>()) {
-					if (!sub_contacts->empty()) {
-						if (ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
-							ImGui::Text("subs: %zu", sub_contacts->size());
-							ImGui::Separator();
-							for (const auto& c_sub : *sub_contacts) {
-								ImGui::PushID(entt::to_integral(c_sub));
-								// TODO: can a sub be selected? no
-								//if (renderSubContactListContact(c_sub, _selected_contact.has_value() && c == c_sub)) {
-								if (renderContactBig(_theme, _contact_tc, {cr, c_sub}, 1)) {
-									_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c_sub) ? cr.get<Contact::Components::Name>(c_sub).name : "<unk>") + ": ");
-								}
-								if (ImGui::BeginPopupContextItem("sub_contact_context")) {
-									if (ImGui::MenuItem("open contact info")) {
-										_ciw.open(c_sub);
-									}
-
-									ImGui::EndPopup();
-								}
-
-								ImGui::PopID();
-							}
-						}
-						ImGui::EndChild();
-						ImGui::SameLine();
-					}
-				}
-
-				const bool request_incoming = c.all_of<Contact::Components::RequestIncoming>();
-				const bool request_outgoing = c.all_of<Contact::Components::TagRequestOutgoing>();
-				if (request_incoming || request_outgoing) {
-					// TODO: theming
-					ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.90f, 0.70f, 0.00f, 0.32f});
-					if (ImGui::BeginChild("request", {0, TEXT_BASE_HEIGHT*6.1f}, true, ImGuiWindowFlags_NoScrollbar)) {
-						if (request_incoming) {
-							const auto& ri = c.get<Contact::Components::RequestIncoming>();
-							ImGui::TextUnformatted("You got a request to add this contact.");
-
-							static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
-							if (ri.name) {
-								ImGui::InputText("name to join with", &self_name);
-							} else {
-								//ImGui::TextUnformatted("");
-								ImGui::Dummy({0, TEXT_BASE_HEIGHT});
-							}
-
-							static std::string password;
-							if (ri.password) {
-								ImGui::InputText("password to join with", &password);
-							} else {
-								////ImGui::TextUnformatted("");
-								ImGui::Dummy({0, TEXT_BASE_HEIGHT});
-							}
-
-							if (ImGui::Button("Accept")) {
-								c.get<Contact::Components::ContactModel>()->acceptRequest(c, self_name, password);
-								password.clear();
-							}
-							ImGui::SameLine();
-							if (ImGui::Button("Decline")) {
-							}
-						} else {
-							ImGui::TextUnformatted("You sent a request to add this contact.");
-						}
-					}
-					ImGui::PopStyleColor();
-					ImGui::EndChild();
-				}
-
-				if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
-					const auto tab_cb_list = _cs.getImGuiChatTab(c);
-					if (tab_cb_list.empty()) {
-						// dont render tab bar if only chatlog
-						renderChatMessageLogTab(c, window_focused, time_delta, sub_contacts);
-						// make sure to account for other hardcoded tabs
-					} else if (ImGui::BeginTabBar("chat_tab_bar")) {
-						bool has_unread = false;
-						{ // has unread // TODO: extract?
-							auto* msg_reg_ptr = _rmm.get(c);
-							if (msg_reg_ptr != nullptr) {
-								const auto* unread_storage = static_cast<const Message3Registry*>(msg_reg_ptr)->storage<Message::Components::TagUnread>();
-								if (unread_storage != nullptr) {
-									has_unread = !unread_storage->empty();
-								}
-							}
-						}
-
-						if (ImGui::BeginTabItem("MessageLog", nullptr, (has_unread ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
-							if (ImGui::BeginChild("tab_content")) {
-								renderChatMessageLogTab(c, window_focused, time_delta, sub_contacts);
-							}
-							ImGui::EndChild();
-							ImGui::EndTabItem();
-						}
-
-						// TODO: think more about fs here
-#if 0
-						if (ImGui::BeginTabItem("Filetransfers")) {
-							if (ImGui::BeginChild("tab_content")) {
-								renderChatFilesTab(c);
-							}
-							ImGui::EndChild();
-							ImGui::EndTabItem();
-						}
-#endif
-
-						for (const auto& it : tab_cb_list) {
-							it.fn(c);
-						}
-						ImGui::EndTabBar();
-					}
-				}
-				ImGui::EndChild();
-
-				if (ImGui::BeginChild("text_input", {-150, 0})) {
-					ImGui::SetNextItemShortcut(ImGuiKey_I, ImGuiInputFlags_RouteGlobal);
-
-					constexpr ImGuiInputTextFlags input_flags =
-						//ImGuiInputTextFlags_AllowTabInput |
-						ImGuiInputTextFlags_NoHorizontalScroll |
-						ImGuiInputTextFlags_CallbackCharFilter |
-						ImGuiInputTextFlags_WordWrap;
-
-					bool text_input_validate {false};
-					ImGui::InputTextMultiline(
-						"##text_input",
-						&_text_input_buffer,
-						{-0.001f, -0.001f},
-						input_flags,
-						+[](ImGuiInputTextCallbackData* data) -> int {
-							// ignore unrelated callbacks
-							if ((data->EventFlag & ImGuiInputTextFlags_CallbackCharFilter) == 0) {
-								return 0;
-							}
-
-
-							// we let everything through, except enter without shift, in which case we signal outside
-							if (
-								data->EventChar == '\n' &&
-								!ImGui::GetIO().KeyShift &&
-								ImGui::IsKeyPressed(ImGuiKey_Enter) // also needs to be a key press, not a paste
-							) {
-								*reinterpret_cast<bool*>(data->UserData) = true;
-								return 1;
-							}
-
-							return 0;
-						},
-						&text_input_validate
-					);
-					if (text_input_validate) {
-						_rmm.sendText(*_selected_contact, _text_input_buffer);
-						_text_input_buffer = "";
-						if (ImGuiInputTextState* input_state = ImGui::GetInputTextState(ImGui::GetItemID())) {
-							//input_state->ReloadUserBufAndSelectAll();
-							input_state->ReloadUserBufAndMoveToEnd();
-						}
-						ImGui::SetKeyboardFocusHere(-1);
-					}
-					if (
-						const auto* ml = _cs.contactHandle(*_selected_contact).try_get<Contact::Components::MessageLengths>();
-						ml != nullptr && _text_input_buffer.size() > ml->max_extended
-					) {
-						// FIXME: theme
-						ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.3f, 0.3f, 1.f});
-						ImGui::SetTooltip("!! exceeded max message length of %lu bytes !!", ml->max_extended);
-						ImGui::PopStyleColor();
-					}
-
-					// welcome to linux
-					if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
-						if (!ImGui::IsItemFocused()) {
-							ImGui::SetKeyboardFocusHere(-1);
-						}
-						char* primary_text = SDL_GetPrimarySelectionText();
-						if (primary_text != nullptr) {
-							ImGui::GetIO().AddInputCharactersUTF8(primary_text);
-							SDL_free(primary_text);
-						}
-					}
-				}
-				ImGui::EndChild();
+			// TODO: figure out what the back button on android does
+			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteGlobal)) {
+				_selected_contact = std::nullopt;
+			} else {
 				ImGui::SameLine();
-
-				if (ImGui::BeginChild("buttons")) {
-					if (ImGui::Button("send\nfile", {-FLT_MIN, 0})) {
-						_fss.requestFile(
-							[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
-							[this](const auto& path){
-								_rmm.sendFilePath(*_selected_contact, path.filename().generic_u8string(), path.generic_u8string());
-							},
-							[](){}
-						);
-					}
-
-					// TODO: add support for more than images
-					// !!! polling each frame can be VERY expensive !!!
-					//const auto* mime_type = clipboardHasImage();
-					//ImGui::BeginDisabled(mime_type == nullptr);
-					if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
-						if (const auto* imt = clipboardHasImage(); imt != nullptr) { // making sure
-							pasteFile(imt);
-						} else if (const auto* fpmt = clipboardHasFileList(); fpmt != nullptr) {
-							pasteFile(fpmt);
-						}
-					} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
-						// TODO: use list instead
-						const static std::vector<const char*> image_mime_types {
-							// add apng?
-							"image/png",
-							"image/webp",
-							"image/gif",
-							"image/jpeg",
-							"image/bmp",
-							"image/qoi",
-						};
-
-						for (const char* mime_type : image_mime_types) {
-							if (ImGui::MenuItem(mime_type)) {
-								pasteFile(mime_type);
-							}
-						}
-						ImGui::EndPopup();
-					}
-					//ImGui::EndDisabled();
-				}
-				ImGui::EndChild();
-
-#if 0
-				// if preview window not open?
-				if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyPressed(ImGuiMod_Shortcut, false)) {
-					std::cout << "CG: paste?\n";
-					if (const auto* mime_type = clipboardHasImage(); mime_type != nullptr) {
-						size_t data_size = 0;
-						const auto* data = SDL_GetClipboardData(mime_type, &data_size);
-						// open file send preview.rawpixels
-						std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
-					}
-				}
-#endif
+				// TODO: non-child variant/flag
+				renderContactWindow(*_selected_contact, window_focused, time_delta);
 			}
-			ImGui::EndChild();
 		}
 	}
 	ImGui::End();
@@ -630,11 +349,301 @@ void ChatGui4::sendFilePath(std::string_view file_path) {
 	}
 }
 
+void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_delta) {
+	auto c = _cs.contactHandle(cv);
+	auto& cr = _cs.registry();
+	const std::string chat_label = "chat " + std::to_string(entt::to_integral(c.entity()));
+
+	const std::vector<Contact4>* sub_contacts = nullptr;
+	if (c.all_of<Contact::Components::ParentOf>()) {
+		sub_contacts = &c.get<Contact::Components::ParentOf>().subs;
+	}
+
+	if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("ContactInfo")) {
+				static bool advanced {false};
+				static bool verbose {false};
+				ImGui::Checkbox("advanced", &advanced);
+				ImGui::SameLine();
+				ImGui::Checkbox("verbose", &verbose);
+				renderContactInfo(_cs, c, advanced, verbose);
+
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("debug")) {
+				ImGui::Checkbox("show extra info", &_show_chat_extra_info);
+				ImGui::Checkbox("show avatar transfers", &_show_chat_avatar_tf);
+
+				ImGui::SeparatorText("tox");
+
+				// TODO: cheese it and rename to copy id?
+				if (c.all_of<Contact::Components::ToxGroupPersistent>()) {
+					if (ImGui::MenuItem("copy ngc chatid")) {
+						const auto& chat_id = c.get<Contact::Components::ToxGroupPersistent>().chat_id.data;
+						const auto chat_id_str = bin2hex(std::vector<uint8_t>{chat_id.begin(), chat_id.end()});
+						ImGui::SetClipboardText(chat_id_str.c_str());
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+
+		renderContactBig(_theme, _contact_tc, c, 3, false, false, false);
+		ImGui::Separator();
+
+		if (sub_contacts != nullptr && !c.all_of<Contact::Components::TagPrivate>() && c.all_of<Contact::Components::TagGroup>()) {
+			if (!sub_contacts->empty()) {
+				if (ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
+					ImGui::Text("subs: %zu", sub_contacts->size());
+					ImGui::Separator();
+					for (const auto& c_sub : *sub_contacts) {
+						ImGui::PushID(entt::to_integral(c_sub));
+						// TODO: can a sub be selected? no
+						//if (renderSubContactListContact(c_sub, _selected_contact.has_value() && c == c_sub)) {
+						if (renderContactBig(_theme, _contact_tc, {cr, c_sub}, 1)) {
+							_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c_sub) ? cr.get<Contact::Components::Name>(c_sub).name : "<unk>") + ": ");
+						}
+						if (ImGui::BeginPopupContextItem("sub_contact_context")) {
+							if (ImGui::MenuItem("open contact info")) {
+								_ciw.open(c_sub);
+							}
+
+							ImGui::EndPopup();
+						}
+
+						ImGui::PopID();
+					}
+				}
+				ImGui::EndChild();
+				ImGui::SameLine();
+			}
+		}
+
+		const bool request_incoming = c.all_of<Contact::Components::RequestIncoming>();
+		const bool request_outgoing = c.all_of<Contact::Components::TagRequestOutgoing>();
+		if (request_incoming || request_outgoing) {
+			// TODO: theming
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.90f, 0.70f, 0.00f, 0.32f});
+			if (ImGui::BeginChild("request", {0, TEXT_BASE_HEIGHT*6.1f}, true, ImGuiWindowFlags_NoScrollbar)) {
+				if (request_incoming) {
+					const auto& ri = c.get<Contact::Components::RequestIncoming>();
+					ImGui::TextUnformatted("You got a request to add this contact.");
+
+					static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
+					if (ri.name) {
+						ImGui::InputText("name to join with", &self_name);
+					} else {
+						//ImGui::TextUnformatted("");
+						ImGui::Dummy({0, TEXT_BASE_HEIGHT});
+					}
+
+					static std::string password;
+					if (ri.password) {
+						ImGui::InputText("password to join with", &password);
+					} else {
+						////ImGui::TextUnformatted("");
+						ImGui::Dummy({0, TEXT_BASE_HEIGHT});
+					}
+
+					if (ImGui::Button("Accept")) {
+						c.get<Contact::Components::ContactModel>()->acceptRequest(c, self_name, password);
+						password.clear();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Decline")) {
+					}
+				} else {
+					ImGui::TextUnformatted("You sent a request to add this contact.");
+				}
+			}
+			ImGui::PopStyleColor();
+			ImGui::EndChild();
+		}
+
+		if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
+			const auto tab_cb_list = _cs.getImGuiChatTab(c);
+			if (tab_cb_list.empty()) {
+				// dont render tab bar if only chatlog
+				renderChatMessageLogTab(c, window_focused, time_delta, sub_contacts);
+				// make sure to account for other hardcoded tabs
+			} else if (ImGui::BeginTabBar("chat_tab_bar")) {
+				bool has_unread = false;
+				{ // has unread // TODO: extract?
+					auto* msg_reg_ptr = _rmm.get(c);
+					if (msg_reg_ptr != nullptr) {
+						const auto* unread_storage = static_cast<const Message3Registry*>(msg_reg_ptr)->storage<Message::Components::TagUnread>();
+						if (unread_storage != nullptr) {
+							has_unread = !unread_storage->empty();
+						}
+					}
+				}
+
+				if (ImGui::BeginTabItem("MessageLog", nullptr, (has_unread ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
+					if (ImGui::BeginChild("tab_content")) {
+						renderChatMessageLogTab(c, window_focused, time_delta, sub_contacts);
+					}
+					ImGui::EndChild();
+					ImGui::EndTabItem();
+				}
+
+				// TODO: think more about fs here
+#if 0
+				if (ImGui::BeginTabItem("Filetransfers")) {
+					if (ImGui::BeginChild("tab_content")) {
+						renderChatFilesTab(c);
+					}
+					ImGui::EndChild();
+					ImGui::EndTabItem();
+				}
+#endif
+
+				for (const auto& it : tab_cb_list) {
+					it.fn(c);
+				}
+				ImGui::EndTabBar();
+			}
+		}
+		ImGui::EndChild();
+
+		if (ImGui::BeginChild("text_input", {-150, 0})) {
+			ImGui::SetNextItemShortcut(ImGuiKey_I, ImGuiInputFlags_RouteGlobal);
+
+			constexpr ImGuiInputTextFlags input_flags =
+				//ImGuiInputTextFlags_AllowTabInput |
+				ImGuiInputTextFlags_NoHorizontalScroll |
+				ImGuiInputTextFlags_CallbackCharFilter |
+				ImGuiInputTextFlags_WordWrap;
+
+			bool text_input_validate {false};
+			ImGui::InputTextMultiline(
+				"##text_input",
+				&_text_input_buffer,
+				{-0.001f, -0.001f},
+				input_flags,
+				+[](ImGuiInputTextCallbackData* data) -> int {
+					// ignore unrelated callbacks
+					if ((data->EventFlag & ImGuiInputTextFlags_CallbackCharFilter) == 0) {
+						return 0;
+					}
+
+
+					// we let everything through, except enter without shift, in which case we signal outside
+					if (
+						data->EventChar == '\n' &&
+						!ImGui::GetIO().KeyShift &&
+						ImGui::IsKeyPressed(ImGuiKey_Enter) // also needs to be a key press, not a paste
+					) {
+						*reinterpret_cast<bool*>(data->UserData) = true;
+						return 1;
+					}
+
+					return 0;
+				},
+				&text_input_validate
+			);
+			if (text_input_validate) {
+				_rmm.sendText(c, _text_input_buffer);
+				_text_input_buffer = "";
+				if (ImGuiInputTextState* input_state = ImGui::GetInputTextState(ImGui::GetItemID())) {
+					//input_state->ReloadUserBufAndSelectAll();
+					input_state->ReloadUserBufAndMoveToEnd();
+				}
+				ImGui::SetKeyboardFocusHere(-1);
+			}
+			if (
+				const auto* ml = c.try_get<Contact::Components::MessageLengths>();
+				ml != nullptr && _text_input_buffer.size() > ml->max_extended
+			) {
+				// FIXME: theme
+				ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.3f, 0.3f, 1.f});
+				ImGui::SetTooltip("!! exceeded max message length of %lu bytes !!", ml->max_extended);
+				ImGui::PopStyleColor();
+			}
+
+			// welcome to linux
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
+				if (!ImGui::IsItemFocused()) {
+					ImGui::SetKeyboardFocusHere(-1);
+				}
+				char* primary_text = SDL_GetPrimarySelectionText();
+				if (primary_text != nullptr) {
+					ImGui::GetIO().AddInputCharactersUTF8(primary_text);
+					SDL_free(primary_text);
+				}
+			}
+		}
+		ImGui::EndChild();
+		ImGui::SameLine();
+
+		if (ImGui::BeginChild("buttons")) {
+			if (ImGui::Button("send\nfile", {-FLT_MIN, 0})) {
+				_fss.requestFile(
+					[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
+					[this, c](const auto& path){
+						_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
+					},
+					[](){}
+				);
+			}
+
+			// TODO: add support for more than images
+			// !!! polling each frame can be VERY expensive !!!
+			//const auto* mime_type = clipboardHasImage();
+			//ImGui::BeginDisabled(mime_type == nullptr);
+			if (ImGui::Button("paste\nfile", {-FLT_MIN, 0})) {
+				if (const auto* imt = clipboardHasImage(); imt != nullptr) { // making sure
+					pasteFile(imt);
+				} else if (const auto* fpmt = clipboardHasFileList(); fpmt != nullptr) {
+					pasteFile(fpmt);
+				}
+			} else if (ImGui::BeginPopupContextItem(nullptr, ImGuiMouseButton_Right)) {
+				// TODO: use list instead
+				const static std::vector<const char*> image_mime_types {
+					// add apng?
+					"image/png",
+					"image/webp",
+					"image/gif",
+					"image/jpeg",
+					"image/bmp",
+					"image/qoi",
+				};
+
+				for (const char* mime_type : image_mime_types) {
+					if (ImGui::MenuItem(mime_type)) {
+						pasteFile(mime_type);
+					}
+				}
+				ImGui::EndPopup();
+			}
+			//ImGui::EndDisabled();
+		}
+		ImGui::EndChild();
+
+#if 0
+		// if preview window not open?
+		if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyPressed(ImGuiMod_Shortcut, false)) {
+			std::cout << "CG: paste?\n";
+			if (const auto* mime_type = clipboardHasImage(); mime_type != nullptr) {
+				size_t data_size = 0;
+				const auto* data = SDL_GetClipboardData(mime_type, &data_size);
+				// open file send preview.rawpixels
+				std::cout << "CG: pasted image of size " << data_size << " mime " << mime_type << "\n";
+			}
+		}
+#endif
+	}
+	ImGui::EndChild();
+}
+
 void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<Contact4>* sub_contacts) {
 	const float scroll_amount {2.f * TEXT_BASE_HEIGHT};
 	bool manually_scrolled {false};
 	// TODO: replace with IsKeyPressed version in the future
 	if (ImGui::Shortcut(ImGuiKey_J, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+		// seems to be 2 lines in table
 		ImGui::SetScrollY(ImGui::GetScrollY() + scroll_amount);
 		manually_scrolled = true;
 	}
@@ -643,8 +652,9 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 		manually_scrolled = true;
 	}
 
-	// TODO: figure ot page size
 	if (ImGui::Shortcut(ImGuiKey_PageDown, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+		// TODO: figure out page size
+		// -> 20 lines
 		ImGui::SetScrollY(ImGui::GetScrollY() + scroll_amount*10.f);
 		manually_scrolled = true;
 	}
