@@ -193,6 +193,14 @@ int main(int argc, char** argv) {
 					is_background = false;
 				}
 
+				if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+					if (event.key.key == SDLK_AC_BACK || event.key.scancode == SDL_SCANCODE_AC_BACK) {
+						// fake escape on ac back, important for android
+						event.key.key = SDLK_ESCAPE;
+						event.key.scancode = SDL_SCANCODE_ESCAPE; // maybe leave scancode be?
+					}
+				}
+
 				if (screen->handleEvent(event)) {
 					continue;
 				}

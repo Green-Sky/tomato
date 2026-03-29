@@ -265,8 +265,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 		}
 
 		if (_selected_contact) {
-			// TODO: figure out what the back button on android does
-			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteGlobal) || ImGui::Shortcut(ImGuiKey_AppBack, ImGuiInputFlags_RouteGlobal)) {
+			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteFocused)) {
 				_selected_contact = std::nullopt;
 			} else {
 				ImGui::SameLine();
@@ -359,7 +358,7 @@ void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_
 		sub_contacts = &c.get<Contact::Components::ParentOf>().subs;
 	}
 
-	if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar)) {
+	if (ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Borders, ImGuiWindowFlags_MenuBar)) {
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("ContactInfo")) {
 				static bool advanced {false};
