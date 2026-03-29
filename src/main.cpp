@@ -65,6 +65,10 @@ int main(int argc, char** argv) {
 	if (!SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1")) {
 		std::cerr << "Failed to set '" << SDL_HINT_VIDEO_ALLOW_SCREENSAVER << "' to 1\n";
 	}
+
+	if (!SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1")) {
+		std::cerr << "Failed to set '" << SDL_HINT_ANDROID_TRAP_BACK_BUTTON << "' to 1\n";
+	}
 #endif
 
 	constexpr double steady_second_factor = double(std::chrono::steady_clock::period::num) / double(std::chrono::steady_clock::period::den);

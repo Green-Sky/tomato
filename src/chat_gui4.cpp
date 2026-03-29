@@ -266,7 +266,7 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 
 		if (_selected_contact) {
 			// TODO: figure out what the back button on android does
-			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteGlobal)) {
+			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteGlobal) || ImGui::Shortcut(ImGuiKey_AppBack, ImGuiInputFlags_RouteGlobal)) {
 				_selected_contact = std::nullopt;
 			} else {
 				ImGui::SameLine();
