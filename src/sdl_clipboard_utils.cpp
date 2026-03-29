@@ -28,7 +28,6 @@ const static std::vector<std::string_view> image_mime_types {
 	"image/jpeg",
 	"image/qoi",
 	"image/bmp",
-	// tiff?
 };
 
 const static std::vector<std::string_view> file_list_mime_types {

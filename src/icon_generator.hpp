@@ -2,8 +2,6 @@
 
 #include <SDL3/SDL.h>
 
-#include <memory>
-
 namespace IconGenerator {
 
 // remember to SDL_DestroySurface()

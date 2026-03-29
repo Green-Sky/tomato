@@ -1,8 +1,5 @@
 #include "./sys_tray.hpp"
 
-#include "./icon_generator.hpp"
-
-#include <memory>
 #include <iostream>
 #include <stdexcept>
 
@@ -11,7 +8,6 @@ SystemTray::SystemTray(SDL_Window* main_window) : _main_window(main_window) {
 
 	_tray = SDL_CreateTray(nullptr, "tomato");
 	if (_tray == nullptr) {
-		//std::cerr << "ST: failed to create SystemTray: " << SDL_GetError() << "\n";
 		throw std::runtime_error(std::string{"ST: failed to create SystemTray: "} + SDL_GetError());
 		return;
 	}

@@ -12,7 +12,6 @@
 #include "./chat_gui/voip_chat_tab.hpp"
 
 #include "./frame_streams/sdl/sdl_audio2_frame_stream2.hpp"
-#include "./frame_streams/sdl/sdl_video_frame_stream2.hpp"
 
 #include <imgui.h>
 #include <implot.h>

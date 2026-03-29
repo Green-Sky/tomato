@@ -11,7 +11,7 @@ struct Screen {
 
 	// return nullptr if not next
 	// sets bool quit to true if exit
-	// both render and tick get called in the selfreported intervals
+	// both render and tick get called in the self reported intervals
 	virtual Screen* render(float time_delta, bool& quit) = 0; // pure since this is a graphical app
 	virtual Screen* tick(float time_delta, bool& quit) = 0;
 

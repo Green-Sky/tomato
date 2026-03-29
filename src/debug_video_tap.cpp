@@ -18,7 +18,6 @@
 #include <string>
 #include <memory>
 #include <mutex>
-#include <deque>
 
 #include <thread>
 #include <chrono>

@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 
 // https://almogfx.bandcamp.com/track/crushed-w-cassade
 
@@ -12,6 +14,9 @@ ToxAVI::ToxAVI(Tox* tox) : _tox(tox) {
 	_tox_av = toxav_new(_tox, &err_new);
 	// TODO: throw
 	assert(err_new == TOXAV_ERR_NEW_OK);
+	if (err_new != TOXAV_ERR_NEW_OK) {
+		throw std::runtime_error{"toxav creation failed with: " + std::to_string(err_new)};
+	}
 
 	toxav_callback_call(
 		_tox_av,
@@ -165,11 +170,6 @@ Toxav_Err_Bit_Rate_Set ToxAVI::toxavVideoSetBitRate(uint32_t friend_number, uint
 
 void ToxAVI::cb_call(uint32_t friend_number, bool audio_enabled, bool video_enabled) {
 	std::cerr << "TOXAV: receiving call f:" << friend_number << " a:" << audio_enabled << " v:" << video_enabled << "\n";
-	//Toxav_Err_Answer err_answer { TOXAV_ERR_ANSWER_OK };
-	//toxav_answer(_tox_av, friend_number, 0, 0, &err_answer);
-	//if (err_answer != TOXAV_ERR_ANSWER_OK) {
-	//    std::cerr << "!!!!!!!! answer failed " << err_answer << "\n";
-	//}
 
 	dispatch(
 		ToxAV_Event::friend_call,
@@ -260,4 +260,3 @@ void ToxAVI::cb_video_receive_frame(
 		}
 	);
 }
-

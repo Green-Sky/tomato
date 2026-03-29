@@ -3,7 +3,6 @@
 #include <imgui.h>
 #include <implot.h>
 
-#include <string>
 #include <cmath>
 
 #include "./string_formatter_utils.hpp"
@@ -20,6 +19,7 @@ static const char* typedPkgIDToString(Tox_Netprof_Packet_Type type, uint8_t id) 
 			case TOX_NETPROF_PACKET_ID_COOKIE_RESPONSE: return "Cookie response";
 			case TOX_NETPROF_PACKET_ID_CRYPTO_HS: return "Crypto handshake";
 			case TOX_NETPROF_PACKET_ID_CRYPTO_DATA: return "Crypto data";
+			//case TOX_NETPROF_PACKET_ID_CRYPTO_NOISE_HS: return "Noise IK handshake";
 			case TOX_NETPROF_PACKET_ID_CRYPTO: return "Encrypted data";
 			case TOX_NETPROF_PACKET_ID_LAN_DISCOVERY: return "LAN discovery";
 			case TOX_NETPROF_PACKET_ID_GC_HANDSHAKE: return "DHT groupchat handshake";
@@ -53,14 +53,14 @@ static const char* typedPkgIDToString(Tox_Netprof_Packet_Type type, uint8_t id) 
 			case TOX_NETPROF_PACKET_ID_ZERO: return "Routing request";
 			case TOX_NETPROF_PACKET_ID_ONE: return "Routing response";
 			case TOX_NETPROF_PACKET_ID_TWO: return "Connection notification";
-			case TOX_NETPROF_PACKET_ID_TCP_DISCONNECT: return "disconnect notification";
+			case TOX_NETPROF_PACKET_ID_TCP_DISCONNECT: return "Disconnect notification";
 			case TOX_NETPROF_PACKET_ID_FOUR: return "Ping packet";
 			case TOX_NETPROF_PACKET_ID_TCP_PONG: return "Pong packet";
-			case TOX_NETPROF_PACKET_ID_TCP_OOB_SEND: return "out-of-band send";
-			case TOX_NETPROF_PACKET_ID_TCP_OOB_RECV: return "out-of-band receive";
-			case TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST: return "onion request";
-			case TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE: return "onion response";
-			case TOX_NETPROF_PACKET_ID_TCP_DATA: return "data";
+			case TOX_NETPROF_PACKET_ID_TCP_OOB_SEND: return "Out-of-band send";
+			case TOX_NETPROF_PACKET_ID_TCP_OOB_RECV: return "Out-of-band receive";
+			case TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST: return "Onion request";
+			case TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE: return "Onion response";
+			case TOX_NETPROF_PACKET_ID_TCP_DATA: return "Data";
 			//case TOX_NETPROF_PACKET_ID_BOOTSTRAP_INFO: return "Bootstrap info";
 		}
 	}
