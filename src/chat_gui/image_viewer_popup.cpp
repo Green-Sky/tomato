@@ -63,6 +63,12 @@ void ImageViewerPopup::render(float) {
 	//if (std::abs(prev_scale - _scale) > 0.001f) {
 	//}
 
+	if (ImGui::Shortcut(ImGuiKey_Escape)) {
+		ImGui::CloseCurrentPopup();
+		_m = {};
+		_scale = 1.f;
+	}
+
 	ImGui::EndPopup();
 }
 
