@@ -46,6 +46,7 @@ void FileSelector::render(void) {
 	if (_open_popup) {
 		_open_popup = false;
 		ImGui::OpenPopup("file picker##FileSelector");
+		ImGui::GetIO().ClearInputMouse(); // https://github.com/ocornut/imgui/issues/9334
 
 		const auto TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
 		const auto TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
@@ -313,6 +314,7 @@ void FileSelector::render(void) {
 			ImGui::EndTable();
 		}
 
+		ImGui::SetNextItemShortcut(ImGuiKey_Escape);
 		if (ImGui::Button("X cancel", {ImGui::GetContentRegionAvail().x/2.f, TEXT_BASE_HEIGHT*2})) {
 			ImGui::CloseCurrentPopup();
 			_on_cancel();

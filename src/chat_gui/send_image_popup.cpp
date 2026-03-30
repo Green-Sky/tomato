@@ -219,10 +219,13 @@ void SendImagePopup::render(float time_delta) {
 	if (_open_popup) {
 		_open_popup = false;
 		ImGui::OpenPopup("send image##SendImagePopup");
+		ImGui::GetIO().ClearInputMouse(); // https://github.com/ocornut/imgui/issues/9334
 	}
 
-	// TODO: add cancel shortcut (esc)
 	if (!ImGui::BeginPopupModal("send image##SendImagePopup", nullptr/*, ImGuiWindowFlags_NoDecoration*/)) {
+		if (!original_data.empty()) {
+			reset();
+		}
 		return;
 	}
 
@@ -613,11 +616,6 @@ void SendImagePopup::render(float time_delta) {
 			_on_send(original_data, original_file_ext);
 		}
 
-		ImGui::CloseCurrentPopup();
-		reset();
-	}
-
-	if (ImGui::Shortcut(ImGuiKey_Escape)) {
 		ImGui::CloseCurrentPopup();
 		reset();
 	}

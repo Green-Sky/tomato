@@ -25,9 +25,10 @@ void ImageViewerPopup::render(float) {
 	if (_open_popup) {
 		_open_popup = false;
 		ImGui::OpenPopup("Image##ImageViewerPopup");
+		ImGui::GetIO().ClearInputMouse(); // https://github.com/ocornut/imgui/issues/9334
 	}
 
-	// TODO: remplace with modal(?), pop up i limited to viewport in size
+	// TODO: remplace with modal(?), pop up is limited to viewport in size
 	// or replace with fixed window where the image can be moved
 	if (!ImGui::BeginPopup("Image##ImageViewerPopup", ImGuiWindowFlags_NoDecoration)) {
 		_m = {}; // meh, event on close would be nice, but the reset is cheap
@@ -61,12 +62,6 @@ void ImageViewerPopup::render(float) {
 
 	//if (std::abs(prev_scale - _scale) > 0.001f) {
 	//}
-
-	if (ImGui::Shortcut(ImGuiKey_Escape)) {
-		ImGui::CloseCurrentPopup();
-		_m = {};
-		_scale = 1.f;
-	}
 
 	ImGui::EndPopup();
 }
