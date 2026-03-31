@@ -327,10 +327,16 @@ bool renderContactList(
 	// in/out
 	ContactHandle4& selected_c
 ) {
+	// keep track for navigation
+	ContactHandle4 pre_sel;
+	float pre_pos;
+	ContactHandle4 post_sel;
+	float post_pos;
+
 	bool selection_changed {false};
-	for (const Contact4 cv : view) {
-		ImGui::PushID(entt::to_integral(cv));
-		ContactHandle4 c{cr, cv};
+	for (auto c_it = view.begin(); c_it != view.end(); c_it++) {
+		ImGui::PushID(entt::to_integral(*c_it));
+		ContactHandle4 c{cr, *c_it};
 		const bool selected = selected_c == c;
 
 		// TODO: is there a better way?
@@ -341,6 +347,28 @@ bool renderContactList(
 			const auto* unread_storage = static_cast<const Message3Registry*>(mm)->storage<Message::Components::TagUnread>();
 			if (unread_storage != nullptr) {
 				has_unread = !unread_storage->empty();
+			}
+		}
+
+		if (selected_c) {
+			if (!pre_sel) {
+				auto it_copy = c_it;
+				++it_copy;
+				if (it_copy != view.end() && *it_copy == selected_c) {
+					// next is selected
+					pre_sel = c;
+					pre_pos = ImGui::GetCursorPosY() - ImGui::GetScrollY();
+				}
+			}
+
+			if (!post_sel && c_it != view.begin()) {
+				auto it_copy = c_it;
+				--it_copy;
+				if (*it_copy == selected_c) {
+					// prev is selected
+					post_sel = c;
+					post_pos = ImGui::GetCursorPosY() - ImGui::GetScrollY();
+				}
 			}
 		}
 
@@ -390,6 +418,49 @@ bool renderContactList(
 		}
 		ImGui::PopID();
 	}
+
+	if (!selection_changed) {
+		if (
+			ImGui::Shortcut(ImGuiKey_J | ImGuiMod_Shift, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal) ||
+			ImGui::Shortcut(ImGuiKey_PageDown | ImGuiMod_Shift, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)
+		) {
+			if (selected_c && post_sel) {
+				// down
+				selected_c = post_sel;
+				selection_changed = true;
+				ImGui::SetScrollFromPosY(post_pos);
+			} else if (view.begin() != view.end()) {
+				// from top
+				selected_c = {cr, *view.begin()};
+				selection_changed = true;
+				ImGui::SetScrollY(0.f);
+			}
+		} else if (
+			ImGui::Shortcut(ImGuiKey_K | ImGuiMod_Shift, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal) ||
+			ImGui::Shortcut(ImGuiKey_PageUp | ImGuiMod_Shift, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)
+		) {
+			if (selected_c && pre_sel) {
+				// up
+				selected_c = pre_sel;
+				selection_changed = true;
+				ImGui::SetScrollFromPosY(pre_pos);
+			} else if (view.begin() != view.end()) {
+				// from bottom
+				selected_c = {cr, *(--view.end())};
+				selection_changed = true;
+				ImGui::SetScrollHereY(1.f);
+			}
+		//} else if (
+		//    ImGui::Shortcut(ImGuiKey_G | ImGuiMod_Shift, ImGuiInputFlags_RouteGlobal)
+		//) {
+		//    ImGui::SetScrollHereY(1.f);
+		//} else if (
+		//    ImGui::Shortcut(ImGuiKey_G, ImGuiInputFlags_RouteGlobal)
+		//) {
+		//    ImGui::SetScrollFromPosY(0.f, 0.f);
+		}
+	}
+
 	return selection_changed;
 }
 

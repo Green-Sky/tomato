@@ -642,7 +642,6 @@ void ChatGui4::renderChatLog(Contact4 c, bool window_focused, const std::vector<
 	bool manually_scrolled {false};
 	// TODO: replace with IsKeyPressed version in the future
 	if (ImGui::Shortcut(ImGuiKey_J, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
-		// seems to be 2 lines in table
 		ImGui::SetScrollY(ImGui::GetScrollY() + scroll_amount);
 		manually_scrolled = true;
 	}
