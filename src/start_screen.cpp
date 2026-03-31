@@ -56,7 +56,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 
 			const auto& plugin_path = args.at(ai);
 			// TODO: check for dups
-			queued_plugin_paths.push_back(static_cast<std::string>(plugin_path));
+			_queued_plugin_paths.push_back(static_cast<std::string>(plugin_path));
 		} else if (args.at(ai) == "--crash") {
 			// HACK: force bad pointer
 			int* _p {reinterpret_cast<int*>(args.size())};
@@ -154,12 +154,13 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 				real_plugin_path = config_path_base / real_plugin_path;
 			}
 
-			queued_plugin_paths.push_back(real_plugin_path.u8string());
+			_queued_plugin_paths.push_back(real_plugin_path.u8string());
 		}
 	}
 }
 
 Screen* StartScreen::render(float, bool&) {
+	bool run_proceed {false};
 	const float TEXT_PROCEED_WIDTH = ImGui::CalcTextSize("proceed").x;
 	const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
@@ -207,11 +208,11 @@ Screen* StartScreen::render(float, bool&) {
 
 					ImGui::TextUnformatted("password:");
 					ImGui::SameLine();
-					if (_show_password) {
-						ImGui::InputText("##password", &_password);
-					} else {
-						ImGui::InputText("##password", &_password, ImGuiInputTextFlags_Password);
-					}
+					run_proceed = ImGui::InputText(
+						"##password", &_password,
+						ImGuiInputTextFlags_EnterReturnsTrue | (_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
+					);
+
 					ImGui::SameLine();
 					ImGui::Checkbox("show password", &_show_password);
 
@@ -239,11 +240,11 @@ Screen* StartScreen::render(float, bool&) {
 
 					ImGui::TextUnformatted("password:");
 					ImGui::SameLine();
-					if (_show_password) {
-						ImGui::InputText("##password", &_password);
-					} else {
-						ImGui::InputText("##password", &_password, ImGuiInputTextFlags_Password);
-					}
+					run_proceed = ImGui::InputText(
+						"##password", &_password,
+						ImGuiInputTextFlags_EnterReturnsTrue | (_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
+					);
+
 					ImGui::SameLine();
 					ImGui::Checkbox("show password", &_show_password);
 
@@ -253,10 +254,10 @@ Screen* StartScreen::render(float, bool&) {
 				}
 				if (ImGui::BeginTabItem("plugins")) {
 					// list of selected plugins (in order)
-					for (auto it = queued_plugin_paths.begin(); it != queued_plugin_paths.end();) {
+					for (auto it = _queued_plugin_paths.begin(); it != _queued_plugin_paths.end();) {
 						ImGui::PushID(it->c_str());
 						if (ImGui::SmallButton("-")) {
-							it = queued_plugin_paths.erase(it);
+							it = _queued_plugin_paths.erase(it);
 							ImGui::PopID();
 							continue;
 						}
@@ -271,7 +272,7 @@ Screen* StartScreen::render(float, bool&) {
 						_fss.requestFile(
 							[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
 							[this](const auto& path) {
-								queued_plugin_paths.push_back(path.string());
+								_queued_plugin_paths.push_back(path.string());
 							},
 							[](){}
 						);
@@ -417,22 +418,7 @@ Screen* StartScreen::render(float, bool&) {
 				ImGui::SetTooltip("file already exists");
 			}
 		} else {
-			if (ImGui::Button("proceed", {TEXT_PROCEED_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f})) {
-				_error_string.clear();
-
-				try {
-					auto new_screen = std::make_unique<MainScreen>(_conf, _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
-					if (!new_screen) {
-						throw std::runtime_error("failed to init main screen.");
-					}
-					ImGui::End(); // start screen
-					return new_screen.release();
-				} catch (const std::exception& e) {
-					_error_string = std::string{"ToxCore/MainScreen creation failed with: "} + e.what();
-				} catch (...) {
-					_error_string = "ToxCore/MainScreen creation failed with unknown error";
-				}
-			}
+			run_proceed = ImGui::Button("proceed", {TEXT_PROCEED_WIDTH*1.5f, TEXT_BASE_HEIGHT*1.5f}) || run_proceed;
 
 			if (!_error_string.empty()) {
 				ImGui::SameLine();
@@ -445,6 +431,10 @@ Screen* StartScreen::render(float, bool&) {
 
 	_fss.render();
 
+	if (run_proceed) {
+		return proceed();
+	}
+
 	// TODO: dont check every frame
 	// do in tick instead?
 	const bool start_to_tray = _conf.get_bool("tomato", "start_to_tray").value_or(false);
@@ -454,8 +444,16 @@ Screen* StartScreen::render(float, bool&) {
 			// TODO: the window should really be created hidden in the first place
 			SDL_HideWindow(SDL_GetRenderWindow(_renderer));
 		}
-		auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, queued_plugin_paths);
-		return new_screen.release();
+		//auto new_screen = std::make_unique<MainScreen>(std::move(_conf), _renderer, _theme, _tox_profile_path, _password, _user_name, _queued_plugin_paths);
+		//return new_screen.release();
+		auto ret = proceed();
+		if (ret == nullptr) {
+			// error case, need user interaction
+			//SDL_ShowWindow(SDL_GetRenderWindow(_renderer));
+			std::cerr << "Start to Tray failed: " << _error_string << "\n";
+			exit(1);
+		}
+		return ret;
 	} else {
 		return nullptr;
 	}
@@ -465,3 +463,19 @@ Screen* StartScreen::tick(float, bool&) {
 	return nullptr;
 }
 
+Screen* StartScreen::proceed(void) {
+	_error_string.clear();
+
+	try {
+		auto new_screen = std::make_unique<MainScreen>(_conf, _renderer, _theme, _tox_profile_path, _password, _user_name, _queued_plugin_paths);
+		if (!new_screen) {
+			throw std::runtime_error("failed to init main screen.");
+		}
+		return new_screen.release();
+	} catch (const std::exception& e) {
+		_error_string = std::string{"ToxCore/MainScreen creation failed with: "} + e.what();
+	} catch (...) {
+		_error_string = "ToxCore/MainScreen creation failed with unknown error";
+	}
+	return nullptr;
+}

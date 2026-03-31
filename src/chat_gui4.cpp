@@ -528,7 +528,6 @@ void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_
 						return 0;
 					}
 
-
 					// we let everything through, except enter without shift, in which case we signal outside
 					if (
 						data->EventChar == '\n' &&

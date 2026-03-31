@@ -28,7 +28,7 @@ struct StartScreen final : public Screen {
 	std::string _password;
 
 	std::string _tox_profile_path {"unnamed-tomato.tox"};
-	std::vector<std::string> queued_plugin_paths;
+	std::vector<std::string> _queued_plugin_paths;
 
 	std::string _error_string;
 
@@ -42,5 +42,8 @@ struct StartScreen final : public Screen {
 	Screen* tick(float, bool&) override;
 
 	// use default nextRender and nextTick
+
+	private:
+		Screen* proceed(void);
 };
 
