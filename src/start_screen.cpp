@@ -210,7 +210,7 @@ Screen* StartScreen::render(float, bool&) {
 					ImGui::SameLine();
 					run_proceed = ImGui::InputText(
 						"##password", &_password,
-						ImGuiInputTextFlags_EnterReturnsTrue | (_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
+						ImGuiInputTextFlags_EnterReturnsTrue | (!_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
 					);
 
 					ImGui::SameLine();
@@ -242,7 +242,7 @@ Screen* StartScreen::render(float, bool&) {
 					ImGui::SameLine();
 					run_proceed = ImGui::InputText(
 						"##password", &_password,
-						ImGuiInputTextFlags_EnterReturnsTrue | (_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
+						ImGuiInputTextFlags_EnterReturnsTrue | (!_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
 					);
 
 					ImGui::SameLine();
