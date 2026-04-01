@@ -502,6 +502,40 @@ void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_
 				for (const auto& it : tab_cb_list) {
 					it.fn(c);
 				}
+
+				constexpr auto get_sel_id = [](ImGuiTabBar* tb) -> int {
+					// find selected tab by order id
+					for (int i = 0; i < tb->Tabs.Size; i++) {
+						const auto* tab = ImGui::TabBarFindTabByOrder(tb, i);
+						if (tab == nullptr) {
+							continue;
+						}
+
+						if (tab->ID == tb->SelectedTabId) {
+							return i;
+						}
+					}
+					return 0; // TODO: error, like -1 ?
+				};
+
+				if (ImGui::Shortcut(ImGuiKey_H, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+					// go left
+					if (auto* tb = ImGui::GetCurrentTabBar(); tb != nullptr) {
+						const int sel_id = get_sel_id(tb);
+						if (sel_id > 0) {
+							ImGui::TabBarQueueFocus(tb, ImGui::TabBarFindTabByOrder(tb, sel_id-1));
+						}
+					}
+				} else if (ImGui::Shortcut(ImGuiKey_L, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+					// go right
+					if (auto* tb = ImGui::GetCurrentTabBar(); tb != nullptr) {
+						const int sel_id = get_sel_id(tb);
+						if (sel_id+1 < tb->Tabs.Size) {
+							ImGui::TabBarQueueFocus(tb, ImGui::TabBarFindTabByOrder(tb, sel_id+1));
+						}
+					}
+				}
+
 				ImGui::EndTabBar();
 			}
 		}
