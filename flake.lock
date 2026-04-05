@@ -190,17 +190,17 @@
     "sdl3_image": {
       "flake": false,
       "locked": {
-        "lastModified": 1773163933,
-        "narHash": "sha256-+N3OZ+AXxnfLRno01Z7RL/SycQ2r0legnP73j7mJP4U=",
+        "lastModified": 1775333110,
+        "narHash": "sha256-LNEbXhUDB6OKk3HxwV+jANnskS82ewhQe8pDy+P6L40=",
         "owner": "libsdl-org",
         "repo": "SDL_image",
-        "rev": "19cc7cdb1e30554d3bf4f4526a21a8f57b861279",
+        "rev": "96a73a551a857b7c8d0ca3cc553a266eabbab6a7",
         "type": "github"
       },
       "original": {
         "owner": "libsdl-org",
         "repo": "SDL_image",
-        "rev": "19cc7cdb1e30554d3bf4f4526a21a8f57b861279",
+        "rev": "96a73a551a857b7c8d0ca3cc553a266eabbab6a7",
         "type": "github"
       }
     },
