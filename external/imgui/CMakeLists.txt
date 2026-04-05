@@ -14,7 +14,8 @@ if (NOT TARGET imgui)
 		#GIT_TAG 85b2fe8486190fa9326565a2fb5fccb6caea4396 # v1.92.0
 		#GIT_TAG 5d4126876bc10396d4c6511853ff10964414c776 # v1.92.1
 		#GIT_TAG bf75bfec48fc00f532af8926130b70c0e26eb099 # v1.92.3
-		GIT_TAG 349dbf9c57a15e2148fbfa7cb88df30280e0a362 # v1.92.3 + bitmap scaling patches
+		#GIT_TAG 349dbf9c57a15e2148fbfa7cb88df30280e0a362 # v1.92.3 + bitmap scaling patches
+		GIT_TAG 0271607fb36fcc3cba9614e326118dbad71ac666 # v1.92.7 + bitmap scaling patches
 		EXCLUDE_FROM_ALL
 	)
 

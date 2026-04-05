@@ -39,17 +39,17 @@
     "imgui": {
       "flake": false,
       "locked": {
-        "lastModified": 1762288520,
-        "narHash": "sha256-pgVBnGtt3pygqWVAYA1q2SM6kNH7n0mnD4kih0UFclo=",
+        "lastModified": 1775325865,
+        "narHash": "sha256-poj1ofNzZo+KvQyNt27f33SBnj5vvjfvWe5EpKOtOcQ=",
         "owner": "Green-Sky",
         "repo": "imgui",
-        "rev": "349dbf9c57a15e2148fbfa7cb88df30280e0a362",
+        "rev": "0271607fb36fcc3cba9614e326118dbad71ac666",
         "type": "github"
       },
       "original": {
         "owner": "Green-Sky",
         "repo": "imgui",
-        "rev": "349dbf9c57a15e2148fbfa7cb88df30280e0a362",
+        "rev": "0271607fb36fcc3cba9614e326118dbad71ac666",
         "type": "github"
       }
     },
