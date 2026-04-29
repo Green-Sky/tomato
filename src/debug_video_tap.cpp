@@ -91,7 +91,7 @@ struct DebugVideoTestSource : public FrameStream2SourceI<SDLVideoFrame> {
 		std::cout << "DVTS: starting new test video source\n";
 		_thread = std::thread([this](void) {
 			while (!_stop) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				SDL_Delay(50u);
 
 				std::lock_guard lg{_readers_mutex};
 				if (!_readers.empty()) {
