@@ -70,6 +70,11 @@ int main(int argc, char** argv) {
 		std::cerr << "Failed to set '" << SDL_HINT_ANDROID_TRAP_BACK_BUTTON << "' to 1\n";
 	}
 #endif
+#if defined(_WIN32) || defined(WIN32)
+	if (!SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "direct3d", SDL_HINT_DEFAULT)) {
+		std::cerr << "Failed to set '" << SDL_HINT_RENDER_DRIVER << "' to direct3d\n";
+	}
+#endif
 
 	constexpr double steady_second_factor = double(std::chrono::steady_clock::period::num) / double(std::chrono::steady_clock::period::den);
 	auto last_time_render = double(std::chrono::steady_clock::now().time_since_epoch().count()) * steady_second_factor;
