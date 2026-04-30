@@ -329,9 +329,9 @@ bool renderContactList(
 ) {
 	// keep track for navigation
 	ContactHandle4 pre_sel;
-	float pre_pos;
+	float pre_pos{};
 	ContactHandle4 post_sel;
-	float post_pos;
+	float post_pos{};
 
 	bool selection_changed {false};
 	for (auto c_it = view.begin(); c_it != view.end(); c_it++) {

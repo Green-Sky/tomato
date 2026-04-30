@@ -24,8 +24,12 @@ struct AudioFrame2 {
 		Span<int16_t> // non owning variant, for direct consumption
 	> buffer;
 
-	AudioFrame2(void) = default;
-	AudioFrame2(const AudioFrame2&) = default;
+	AudioFrame2(void) = delete;
+	AudioFrame2(const AudioFrame2& other) :
+		sample_rate(other.sample_rate),
+		channels(other.channels),
+		buffer(other.buffer)
+	{}
 	AudioFrame2(AudioFrame2&& other) :
 		sample_rate(other.sample_rate),
 		channels(other.channels),
@@ -44,12 +48,19 @@ struct AudioFrame2 {
 
 	// helpers
 	Span<int16_t> getSpan(void) const {
-		if (std::holds_alternative<std::vector<int16_t>>(buffer)) {
-			return Span<int16_t>{std::get<std::vector<int16_t>>(buffer)};
-		} else {
-			return std::get<Span<int16_t>>(buffer);
-		}
-		return {};
+		return
+			std::visit([](const auto& arg) -> Span<int16_t> {
+				using T = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<T, std::vector<int16_t>>) {
+					return Span<int16_t>{arg};
+				} else if constexpr (std::is_same_v<T, Span<int16_t>>) {
+					return arg;
+				} else {
+					static_assert("missing case for type");
+				}
+			},
+			buffer
+		);
 	}
 };
 
