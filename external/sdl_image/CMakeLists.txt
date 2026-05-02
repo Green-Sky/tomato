@@ -27,11 +27,18 @@ if (NOT TARGET SDL3_image::SDL3_image)
 	set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 	# TODO: make pr to make this an option
 	set(SDLIMAGE_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+	set(SDLIMAGE_VENDORED OFF CACHE BOOL "" FORCE) # too many issues and sometimes out dated
 	set(SDLIMAGE_BACKEND_STB OFF CACHE BOOL "" FORCE) # important for security
 	set(SDLIMAGE_BACKEND_IMAGEIO OFF CACHE BOOL "" FORCE) # some funky apple cmake bug
 	#set(SDLIMAGE_JXL ON CACHE BOOL "" FORCE) # default to off
 	set(SDLIMAGE_QOI OFF CACHE BOOL "" FORCE) # we have our own
 	set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE) # we have our own
+
+	if (NOT TARGET ZLIB::ZLIB)
+		# cursed HACK to get libpng to work
+		cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+		find_package(ZLIB CONFIG GLOBAL QUIET)
+	endif()
 
 	FetchContent_Declare(SDL3_image
 		GIT_REPOSITORY https://github.com/libsdl-org/SDL_image
