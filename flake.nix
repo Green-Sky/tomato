@@ -19,7 +19,7 @@
       flake = false;
     };
     sdl3_image = {
-      url = "github:libsdl-org/SDL_image/96a73a551a857b7c8d0ca3cc553a266eabbab6a7";
+      url = "github:libsdl-org/SDL_image/bec9134a26c7d0f31b36d6083c25296e04cabff5";
       flake = false;
     };
     imgui = {
