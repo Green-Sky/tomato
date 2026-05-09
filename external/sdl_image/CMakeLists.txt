@@ -34,12 +34,6 @@ if (NOT TARGET SDL3_image::SDL3_image)
 	set(SDLIMAGE_QOI OFF CACHE BOOL "" FORCE) # we have our own
 	set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE) # we have our own
 
-	if (NOT TARGET ZLIB::ZLIB)
-		# cursed HACK to get libpng to work
-		cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
-		find_package(ZLIB CONFIG GLOBAL QUIET)
-	endif()
-
 	FetchContent_Declare(SDL3_image
 		GIT_REPOSITORY https://github.com/libsdl-org/SDL_image
 		# waiting on the imgui pr to get merged so i can update sdl <.<
