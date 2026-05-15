@@ -61,6 +61,7 @@ TEST_F(AudioTest, EncodeDecodeLoop)
 
     // Prepare payload: 4 bytes sampling rate + Opus data
     std::vector<std::uint8_t> payload(4 + static_cast<std::size_t>(encoded_size));
+    ASSERT_EQ(payload.size(), 4 + encoded_size);  // silence gcc analyzer, recheck when gcc16
     std::uint32_t net_sr = net_htonl(sampling_rate);
     std::memcpy(payload.data(), &net_sr, 4);
     std::memcpy(payload.data() + 4, encoded.data(), static_cast<std::size_t>(encoded_size));
@@ -124,6 +125,7 @@ TEST_F(AudioTest, EncodeDecodeRealistic)
         ASSERT_GT(encoded_size, 0);
 
         std::vector<std::uint8_t> payload(4 + static_cast<std::size_t>(encoded_size));
+        ASSERT_EQ(payload.size(), 4 + encoded_size);  // silence gcc analyzer, recheck when gcc16
         std::uint32_t net_sr = net_htonl(sampling_rate);
         std::memcpy(payload.data(), &net_sr, 4);
         std::memcpy(payload.data() + 4, encoded.data(), static_cast<std::size_t>(encoded_size));
@@ -220,6 +222,7 @@ TEST_F(AudioTest, EncodeDecodeSiren)
         ASSERT_GT(encoded_size, 0);
 
         std::vector<std::uint8_t> payload(4 + static_cast<std::size_t>(encoded_size));
+        ASSERT_EQ(payload.size(), 4 + encoded_size);  // silence gcc analyzer, recheck when gcc16
         std::uint32_t net_sr = net_htonl(sampling_rate);
         std::memcpy(payload.data(), &net_sr, 4);
         std::memcpy(payload.data() + 4, encoded.data(), static_cast<std::size_t>(encoded_size));

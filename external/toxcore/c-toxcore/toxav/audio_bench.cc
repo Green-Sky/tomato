@@ -176,8 +176,14 @@ BENCHMARK_DEFINE_F(AudioBench, FullSequence)(benchmark::State &state)
         int idx = frame_index % num_prefilled;
         int size
             = ac_encode(ac, pcms[idx].data(), sample_count, encoded_tmp.data(), encoded_tmp.size());
+        if (size <= 0) {
+            return;
+        }
 
         std::vector<std::uint8_t> payload(4 + size);
+        if (payload.size() != 4u + static_cast<size_t>(size)) {
+            return;  // silence gcc analyzer, recheck when gcc16
+        }
         std::uint32_t net_sr = net_htonl(sampling_rate);
         std::memcpy(payload.data(), &net_sr, 4);
         std::memcpy(payload.data() + 4, encoded_tmp.data(), size);

@@ -48,6 +48,7 @@ run() {
     -Wignored-qualifiers \
     -Winit-self \
     -Wlarger-than=530000 \
+    -Wlto-type-mismatch \
     -Wmaybe-uninitialized \
     -Wmemset-transposed-args \
     -Wmisleading-indentation \

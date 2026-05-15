@@ -25,6 +25,7 @@ run() {
     -Wno-missing-braces \
     -Wno-missing-field-initializers \
     -Wno-missing-noreturn \
+    -Wno-nrvo \
     -Wno-nullability-completeness \
     -Wno-nullability-extension \
     -Wno-nullable-to-nonnull-conversion \
