@@ -419,6 +419,7 @@ TEST_F(RtpPublicTest, MoreInvalidPackets)
 
     // 1. RTPHeader packet type and Tox protocol packet type do not agree
     std::vector<std::uint8_t> bad_pkt_1 = valid_pkt;
+    ASSERT_GE(bad_pkt_1.size(), 1);
     bad_pkt_1[0] = RTP_TYPE_AUDIO;  // Tox ID says AUDIO, but header (byte 2) still says VIDEO
     rtp_receive_packet(session, bad_pkt_1.data(), bad_pkt_1.size());
     EXPECT_EQ(sd.received_frames.size(), 0);
@@ -435,6 +436,7 @@ TEST_F(RtpPublicTest, MoreInvalidPackets)
     // From rtp.c, offset_full is at byte 20 and data_length_full at byte 24 of the RTP header.
     // The RTP header starts at index 1 of the packet.
     std::vector<std::uint8_t> bad_pkt_3 = valid_pkt;
+    ASSERT_GE(bad_pkt_3.size(), 23);
     // Set offset (bytes 21-24) to be equal to length (bytes 25-28)
     // For a small packet, both are usually 0 and sizeof(data) respectively.
     // Let's just make offset very large.
@@ -460,6 +462,7 @@ TEST_F(RtpPublicTest, MoreInvalidPackets)
     sd.sent_packets.clear();
 
     std::vector<std::uint8_t> bad_pkt_4 = audio_pkt;
+    ASSERT_GE(bad_pkt_4.size(), 81);
     // Set offset_lower (byte 1 + 76) > data_length_lower (byte 1 + 78)
     bad_pkt_4[1 + 76] = 0x01;  // offset = 256
     bad_pkt_4[1 + 77] = 0x00;
@@ -552,8 +555,10 @@ TEST_F(RtpPublicTest, OldProtocolCorruption)
     // an assertion failure in new_message().
     std::uint8_t data[10] = {0};
     rtp_send_data(log, session, data, sizeof(data), false);
+    ASSERT_GE(sd.sent_packets.size(), 1);
     std::vector<std::uint8_t> pkt = sd.sent_packets[0];
     sd.sent_packets.clear();
+    ASSERT_GE(pkt.size(), 81);
 
     // Modify data_length_lower (byte 1 + 78) to be 2, while payload is 10.
     pkt[1 + 78] = 0x00;
@@ -573,7 +578,9 @@ TEST_F(RtpPublicTest, OldProtocolCorruption)
     EXPECT_EQ(sd.received_frames.size(), 0);
 
     // Now receive a corrupted second part that claims a weird offset
+    ASSERT_GE(sd.sent_packets.size(), 2);
     std::vector<std::uint8_t> corrupted_part = sd.sent_packets[1];
+    ASSERT_GE(corrupted_part.size(), 79);
     // offset_lower is at byte 76. Set it beyond data_length_lower.
     corrupted_part[1 + 76] = 0xFF;
     corrupted_part[1 + 77] = 0xFF;
