@@ -1,14 +1,12 @@
 #include "./tox_client.hpp"
 
 // meh, change this
-#include <exception>
-#include <memory>
-#include <system_error>
 #include <tox/tox_private.h>
 #include <tox/toxencryptsave.h>
 
 #include <sodium.h>
 
+#include <memory>
 #include <vector>
 #include <fstream>
 #include <filesystem>
