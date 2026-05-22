@@ -40,10 +40,6 @@ cc_library(
         "public/tox_network.hh",
         "public/tox_runner.hh",
     ],
-    copts = select({
-        "//tools/config:windows": ["/wd4200"],  # Zero-sized array in struct/union
-        "//conditions:default": [],
-    }),
     visibility = ["//visibility:public"],
     deps = [
         "//c-toxcore/toxcore:attributes",
@@ -143,6 +139,7 @@ cc_test(
 cc_test(
     name = "tox_network_test",
     srcs = ["tox_network_test.cc"],
+    shard_count = 6,
     deps = [
         ":support",
         "//c-toxcore/toxcore:attributes",

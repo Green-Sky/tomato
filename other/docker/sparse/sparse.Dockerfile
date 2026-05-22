@@ -21,7 +21,7 @@ RUN apt-get update && \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work/smatch
-RUN git clone --depth=1 https://repo.or.cz/smatch.git /work/smatch
+RUN git clone --depth=1 --branch 1.74 https://repo.or.cz/smatch.git /work/smatch
 COPY other/docker/sparse/local.mk /work/smatch/local.mk
 RUN make install -j4 PREFIX=/usr/local
 
