@@ -24,7 +24,8 @@ jobs:
 
     steps:
       - checkout
-      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+      - run:
+          bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
           --build_tag_filters=-haskell,-fuzz-test
           --test_tag_filters=-haskell,-fuzz-test
           //c-toxcore/...
@@ -36,7 +37,8 @@ jobs:
 
     steps:
       - checkout
-      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+      - run:
+          bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
           --build_tag_filters=-haskell
           --test_tag_filters=-haskell
           //c-toxcore/...
@@ -48,8 +50,9 @@ jobs:
 
     steps:
       - checkout
-      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
-          //c-toxcore/auto_tests:lossless_packet_test
+      - run:
+          bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+          //c-toxcore/auto_tests/scenarios:lossless_packet_test
 
   bazel-release:
     working_directory: /tmp/cirrus-ci-build
@@ -58,7 +61,8 @@ jobs:
 
     steps:
       - checkout
-      - run: bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
+      - run:
+          bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
           //c-toxcore/...
 
   static-analysis:
@@ -67,29 +71,27 @@ jobs:
       - image: ubuntu
 
     steps:
-      - run: &apt_install
-          apt-get update &&
+      - run: &apt_install apt-get update &&
           DEBIAN_FRONTEND=noninteractive
           apt-get install -y
-            ca-certificates
-            clang
-            cmake
-            git
-            libbenchmark-dev
-            libconfig-dev
-            libgmock-dev
-            libgtest-dev
-            libopus-dev
-            libsodium-dev
-            libvpx-dev
-            llvm-dev
-            ninja-build
-            pkg-config
-      - run:
-          apt-get install -y --no-install-recommends
-            ca-certificates
-            g++
-            llvm-dev
+          ca-certificates
+          clang
+          cmake
+          git
+          libbenchmark-dev
+          libconfig-dev
+          libgmock-dev
+          libgtest-dev
+          libopus-dev
+          libsodium-dev
+          libvpx-dev
+          llvm-dev
+          ninja-build
+          pkg-config
+      - run: apt-get install -y --no-install-recommends
+          ca-certificates
+          g++
+          llvm-dev
       - checkout
       - run: git submodule update --init --recursive
       - run: other/analysis/check_includes
@@ -115,9 +117,8 @@ jobs:
 
     steps:
       - run: *apt_install
-      - run:
-          apt-get install -y --no-install-recommends
-            cpplint
+      - run: apt-get install -y --no-install-recommends
+          cpplint
       - checkout
       - run: git submodule update --init --recursive
       - run: other/analysis/run-cpplint
@@ -131,10 +132,10 @@ jobs:
       - checkout
       - run:
           CIRCLE_JOB=release bash <(curl -s https://raw.githubusercontent.com/TokTok/ci-tools/refs/heads/master/tools/circleci-bazel-test)
-            --build_tag_filters=haskell
-            --test_tag_filters=haskell
-            --
-            //c-toxcore/...
+          --build_tag_filters=haskell
+          --test_tag_filters=haskell
+          --
+          //c-toxcore/...
 
   cimplefmt:
     working_directory: ~/work

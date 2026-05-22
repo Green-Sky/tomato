@@ -28,7 +28,7 @@ int create_pair(Socket *rs, Socket *ws)
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     addr.sin_port = 0;
 
-    if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+    if (bind(listener, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) != 0) {
         closesocket(listener);
         return -1;
     }
@@ -39,7 +39,7 @@ int create_pair(Socket *rs, Socket *ws)
     }
 
     socklen_t len = sizeof(addr);
-    if (getsockname(listener, (struct sockaddr *)&addr, &len) != 0) {
+    if (getsockname(listener, reinterpret_cast<struct sockaddr *>(&addr), &len) != 0) {
         closesocket(listener);
         return -1;
     }
@@ -50,7 +50,7 @@ int create_pair(Socket *rs, Socket *ws)
         return -1;
     }
 
-    if (connect(client, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+    if (connect(client, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) != 0) {
         closesocket(client);
         closesocket(listener);
         return -1;
@@ -65,8 +65,8 @@ int create_pair(Socket *rs, Socket *ws)
 
     closesocket(listener);
 
-    *rs = net_socket_from_native((int)client);
-    *ws = net_socket_from_native((int)server);
+    *rs = net_socket_from_native(static_cast<int>(client));
+    *ws = net_socket_from_native(static_cast<int>(server));
     return 0;
 }
 
@@ -80,7 +80,8 @@ void close_pair(Socket s1, Socket s2)
 
 int write_socket(Socket s, const void *buf, std::size_t count)
 {
-    return send(net_socket_to_native(s), (const char *)buf, (int)count, 0);
+    const char *data = reinterpret_cast<const char *>(buf);
+    return send(net_socket_to_native(s), data, static_cast<int>(count), 0);
 }
 #else
 int create_pair(Socket *rs, Socket *ws)

@@ -479,7 +479,7 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length)
     uint16_t count = 0;
     uint16_t unpacked_len = 0;
 
-    for (size_t i = 0; unpacked_len < length; ++i) {
+    for (size_t i = 0; unpacked_len < length && i < GC_MAX_SAVED_PEERS; ++i) {
         GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
         const int ipp_len = unpack_ip_port(&saved_peer->ip_port, data + unpacked_len, length - unpacked_len, false);
@@ -968,7 +968,7 @@ static bool peer_is_founder(const GC_Chat *_Nonnull chat, uint32_t peer_number)
     return memcmp(chat->shared_state.founder_public_key.enc, gconn->addr.public_key.enc, ENC_PUBLIC_KEY_SIZE) == 0;
 }
 
-/** Returns true if peer designated by `peer_number` is in the moderator list or is the founder. */
+/** Returns true if peer designated by `peer_number` is in the moderator list. */
 static bool peer_is_moderator(const GC_Chat *_Nonnull chat, uint32_t peer_number)
 {
     const GC_Connection *gconn = get_gc_connection(chat, peer_number);
