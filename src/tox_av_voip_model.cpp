@@ -436,8 +436,8 @@ void ToxAVVoIPModel::video_thread_tick(void) {
 				vsink->_fid,
 				surf->w, surf->h,
 				static_cast<const uint8_t*>(surf->pixels),
-				static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h,
-				static_cast<const uint8_t*>(surf->pixels) + surf->w * surf->h + (surf->w/2) * (surf->h/2)
+				static_cast<const uint8_t*>(surf->pixels) + surf->pitch * surf->h,
+				static_cast<const uint8_t*>(surf->pixels) + surf->pitch * surf->h + (surf->pitch/2) * (surf->h/2) // TODO: pitch+1/2 ?
 			);
 			SDL_UnlockSurface(surf);
 		}
@@ -837,11 +837,13 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame& e) {
 	assert(new_surf);
 	if (SDL_LockSurface(new_surf)) {
 		// copy the data
-		// we know how the implementation works, its y u v consecutivlely
+		// we know how the implementation works, its y u v consecutivly
+		// also remove any padding that might be in the planes
+		new_surf->pitch = 0;
+
 		// y
 		for (size_t y = 0; y < e.height; y++) {
 			std::memcpy(
-				//static_cast<uint8_t*>(new_surf->pixels) + new_surf->pitch*y,
 				static_cast<uint8_t*>(new_surf->pixels) + e.width*y,
 				e.y.ptr + e.ystride*y,
 				e.width
