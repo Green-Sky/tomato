@@ -27,7 +27,7 @@
       flake = false;
     };
     plutosvg = {
-      url = "git+https://github.com/sammycage/plutosvg?submodules=1&ref=refs/tags/v0.0.7";
+      url = "git+https://github.com/sammycage/plutosvg?submodules=1&ref=refs/tags/v0.0.8";
       flake = false;
     };
     implot = {

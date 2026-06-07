@@ -141,17 +141,17 @@
     "plutosvg": {
       "flake": false,
       "locked": {
-        "lastModified": 1747321730,
-        "narHash": "sha256-fEXW3mQlORVDan2+TcfbwMI+iJfCxK/xq2jkiva3d8E=",
-        "ref": "refs/tags/v0.0.7",
-        "rev": "31f7d2675416cd777c8e86220b035364873b2a8b",
-        "revCount": 125,
+        "lastModified": 1779081006,
+        "narHash": "sha256-m24L7GN8wM+uwOMH2jucmbONsJL6Ta6fuyhQgy+rnrM=",
+        "ref": "refs/tags/v0.0.8",
+        "rev": "fd8a080b3d0bccc41f1ae708d3785e7f08398a58",
+        "revCount": 156,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/sammycage/plutosvg"
       },
       "original": {
-        "ref": "refs/tags/v0.0.7",
+        "ref": "refs/tags/v0.0.8",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/sammycage/plutosvg"
