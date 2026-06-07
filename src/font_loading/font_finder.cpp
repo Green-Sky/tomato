@@ -68,38 +68,36 @@ std::vector<std::string_view> getPlatformDefaultColorEmojiFamilies(void) {
 #endif
 }
 
+template<typename FF, typename... Args>
+void constructFF(std::vector<std::unique_ptr<FontFinderInterface>>& list, Args&&... args) {
+	try {
+		std::unique_ptr<FontFinderInterface> ff = std::make_unique<FF>(std::forward<Args>(args)...);
+		list.push_back(std::move(ff));
+	} catch (const std::runtime_error& e) {
+		std::cerr << "caught runtime_error exception '" << e.what() << "'\n";
+	} catch (...) {
+		std::cerr << "caught exception\n";
+	}
+}
+
 std::vector<std::unique_ptr<FontFinderInterface>> constructPlatformDefaultFinderBackends(void) {
 	std::vector<std::unique_ptr<FontFinderInterface>> list;
 
-	try {
-		// TODO: should we skip this on windows?
-		std::unique_ptr<FontFinderInterface> ff = std::make_unique<FontFinder_FontConfigSDL>();
-		list.push_back(std::move(ff));
-	} catch (const std::runtime_error& e) {
-		std::cerr << "caught runtime_error exception '" << e.what() << "'\n";
-	} catch (...) {
-		std::cerr << "caught exception\n";
-	}
+	constructFF<FontFinder_FontConfigSDL>(list);
 
-	try {
 
 #if defined(_WIN32) || defined(WIN32)
-		std::unique_ptr<FontFinderInterface> ff = std::make_unique<FontFinder_FileSystem>("C:\\Windows\\Fonts");
+		constructFF<FontFinder_FileSystem>(list, "C:\\Windows\\Fonts");
 #elif __ANDROID__
-		std::unique_ptr<FontFinderInterface> ff = std::make_unique<FontFinder_FileSystem>("/system/fonts");
+		constructFF<FontFinder_FileSystem>(list, "/system/fonts");
 #elif __APPLE__
 		// TODO: macos only
-		std::unique_ptr<FontFinderInterface> ff = std::make_unique<FontFinder_FileSystem>("/System/Library/Fonts");
+		constructFF<FontFinder_FileSystem>(list, "/Library/Fonts");
+		constructFF<FontFinder_FileSystem>(list, "/System/Library/Fonts");
 #else
-		std::unique_ptr<FontFinderInterface> ff = std::make_unique<FontFinder_FileSystem>("/usr/share/fonts");
+		constructFF<FontFinder_FileSystem>(list, "/usr/share/fonts");
+		constructFF<FontFinder_FileSystem>(list, "/usr/local/share/fonts");
 #endif
-
-		list.push_back(std::move(ff));
-	} catch (const std::runtime_error& e) {
-		std::cerr << "caught runtime_error exception '" << e.what() << "'\n";
-	} catch (...) {
-		std::cerr << "caught exception\n";
-	}
 
 	return list;
 }
