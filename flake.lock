@@ -76,11 +76,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1773666682,
-        "narHash": "sha256-pxmjdxTA/Ay2SMQWFUDo64H7tJV9ZbrtqG1Gg3VxBbc=",
+        "lastModified": 1774860670,
+        "narHash": "sha256-YjJkQrvxrErXtfDi3obUn6rNmkA+CIAZ3f5NgL5xuYE=",
         "owner": "neobrain",
         "repo": "nix2flatpak",
-        "rev": "2020b4c1d4bfcd44a7a141fa2acc90718e3138d9",
+        "rev": "61d68e21e3fbc2d57590051f48736bea271f4aba",
         "type": "github"
       },
       "original": {
@@ -107,11 +107,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1771090640,
-        "narHash": "sha256-nURjYSvX/VDZWwdDRYg4DsoPXY2166srS+3qHMsYDJg=",
+        "lastModified": 1778220862,
+        "narHash": "sha256-BEhqkqUpxjMi3TVaTjA52KgxH7KEqC5hei6CgUR3K/8=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "77dc745eff7c03cb76d6044afd56aa48f4cbd175",
+        "rev": "81cd4aabdfc57dfc7ea2ea42c9f504d656d5a558",
         "type": "github"
       },
       "original": {
@@ -173,34 +173,34 @@
     "sdl3": {
       "flake": false,
       "locked": {
-        "lastModified": 1775257859,
-        "narHash": "sha256-vCz+jZ1Sl6Of60HXljciTjR3U4da0PldyFsG79qmQ7g=",
+        "lastModified": 1780249121,
+        "narHash": "sha256-6Dph2eLiJUmpQzPWe8EuY5LrWhrFwde2f2dwfgCcWNw=",
         "owner": "libsdl-org",
         "repo": "SDL",
-        "rev": "5848e584a1b606de26e3dbd1c7e4ecbc34f807a6",
+        "rev": "8e37db5e797b6167f3a00d697d816a684bd259c7",
         "type": "github"
       },
       "original": {
         "owner": "libsdl-org",
         "repo": "SDL",
-        "rev": "5848e584a1b606de26e3dbd1c7e4ecbc34f807a6",
+        "rev": "8e37db5e797b6167f3a00d697d816a684bd259c7",
         "type": "github"
       }
     },
     "sdl3_image": {
       "flake": false,
       "locked": {
-        "lastModified": 1775333110,
-        "narHash": "sha256-LNEbXhUDB6OKk3HxwV+jANnskS82ewhQe8pDy+P6L40=",
+        "lastModified": 1777664583,
+        "narHash": "sha256-ttnoe9bTtA8+eUMOs55v58xb+cWpNEiiTDEeX9GBxaw=",
         "owner": "libsdl-org",
         "repo": "SDL_image",
-        "rev": "96a73a551a857b7c8d0ca3cc553a266eabbab6a7",
+        "rev": "bec9134a26c7d0f31b36d6083c25296e04cabff5",
         "type": "github"
       },
       "original": {
         "owner": "libsdl-org",
         "repo": "SDL_image",
-        "rev": "96a73a551a857b7c8d0ca3cc553a266eabbab6a7",
+        "rev": "bec9134a26c7d0f31b36d6083c25296e04cabff5",
         "type": "github"
       }
     },
