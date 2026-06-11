@@ -11,7 +11,7 @@
 #include <iostream>
 
 bool FontFinder_FontConfigSDL::fillCache(void) {
-	const char *args[] = {"fc-list", "-f", "%{family}:%{style}:%{lang}:%{color}\n", NULL};
+	const char *args[] = {"fc-list", "-f", "%{family}:%{style}:%{lang}:%{color}:%{outline}\n", NULL};
 	auto* proc = SDL_CreateProcess(args, true);
 	if (proc == nullptr) {
 		throw std::runtime_error("failed to create process");
@@ -27,6 +27,7 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 	}
 	if (exit_code != 0) {
 		SDL_free(data);
+		SDL_DestroyProcess(proc);
 		throw std::runtime_error("process exit code " + std::to_string(exit_code));
 		return false;
 	}
@@ -61,8 +62,8 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 			segment_splits.push_back(segment);
 		});
 
-		//"%{family}:%{style}:%{lang}:%{color}\n"
-		if (segment_splits.size() < 4) {
+		//"%{family}:%{style}:%{lang}:%{color}:%{outline}\n"
+		if (segment_splits.size() < 5) {
 			std::cerr << "invalid font line! (s:" << segment_splits.size() << ")\n";
 			return;
 		}
@@ -84,6 +85,7 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 			processed_family,
 			processed_lang,
 			segment_splits[3] == "True" || segment_splits[3] == "true" || segment_splits[3] == "1",
+			segment_splits[4] == "True" || segment_splits[4] == "true" || segment_splits[4] == "1",
 		});
 #if 0
 		segment_splits[0]; // family
@@ -91,10 +93,12 @@ bool FontFinder_FontConfigSDL::fillCache(void) {
 		segment_splits[2]; // lang
 		// langs are concatinated with |
 		segment_splits[3]; // color
+		segment_splits[4]; // outline
 #endif
 	});
 
 	SDL_free(data);
+	SDL_DestroyProcess(proc);
 	return true;
 }
 
@@ -111,11 +115,13 @@ std::string FontFinder_FontConfigSDL::getFontFile(const std::string& font_name) 
 	int exit_code{0};
 	char* data = static_cast<char*>(SDL_ReadProcess(proc, &data_size, &exit_code));
 	if (data == nullptr) {
+		SDL_DestroyProcess(proc);
 		std::cerr << "process returned no data\n";
 		return "";
 	}
 	if (exit_code != 0) {
 		SDL_free(data);
+		SDL_DestroyProcess(proc);
 		std::cerr << "process exit code " << exit_code << "\n";
 		return "";
 	}
@@ -127,6 +133,7 @@ std::string FontFinder_FontConfigSDL::getFontFile(const std::string& font_name) 
 	std::string return_string{returned_string};
 
 	SDL_free(data);
+	SDL_DestroyProcess(proc);
 
 	return return_string;
 }
@@ -145,7 +152,7 @@ const char* FontFinder_FontConfigSDL::name(void) const {
 }
 
 // TODO: use fc-match instead, maybe fallback to this
-std::string FontFinder_FontConfigSDL::findBest(std::string_view family, std::string_view lang, bool color) const {
+FontInfo FontFinder_FontConfigSDL::findBest(std::string_view family, std::string_view lang, bool color) const {
 	const SystemFont* best_ptr = nullptr;
 	int best_score = 0;
 
@@ -167,7 +174,7 @@ std::string FontFinder_FontConfigSDL::findBest(std::string_view family, std::str
 			} else {
 				// search for family as substring in it.family (processed)
 				if (it.processed_family.find(processed_family) != std::string::npos) {
-					score += 2;
+					score += 5;
 				}
 			}
 		}
@@ -202,9 +209,9 @@ std::string FontFinder_FontConfigSDL::findBest(std::string_view family, std::str
 	}
 
 	if (best_ptr == nullptr) {
-		return "";
+		return {"", true};
 	} else {
-		return getFontFile(best_ptr->family);
+		return {getFontFile(best_ptr->family), !best_ptr->outline};
 	}
 }
 

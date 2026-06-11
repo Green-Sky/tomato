@@ -102,7 +102,7 @@ std::vector<std::unique_ptr<FontFinderInterface>> constructPlatformDefaultFinder
 	return list;
 }
 
-std::string getBestMatch(
+FontInfo getBestMatch(
 	const std::vector<std::unique_ptr<FontFinderInterface>>& backends,
 	std::string_view family,
 	std::string_view lang,
@@ -111,7 +111,7 @@ std::string getBestMatch(
 	for (const auto& backend : backends) {
 		try {
 			auto res = backend->findBest(family, lang, color);
-			if (!res.empty()) {
+			if (!res.path.empty()) {
 				return res;
 			}
 		} catch (const std::runtime_error& e) {
@@ -121,6 +121,6 @@ std::string getBestMatch(
 		}
 	}
 
-	return ""; // none found
+	return {"", true}; // none found
 }
 

@@ -22,6 +22,7 @@ struct FontFinder_FontConfigSDL : public FontFinderInterface {
 		std::string lang;
 
 		bool color {false};
+		bool outline {true};
 	};
 
 	std::vector<SystemFont> _cache;
@@ -36,5 +37,5 @@ struct FontFinder_FontConfigSDL : public FontFinderInterface {
 
 	const char* name(void) const override;
 
-	std::string findBest(std::string_view family, std::string_view lang = "", bool color = false) const override;
+	FontInfo findBest(std::string_view family, std::string_view lang = "", bool color = false) const override;
 };

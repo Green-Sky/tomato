@@ -19,7 +19,7 @@ std::vector<std::string_view> getPlatformDefaultColorEmojiFamilies(void);
 
 std::vector<std::unique_ptr<FontFinderInterface>> constructPlatformDefaultFinderBackends(void);
 
-std::string getBestMatch(
+FontInfo getBestMatch(
 	const std::vector<std::unique_ptr<FontFinderInterface>>& backends,
 	std::string_view family,
 	std::string_view lang = "",

@@ -39,8 +39,18 @@ void FontFinder_FileSystem::addFontFile(std::string_view file_path) {
 	std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
 
 	// TODO: more? better ttc?
-	if (extension != ".ttf" && extension != ".otf" && extension != ".ttc") {
-		std::cout << "unsupported file extension '" << extension << "'\n";
+	if (
+		extension != ".ttf" && extension != ".otf" && // truetype
+		extension != ".ttc" && extension != ".otc" // truetype collection
+		// TODO: dont leak this symbol here
+#if defined(IMGUI_ENABLE_FREETYPE)
+		&&
+		extension != ".woff" &&
+		extension != ".fnt" && // windows fnt
+		extension != ".bdf"
+#endif
+	) {
+		//std::cout << "unsupported file extension '" << extension << "'\n";
 		return;
 	}
 
@@ -68,7 +78,7 @@ const char* FontFinder_FileSystem::name(void) const {
 	return "FileSystem";
 }
 
-std::string FontFinder_FileSystem::findBest(std::string_view family, std::string_view lang, bool color) const {
+FontInfo FontFinder_FileSystem::findBest(std::string_view family, std::string_view lang, bool color) const {
 	const SystemFont* best_ptr = nullptr;
 	int best_score = 0;
 
@@ -110,9 +120,9 @@ std::string FontFinder_FileSystem::findBest(std::string_view family, std::string
 	}
 
 	if (best_ptr == nullptr) {
-		return "";
+		return {"", false};
 	} else {
-		return best_ptr->file;
+		return {best_ptr->file, false};
 	}
 }
 
