@@ -45,6 +45,14 @@ void renderContactInfo(
 			if (!str.empty()) {
 				//ImGui::SameLine();
 				ImGui::TextUnformatted(str.data(), str.data()+str.size());
+				if (ImGui::IsItemClicked()) {
+					ImGui::SetClipboardText(str.c_str());
+				} else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					std::string tmp_str = std::string{it.name};
+					tmp_str += ": ";
+					tmp_str += str;
+					ImGui::SetClipboardText(tmp_str.c_str());
+				}
 			}
 		}
 	}
