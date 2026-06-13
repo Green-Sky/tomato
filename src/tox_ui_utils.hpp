@@ -1,11 +1,10 @@
 #pragma once
 
-#include <string>
-
 class ToxClient;
+struct ContactStore4I;
+class ToxContactModel2;
 struct ConfigModelI;
 struct ToxPrivateI;
-class ToxContactModel2;
 
 class ToxUIUtils {
 	bool _show_add_friend_window {false};
@@ -14,6 +13,7 @@ class ToxUIUtils {
 	bool _show_dht_connect_node {false};
 
 	ToxClient& _tc;
+	ContactStore4I& _cs;
 	ToxContactModel2& _tcm;
 	ConfigModelI& _conf;
 	ToxPrivateI* _tp {nullptr};
@@ -23,10 +23,12 @@ class ToxUIUtils {
 	public:
 		ToxUIUtils(
 			ToxClient& tc,
+			ContactStore4I& cs,
 			ToxContactModel2& tcm,
 			ConfigModelI& conf,
 			ToxPrivateI* tp = nullptr
 		);
+		~ToxUIUtils(void);
 
 		void render(void);
 };

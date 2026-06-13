@@ -6,6 +6,9 @@
 #include <solanaceae/util/utils.hpp>
 #include <solanaceae/util/time.hpp>
 
+// HACK: using impl here
+#include <solanaceae/contact/contact_store_impl.hpp>
+
 #include <imgui.h>
 //#include <imgui_internal.h>
 
@@ -317,6 +320,7 @@ bool renderContactBig(
 }
 
 bool renderContactList(
+	ContactStore4Impl& cs,
 	ContactRegistry4& cr,
 	RegistryMessageModelI& rmm,
 	const Theme& th,
@@ -412,6 +416,16 @@ bool renderContactList(
 
 			if (ImGui::MenuItem("open contact info")) {
 				ciw.open(c);
+			}
+
+			const auto ctx_list = cs.getImGuiContext(c);
+
+			if (!ctx_list.empty()) {
+				ImGui::Separator();
+
+				for (const auto it : ctx_list) {
+					it.fn(c);
+				}
 			}
 
 			ImGui::EndPopup();

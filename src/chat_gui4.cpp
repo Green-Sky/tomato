@@ -387,6 +387,19 @@ void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_
 
 				ImGui::EndMenu();
 			}
+
+			{
+				const auto ctx_list = _cs.getImGuiContext(c);
+
+				if (!ctx_list.empty()) {
+					ImGui::Separator();
+
+					for (const auto it : ctx_list) {
+						it.fn(c);
+					}
+				}
+			}
+
 			ImGui::EndMenuBar();
 		}
 
@@ -405,9 +418,20 @@ void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_
 						if (renderContactBig(_theme, _contact_tc, {cr, c_sub}, 1)) {
 							_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c_sub) ? cr.get<Contact::Components::Name>(c_sub).name : "<unk>") + ": ");
 						}
+						// TODO: move out, unify with contactlist
 						if (ImGui::BeginPopupContextItem("sub_contact_context")) {
 							if (ImGui::MenuItem("open contact info")) {
 								_ciw.open(c_sub);
+							}
+
+							const auto ctx_list = _cs.getImGuiContext({cr, c_sub});
+
+							if (!ctx_list.empty()) {
+								ImGui::Separator();
+
+								for (const auto it : ctx_list) {
+									it.fn({cr, c_sub});
+								}
 							}
 
 							ImGui::EndPopup();
@@ -1754,6 +1778,7 @@ void ChatGui4::renderContactList(void) {
 			selected_contact = {cr, *_selected_contact};
 		}
 		if (::renderContactList(
+			_cs,
 			cr,
 			_rmm,
 			_theme,

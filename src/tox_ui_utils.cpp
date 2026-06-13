@@ -2,8 +2,12 @@
 
 #include "./tox_client.hpp"
 
+#include <solanaceae/contact/contact_store_i.hpp>
 #include <solanaceae/toxcore/tox_private_interface.hpp>
 #include <solanaceae/tox_contacts/tox_contact_model2.hpp>
+
+#include <solanaceae/contact/components.hpp>
+#include <solanaceae/tox_contacts/components.hpp>
 
 #include <tox/tox.h>
 
@@ -19,12 +23,66 @@
 
 #include <cstring>
 
+static void renderContextGroup(ContactHandle4 c) {
+	if (!c.all_of<Contact::Components::ToxGroupEphemeral, Contact::Components::Parent>()) {
+		return;
+	}
+
+	if (!ImGui::BeginMenu("tox")) {
+		return;
+	}
+
+	const auto parent = ContactHandle4{*c.registry(), c.get<Contact::Components::Parent>().parent};
+	if (!static_cast<bool>(parent) || !parent.all_of<Contact::Components::TagRoot>()) {
+		ImGui::EndMenu();
+		return;
+	}
+
+	if (!parent.all_of<ToxI*>()) {
+		ImGui::EndMenu();
+		return;
+	}
+
+	ToxI* t = parent.get<ToxI*>();
+
+	if (t == nullptr) {
+		ImGui::EndMenu();
+		return;
+	}
+
+	//ImGui::SeparatorText("group");
+
+	if (ImGui::MenuItem("reconnect")) {
+		t->toxGroupReconnect(c.get<Contact::Components::ToxGroupEphemeral>().group_number);
+	}
+
+	if (ImGui::MenuItem("disconnect")) {
+		t->toxGroupDisconnect(c.get<Contact::Components::ToxGroupEphemeral>().group_number);
+	}
+	ImGui::SetItemTooltip("Disconnect from group, without wiping your keys.\nUse reconnect to rejoin later.");
+
+	ImGui::EndMenu();
+}
+
 ToxUIUtils::ToxUIUtils(
 	ToxClient& tc,
+	ContactStore4I& cs,
 	ToxContactModel2& tcm,
 	ConfigModelI& conf,
 	ToxPrivateI* tp
-) : _tc(tc), _tcm(tcm), _conf(conf), _tp(tp) {
+) : _tc(tc), _cs(cs), _tcm(tcm), _conf(conf), _tp(tp) {
+	if (!_cs.registerImGuiContext(
+		entt::type_id<Contact::Components::ToxGroupEphemeral>().hash(),
+		renderContextGroup
+	)) {
+		throw std::runtime_error("failed to register toxgroup imgui context menu");
+	}
+}
+
+ToxUIUtils::~ToxUIUtils(void) {
+	_cs.unregisterImGuiContext(
+		entt::type_id<Contact::Components::ToxGroupEphemeral>().hash()
+	);
 }
 
 void ToxUIUtils::render(void) {
@@ -343,4 +401,3 @@ void ToxUIUtils::render(void) {
 		ImGui::End();
 	}
 }
-

@@ -53,6 +53,7 @@ using contact_const_runtime_view = entt::basic_runtime_view<const contact_sparse
 
 // returns true if contact was selected
 bool renderContactList(
+	ContactStore4Impl& cs,
 	ContactRegistry4& cr,
 	RegistryMessageModelI& rmm,
 	const Theme& th,
