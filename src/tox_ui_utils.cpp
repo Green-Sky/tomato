@@ -28,17 +28,12 @@ static void renderContextGroup(ContactHandle4 c) {
 		return;
 	}
 
-	if (!ImGui::BeginMenu("tox")) {
+	if (!ImGui::BeginMenu("Tox")) {
 		return;
 	}
 
 	const auto parent = ContactHandle4{*c.registry(), c.get<Contact::Components::Parent>().parent};
-	if (!static_cast<bool>(parent) || !parent.all_of<Contact::Components::TagRoot>()) {
-		ImGui::EndMenu();
-		return;
-	}
-
-	if (!parent.all_of<ToxI*>()) {
+	if (!static_cast<bool>(parent) || !parent.all_of<Contact::Components::TagRoot, ToxI*>()) {
 		ImGui::EndMenu();
 		return;
 	}
@@ -50,16 +45,201 @@ static void renderContextGroup(ContactHandle4 c) {
 		return;
 	}
 
-	//ImGui::SeparatorText("group");
+	//ImGui::SeparatorText("Group");
 
-	if (ImGui::MenuItem("reconnect")) {
+	if (ImGui::MenuItem("Reconnect")) {
 		t->toxGroupReconnect(c.get<Contact::Components::ToxGroupEphemeral>().group_number);
 	}
 
-	if (ImGui::MenuItem("disconnect")) {
-		t->toxGroupDisconnect(c.get<Contact::Components::ToxGroupEphemeral>().group_number);
+	{
+		bool connected = false;
+		if (const auto cs_comp_ptr = c.try_get<Contact::Components::ConnectionState>(); cs_comp_ptr != nullptr) {
+			connected = cs_comp_ptr->state != Contact::Components::ConnectionState::disconnected;
+		}
+		if (ImGui::MenuItem("Disconnect", nullptr, false, connected)) {
+			t->toxGroupDisconnect(c.get<Contact::Components::ToxGroupEphemeral>().group_number);
+		}
+		ImGui::SetItemTooltip("Disconnect from group, without wiping your keys.\nUse reconnect to rejoin later.");
 	}
-	ImGui::SetItemTooltip("Disconnect from group, without wiping your keys.\nUse reconnect to rejoin later.");
+
+	const auto group_number = c.get<Contact::Components::ToxGroupEphemeral>().group_number;
+	bool is_founder = false;
+	bool is_mod = false;
+	bool is_user = false;
+	if (auto self_id_opt = t->toxGroupSelfGetPeerId(group_number); self_id_opt) {
+		auto [role_opt, _] = t->toxGroupPeerGetRole(group_number, self_id_opt.value());
+		if (role_opt) {
+			switch (role_opt.value()) {
+				case TOX_GROUP_ROLE_FOUNDER:
+					is_founder = true;
+					ImGui::TextDisabled("Self Role: Founder");
+					break;
+				case TOX_GROUP_ROLE_MODERATOR:
+					is_mod = true;
+					ImGui::TextDisabled("Self Role: Moderator");
+					break;
+				case TOX_GROUP_ROLE_USER:
+					is_user = true;
+					ImGui::TextDisabled("Self Role: User");
+					break;
+				case TOX_GROUP_ROLE_OBSERVER:
+					ImGui::TextDisabled("Self Role: Observer");
+					break;
+			}
+		}
+	}
+
+	if (is_founder) {
+		// TODO: edit popups? modal?
+		//t->toxGroupSetPassword
+		//t->toxGroupSetPeerLimit
+		//t->toxGroupSetPrivacyState(group_number, TOX_GROUP_PRIVACY_STATE_PRIVATE);
+	}
+
+
+	{ // topic
+		const bool topic_locked = t->toxGroupGetTopicLock(group_number).value_or(true);
+		std::string topic_m_str = std::string("Topic ") + (topic_locked ? ">locked<" : "<unlocked>") + "##topic lock";
+		if (ImGui::BeginMenu(topic_m_str.c_str(), is_founder)) {
+			if (ImGui::MenuItem("lock", nullptr, false, !topic_locked)) {
+				t->toxGroupSetTopicLock(group_number, true);
+			}
+
+			if (ImGui::MenuItem("unlock", nullptr, false, topic_locked)) {
+				t->toxGroupSetTopicLock(group_number, false);
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (is_mod || is_founder || (!topic_locked && is_user)) {
+			// TODO: topic edit popup
+			// if topic lock, mod or higher, if no lock, user or higher
+			//t->toxGroupSetTopic(group_number, "");
+		}
+	}
+
+	ImGui::EndMenu();
+}
+
+static void renderContextGroupPeer(ContactHandle4 c) {
+	if (!c.all_of<Contact::Components::ToxGroupPeerEphemeral, Contact::Components::Parent>()) {
+		return;
+	}
+
+	if (!ImGui::BeginMenu("Tox")) {
+		return;
+	}
+
+	// need tox from parent's parent
+	const auto parent = ContactHandle4{*c.registry(), c.get<Contact::Components::Parent>().parent};
+	if (!static_cast<bool>(parent) || !parent.all_of<Contact::Components::ToxGroupEphemeral, Contact::Components::Parent>()) {
+		ImGui::TextDisabled("parent missing parent or tge");
+		ImGui::EndMenu();
+		return;
+	}
+
+	const auto parent_parent = ContactHandle4{*c.registry(), parent.get<Contact::Components::Parent>().parent};
+	if (!static_cast<bool>(parent_parent) || !parent_parent.all_of<Contact::Components::TagRoot, ToxI*>()) {
+		ImGui::TextDisabled("parent's parent missing root or toxi");
+		ImGui::EndMenu();
+		return;
+	}
+
+	ToxI* t = parent_parent.get<ToxI*>();
+
+	if (t == nullptr) {
+		ImGui::EndMenu();
+		return;
+	}
+
+	const auto [group_number, peer_number] = c.get<Contact::Components::ToxGroupPeerEphemeral>();
+
+	{ // status
+		// TODO: remove and make proper generic api/comp
+		auto [status_opt, _] = t->toxGroupPeerGetStatus(group_number, peer_number);
+		if (status_opt) {
+			switch (status_opt.value()) {
+				case TOX_USER_STATUS_NONE:
+					ImGui::TextDisabled("Status: None");
+					break;
+				case TOX_USER_STATUS_AWAY:
+					ImGui::TextDisabled("Status: Away");
+					break;
+				case TOX_USER_STATUS_BUSY:
+					ImGui::TextDisabled("Status: Busy");
+					break;
+			}
+
+			if (c.all_of<Contact::Components::TagSelfStrong>()) {
+				if (ImGui::BeginMenu("Set self status")) {
+					if (ImGui::MenuItem("None", nullptr, false, status_opt.value() != Tox_User_Status::TOX_USER_STATUS_NONE)) {
+						t->toxGroupSelfSetStatus(group_number, Tox_User_Status::TOX_USER_STATUS_NONE);
+					}
+					if (ImGui::MenuItem("Away", nullptr, false, status_opt.value() != Tox_User_Status::TOX_USER_STATUS_AWAY)) {
+						t->toxGroupSelfSetStatus(group_number, Tox_User_Status::TOX_USER_STATUS_AWAY);
+					}
+					if (ImGui::MenuItem("Busy", nullptr, false, status_opt.value() != Tox_User_Status::TOX_USER_STATUS_BUSY)) {
+						t->toxGroupSelfSetStatus(group_number, Tox_User_Status::TOX_USER_STATUS_BUSY);
+					}
+					ImGui::EndMenu();
+				}
+			}
+		}
+	}
+
+	{ // role
+		auto [role_opt, _] = t->toxGroupPeerGetRole(group_number, peer_number);
+		if (role_opt.has_value()) {
+			switch (role_opt.value()) {
+				case TOX_GROUP_ROLE_FOUNDER:
+					ImGui::TextDisabled("Role: Founder");
+					break;
+				case TOX_GROUP_ROLE_MODERATOR:
+					ImGui::TextDisabled("Role: Moderator");
+					break;
+				case TOX_GROUP_ROLE_USER:
+					ImGui::TextDisabled("Role: User");
+					break;
+				case TOX_GROUP_ROLE_OBSERVER:
+					ImGui::TextDisabled("Role: Observer");
+					break;
+			}
+
+			if (!c.all_of<Contact::Components::TagSelfStrong>()) {
+				const auto self_role = t->toxGroupSelfGetRole(group_number).value_or(TOX_GROUP_ROLE_OBSERVER);
+				if (self_role == TOX_GROUP_ROLE_MODERATOR || self_role == TOX_GROUP_ROLE_FOUNDER) {
+					if (ImGui::BeginMenu("Set role")) {
+						if (self_role == TOX_GROUP_ROLE_FOUNDER && ImGui::MenuItem("Moderator", nullptr, false, role_opt.value() != TOX_GROUP_ROLE_MODERATOR)) {
+							t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_MODERATOR);
+						}
+						if (ImGui::MenuItem("User", nullptr, false, role_opt.value() != TOX_GROUP_ROLE_USER)) {
+							t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_USER);
+						}
+						if (ImGui::MenuItem("Observer", nullptr, false, role_opt.value() != TOX_GROUP_ROLE_OBSERVER)) {
+							t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_OBSERVER);
+						}
+						ImGui::EndMenu();
+					}
+				}
+
+				// if self >= mod && self > peer
+				if (
+					self_role == TOX_GROUP_ROLE_FOUNDER ||
+					(self_role == TOX_GROUP_ROLE_MODERATOR && (role_opt.value() == TOX_GROUP_ROLE_USER || role_opt.value() == TOX_GROUP_ROLE_OBSERVER))
+				) {
+					if (ImGui::MenuItem("Kick Peer")) {
+						t->toxGroupKickPeer(group_number, peer_number);
+
+						// HACK: no event n stuff
+						c.remove<Contact::Components::ToxGroupPeerEphemeral>();
+						c.emplace_or_replace<Contact::Components::ConnectionState>(Contact::Components::ConnectionState::State::disconnected);
+					}
+					ImGui::SetItemTooltip("Tell the peer to disconnect and broadcast a notice to all other connected peers to do the same.");
+				}
+			}
+		}
+	}
 
 	ImGui::EndMenu();
 }
@@ -75,11 +255,22 @@ ToxUIUtils::ToxUIUtils(
 		entt::type_id<Contact::Components::ToxGroupEphemeral>().hash(),
 		renderContextGroup
 	)) {
-		throw std::runtime_error("failed to register toxgroup imgui context menu");
+		throw std::runtime_error("failed to register tox group imgui context menu");
+	}
+
+	if (!_cs.registerImGuiContext(
+		entt::type_id<Contact::Components::ToxGroupPeerEphemeral>().hash(),
+		renderContextGroupPeer
+	)) {
+		throw std::runtime_error("failed to register tox group peer imgui context menu");
 	}
 }
 
 ToxUIUtils::~ToxUIUtils(void) {
+	_cs.unregisterImGuiContext(
+		entt::type_id<Contact::Components::ToxGroupPeerEphemeral>().hash()
+	);
+
 	_cs.unregisterImGuiContext(
 		entt::type_id<Contact::Components::ToxGroupEphemeral>().hash()
 	);
