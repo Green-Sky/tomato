@@ -119,6 +119,37 @@ static void renderContextGroup(ContactHandle4 c) {
 		}
 	}
 
+	{ // voice state
+		auto state_opt = t->toxGroupGetVoiceState(group_number);
+		if (state_opt) {
+			switch (state_opt.value()) {
+				case TOX_GROUP_VOICE_STATE_ALL:
+					ImGui::TextDisabled("VoiceState: All");
+					break;
+				case TOX_GROUP_VOICE_STATE_MODERATOR:
+					ImGui::TextDisabled("VoiceState: Moderators");
+					break;
+				case TOX_GROUP_VOICE_STATE_FOUNDER:
+					ImGui::TextDisabled("VoiceState: Founder");
+					break;
+			}
+			if (is_founder) {
+				if (ImGui::BeginMenu("Set VoiceState")) {
+					if (ImGui::MenuItem("All", nullptr, false, state_opt.value() != Tox_Group_Voice_State::TOX_GROUP_VOICE_STATE_ALL)) {
+						t->toxGroupSetVoiceState(group_number, Tox_Group_Voice_State::TOX_GROUP_VOICE_STATE_ALL);
+					}
+					if (ImGui::MenuItem("Moderators", nullptr, false, state_opt.value() != Tox_Group_Voice_State::TOX_GROUP_VOICE_STATE_MODERATOR)) {
+						t->toxGroupSetVoiceState(group_number, Tox_Group_Voice_State::TOX_GROUP_VOICE_STATE_MODERATOR);
+					}
+					if (ImGui::MenuItem("Founder", nullptr, false, state_opt.value() != Tox_Group_Voice_State::TOX_GROUP_VOICE_STATE_FOUNDER)) {
+						t->toxGroupSetVoiceState(group_number, Tox_Group_Voice_State::TOX_GROUP_VOICE_STATE_FOUNDER);
+					}
+					ImGui::EndMenu();
+				}
+			}
+		}
+	}
+
 	ImGui::EndMenu();
 }
 
