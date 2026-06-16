@@ -272,6 +272,24 @@ static void renderContextGroupPeer(ContactHandle4 c) {
 		}
 	}
 
+	{ // ignore
+		if (!c.all_of<Contact::Components::TagSelfStrong>()) {
+			// no way to get current ignore state
+			// TODO: make toxcore provide better api and adjust the menu
+			// will need that to support custom protocol ignores, rn only observer supported
+			// TODO: add generic ignore comp to contacts
+			if (ImGui::BeginMenu("Set Ignore")) {
+				if (ImGui::MenuItem("True")) {
+					t->toxGroupSetIgnore(group_number, peer_number, true);
+				}
+				if (ImGui::MenuItem("False")) {
+					t->toxGroupSetIgnore(group_number, peer_number, false);
+				}
+				ImGui::EndMenu();
+			}
+		}
+	}
+
 	ImGui::EndMenu();
 }
 
