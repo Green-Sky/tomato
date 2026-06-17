@@ -22,6 +22,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <cstring>
+#include <stdexcept>
 
 static void renderContextGroup(ContactHandle4 c) {
 	if (!c.all_of<Contact::Components::ToxGroupEphemeral, Contact::Components::Parent>()) {
@@ -290,6 +291,16 @@ static void renderContextGroupPeer(ContactHandle4 c) {
 		}
 	}
 
+	// self name
+	if (c.all_of<Contact::Components::TagSelfStrong>()) {
+		if (ImGui::MenuItem("Change your name")) {
+			// get toxuiutils ptr
+			if (ToxUIUtils** tui = parent_parent.try_get<ToxUIUtils*>(); tui != nullptr && *tui != nullptr) {
+				(*tui)->openGroupSelfName(parent, c);
+			}
+		}
+	}
+
 	ImGui::EndMenu();
 }
 
@@ -300,6 +311,21 @@ ToxUIUtils::ToxUIUtils(
 	ConfigModelI& conf,
 	ToxPrivateI* tp
 ) : _tc(tc), _cs(cs), _tcm(tcm), _conf(conf), _tp(tp) {
+	// TODO: should live in the contact instead
+	// emplace self onto root
+	// find root with same tox ptr
+	bool emplaced = false;
+	for (const auto [c, toxi] : cs.registry().view<Contact::Components::TagRoot, ToxI*>().each()) {
+		if (toxi == &tc) {
+			cs.registry().emplace_or_replace<ToxUIUtils*>(c, this);
+			emplaced = true;
+			break;
+		}
+	}
+	if (!emplaced) {
+		throw std::runtime_error("could not find root contact with same tox interface");
+	}
+
 	if (!_cs.registerImGuiContext(
 		entt::type_id<Contact::Components::ToxGroupEphemeral>().hash(),
 		renderContextGroup
@@ -323,6 +349,13 @@ ToxUIUtils::~ToxUIUtils(void) {
 	_cs.unregisterImGuiContext(
 		entt::type_id<Contact::Components::ToxGroupEphemeral>().hash()
 	);
+
+	for (const auto [c, toxui] : _cs.registry().view<Contact::Components::TagRoot, ToxUIUtils*>().each()) {
+		if (toxui == this) {
+			_cs.registry().remove<ToxUIUtils*>(c);
+			break;
+		}
+	}
 }
 
 void ToxUIUtils::render(void) {
@@ -640,4 +673,51 @@ void ToxUIUtils::render(void) {
 		}
 		ImGui::End();
 	}
+
+	if (_open_group_self_name) {
+		ImGui::OpenPopup("Group self name");
+		_open_group_self_name = false;
+	}
+
+	if (ImGui::BeginPopup("Group self name")) {
+		ImGui::Text("Change your name in this group and this group only.");
+		ImGui::InputText("new name", &_gsn_name);
+
+		if (ImGui::Button("Cancel", {ImGui::GetContentRegionAvail().x/2.f, 0})) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Ok", {-FLT_MIN, 0})) {
+			if (const auto* tge_ptr = _cs.registry().try_get<Contact::Components::ToxGroupEphemeral>(_gsn_group); tge_ptr != nullptr) {
+				_tc.toxGroupSelfSetName(tge_ptr->group_number, _gsn_name);
+				if (auto* name_ptr = _cs.registry().try_get<Contact::Components::Name>(_gsn_self); name_ptr != nullptr) {
+					name_ptr->name = _gsn_name;
+					_cs.throwEventUpdate(_gsn_self);
+				}
+			}
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+}
+
+void ToxUIUtils::openGroupSelfName(Contact4 group_v, Contact4 self_v) {
+	auto cg = _cs.contactHandle(group_v);
+	if (!static_cast<bool>(cg)) {
+		return;
+	}
+
+	auto c = _cs.contactHandle(self_v);
+	if (!static_cast<bool>(c)) {
+		return;
+	}
+
+	if (auto* name_ptr = c.try_get<Contact::Components::Name>(); name_ptr != nullptr) {
+		_gsn_name = name_ptr->name;
+	}
+
+	_gsn_group = group_v;
+	_gsn_self = self_v;
+
+	_open_group_self_name = true;
 }

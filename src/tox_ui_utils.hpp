@@ -1,5 +1,9 @@
 #pragma once
 
+#include <solanaceae/contact/fwd.hpp>
+
+#include <string>
+
 class ToxClient;
 struct ContactStore4I;
 class ToxContactModel2;
@@ -12,6 +16,8 @@ class ToxUIUtils {
 	bool _show_new_group_window {false};
 	bool _show_dht_connect_node {false};
 
+	bool _open_group_self_name {false};
+
 	ToxClient& _tc;
 	ContactStore4I& _cs;
 	ToxContactModel2& _tcm;
@@ -19,6 +25,10 @@ class ToxUIUtils {
 	ToxPrivateI* _tp {nullptr};
 
 	char _chat_id[32*2+1] {};
+
+	std::string _gsn_name;
+	Contact4 _gsn_group;
+	Contact4 _gsn_self;
 
 	public:
 		ToxUIUtils(
@@ -31,5 +41,7 @@ class ToxUIUtils {
 		~ToxUIUtils(void);
 
 		void render(void);
+
+		void openGroupSelfName(Contact4 group_v, Contact4 self_v);
 };
 
