@@ -97,7 +97,6 @@ static void renderContextGroup(ContactHandle4 c) {
 		//t->toxGroupSetPrivacyState(group_number, TOX_GROUP_PRIVACY_STATE_PRIVATE);
 	}
 
-
 	{ // topic
 		const bool topic_locked = t->toxGroupGetTopicLock(group_number).value_or(true);
 		std::string topic_m_str = std::string("Topic ") + (topic_locked ? ">locked<" : "<unlocked>") + "##topic lock";
@@ -113,10 +112,13 @@ static void renderContextGroup(ContactHandle4 c) {
 			ImGui::EndMenu();
 		}
 
-		if (is_mod || is_founder || (!topic_locked && is_user)) {
-			// TODO: topic edit popup
-			// if topic lock, mod or higher, if no lock, user or higher
-			//t->toxGroupSetTopic(group_number, "");
+		const bool can_edit_topic = is_mod || is_founder || (!topic_locked && is_user);
+		if (can_edit_topic) {
+			if (ImGui::MenuItem("Change Topic")) {
+				if (ToxUIUtils** tui = parent.try_get<ToxUIUtils*>(); tui != nullptr && *tui != nullptr) {
+					(*tui)->openGroupTopic(c);
+				}
+			}
 		}
 	}
 
@@ -293,8 +295,7 @@ static void renderContextGroupPeer(ContactHandle4 c) {
 
 	// self name
 	if (c.all_of<Contact::Components::TagSelfStrong>()) {
-		if (ImGui::MenuItem("Change your name")) {
-			// get toxuiutils ptr
+		if (ImGui::MenuItem("Change your Name")) {
 			if (ToxUIUtils** tui = parent_parent.try_get<ToxUIUtils*>(); tui != nullptr && *tui != nullptr) {
 				(*tui)->openGroupSelfName(parent, c);
 			}
@@ -699,6 +700,34 @@ void ToxUIUtils::render(void) {
 		}
 		ImGui::EndPopup();
 	}
+
+	if (_open_group_topic) {
+		ImGui::OpenPopup("Group topic");
+		_open_group_topic = false;
+	}
+
+	if (ImGui::BeginPopup("Group topic")) {
+		ImGui::Text("Change the topic for this group.");
+		ImGui::InputTextMultiline("topic", &_gt_topic);
+
+		if (ImGui::Button("Cancel", {ImGui::GetContentRegionAvail().x/2.f, 0})) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Ok", {-FLT_MIN, 0})) {
+			if (const auto* tge_ptr = _cs.registry().try_get<Contact::Components::ToxGroupEphemeral>(_gt_group); tge_ptr != nullptr) {
+				if (_tc.toxGroupSetTopic(tge_ptr->group_number, _gt_topic) == TOX_ERR_GROUP_TOPIC_SET_OK) {
+					if (auto* status_ptr = _cs.registry().try_get<Contact::Components::StatusText>(_gt_group); status_ptr != nullptr) {
+						status_ptr->text = _gt_topic;
+						status_ptr->fillFirstLineLength();
+						_cs.throwEventUpdate(_gt_group);
+					}
+				}
+			}
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
 }
 
 void ToxUIUtils::openGroupSelfName(Contact4 group_v, Contact4 self_v) {
@@ -720,4 +749,19 @@ void ToxUIUtils::openGroupSelfName(Contact4 group_v, Contact4 self_v) {
 	_gsn_self = self_v;
 
 	_open_group_self_name = true;
+}
+
+void ToxUIUtils::openGroupTopic(Contact4 group_v) {
+	auto cg = _cs.contactHandle(group_v);
+	if (!static_cast<bool>(cg)) {
+		return;
+	}
+
+	if (auto* status_ptr = cg.try_get<Contact::Components::StatusText>(); status_ptr != nullptr) {
+		_gt_topic = status_ptr->text;
+	}
+
+	_gt_group = group_v;
+
+	_open_group_topic = true;
 }

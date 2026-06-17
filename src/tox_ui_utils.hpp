@@ -17,6 +17,7 @@ class ToxUIUtils {
 	bool _show_dht_connect_node {false};
 
 	bool _open_group_self_name {false};
+	bool _open_group_topic {false};
 
 	ToxClient& _tc;
 	ContactStore4I& _cs;
@@ -29,6 +30,9 @@ class ToxUIUtils {
 	std::string _gsn_name;
 	Contact4 _gsn_group;
 	Contact4 _gsn_self;
+
+	std::string _gt_topic;
+	Contact4 _gt_group;
 
 	public:
 		ToxUIUtils(
@@ -43,5 +47,6 @@ class ToxUIUtils {
 		void render(void);
 
 		void openGroupSelfName(Contact4 group_v, Contact4 self_v);
+		void openGroupTopic(Contact4 group_v);
 };
 
