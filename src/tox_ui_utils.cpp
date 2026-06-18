@@ -91,10 +91,15 @@ static void renderContextGroup(ContactHandle4 c) {
 	}
 
 	if (is_founder) {
-		// TODO: edit popups? modal?
-		//t->toxGroupSetPassword
 		//t->toxGroupSetPeerLimit
 		//t->toxGroupSetPrivacyState(group_number, TOX_GROUP_PRIVACY_STATE_PRIVATE);
+
+		// password
+		if (ImGui::MenuItem("Change password")) {
+			if (ToxUIUtils** tui = parent.try_get<ToxUIUtils*>(); tui != nullptr && *tui != nullptr) {
+				(*tui)->openGroupPassword(c);
+			}
+		}
 	}
 
 	{ // topic
@@ -682,7 +687,7 @@ void ToxUIUtils::render(void) {
 
 	if (ImGui::BeginPopup("Group self name")) {
 		ImGui::Text("Change your name in this group and this group only.");
-		ImGui::InputText("new name", &_gsn_name);
+		ImGui::InputText("##new name", &_gsn_name);
 
 		if (ImGui::Button("Cancel", {ImGui::GetContentRegionAvail().x/2.f, 0})) {
 			ImGui::CloseCurrentPopup();
@@ -701,6 +706,35 @@ void ToxUIUtils::render(void) {
 		ImGui::EndPopup();
 	}
 
+	if (_open_group_password) {
+		ImGui::OpenPopup("Group password");
+		_open_group_password = false;
+	}
+
+	if (ImGui::BeginPopup("Group password")) {
+		ImGui::Text("Set a new password for this group.");
+		ImGui::InputText(
+			"##password", &_gp_password,
+			ImGuiInputTextFlags_EnterReturnsTrue | (!_gp_show_password ? ImGuiInputTextFlags_Password : ImGuiInputTextFlags_None)
+		);
+		ImGui::SameLine();
+		ImGui::Checkbox("show password", &_gp_show_password);
+
+		if (ImGui::Button("Cancel", {ImGui::GetContentRegionAvail().x/2.f, 0})) {
+			_gp_password.clear();
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Ok", {-FLT_MIN, 0})) {
+			if (const auto* tge_ptr = _cs.registry().try_get<Contact::Components::ToxGroupEphemeral>(_gp_group); tge_ptr != nullptr) {
+				_tc.toxGroupSetPassword(tge_ptr->group_number, _gp_password);
+				_gp_password.clear();
+				ImGui::CloseCurrentPopup();
+			}
+		}
+		ImGui::EndPopup();
+	}
+
 	if (_open_group_topic) {
 		ImGui::OpenPopup("Group topic");
 		_open_group_topic = false;
@@ -708,7 +742,7 @@ void ToxUIUtils::render(void) {
 
 	if (ImGui::BeginPopup("Group topic")) {
 		ImGui::Text("Change the topic for this group.");
-		ImGui::InputTextMultiline("topic", &_gt_topic);
+		ImGui::InputTextMultiline("##topic", &_gt_topic);
 
 		if (ImGui::Button("Cancel", {ImGui::GetContentRegionAvail().x/2.f, 0})) {
 			ImGui::CloseCurrentPopup();
@@ -749,6 +783,24 @@ void ToxUIUtils::openGroupSelfName(Contact4 group_v, Contact4 self_v) {
 	_gsn_self = self_v;
 
 	_open_group_self_name = true;
+}
+
+void ToxUIUtils::openGroupPassword(Contact4 group_v) {
+	auto cg = _cs.contactHandle(group_v);
+	if (!static_cast<bool>(cg)) {
+		return;
+	}
+
+	_gp_password.clear();
+
+	if (auto* tge_ptr = cg.try_get<Contact::Components::ToxGroupEphemeral>(); tge_ptr != nullptr) {
+		_gp_password = _tc.toxGroupGetPassword(tge_ptr->group_number).value_or("");
+	}
+
+	_gp_show_password = false;
+	_gp_group = group_v;
+
+	_open_group_password = true;
 }
 
 void ToxUIUtils::openGroupTopic(Contact4 group_v) {
