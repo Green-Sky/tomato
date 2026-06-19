@@ -127,6 +127,32 @@ static void renderContextGroup(ContactHandle4 c) {
 		}
 	}
 
+	{ // privacy state
+		auto state_opt = t->toxGroupGetPrivacyState(group_number);
+		if (state_opt) {
+			switch (state_opt.value()) {
+				case TOX_GROUP_PRIVACY_STATE_PUBLIC:
+					ImGui::TextDisabled("PrivacyState: Public");
+					break;
+				case TOX_GROUP_PRIVACY_STATE_PRIVATE:
+					ImGui::TextDisabled("PrivacyState: Private");
+					break;
+			}
+			ImGui::SetItemTooltip("Public means the peers announce the group + themselfs to the DHT.");
+			if (is_founder) {
+				if (ImGui::BeginMenu("Set PrivacyState")) {
+					if (ImGui::MenuItem("Public", nullptr, false, state_opt.value() != Tox_Group_Privacy_State::TOX_GROUP_PRIVACY_STATE_PUBLIC)) {
+						t->toxGroupSetPrivacyState(group_number, Tox_Group_Privacy_State::TOX_GROUP_PRIVACY_STATE_PUBLIC);
+					}
+					if (ImGui::MenuItem("Private", nullptr, false, state_opt.value() != Tox_Group_Privacy_State::TOX_GROUP_PRIVACY_STATE_PRIVATE)) {
+						t->toxGroupSetPrivacyState(group_number, Tox_Group_Privacy_State::TOX_GROUP_PRIVACY_STATE_PRIVATE);
+					}
+					ImGui::EndMenu();
+				}
+			}
+		}
+	}
+
 	{ // voice state
 		auto state_opt = t->toxGroupGetVoiceState(group_number);
 		if (state_opt) {
