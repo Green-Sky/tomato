@@ -18,6 +18,7 @@ class ToxUIUtils {
 
 	bool _open_group_self_name {false};
 	bool _open_group_password {false};
+	bool _open_group_peer_limit {false};
 	bool _open_group_topic {false};
 
 	ToxClient& _tc;
@@ -36,6 +37,9 @@ class ToxUIUtils {
 	bool _gp_show_password {false};
 	Contact4 _gp_group;
 
+	uint16_t _gpl_peer_limit{100};
+	Contact4 _gpl_group;
+
 	std::string _gt_topic;
 	Contact4 _gt_group;
 
@@ -53,6 +57,7 @@ class ToxUIUtils {
 
 		void openGroupSelfName(Contact4 group_v, Contact4 self_v);
 		void openGroupPassword(Contact4 group_v);
+		void openGroupPeerLimit(Contact4 group_v);
 		void openGroupTopic(Contact4 group_v);
 };
 

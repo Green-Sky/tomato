@@ -91,13 +91,22 @@ static void renderContextGroup(ContactHandle4 c) {
 	}
 
 	if (is_founder) {
-		//t->toxGroupSetPeerLimit
-		//t->toxGroupSetPrivacyState(group_number, TOX_GROUP_PRIVACY_STATE_PRIVATE);
+		// TODO: show pw set
 
 		// password
 		if (ImGui::MenuItem("Change password")) {
 			if (ToxUIUtils** tui = parent.try_get<ToxUIUtils*>(); tui != nullptr && *tui != nullptr) {
 				(*tui)->openGroupPassword(c);
+			}
+		}
+	}
+
+	{ // peer limit
+		const uint16_t peer_limit = t->toxGroupGetPeerLimit(group_number).value_or(0);
+		ImGui::TextDisabled("PeerLimit: %d", peer_limit);
+		if (is_founder && ImGui::MenuItem("Change PeerLimit")) {
+			if (ToxUIUtils** tui = parent.try_get<ToxUIUtils*>(); tui != nullptr && *tui != nullptr) {
+				(*tui)->openGroupPeerLimit(c);
 			}
 		}
 	}
@@ -761,6 +770,28 @@ void ToxUIUtils::render(void) {
 		ImGui::EndPopup();
 	}
 
+	if (_open_group_peer_limit) {
+		ImGui::OpenPopup("Group peer limit");
+		_open_group_peer_limit = false;
+	}
+
+	if (ImGui::BeginPopup("Group peer limit")) {
+		ImGui::Text("Change the peer limit for this group.");
+		ImGui::InputScalar("##limit", ImGuiDataType_U16, &_gpl_peer_limit);
+
+		if (ImGui::Button("Cancel", {ImGui::GetContentRegionAvail().x/2.f, 0})) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Ok", {-FLT_MIN, 0})) {
+			if (const auto* tge_ptr = _cs.registry().try_get<Contact::Components::ToxGroupEphemeral>(_gpl_group); tge_ptr != nullptr) {
+				_tc.toxGroupSetPeerLimit(tge_ptr->group_number, _gpl_peer_limit);
+			}
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
 	if (_open_group_topic) {
 		ImGui::OpenPopup("Group topic");
 		_open_group_topic = false;
@@ -827,6 +858,21 @@ void ToxUIUtils::openGroupPassword(Contact4 group_v) {
 	_gp_group = group_v;
 
 	_open_group_password = true;
+}
+
+void ToxUIUtils::openGroupPeerLimit(Contact4 group_v) {
+	auto cg = _cs.contactHandle(group_v);
+	if (!static_cast<bool>(cg)) {
+		return;
+	}
+
+	if (auto* tge_ptr = cg.try_get<Contact::Components::ToxGroupEphemeral>(); tge_ptr != nullptr) {
+		_gpl_peer_limit = _tc.toxGroupGetPeerLimit(tge_ptr->group_number).value_or(0);
+	}
+
+	_gpl_group = group_v;
+
+	_open_group_peer_limit = true;
 }
 
 void ToxUIUtils::openGroupTopic(Contact4 group_v) {
