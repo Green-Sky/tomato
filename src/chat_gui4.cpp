@@ -42,6 +42,8 @@
 #include <string>
 #include <iostream>
 #include <optional>
+#include <deque>
+#include <limits>
 
 // TODO: split into msg and c
 namespace Components {
@@ -348,6 +350,49 @@ void ChatGui4::sendFilePath(std::string_view file_path) {
 	}
 }
 
+struct ContactWRole {
+	Contact4 cv;
+	// best role, lowest numerically
+	uint64_t role{std::numeric_limits<uint64_t>::max()};
+};
+static std::deque<ContactWRole> sortSubsByRole(ContactStore4I& cs, const std::vector<Contact4>& sub_contacts) {
+	std::deque<ContactWRole> sorted_subs;
+
+	for (const auto& c_sub : sub_contacts) {
+		auto c = cs.contactHandle(c_sub);
+		// we sort by lowest number role
+
+		uint64_t role{std::numeric_limits<uint64_t>::max()};
+		const auto* role_comp_ptr = c.try_get<Contact::Components::Roles>();
+		if (role_comp_ptr != nullptr && !role_comp_ptr->rs.empty()) {
+			const auto& role_vec = role_comp_ptr->rs;
+			role = role_vec.front();
+			// TODO: remove this ape dance, enforce sorted roles list?
+			for (size_t i = 1; i < role_vec.size(); i++) {
+				if (role_vec[i] < role) {
+					role = role_vec[i];
+				}
+			}
+		}
+
+		// TODO: use algo find
+		// find lower prio contact to insert before
+		for (auto it = sorted_subs.begin(); ; it++) {
+			if (it == sorted_subs.end()) {
+				sorted_subs.emplace_back(ContactWRole{c, role});
+				break;
+			}
+
+			if (it->role > role) {
+				sorted_subs.insert(it, ContactWRole{c, role});
+				break;
+			}
+		}
+	}
+
+	return sorted_subs;
+}
+
 void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_delta) {
 	auto c = _cs.contactHandle(cv);
 	auto& cr = _cs.registry();
@@ -411,7 +456,25 @@ void ChatGui4::renderContactWindow(Contact4 cv, bool window_focused, float time_
 				if (ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
 					ImGui::Text("subs: %zu", sub_contacts->size());
 					ImGui::Separator();
-					for (const auto& c_sub : *sub_contacts) {
+
+					// HACK: ugly in place sort by role, needs caching
+					const auto sorted_subs = sortSubsByRole(_cs, *sub_contacts);
+					const auto* role_map_comp = c.try_get<Contact::Components::RoleMap>();
+					uint64_t last_role = std::numeric_limits<uint64_t>::max();
+
+					for (const auto& [c_sub, role] : sorted_subs) {
+						if (last_role != role) {
+							if (role == std::numeric_limits<uint64_t>::max()) {
+								ImGui::SeparatorText("without role");
+							} else if (role_map_comp != nullptr && role_map_comp->map.count(role)) {
+								ImGui::SeparatorText(role_map_comp->map.at(role).c_str());
+							} else {
+								const std::string role_text = "unk role " + std::to_string(role);
+								ImGui::SeparatorText(role_text.c_str());
+							}
+							last_role = role;
+						}
+
 						ImGui::PushID(entt::to_integral(c_sub));
 						// TODO: can a sub be selected? no
 						//if (renderSubContactListContact(c_sub, _selected_contact.has_value() && c == c_sub)) {
