@@ -285,13 +285,19 @@ static void renderContextGroupPeer(ContactHandle4 c) {
 				if (self_role == TOX_GROUP_ROLE_MODERATOR || self_role == TOX_GROUP_ROLE_FOUNDER) {
 					if (ImGui::BeginMenu("Set role")) {
 						if (self_role == TOX_GROUP_ROLE_FOUNDER && ImGui::MenuItem("Moderator", nullptr, false, role_opt.value() != TOX_GROUP_ROLE_MODERATOR)) {
-							t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_MODERATOR);
+							if (t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_MODERATOR) == TOX_ERR_GROUP_SET_ROLE_OK) {
+								c.emplace_or_replace<Contact::Components::Roles>().rs.emplace_back(Tox_Group_Role::TOX_GROUP_ROLE_MODERATOR);
+							}
 						}
 						if (ImGui::MenuItem("User", nullptr, false, role_opt.value() != TOX_GROUP_ROLE_USER)) {
-							t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_USER);
+							if (t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_USER) == TOX_ERR_GROUP_SET_ROLE_OK) {
+								c.emplace_or_replace<Contact::Components::Roles>().rs.emplace_back(Tox_Group_Role::TOX_GROUP_ROLE_USER);
+							}
 						}
 						if (ImGui::MenuItem("Observer", nullptr, false, role_opt.value() != TOX_GROUP_ROLE_OBSERVER)) {
-							t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_OBSERVER);
+							if (t->toxGroupSetRole(group_number, peer_number, TOX_GROUP_ROLE_OBSERVER) == TOX_ERR_GROUP_SET_ROLE_OK) {
+								c.emplace_or_replace<Contact::Components::Roles>().rs.emplace_back(Tox_Group_Role::TOX_GROUP_ROLE_OBSERVER);
+							}
 						}
 						ImGui::EndMenu();
 					}
