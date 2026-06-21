@@ -10,19 +10,16 @@
 
 #include "./texture_uploader.hpp"
 #include "./bitset_image_loader.hpp"
+#include "./sdl_clipboard_utils.hpp"
 #include "./chat_gui/file_selector.hpp"
-#include "./chat_gui/send_image_popup.hpp"
 #include "./chat_gui/image_viewer_popup.hpp"
 #include "./chat_gui/contact_info_window.hpp"
 #include "./chat_gui/contact_list_sorter.hpp"
+#include "./chat_gui/contact_window.hpp"
 
 #include <entt/container/dense_map.hpp>
 
-#include <cstdint>
 #include <vector>
-#include <string>
-#include <mutex>
-#include <memory>
 
 class ChatGui4 : public ObjectStoreEventI {
 	ConfigModelI& _conf;
@@ -31,6 +28,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	RegistryMessageModelI& _rmm;
 	ContactStore4Impl& _cs;
 
+	TextureUploaderI& _tu;
 	ContactTextureCache& _contact_tc;
 	MessageTextureCache& _msg_tc;
 	BitsetImageLoader _bil;
@@ -39,31 +37,19 @@ class ChatGui4 : public ObjectStoreEventI {
 	Theme& _theme;
 
 	FileSelector _fss;
-	SendImagePopup _sip;
 	ImageViewerPopup _ivp;
 	ContactInfoWindows _ciw;
 	ContactListSorter _cls;
+	Clipboard _cb;
 
 	// set to true if not hovered
 	bool _contact_list_sortable {false};
 
 	// TODO: refactor this to allow multiple open contacts
-	std::optional<Contact4> _selected_contact;
-
-	// TODO: per contact
-	std::string _text_input_buffer;
-
-	bool _show_chat_extra_info {false};
-	bool _show_chat_avatar_tf {false};
+	std::optional<ContactWindow> _selected_contact;
 
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};
-
-	// mimetype -> data
-	entt::dense_map<std::string, std::shared_ptr<std::vector<uint8_t>>> _set_clipboard_data;
-	std::mutex _set_clipboard_data_mutex; // might be called out of order
-	friend const void* clipboard_callback(void* userdata, const char* mime_type, size_t* size);
-	void setClipboardData(std::vector<std::string> mime_types, std::shared_ptr<std::vector<uint8_t>>&& data);
 
 	public:
 		ChatGui4(
@@ -82,27 +68,15 @@ class ChatGui4 : public ObjectStoreEventI {
 		float render(float time_delta, bool window_hidden, bool window_focused);
 
 	public:
-		void sendFilePath(Contact4 c, std::string_view file_path);
-		void sendFileList(Contact4 c, const std::vector<std::string_view>& list);
-
 		void sendFilePath(std::string_view file_path);
 		void sendFileList(const std::vector<std::string_view>& list);
 
 	private:
-		void renderContactWindow(Contact4 cv, bool window_focused, float time_delta);
-		void renderChatLog(Contact4 c, bool window_focused, const std::vector<Contact4>* sub_contacts);
-		void renderChatMessageLogTab(Contact4 c, bool window_focused, float time_delta, const std::vector<Contact4>* sub_contacts); // contents only
-		void renderMessageBodyText(Message3Registry& reg, const Message3 e);
-		void renderMessageBodyFile(Message3Registry& reg, const Message3 e);
-		void renderMessageExtra(Message3Registry& reg, const Message3 e);
-
 		void renderChatFilesTab(Contact4 c);
 
 		void renderContactList(void);
 		bool renderContactListContactSmall(const Contact4 c, const bool selected) const;
 		//bool renderSubContactListContact(const Contact4 c, const bool selected) const;
-
-		void pasteFile(const char* mime_type);
 
 	protected:
 		bool onEvent(const ObjectStore::Events::ObjectUpdate&) override;
