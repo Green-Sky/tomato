@@ -32,7 +32,6 @@
 #include <ctime>
 #include <cstdio>
 #include <string>
-#include <optional>
 
 ChatGui4::ChatGui4(
 	ConfigModelI& conf,
@@ -106,10 +105,10 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 
 		if (_selected_contact) {
 			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteFocused)) {
-				_selected_contact = std::nullopt;
+				_selected_contact.reset();
 			} else {
 				ImGui::SameLine();
-				_selected_contact.value().render(window_focused, time_delta);
+				_selected_contact->render(window_focused, time_delta);
 			}
 		}
 	}
@@ -119,13 +118,13 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 }
 
 void ChatGui4::sendFilePath(std::string_view file_path) {
-	if (_selected_contact.has_value()) {
+	if (_selected_contact) {
 		_selected_contact->sendFilePath(file_path);
 	}
 }
 
 void ChatGui4::sendFileList(const std::vector<std::string_view>& list) {
-	if (_selected_contact.has_value()) {
+	if (_selected_contact) {
 		_selected_contact->sendFileList(list);
 	}
 }
@@ -150,8 +149,8 @@ void ChatGui4::renderContactList(void) {
 
 		auto& cr = _cs.registry();
 		ContactHandle4 selected_contact{};
-		if (_selected_contact.has_value()) {
-			selected_contact = _selected_contact.value().c;
+		if (_selected_contact) {
+			selected_contact = _selected_contact->c;
 		}
 		if (::renderContactList(
 			_cs,
@@ -163,12 +162,12 @@ void ChatGui4::renderContactList(void) {
 			_ciw,
 			selected_contact
 		)) {
-			_selected_contact.emplace(ContactWindow{
+			_selected_contact = std::make_unique<ContactWindow>(
 				_cs, _rmm, _os,
 				_theme, _contact_tc, _msg_tc, _b_tc,
 				_ciw, _fss, _ivp, _cb, _tu,
 				selected_contact
-			});
+			);
 		}
 	}
 	ImGui::EndChild();

@@ -43,6 +43,7 @@ ContactWindow::ContactWindow(
 ) : _cs(cs), _rmm(rmm), _os(os),
 	_theme(theme), _contact_tc(contact_tc),
 	_ciw(ciw), _fss(fss),
+	_text_input_buffer(),
 	c(c_),
 	_ccl(cs, rmm, os, theme, contact_tc, msg_tc, b_tc, fss, ivp, cb, _text_input_buffer, c),
 	_sip(tu)

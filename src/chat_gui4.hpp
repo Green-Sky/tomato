@@ -20,6 +20,7 @@
 #include <entt/container/dense_map.hpp>
 
 #include <vector>
+#include <memory>
 
 class ChatGui4 : public ObjectStoreEventI {
 	ConfigModelI& _conf;
@@ -46,7 +47,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	bool _contact_list_sortable {false};
 
 	// TODO: refactor this to allow multiple open contacts
-	std::optional<ContactWindow> _selected_contact;
+	std::unique_ptr<ContactWindow> _selected_contact;
 
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};

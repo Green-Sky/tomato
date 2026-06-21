@@ -21,11 +21,11 @@ struct ContactWindow {
 	ContactInfoWindows& _ciw;
 	FileSelector& _fss;
 
+	std::string _text_input_buffer;
 	ContactHandle4 c;
 	ContactChatLog _ccl/*{_cs, _rmm, c}*/;
 	SendImagePopup _sip;
 
-	std::string _text_input_buffer;
 
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};
@@ -45,6 +45,11 @@ struct ContactWindow {
 		TextureUploaderI& tu,
 		ContactHandle4 c_
 	);
+
+	ContactWindow(ContactWindow&&) = delete;
+	ContactWindow(const ContactWindow&&) = delete;
+	ContactWindow(ContactWindow&) = delete;
+	ContactWindow(const ContactWindow&) = delete;
 
 	float render(const bool window_focused, const float time_delta, const bool child = true);
 
