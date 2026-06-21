@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <string_view>
+#include <sstream>
 #include <algorithm>
 #include <iostream>
 
