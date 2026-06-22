@@ -68,7 +68,7 @@ void StreamManagerUI::render(void) {
 						}
 					}
 
-				if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_source_connection>()));
 					} else if (_os.registry().all_of<Components::TagConnectToDefault>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_default_connection>()));
@@ -152,7 +152,7 @@ void StreamManagerUI::render(void) {
 						}
 					}
 
-			if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_sink_connection>()));
 					} else if (_os.registry().all_of<Components::TagConnectToDefault>(oc)) {
 						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_default_connection>()));

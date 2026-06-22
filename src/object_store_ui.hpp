@@ -12,7 +12,7 @@ class ObjectStoreUI {
 	MM::EntityEditor<Object> _ee;
 
 	public:
-	ObjectStoreUI(
+		ObjectStoreUI(
 			ObjectStore2& os,
 			Theme& theme
 		);
