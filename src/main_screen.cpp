@@ -76,11 +76,11 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	si(rmm, cs, SDL_GetRenderWindow(renderer_), st.get()),
 	cg(conf, os, rmm, cs, sdlrtu, contact_tc, msg_tc, theme),
 	sw(conf),
-	osui(os),
+	osui(os, theme),
 	tuiu(tc, cs, tcm, conf, &tpi),
 	tdch(tpi),
 	tnui(tpi),
-	smui(os, sm),
+	smui(os, sm, theme),
 	dvt(os, sm, sdlrtu)
 {
 	cs.registry().ctx().emplace<ObjectStore2&>(os); // HACK: remove
@@ -388,7 +388,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 			if (ImGui::BeginMenuBar()) {
 				// ImGui::Separator(); // why do we not need this????
 				if (_compute_lower_limit_hit) {
-					ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.2f, 0.2f, 1.f});
+					ImGui::PushStyleColor(ImGuiCol_Text, theme.getColor<ThemeCol_Contact::message_warning_text>());
 				}
 				bool perf_menu = ImGui::BeginMenu("Performance");
 				if (_compute_lower_limit_hit) {
@@ -413,7 +413,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 					ImGui::Text("render interval: %.0fms (%.2ffps)", _render_interval*1000.f, 1.f/_render_interval);
 
 					if (_compute_lower_limit_hit) {
-						ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.2f, 0.2f, 1.f});
+						ImGui::PushStyleColor(ImGuiCol_Text, theme.getColor<ThemeCol_Contact::message_warning_text>());
 					}
 					ImGui::Text("tick   interval: %.0fms (%.2ftps)", _min_tick_interval*1000.f, 1.f/_min_tick_interval);
 					if (_compute_lower_limit_hit) {

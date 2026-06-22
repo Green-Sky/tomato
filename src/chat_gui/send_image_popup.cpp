@@ -17,7 +17,7 @@
 #include <cmath>
 #include <iostream>
 
-SendImagePopup::SendImagePopup(TextureUploaderI& tu) : _tu(tu) {
+SendImagePopup::SendImagePopup(TextureUploaderI& tu, Theme& theme) : _tu(tu), _theme(theme) {
 	_image_loaders.push_back(std::make_unique<ImageLoaderQOI>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderSDLBMP>());
 	_image_loaders.push_back(std::make_unique<ImageLoaderWebP>());
@@ -274,8 +274,8 @@ void SendImagePopup::render(float time_delta) {
 			const auto post_img_curser = ImGui::GetCursorPos();
 
 
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.5f, 0.5f, 0.5f, 0.2f});
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.5f, 0.5f, 0.5f, 0.4f});
+			ImGui::PushStyleColor(ImGuiCol_Button, _theme.getColor<ThemeCol_Contact::crop_button>());
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, _theme.getColor<ThemeCol_Contact::crop_button_active>());
 
 			auto ul_clipper_pos = ImVec2{float(crop_rect.x)/original_image.width, float(crop_rect.y)/original_image.height};
 			{ // crop upper left clipper
@@ -428,7 +428,7 @@ void SendImagePopup::render(float time_delta) {
 			ImGui::SetCursorPos(pre_img_curser);
 
 			// TODO: fancy cropping toggle
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.5f, 0.5f, 0.5f, 0.2f});
+			ImGui::PushStyleColor(ImGuiCol_Button, _theme.getColor<ThemeCol_Contact::crop_button>());
 			if (ImGui::Button("crop", {TEXT_BASE_WIDTH*8, TEXT_BASE_HEIGHT*2})) {
 				cropping = true;
 			}

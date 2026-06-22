@@ -19,7 +19,7 @@
 #include <exception>
 #include <stdexcept>
 
-StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme) {
+StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme), _fss(theme) {
 	bool config_loaded {false};
 	std::string config_path;
 	for (size_t ai = 1; ai < args.size(); ai++) {

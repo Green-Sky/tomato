@@ -42,11 +42,12 @@ ContactWindow::ContactWindow(
 	ContactHandle4 c_
 ) : _cs(cs), _rmm(rmm), _os(os),
 	_theme(theme), _contact_tc(contact_tc),
-	_ciw(ciw), _fss(fss),
+	_ciw(ciw),
+	_fss(fss),
 	_text_input_buffer(),
 	c(c_),
 	_ccl(cs, rmm, os, theme, contact_tc, msg_tc, b_tc, fss, ivp, cb, _text_input_buffer, c),
-	_sip(tu)
+	_sip(tu, theme)
 {
 }
 float ContactWindow::render(const bool window_focused, const float time_delta, const bool child) {
@@ -237,8 +238,7 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 				const auto* ml = c.try_get<Contact::Components::MessageLengths>();
 				ml != nullptr && _text_input_buffer.size() > ml->max_extended
 			) {
-				// FIXME: theme
-				ImGui::PushStyleColor(ImGuiCol_Text, {1.f, 0.3f, 0.3f, 1.f});
+				ImGui::PushStyleColor(ImGuiCol_Text, _theme.getColor<ThemeCol_Contact::message_warning_text>());
 				ImGui::SetTooltip("!! exceeded max message length of %lu bytes !!", ml->max_extended);
 				ImGui::PopStyleColor();
 			}
@@ -442,8 +442,7 @@ bool ContactWindow::renderRequest(void) {
 		return false;
 	}
 
-	// TODO: theming
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.90f, 0.70f, 0.00f, 0.32f});
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, _theme.getColor<ThemeCol_Contact::request_panel_background>());
 
 	if (ImGui::BeginChild("request", {0, TEXT_BASE_HEIGHT*6.1f}, true, ImGuiWindowFlags_NoScrollbar)) {
 		if (request_incoming) {

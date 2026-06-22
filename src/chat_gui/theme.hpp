@@ -14,6 +14,44 @@ std::string typeValueName(T V) {
 	return std::to_string(static_cast<std::underlying_type_t<T>>(V));
 }
 
+enum class ThemeCol_Contact {
+	request_incoming,
+	request_outgoing,
+
+	avatar_online_direct,
+	avatar_online_cloud,
+	avatar_offline,
+
+	unread,
+	unread_muted,
+
+	icon_backdrop,
+
+	ft_have_all,
+	ft_base,
+
+	request_panel_background,
+	message_warning_text,
+	message_quoted_text,
+	message_highlight_self,
+	message_highlight_private,
+
+	delivery_partial,
+	delivery_full,
+	read_partial,
+	read_full,
+
+	crop_button,
+	crop_button_active,
+
+	directory_background_even,
+	directory_background_odd,
+
+	stream_source_connection,
+	stream_sink_connection,
+	stream_default_connection,
+};
+
 // stores theming values and colors not expressed by imgui directly
 struct Theme {
 	using key_type = entt::id_type;

@@ -14,7 +14,7 @@ void FileSelector::reset(void) {
 	_on_cancel = [](){};
 }
 
-FileSelector::FileSelector(void) {
+FileSelector::FileSelector(Theme& theme) : _theme(theme) {
 	try {
 		_current_file_path = std::filesystem::current_path() / "";
 	} catch (std::filesystem::filesystem_error const& ex) {
@@ -111,8 +111,8 @@ void FileSelector::render(void) {
 			}
 			size_t tmp_id = 0;
 			// dirs
-			static const ImU32 dir_bg0_color = ImGui::GetColorU32(ImVec4(0.6, 0.6, 0.1, 0.15));
-			static const ImU32 dir_bg1_color = ImGui::GetColorU32(ImVec4(0.7, 0.7, 0.2, 0.15));
+			const ImU32 dir_bg0_color = ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::directory_background_even>());
+			const ImU32 dir_bg1_color = ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::directory_background_odd>());
 
 			bool start_new_collection_task {false};
 			if (_future_cache.valid()) {

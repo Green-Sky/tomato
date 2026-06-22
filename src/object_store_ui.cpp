@@ -88,8 +88,9 @@ template<> void ComponentEditorWidget<ObjComp::Ephemeral::File::TransferStats>(e
 } // MM
 
 ObjectStoreUI::ObjectStoreUI(
-	ObjectStore2& os
-) : _os(os) {
+	ObjectStore2& os,
+	Theme& theme
+) : _os(os), _theme(theme) {
 	_ee.show_window = false;
 
 	_ee.registerComponent<ObjectStore::Components::ID>("ID");

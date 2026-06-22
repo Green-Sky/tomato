@@ -5,7 +5,10 @@
 #include <optional>
 #include <future>
 
+#include "./theme.hpp"
+
 struct FileSelector {
+	Theme& _theme;
 	std::filesystem::path _current_file_path;
 
 	struct CachedData {
@@ -25,7 +28,7 @@ struct FileSelector {
 	void reset(void);
 
 	public:
-		FileSelector(void);
+		FileSelector(Theme& theme);
 		~FileSelector(void);
 
 		// TODO: supply hints

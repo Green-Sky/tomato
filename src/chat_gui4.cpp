@@ -53,6 +53,7 @@ ChatGui4::ChatGui4(
 	_msg_tc(msg_tc),
 	_b_tc(_bil, tu),
 	_theme(theme),
+	_fss(theme),
 	_ivp(_msg_tc),
 	_ciw(cs),
 	_cls(cs)

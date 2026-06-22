@@ -7,22 +7,6 @@
 
 #include <solanaceae/contact/fwd.hpp>
 
-enum class ThemeCol_Contact {
-	request_incoming,
-	request_outgoing,
-
-	avatar_online_direct,
-	avatar_online_cloud,
-	avatar_offline,
-
-	unread,
-	unread_muted,
-
-	icon_backdrop,
-
-	ft_have_all,
-};
-
 void renderAvatar(
 	const Theme& th,
 	ContactTextureCache& contact_tc,

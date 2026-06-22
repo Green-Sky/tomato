@@ -8,8 +8,11 @@
 #include "../image_loader.hpp"
 #include "../texture_cache.hpp"
 
+#include "./theme.hpp"
+
 struct SendImagePopup {
 	TextureUploaderI& _tu;
+	Theme& _theme;
 
 	// private
 	std::vector<std::unique_ptr<ImageLoaderI>> _image_loaders;
@@ -64,7 +67,7 @@ struct SendImagePopup {
 	static Rect sanitizeCrop(Rect crop_rect, int32_t image_width, int32_t image_height);
 
 	public:
-		SendImagePopup(TextureUploaderI& tu);
+		SendImagePopup(TextureUploaderI& tu, Theme& theme);
 
 		void sendMemory(
 			const uint8_t* data, size_t data_size,

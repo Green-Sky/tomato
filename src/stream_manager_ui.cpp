@@ -9,7 +9,7 @@
 #include <string>
 #include <cinttypes>
 
-StreamManagerUI::StreamManagerUI(ObjectStore2& os, StreamManager& sm) : _os(os), _sm(sm) {
+StreamManagerUI::StreamManagerUI(ObjectStore2& os, StreamManager& sm, Theme& theme) : _os(os), _sm(sm), _theme(theme) {
 }
 
 void StreamManagerUI::render(void) {
@@ -68,10 +68,10 @@ void StreamManagerUI::render(void) {
 						}
 					}
 
-					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));
+				if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_source_connection>()));
 					} else if (_os.registry().all_of<Components::TagConnectToDefault>(oc)) {
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.6f, 0.f, 0.25f}));
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_default_connection>()));
 					}
 
 					const auto *ssrc = _os.registry().try_get<Components::StreamSource>(oc);
@@ -152,10 +152,10 @@ void StreamManagerUI::render(void) {
 						}
 					}
 
-					if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.f, 0.6f, 0.25f}));
+			if (_os.registry().all_of<Components::TagDefaultTarget>(oc)) {
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_sink_connection>()));
 					} else if (_os.registry().all_of<Components::TagConnectToDefault>(oc)) {
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4{0.6f, 0.6f, 0.f, 0.25f}));
+						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(_theme.getColor<ThemeCol_Contact::stream_default_connection>()));
 					}
 
 					const auto *ssink = _os.registry().try_get<Components::StreamSink>(oc);

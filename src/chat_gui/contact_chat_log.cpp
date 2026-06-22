@@ -249,7 +249,8 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 				// highlight self
 				if (cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
-					ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 0.3f, 0.20f));
+					const auto self_msg_hi_col = _theme.getColor<ThemeCol_Contact::message_highlight_self>();
+					ImU32 cell_bg_color = ImGui::GetColorU32(self_msg_hi_col);
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
 				} else {
 					//based on power level?
@@ -262,7 +263,7 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 				// private group message
 				if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
-					const ImVec4 priv_msg_hi_col = ImVec4(0.5f, 0.2f, 0.5f, 0.35f);
+					const ImVec4 priv_msg_hi_col = _theme.getColor<ThemeCol_Contact::message_highlight_private>();
 					ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
 					row_bg = priv_msg_hi_col;
@@ -270,7 +271,7 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 				// fade
 				if (msg_reg->all_of<Components::UnreadFade>(e)) {
-					ImVec4 hi_color = ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogramHovered);
+					ImVec4 hi_color = _theme.getColor<ThemeCol_Contact::unread>();
 					hi_color.w = 0.8f;
 					const ImVec4 orig_color = row_bg.value_or(ImGui::GetStyleColorVec4(ImGuiCol_TableRowBg)); // imgui defaults to 0,0,0,0
 					const float fade_frac = msg_reg->get<Components::UnreadFade>(e).fade;
@@ -298,8 +299,6 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 			// remote received and read state
 			if (ImGui::TableNextColumn()) {
-				// TODO: theming for hardcoded values
-
 				if (!msg_reg->all_of<Message::Components::ReceivedBy>(e)) {
 					// TODO: dedup?
 					ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -310,12 +309,12 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 					// wrongly assumes contacts never get removed from a group
 					if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 						// if partically delivered
-						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.8f, 0.8f, 0.1f, 0.7f});
+						ImGui::PushStyleColor(ImGuiCol_Text, _theme.getColor<ThemeCol_Contact::delivery_partial>());
 						ImGui::TextUnformatted("d");
 						ImGui::PopStyleColor();
 					} else {
 						// if fully delivered
-						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.1f, 0.8f, 0.1f, 0.7f});
+						ImGui::PushStyleColor(ImGuiCol_Text, _theme.getColor<ThemeCol_Contact::delivery_full>());
 						ImGui::TextUnformatted("D");
 						ImGui::PopStyleColor();
 					}
@@ -361,10 +360,10 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 					// wrongly assumes contacts never get removed from a group
 					if (sub_contacts != nullptr && list.size() < sub_contacts->size()) {
 						// if partially read
-						ImGui::TextColored(ImVec4{0.8f, 0.8f, 0.1f, 0.7f}, "r");
+						ImGui::TextColored(_theme.getColor<ThemeCol_Contact::read_partial>(), "r");
 					} else {
 						// if fully read
-						ImGui::TextColored(ImVec4{0.1f, 0.8f, 0.1f, 0.7f}, "R");
+						ImGui::TextColored(_theme.getColor<ThemeCol_Contact::read_full>(), "R");
 					}
 
 					if (ImGui::BeginItemTooltip()) {
@@ -595,8 +594,7 @@ void ContactChatLog::renderMessageBodyText(Message3Registry& reg, const Message3
 	do {
 		const auto current_line = msgtext_sv.substr(pos_prev, pos_next - pos_prev);
 		if (!current_line.empty() && current_line.front() == '>') {
-			// TODO: theming
-			ImGui::PushStyleColor(ImGuiCol_Text, {0.3f, 0.9f, 0.1f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_Text, _theme.getColor<ThemeCol_Contact::message_quoted_text>());
 			ImGui::TextUnformatted(current_line.data(), current_line.data()+current_line.size());
 			ImGui::PopStyleColor();
 		} else {
@@ -785,9 +783,8 @@ void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 			std::snprintf(overlay_buf, sizeof(overlay_buf), "%.1f%%", fraction * 100 + 0.01f);
 		}
 
-		if (local_have_all) {
-			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, _theme.getColor<ThemeCol_Contact::ft_have_all>());
-		}
+		const auto plot_color = local_have_all ? _theme.getColor<ThemeCol_Contact::ft_have_all>() : _theme.getColor<ThemeCol_Contact::ft_base>();
+		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, plot_color);
 		if (
 			(!upload && !local_have_all && o.all_of<ObjComp::F::LocalHaveBitset>()) ||
 			(upload && o.all_of<ObjComp::F::RemoteHaveBitset>())
@@ -828,7 +825,7 @@ void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 					{0.f, 0.f}, // default
 					{1.f, 1.f}, // default
 					{0.f, 0.f, 0.f, 0.f}, // sadly bg was moved before tint (???)
-					ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram)
+					plot_color
 				);
 			}
 
@@ -840,9 +837,7 @@ void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 				overlay_buf
 			);
 		}
-		if (local_have_all) {
-			ImGui::PopStyleColor();
-		}
+		ImGui::PopStyleColor();
 	} else {
 		// infinite scrolling progressbar fallback
 		ImGui::TextUnformatted("  ??");
