@@ -48,6 +48,7 @@ class ChatGui4 : public ObjectStoreEventI {
 
 	// TODO: refactor this to allow multiple open contacts
 	std::unique_ptr<ContactWindow> _selected_contact;
+	ContactHandle4 _next_contact;
 
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};

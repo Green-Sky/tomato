@@ -260,9 +260,8 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 				std::optional<ImVec4> row_bg;
 
-
 				// private group message
-				if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_to.c)) {
+				if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong, Contact::Components::TagPrivate>(c_to.c)) {
 					const ImVec4 priv_msg_hi_col = _theme.getColor<ThemeCol_Contact::message_highlight_private>();
 					ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);

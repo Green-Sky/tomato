@@ -5,6 +5,8 @@
 #include "./contact_chat_log.hpp"
 #include "./send_image_popup.hpp"
 
+#include <functional>
+
 // fwd
 struct ContactStore4Impl;
 struct ContactInfoWindows;
@@ -20,6 +22,7 @@ struct ContactWindow {
 	ContactTextureCache& _contact_tc;
 	ContactInfoWindows& _ciw;
 	FileSelector& _fss;
+	std::function<void(ContactHandle4)> _open_chat;
 
 	std::string _text_input_buffer;
 	ContactHandle4 c;
@@ -43,6 +46,7 @@ struct ContactWindow {
 		ImageViewerPopup& ivp,
 		Clipboard& cb,
 		TextureUploaderI& tu,
+		std::function<void(ContactHandle4)>&& open_chat,
 		ContactHandle4 c_
 	);
 

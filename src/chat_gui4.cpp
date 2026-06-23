@@ -150,6 +150,18 @@ void ChatGui4::renderContactList(void) {
 
 		auto& cr = _cs.registry();
 		ContactHandle4 selected_contact{};
+		if (static_cast<bool>(_next_contact)) {
+			_selected_contact = std::make_unique<ContactWindow>(
+				_cs, _rmm, _os,
+				_theme, _contact_tc, _msg_tc, _b_tc,
+				_ciw, _fss, _ivp, _cb, _tu,
+				[this](ContactHandle4 new_c) {
+					_next_contact = new_c;
+				},
+				_next_contact
+			);
+			_next_contact = {};
+		}
 		if (_selected_contact) {
 			selected_contact = _selected_contact->c;
 		}
@@ -167,6 +179,9 @@ void ChatGui4::renderContactList(void) {
 				_cs, _rmm, _os,
 				_theme, _contact_tc, _msg_tc, _b_tc,
 				_ciw, _fss, _ivp, _cb, _tu,
+				[this](ContactHandle4 new_c) {
+					_next_contact = new_c;
+				},
 				selected_contact
 			);
 		}

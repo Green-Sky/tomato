@@ -39,11 +39,13 @@ ContactWindow::ContactWindow(
 	ImageViewerPopup& ivp,
 	Clipboard& cb,
 	TextureUploaderI& tu,
+	std::function<void(ContactHandle4)>&& open_chat,
 	ContactHandle4 c_
 ) : _cs(cs), _rmm(rmm), _os(os),
 	_theme(theme), _contact_tc(contact_tc),
 	_ciw(ciw),
 	_fss(fss),
+	_open_chat(std::move(open_chat)),
 	_text_input_buffer(),
 	c(c_),
 	_ccl(cs, rmm, os, theme, contact_tc, msg_tc, b_tc, fss, ivp, cb, _text_input_buffer, c),
@@ -390,7 +392,7 @@ bool ContactWindow::renderSubList(const std::vector<Contact4>* sub_contacts) {
 	const auto* role_map_comp = c.try_get<Contact::Components::RoleMap>();
 	uint64_t last_role = std::numeric_limits<uint64_t>::max();
 
-	for (const auto& [c_sub, role] : sorted_subs) {
+	for (const auto& [sub_cv, role] : sorted_subs) {
 		if (last_role != role) {
 			if (role == std::numeric_limits<uint64_t>::max()) {
 				ImGui::SeparatorText("without Role");
@@ -403,25 +405,32 @@ bool ContactWindow::renderSubList(const std::vector<Contact4>* sub_contacts) {
 			last_role = role;
 		}
 
-		ImGui::PushID(entt::to_integral(c_sub));
+		ImGui::PushID(entt::to_integral(sub_cv));
+
+		ContactHandle4 sub_c{cr, sub_cv};
+
 		// TODO: can a sub be selected? no
 		//if (renderSubContactListContact(c_sub, _selected_contact.has_value() && c == c_sub)) {
-		if (renderContactBig(_theme, _contact_tc, {cr, c_sub}, 1)) {
-			_text_input_buffer.insert(0, (cr.all_of<Contact::Components::Name>(c_sub) ? cr.get<Contact::Components::Name>(c_sub).name : "<unk>") + ": ");
+		if (renderContactBig(_theme, _contact_tc, sub_c, 1)) {
+			_text_input_buffer.insert(0, (sub_c.all_of<Contact::Components::Name>() ? sub_c.get<Contact::Components::Name>().name : "<unk>") + ": ");
 		}
 		// TODO: move out, unify with contactlist
 		if (ImGui::BeginPopupContextItem("sub_contact_context")) {
-			if (ImGui::MenuItem("open contact info")) {
-				_ciw.open(c_sub);
+			if (!sub_c.all_of<Contact::Components::TagSelfStrong>() && ImGui::MenuItem("open chat")) {
+				_open_chat(sub_c);
 			}
 
-			const auto ctx_list = _cs.getImGuiContext({cr, c_sub});
+			if (ImGui::MenuItem("open contact info")) {
+				_ciw.open(sub_cv);
+			}
+
+			const auto ctx_list = _cs.getImGuiContext(sub_c);
 
 			if (!ctx_list.empty()) {
 				ImGui::Separator();
 
 				for (const auto it : ctx_list) {
-					it.fn({cr, c_sub});
+					it.fn(sub_c);
 				}
 			}
 
