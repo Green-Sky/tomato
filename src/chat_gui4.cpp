@@ -104,12 +104,12 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 			_cls.sort();
 		}
 
-		if (_selected_contact) {
+		if (!_contact_stack.empty()) {
 			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteFocused)) {
-				_selected_contact.reset();
+				_contact_stack.pop();
 			} else {
 				ImGui::SameLine();
-				_selected_contact->render(window_focused, time_delta);
+				_contact_stack.top()->render(window_focused, time_delta);
 			}
 		}
 	}
@@ -119,14 +119,14 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 }
 
 void ChatGui4::sendFilePath(std::string_view file_path) {
-	if (_selected_contact) {
-		_selected_contact->sendFilePath(file_path);
+	if (!_contact_stack.empty()) {
+		_contact_stack.top()->sendFilePath(file_path);
 	}
 }
 
 void ChatGui4::sendFileList(const std::vector<std::string_view>& list) {
-	if (_selected_contact) {
-		_selected_contact->sendFileList(list);
+	if (!_contact_stack.empty()) {
+		_contact_stack.top()->sendFileList(list);
 	}
 }
 
@@ -151,7 +151,7 @@ void ChatGui4::renderContactList(void) {
 		auto& cr = _cs.registry();
 		ContactHandle4 selected_contact{};
 		if (static_cast<bool>(_next_contact)) {
-			_selected_contact = std::make_unique<ContactWindow>(
+			_contact_stack.push(std::make_unique<ContactWindow>(
 				_cs, _rmm, _os,
 				_theme, _contact_tc, _msg_tc, _b_tc,
 				_ciw, _fss, _ivp, _cb, _tu,
@@ -159,11 +159,12 @@ void ChatGui4::renderContactList(void) {
 					_next_contact = new_c;
 				},
 				_next_contact
-			);
+			));
 			_next_contact = {};
 		}
-		if (_selected_contact) {
-			selected_contact = _selected_contact->c;
+		if (!_contact_stack.empty()) {
+			// meh, probably makes more sense for bottom
+			selected_contact = _contact_stack.top()->c;
 		}
 		if (::renderContactList(
 			_cs,
@@ -175,7 +176,10 @@ void ChatGui4::renderContactList(void) {
 			_ciw,
 			selected_contact
 		)) {
-			_selected_contact = std::make_unique<ContactWindow>(
+			// cleanup
+			while (!_contact_stack.empty()) {_contact_stack.pop();}
+
+			_contact_stack.push(std::make_unique<ContactWindow>(
 				_cs, _rmm, _os,
 				_theme, _contact_tc, _msg_tc, _b_tc,
 				_ciw, _fss, _ivp, _cb, _tu,
@@ -183,7 +187,7 @@ void ChatGui4::renderContactList(void) {
 					_next_contact = new_c;
 				},
 				selected_contact
-			);
+			));
 		}
 	}
 	ImGui::EndChild();

@@ -21,6 +21,7 @@
 
 #include <vector>
 #include <memory>
+#include <stack>
 
 class ChatGui4 : public ObjectStoreEventI {
 	ConfigModelI& _conf;
@@ -47,7 +48,7 @@ class ChatGui4 : public ObjectStoreEventI {
 	bool _contact_list_sortable {false};
 
 	// TODO: refactor this to allow multiple open contacts
-	std::unique_ptr<ContactWindow> _selected_contact;
+	std::stack<std::unique_ptr<ContactWindow>> _contact_stack;
 	ContactHandle4 _next_contact;
 
 	float TEXT_BASE_WIDTH {1};
