@@ -9,6 +9,10 @@ struct Theme;
 struct FileSelector;
 struct ImageViewerPopup;
 struct Clipboard;
+namespace Message::Components {
+struct MessageText;
+struct MessageFileObject;
+}
 
 struct ContactChatLog {
 	ContactStore4I& _cs;
@@ -54,8 +58,8 @@ struct ContactChatLog {
 	private:
 		void fadeSystem(bool window_focused, float time_delta);
 
-		void renderMessageBodyText(Message3Registry& reg, const Message3 e);
-		void renderMessageBodyFile(Message3Registry& reg, const Message3 e);
+		bool renderMessageBodyText(Message3Registry& reg, const Message3 e, const Message::Components::MessageText& msgtext);
+		bool renderMessageBodyFile(Message3Registry& reg, const Message3 e, const Message::Components::MessageFileObject& o_comp);
 		void renderMessageExtra(Message3Registry& reg, const Message3 e);
 
 };

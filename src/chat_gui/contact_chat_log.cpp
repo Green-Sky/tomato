@@ -165,25 +165,24 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 		for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
 			const Message3 e = *view_it;
 
+			const Message::Components::ContactFrom* c_from = msg_reg->try_get<Message::Components::ContactFrom>(e);
+			const Message::Components::ContactTo* c_to = msg_reg->try_get<Message::Components::ContactTo>(e);
+
 			// manually filter ("reverse" iteration <.<)
-			if (!msg_reg->all_of<Message::Components::ContactFrom, Message::Components::ContactTo>(e)) {
+			if (c_from == nullptr || c_to == nullptr) {
 				continue;
 			}
 
-			Message::Components::ContactFrom& c_from = msg_reg->get<Message::Components::ContactFrom>(e);
-			Message::Components::ContactTo& c_to = msg_reg->get<Message::Components::ContactTo>(e);
 			Message::Components::Timestamp ts = tmp_view.get<Message::Components::Timestamp>(e);
-
 
 			// TODO: why?
 			ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
-			if (msg_reg->all_of<Components::ConvertedTimeCache>(e)) { // check if date changed
+			if (const auto* next_time = msg_reg->try_get<Components::ConvertedTimeCache>(e); next_time != nullptr) { // check if date changed
 				// TODO: move conversion up?
-				const auto& next_time = msg_reg->get<Components::ConvertedTimeCache>(e);
 				if (
-					prev_time.tm_yday != next_time.tm_yday ||
-					prev_time.tm_year != next_time.tm_year // making sure
+					prev_time.tm_yday != next_time->tm_yday ||
+					prev_time.tm_year != next_time->tm_year // making sure
 				) {
 					// name
 					if (ImGui::TableNextColumn()) {
@@ -193,13 +192,13 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 					if (ImGui::TableNextColumn()) {
 						ImGui::TextDisabled("DATE CHANGED from %d.%d.%d to %d.%d.%d",
 							1900+prev_time.tm_year, 1+prev_time.tm_mon, prev_time.tm_mday,
-							1900+next_time.tm_year, 1+next_time.tm_mon, next_time.tm_mday
+							1900+next_time->tm_year, 1+next_time->tm_mon, next_time->tm_mday
 						);
 					}
 					ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 				}
 
-				prev_time = next_time;
+				prev_time = *next_time;
 			}
 
 			ImGui::PushID(entt::to_integral(e));
@@ -207,11 +206,11 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 			// name
 			if (ImGui::TableNextColumn()) {
 				const float img_y {TEXT_BASE_HEIGHT - ImGui::GetStyle().FramePadding.y*2};
-				renderAvatar(_theme, _contact_tc, _cs.contactHandle(c_from.c), {img_y, img_y});
+				renderAvatar(_theme, _contact_tc, _cs.contactHandle(c_from->c), {img_y, img_y});
 				ImGui::SameLine(0.f, ImGui::GetStyle().ItemSpacing.x*0.5f);
 
-				if (cr.all_of<Contact::Components::Name>(c_from.c)) {
-					ImGui::TextUnformatted(cr.get<Contact::Components::Name>(c_from.c).name.c_str());
+				if (const auto* name_ptr = cr.try_get<Contact::Components::Name>(c_from->c)) {
+					ImGui::TextUnformatted(name_ptr->name.c_str());
 				} else {
 					ImGui::TextUnformatted("<unk>");
 				}
@@ -248,7 +247,7 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 				}
 
 				// highlight self
-				if (cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong>(c_from.c)) {
+				if (cr.any_of<Contact::Components::TagSelfStrong, Contact::Components::TagSelfWeak>(c_from->c)) {
 					const auto self_msg_hi_col = _theme.getColor<ThemeCol_Contact::message_highlight_self>();
 					ImU32 cell_bg_color = ImGui::GetColorU32(self_msg_hi_col);
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
@@ -261,7 +260,7 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 				std::optional<ImVec4> row_bg;
 
 				// private group message
-				if (highlight_private && cr.any_of<Contact::Components::TagSelfWeak, Contact::Components::TagSelfStrong, Contact::Components::TagPrivate>(c_to.c)) {
+				if (highlight_private && cr.any_of<Contact::Components::TagSelfStrong, Contact::Components::TagSelfWeak, Contact::Components::TagPrivate>(c_to->c)) {
 					const ImVec4 priv_msg_hi_col = _theme.getColor<ThemeCol_Contact::message_highlight_private>();
 					ImU32 row_bg_color = ImGui::GetColorU32(priv_msg_hi_col);
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, row_bg_color);
@@ -287,13 +286,20 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 			}
 
 			// content (msgtext/file)
-			ImGui::TableNextColumn();
-			if (msg_reg->all_of<Message::Components::MessageText>(e)) {
-				renderMessageBodyText(*msg_reg, e);
-			} else if (msg_reg->any_of<Message::Components::MessageFileObject>(e)) {
-				renderMessageBodyFile(*msg_reg, e);
-			} else {
-				ImGui::TextDisabled("---");
+			if (ImGui::TableNextColumn()) {
+				bool main_cell_visible {true};
+				if (const auto* txt_comp_ptr = msg_reg->try_get<Message::Components::MessageText>(e); txt_comp_ptr != nullptr) {
+					main_cell_visible = renderMessageBodyText(*msg_reg, e, *txt_comp_ptr);
+				} else if (const auto* file_comp_ptr = msg_reg->try_get<Message::Components::MessageFileObject>(e); file_comp_ptr != nullptr) {
+					main_cell_visible = renderMessageBodyFile(*msg_reg, e, *file_comp_ptr);
+				} else {
+					ImGui::TextDisabled("---");
+					main_cell_visible = ImGui::IsItemVisible();
+				}
+				if (!main_cell_visible) {
+					ImGui::PopID(); // ent
+					continue; // optimization
+				}
 			}
 
 			// remote received and read state
@@ -539,9 +545,7 @@ void ContactChatLog::fadeSystem(bool window_focused, float time_delta) {
 	}
 }
 
-void ContactChatLog::renderMessageBodyText(Message3Registry& reg, const Message3 e) {
-	const auto& msgtext = reg.get<Message::Components::MessageText>(e).text;
-
+bool ContactChatLog::renderMessageBodyText(Message3Registry&, const Message3, const Message::Components::MessageText& msgtext) {
 #if 0
 	// TODO: set word wrap
 	ImVec2 text_size = ImGui::CalcTextSize(msgtext.c_str(), msgtext.c_str()+msgtext.size());
@@ -586,7 +590,7 @@ void ContactChatLog::renderMessageBodyText(Message3Registry& reg, const Message3
 #else
 
 	ImGui::PushTextWrapPos(0.0f);
-	std::string_view msgtext_sv{msgtext};
+	std::string_view msgtext_sv{msgtext.text};
 	size_t pos_prev {0};
 	size_t pos_next {msgtext_sv.find_first_of('\n')};
 	ImGui::BeginGroup();
@@ -615,6 +619,7 @@ void ContactChatLog::renderMessageBodyText(Message3Registry& reg, const Message3
 	} while (pos_prev != msgtext_sv.npos);
 
 	ImGui::EndGroup();
+	const bool cell_visible = ImGui::IsItemVisible();
 	ImGui::PopTextWrapPos();
 
 	if (ImGui::BeginPopupContextItem("##text")) {
@@ -627,7 +632,7 @@ void ContactChatLog::renderMessageBodyText(Message3Registry& reg, const Message3
 
 			_text_input_buffer += "> ";
 
-			for (const char ch : msgtext) {
+			for (const char ch : msgtext.text) {
 				_text_input_buffer += ch;
 
 				if (ch == '\n') {
@@ -636,18 +641,19 @@ void ContactChatLog::renderMessageBodyText(Message3Registry& reg, const Message3
 			}
 		}
 		if (ImGui::MenuItem("copy")) {
-			ImGui::SetClipboardText(msgtext.c_str());
+			ImGui::SetClipboardText(msgtext.text.c_str());
 		}
 		ImGui::EndPopup();
 	}
 #endif
+	return cell_visible;
 }
 
-void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3 e) {
-	auto o = reg.get<Message::Components::MessageFileObject>(e).o;
+bool ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3 e, const Message::Components::MessageFileObject& o_comp) {
+	const auto& o = o_comp.o;
 	if (!o) {
 		ImGui::TextDisabled("file message missing file object!");
-		return;
+		return ImGui::IsItemVisible();
 	}
 
 	if (
@@ -659,7 +665,7 @@ void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 	) {
 		// TODO: this looks ugly
 		ImGui::TextDisabled("set avatar");
-		return;
+		return ImGui::IsItemVisible();
 	}
 
 	const bool local_have_all = o.all_of<ObjComp::F::TagLocalHaveAll>();
@@ -947,6 +953,7 @@ void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 	}
 
 	ImGui::EndGroup();
+	const bool cell_visible = ImGui::IsItemVisible();
 
 	if (o.all_of<ObjComp::F::SingleInfoLocal>()) {
 		const auto& local_info = o.get<ObjComp::F::SingleInfoLocal>();
@@ -1080,6 +1087,8 @@ void ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 
 		ImGui::EndTooltip();
 	}
+
+	return cell_visible;
 }
 
 void ContactChatLog::renderMessageExtra(Message3Registry& reg, const Message3 e) {
