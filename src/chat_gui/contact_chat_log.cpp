@@ -51,6 +51,14 @@ namespace Components {
 		std::string h_m;
 	};
 
+	struct UISpace {
+		// a single message should never exceed 65536px
+		uint16_t px{0};
+
+		// msg contains a date change
+		bool date_change{false}; // TODO: move to accel
+	};
+
 } // Components
 
 namespace Context {
@@ -83,6 +91,11 @@ ContactChatLog::ContactChatLog(
 	std::string& text_input_buffer,
 	ContactHandle4 c_
 ) : _cs(cs), _rmm(rmm), _os(os), _theme(theme), _contact_tc(contact_tc), _msg_tc(msg_tc), _b_tc(b_tc), _fss(fss), _ivp(ivp), _cb(cb), _text_input_buffer(text_input_buffer), c(c_) {
+	msg_reg = _rmm.get(c);
+	if (msg_reg != nullptr) {
+		// remove potentially stale cache
+		msg_reg->clear<Components::UISpace>();
+	}
 }
 
 float ContactChatLog::render(bool window_focused, float time_delta, const std::vector<Contact4>* sub_contacts) {
@@ -140,9 +153,6 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 		Message3Handle message_view_oldest; // oldest visible message
 		Message3Handle message_view_newest; // last visible message
 
-		// very hacky, and we have variable hight entries
-		//ImGuiListClipper clipper;
-
 		// fake empty placeholders
 		// TODO: save/calc height for each row
 		//  - use number of lines for text
@@ -155,16 +165,57 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 		const bool highlight_private {!c.all_of<Contact::Components::TagPrivate>()};
 
+		// very hacky, and we have variable hight entries
+		ImGuiListClipper clipper;
+		//// using index as pixels, since items are of varying height
+		//clipper.Begin(INT_MAX, 1.f);
+
+		//while (clipper.Step()) {
+		//    // in pixels, skip through msg until in range
+		//    clipper.DisplayStart;
+		//    clipper.DisplayEnd;
+		//}
+
+		const float min_y = ImGui::GetWindowDrawList()->GetClipRectMin().y;
+		const float max_y = ImGui::GetWindowDrawList()->GetClipRectMax().y;
+		if constexpr (true) {
+			const auto x = ImGui::GetCursorScreenPos().x + 100;
+			ImGui::GetForegroundDrawList()->AddLine({x, min_y}, {x, max_y}, ImGui::GetColorU32({1.f, 0.f, 0.1f, 1.f}));
+		}
+
 		//auto tmp_view = msg_reg.view<Message::Components::ContactFrom, Message::Components::ContactTo, Message::Components::Timestamp>();
 		//tmp_view.use<Message::Components::Timestamp>();
 		//tmp_view.each([&](const Message3 e, Message::Components::ContactFrom& c_from, Message::Components::ContactTo& c_to, Message::Components::Timestamp ts
 		//) {
 		//uint64_t prev_ts {0};
 		Components::ConvertedTimeCache prev_time {};
+		auto ui_cursor_y_prev_end = ImGui::GetCursorScreenPos().y;
+		float virt_cursor {ImGui::GetCursorScreenPos().y}; // init to negative number off screen
 		auto tmp_view = msg_reg->view<Message::Components::Timestamp>();
 		for (auto view_it = tmp_view.rbegin(), view_last = tmp_view.rend(); view_it != view_last; view_it++) {
 			const Message3 e = *view_it;
 
+			// init to 0, which is invalid and means we dont know yet
+			Components::UISpace* ui_space = msg_reg->try_get<Components::UISpace>(e);
+			if (ui_space == nullptr) {
+				ui_space = &msg_reg->emplace<Components::UISpace>(e);
+			}
+			if (ui_space->px != 0) {
+				//std::cout << "min_y:" << min_y << " max_y:" << max_y << " virt_cursor:" << virt_cursor << "\n  min_y <= virt_cursor: " <<  (min_y <= virt_cursor) << "\n  max_y >= virt_cursor - ui_space->px:" << (max_y <= virt_cursor - ui_space->px) << "\n";
+				if (min_y <= virt_cursor && max_y >= virt_cursor - ui_space->px) {
+					// visible
+					std::cout << "vis, move y " << ImGui::GetCursorScreenPos().y << " -> " << virt_cursor << "\n";
+					ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, virt_cursor});
+					ImGui::Dummy({0,0});
+				} else {
+					std::cout << "msg not visible screen:" << ImGui::GetCursorScreenPos().y << " virt:" << virt_cursor << " size:" << ui_space->px << "\n";
+					virt_cursor += ui_space->px;
+					// TODO: set date
+					continue;
+				}
+			}
+
+			// need to skip cursors
 			const Message::Components::ContactFrom* c_from = msg_reg->try_get<Message::Components::ContactFrom>(e);
 			const Message::Components::ContactTo* c_to = msg_reg->try_get<Message::Components::ContactTo>(e);
 
@@ -173,11 +224,17 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 				continue;
 			}
 
+			// mesuring the size before date skip message pulls it into the message that follows
+			// clipper uses same start positon
+			// clamp because somehow groups or something can mess with it
+			const auto ui_cursor_y_start = std::max(ImGui::GetCursorScreenPos().y, ui_cursor_y_prev_end);
+
 			Message::Components::Timestamp ts = tmp_view.get<Message::Components::Timestamp>(e);
 
 			// TODO: why?
 			ImGui::TableNextRow(0, TEXT_BASE_HEIGHT);
 
+#if 0
 			if (const auto* next_time = msg_reg->try_get<Components::ConvertedTimeCache>(e); next_time != nullptr) { // check if date changed
 				// TODO: move conversion up?
 				if (
@@ -200,6 +257,8 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 
 				prev_time = *next_time;
 			}
+#endif
+
 
 			ImGui::PushID(entt::to_integral(e));
 
@@ -216,6 +275,7 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 				}
 
 				// use username as visibility test
+				// TODO: remove for less glitches and wont be needed once we clip
 				if (ImGui::IsItemVisible()) {
 					if (msg_reg->all_of<Message::Components::TagUnread>(e)) {
 						if (!msg_reg->all_of<Components::UnreadFade>(e)) {
@@ -296,6 +356,29 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 					ImGui::TextDisabled("---");
 					main_cell_visible = ImGui::IsItemVisible();
 				}
+
+				// before the next column (or early exit), this should be the right size.
+				// maybe missing a cell pad or 2 // no its not actually
+				const auto ui_cursor_y_end = ImGui::GetCursorScreenPos().y;
+				ui_cursor_y_prev_end = ui_cursor_y_end;
+
+				const auto ui_size = ui_cursor_y_end - ui_cursor_y_start;
+
+				if constexpr (true) { // debug render
+					auto start_pos = ImGui::GetCursorScreenPos();
+					start_pos.y -= ui_size;
+
+					auto end_pos = ImGui::GetCursorScreenPos();
+
+					start_pos.x += (entt::to_integral(e)%25) *8;
+					end_pos.x += (entt::to_integral(e)%25) *8;
+
+					ImGui::GetForegroundDrawList()->AddLine(start_pos, end_pos, ImGui::GetColorU32({1.f, 1.f, 0.1f, 1.f}));
+				}
+
+				ui_space->px = ui_size;
+				virt_cursor += ui_size;
+
 				if (!main_cell_visible) {
 					ImGui::PopID(); // ent
 					continue; // optimization
@@ -426,6 +509,36 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 			}
 
 			ImGui::PopID(); // ent
+		}
+
+
+		//clipper.SeekCursorForItem(virt_cursor);
+		{
+			ImGuiContext& g = *GImGui;
+			ImGuiWindow* window = g.CurrentWindow;
+			float off_y = virt_cursor - window->DC.CursorPos.y;
+			window->DC.CursorPos.y = virt_cursor;
+			window->DC.CursorMaxPos.y = ImMax(window->DC.CursorMaxPos.y, virt_cursor - g.Style.ItemSpacing.y);
+
+			// this is in pixel space and thus wrong
+			window->DC.CursorPosPrevLine.y = window->DC.CursorPos.y - 1.f;  // Setting those fields so that SetScrollHereY() can properly function after the end of our clipper usage.
+			window->DC.PrevLineSize.y = (1.f - g.Style.ItemSpacing.y);      // If we end up needing more accurate data (to e.g. use SameLine) we may as well make the clipper have a fourth step to let user process and display the last item in their list.
+
+			if (ImGuiOldColumns* columns = window->DC.CurrentColumns) {
+				columns->LineMinY = window->DC.CursorPos.y;                         // Setting this so that cell Y position are set properly
+			}
+			if (ImGuiTable* table = g.CurrentTable) {
+				if (table->IsInsideRow) {
+					ImGui::TableEndRow(table);
+				}
+				const int row_increase = (int)((off_y / 1.f) + 0.5f);
+				if (false && row_increase > 0 && (0 & ImGuiListClipperFlags_NoSetTableRowCounters) == 0) // If your clipper item height is != from actual table row height, consider using ImGuiListClipperFlags_NoSetTableRowCounters. See #8886.
+				{
+					table->CurrentRow += row_increase;
+					table->RowBgColorCounter += row_increase;
+				}
+				table->RowPosY2 = window->DC.CursorPos.y;
+			}
 		}
 
 		// fake empty placeholders
