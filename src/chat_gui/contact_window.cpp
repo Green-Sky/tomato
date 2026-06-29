@@ -463,6 +463,24 @@ bool ContactWindow::renderRequest(void) {
 			//static std::string self_name = _conf.get_string("tox", "name").value_or("default_tomato");
 			static std::string self_name = [&]() -> std::string {
 				const auto* self_comp = c.try_get<Contact::Components::Self>();
+				if (self_comp == nullptr) {
+					// fall back to parent
+					if (const auto* p = c.try_get<Contact::Components::Parent>(); p != nullptr) {
+						const auto parent_c = _cs.contactHandle(p->parent);
+						if (static_cast<bool>(parent_c)) {
+							self_comp = parent_c.try_get<Contact::Components::Self>();
+						}
+					}
+				}
+				if (self_comp == nullptr) {
+					// fall back to root
+					if (const auto* r = c.try_get<Contact::Components::Root>(); r != nullptr) {
+						const auto root_c = _cs.contactHandle(r->root);
+						if (static_cast<bool>(root_c)) {
+							self_comp = root_c.try_get<Contact::Components::Self>();
+						}
+					}
+				}
 				if (self_comp != nullptr) {
 					const auto self_c = _cs.contactHandle(self_comp->self);
 					if (static_cast<bool>(self_c)) {
