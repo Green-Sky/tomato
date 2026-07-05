@@ -7,6 +7,7 @@
 
 #include "./chat_gui/theme.hpp"
 #include "./chat_gui/texture_cache_defs.hpp"
+#include "./chat_gui/layout_strategy.hpp"
 
 #include "./texture_uploader.hpp"
 #include "./bitset_image_loader.hpp"
@@ -24,6 +25,8 @@
 #include <stack>
 
 class ChatGui4 : public ObjectStoreEventI {
+	friend class DesktopLayout;
+	friend class SinglePlaneLayout;
 	ConfigModelI& _conf;
 	ObjectStore2& _os;
 	ObjectStoreEventProviderI::SubscriptionReference _os_sr;
@@ -54,6 +57,9 @@ class ChatGui4 : public ObjectStoreEventI {
 	float TEXT_BASE_WIDTH {1};
 	float TEXT_BASE_HEIGHT {1};
 
+	std::unique_ptr<LayoutStrategy> _layout_strategy;
+	float _last_viewport_width {-1.f};
+
 	public:
 		ChatGui4(
 			ConfigModelI& conf,
@@ -77,9 +83,11 @@ class ChatGui4 : public ObjectStoreEventI {
 	private:
 		void renderChatFilesTab(Contact4 c);
 
-		void renderContactList(void);
+		void renderContactList(float width = 0.f);
 		bool renderContactListContactSmall(const Contact4 c, const bool selected) const;
 		//bool renderSubContactListContact(const Contact4 c, const bool selected) const;
+
+		void selectLayoutStrategy(float viewport_width);
 
 	protected:
 		bool onEvent(const ObjectStore::Events::ObjectUpdate&) override;

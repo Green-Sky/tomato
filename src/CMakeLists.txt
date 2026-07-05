@@ -120,6 +120,8 @@ target_sources(tomato PUBLIC
 	./chat_gui/settings_window.cpp
 	./chat_gui/voip_chat_tab.hpp
 	./chat_gui/voip_chat_tab.cpp
+	./chat_gui/layout_strategy.hpp
+	./chat_gui/layout_strategy.cpp
 
 	./imgui_entt_entity_editor.hpp
 	./object_store_ui.hpp

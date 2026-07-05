@@ -553,7 +553,7 @@ void ToxUIUtils::render(void) {
 	if (_show_add_group_window) {
 		if (ImGui::Begin("Tox join Group", &_show_add_group_window)) {
 			ImGui::TextDisabled("NGC refers to the New DHT enabled Group Chats.");
-			ImGui::TextDisabled("Connecting via ID might take a very long time.");
+			ImGui::TextDisabled("Connecting via ID requires the group to be public and might take a very long time.");
 
 			ImGui::InputText("chat ID", _chat_id, TOX_GROUP_CHAT_ID_SIZE*2+1);
 

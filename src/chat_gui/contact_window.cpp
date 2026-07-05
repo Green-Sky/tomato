@@ -52,7 +52,7 @@ ContactWindow::ContactWindow(
 	_sip(tu, theme)
 {
 }
-float ContactWindow::render(const bool window_focused, const float time_delta, const bool child) {
+float ContactWindow::render(const bool window_focused, const float time_delta, const bool child, const bool sub_contact_list) {
 	ImGui::PushID(entt::to_integral(c.entity()));
 
 	_sip.render(time_delta);
@@ -107,7 +107,7 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 		renderContactBig(_theme, _contact_tc, c, 3, false, false, false);
 		ImGui::Separator();
 
-		if (renderSubList(sub_contacts)) {
+		if (!sub_contact_list && renderSubList(sub_contacts)) {
 			ImGui::SameLine();
 		}
 
@@ -115,79 +115,98 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 
 		if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
 			const auto tab_cb_list = _cs.getImGuiChatTab(c);
-			if (tab_cb_list.empty()) {
-				// dont render tab bar if only chatlog
-				_ccl.render(window_focused, time_delta, sub_contacts);
-				// make sure to account for other hardcoded tabs
-			} else if (ImGui::BeginTabBar("chat_tab_bar")) {
-				bool has_unread = false;
-				{ // has unread // TODO: extract?
-					auto* msg_reg_ptr = _rmm.get(c);
-					if (msg_reg_ptr != nullptr) {
-						const auto* unread_storage = static_cast<const Message3Registry*>(msg_reg_ptr)->storage<Message::Components::TagUnread>();
-						if (unread_storage != nullptr) {
-							has_unread = !unread_storage->empty();
+			const bool has_sub_contacts = (sub_contact_list && sub_contacts != nullptr && !sub_contacts->empty());
+			const bool has_other_tabs = !tab_cb_list.empty();
+
+			if (has_sub_contacts || has_other_tabs) {
+				if (ImGui::BeginTabBar("chat_tab_bar")) {
+					bool has_unread = false;
+					{ // has unread // TODO: extract?
+						auto* msg_reg_ptr = _rmm.get(c);
+						if (msg_reg_ptr != nullptr) {
+							const auto* unread_storage = static_cast<const Message3Registry*>(msg_reg_ptr)->storage<Message::Components::TagUnread>();
+							if (unread_storage != nullptr) {
+								has_unread = !unread_storage->empty();
+							}
 						}
 					}
-				}
 
-				if (ImGui::BeginTabItem("MessageLog", nullptr, (has_unread ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
-					if (ImGui::BeginChild("tab_content")) {
-						_ccl.render(window_focused, time_delta, sub_contacts);
+					if (ImGui::BeginTabItem("MessageLog", nullptr, (has_unread ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None))) {
+						if (ImGui::BeginChild("tab_content")) {
+							_ccl.render(window_focused, time_delta, sub_contacts);
+						}
+						ImGui::EndChild();
+						ImGui::EndTabItem();
 					}
-					ImGui::EndChild();
-					ImGui::EndTabItem();
-				}
 
-				// TODO: think more about fs here
+					if (has_sub_contacts && ImGui::BeginTabItem("SubContacts")) {
+						auto& cr = _cs.registry();
+						ImGui::Text("subs: %zu", sub_contacts->size());
+						ImGui::Separator();
+						for (const auto& sub_cv : *sub_contacts) {
+							ImGui::PushID(entt::to_integral(sub_cv));
+							ContactHandle4 sub_c{cr, sub_cv};
+							if (renderContactBig(_theme, _contact_tc, sub_c, 1)) {
+								_text_input_buffer.insert(0, (sub_c.all_of<Contact::Components::Name>() ? sub_c.get<Contact::Components::Name>().name : "<unk>") + ": ");
+							}
+							renderSubContactContext(sub_c, sub_cv);
+							ImGui::PopID();
+						}
+						ImGui::EndTabItem();
+					}
+
+					// TODO: think more about fs here
 #if 0
-				if (ImGui::BeginTabItem("Filetransfers")) {
-					if (ImGui::BeginChild("tab_content")) {
-						renderChatFilesTab(c);
+					if (ImGui::BeginTabItem("Filetransfers")) {
+						if (ImGui::BeginChild("tab_content")) {
+							renderChatFilesTab(c);
+						}
+						ImGui::EndChild();
+						ImGui::EndTabItem();
 					}
-					ImGui::EndChild();
-					ImGui::EndTabItem();
-				}
 #endif
 
-				for (const auto& it : tab_cb_list) {
-					it.fn(c);
+					for (const auto& it : tab_cb_list) {
+						it.fn(c);
+					}
+
+					constexpr auto get_sel_id = [](ImGuiTabBar* tb) -> int {
+						// find selected tab by order id
+						for (int i = 0; i < tb->Tabs.Size; i++) {
+							const auto* tab = ImGui::TabBarFindTabByOrder(tb, i);
+							if (tab == nullptr) {
+								continue;
+							}
+
+							if (tab->ID == tb->SelectedTabId) {
+								return i;
+							}
+						}
+						return 0; // TODO: error, like -1 ?
+					};
+
+					if (ImGui::Shortcut(ImGuiKey_H, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+						// go left
+						if (auto* tb = ImGui::GetCurrentTabBar(); tb != nullptr) {
+							const int sel_id = get_sel_id(tb);
+							if (sel_id > 0) {
+								ImGui::TabBarQueueFocus(tb, ImGui::TabBarFindTabByOrder(tb, sel_id-1));
+							}
+						}
+					} else if (ImGui::Shortcut(ImGuiKey_L, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
+						// go right
+						if (auto* tb = ImGui::GetCurrentTabBar(); tb != nullptr) {
+							const int sel_id = get_sel_id(tb);
+							if (sel_id+1 < tb->Tabs.Size) {
+								ImGui::TabBarQueueFocus(tb, ImGui::TabBarFindTabByOrder(tb, sel_id+1));
+							}
+						}
+					}
+
+					ImGui::EndTabBar();
 				}
-
-				constexpr auto get_sel_id = [](ImGuiTabBar* tb) -> int {
-					// find selected tab by order id
-					for (int i = 0; i < tb->Tabs.Size; i++) {
-						const auto* tab = ImGui::TabBarFindTabByOrder(tb, i);
-						if (tab == nullptr) {
-							continue;
-						}
-
-						if (tab->ID == tb->SelectedTabId) {
-							return i;
-						}
-					}
-					return 0; // TODO: error, like -1 ?
-				};
-
-				if (ImGui::Shortcut(ImGuiKey_H, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
-					// go left
-					if (auto* tb = ImGui::GetCurrentTabBar(); tb != nullptr) {
-						const int sel_id = get_sel_id(tb);
-						if (sel_id > 0) {
-							ImGui::TabBarQueueFocus(tb, ImGui::TabBarFindTabByOrder(tb, sel_id-1));
-						}
-					}
-				} else if (ImGui::Shortcut(ImGuiKey_L, ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteGlobal)) {
-					// go right
-					if (auto* tb = ImGui::GetCurrentTabBar(); tb != nullptr) {
-						const int sel_id = get_sel_id(tb);
-						if (sel_id+1 < tb->Tabs.Size) {
-							ImGui::TabBarQueueFocus(tb, ImGui::TabBarFindTabByOrder(tb, sel_id+1));
-						}
-					}
-				}
-
-				ImGui::EndTabBar();
+			} else {
+				_ccl.render(window_focused, time_delta, sub_contacts);
 			}
 		}
 		ImGui::EndChild();
@@ -414,34 +433,37 @@ bool ContactWindow::renderSubList(const std::vector<Contact4>* sub_contacts) {
 		if (renderContactBig(_theme, _contact_tc, sub_c, 1)) {
 			_text_input_buffer.insert(0, (sub_c.all_of<Contact::Components::Name>() ? sub_c.get<Contact::Components::Name>().name : "<unk>") + ": ");
 		}
-		// TODO: move out, unify with contactlist
-		if (ImGui::BeginPopupContextItem("sub_contact_context")) {
-			if (!sub_c.all_of<Contact::Components::TagSelfStrong>() && ImGui::MenuItem("open chat")) {
-				_open_chat(sub_c);
-			}
-
-			if (ImGui::MenuItem("open contact info")) {
-				_ciw.open(sub_cv);
-			}
-
-			const auto ctx_list = _cs.getImGuiContext(sub_c);
-
-			if (!ctx_list.empty()) {
-				ImGui::Separator();
-
-				for (const auto it : ctx_list) {
-					it.fn(sub_c);
-				}
-			}
-
-			ImGui::EndPopup();
-		}
+		renderSubContactContext(sub_c, sub_cv);
 
 		ImGui::PopID();
 	}
 
 	ImGui::EndChild();
 	return true;
+}
+
+void ContactWindow::renderSubContactContext(ContactHandle4 sub_c, const Contact4 sub_cv) {
+	if (ImGui::BeginPopupContextItem("sub_contact_context")) {
+		if (!sub_c.all_of<Contact::Components::TagSelfStrong>() && ImGui::MenuItem("open chat")) {
+			_open_chat(sub_c);
+		}
+
+		if (ImGui::MenuItem("open contact info")) {
+			_ciw.open(sub_cv);
+		}
+
+		const auto ctx_list = _cs.getImGuiContext(sub_c);
+
+		if (!ctx_list.empty()) {
+			ImGui::Separator();
+
+			for (const auto it : ctx_list) {
+				it.fn(sub_c);
+			}
+		}
+
+		ImGui::EndPopup();
+	}
 }
 
 bool ContactWindow::renderRequest(void) {

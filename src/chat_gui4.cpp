@@ -1,5 +1,7 @@
 #include "./chat_gui4.hpp"
 
+#include "./chat_gui/layout_strategy.hpp"
+
 #include <solanaceae/util/utils.hpp>
 
 #include <solanaceae/contact/contact_store_i.hpp>
@@ -28,9 +30,6 @@
 #include "./chat_gui/contact_info.hpp"
 #include "./chat_gui/contact_window.hpp"
 
-#include <cctype>
-#include <ctime>
-#include <cstdio>
 #include <string>
 
 ChatGui4::ChatGui4(
@@ -83,6 +82,9 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 	TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
 	TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
+	const float viewport_width = viewport->WorkSize.x;
+	selectLayoutStrategy(viewport_width / TEXT_BASE_WIDTH);
+
 	constexpr auto bg_window_flags =
 		ImGuiWindowFlags_NoDecoration |
 		ImGuiWindowFlags_NoMove |
@@ -98,19 +100,8 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 			ImGui::EndMenuBar();
 		}
 
-		renderContactList();
-		// after vis check
-		if (_contact_list_sortable) {
-			_cls.sort();
-		}
-
-		if (!_contact_stack.empty()) {
-			if (ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_RouteFocused)) {
-				_contact_stack.pop();
-			} else {
-				ImGui::SameLine();
-				_contact_stack.top()->render(window_focused, time_delta);
-			}
+		if (_layout_strategy) {
+			_layout_strategy->render(*this, time_delta, window_focused);
 		}
 	}
 	ImGui::End();
@@ -144,8 +135,8 @@ void ChatGui4::renderChatFilesTab(Contact4 c) {
 	//auto o = reg.get<Message::Components::MessageFileObject>(e).o;
 }
 
-void ChatGui4::renderContactList(void) {
-	if (ImGui::BeginChild("contacts", {TEXT_BASE_WIDTH*35, 0})) {
+void ChatGui4::renderContactList(float width) {
+	if (ImGui::BeginChild("contacts", {width, 0})) {
 		_contact_list_sortable = !ImGui::IsWindowHovered();
 
 		auto& cr = _cs.registry();
@@ -211,5 +202,20 @@ bool ChatGui4::onEvent(const ObjectStore::Events::ObjectUpdate& e) {
 	}
 
 	return false;
+}
+
+void ChatGui4::selectLayoutStrategy(float viewport_font_units) {
+	// only recompute when actual width changes
+	if (viewport_font_units == _last_viewport_width) {
+		return;
+	}
+	_last_viewport_width = viewport_font_units;
+
+	// TODO: maybe move out of here?
+	if (viewport_font_units >= LAYOUT_THRESHOLD_MOBILE_FONT_UNITS) {
+		_layout_strategy = std::make_unique<DesktopLayout>();
+	} else {
+		_layout_strategy = std::make_unique<SinglePlaneLayout>();
+	}
 }
 
