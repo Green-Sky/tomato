@@ -20,7 +20,7 @@ void DesktopLayout::render(ChatGui4& gui, const float time_delta, const bool win
 			gui._contact_stack.pop();
 		} else {
 			ImGui::SameLine();
-			gui._contact_stack.top()->render(window_focused, time_delta);
+			gui._contact_stack.top()->render(window_focused, time_delta, true, ImGuiChildFlags_Borders);
 		}
 	}
 }
@@ -37,6 +37,6 @@ void SinglePlaneLayout::render(ChatGui4& gui, const float time_delta, const bool
 			return;
 		}
 
-		gui._contact_stack.top()->render(window_focused, time_delta, true, true);
+		gui._contact_stack.top()->render(window_focused, time_delta, true, ImGuiChildFlags_None, true);
 	}
 }

@@ -53,7 +53,13 @@ ContactWindow::ContactWindow(
 {
 }
 
-float ContactWindow::render(const bool window_focused, const float time_delta, const bool child, const bool sub_contact_list) {
+float ContactWindow::render(
+	const bool window_focused,
+	const float time_delta,
+	const bool child,
+	ImGuiChildFlags child_flags,
+	const bool sub_contact_list
+) {
 	ImGui::PushID(entt::to_integral(c.entity()));
 
 	_sip.render(time_delta);
@@ -61,7 +67,7 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 	const std::string chat_label = "chat " + std::to_string(entt::to_integral(c.entity()));
 
 	if (
-		(child && ImGui::BeginChild(chat_label.c_str(), {0, 0}, ImGuiChildFlags_Borders, ImGuiWindowFlags_MenuBar)) ||
+		(child && ImGui::BeginChild(chat_label.c_str(), {0, 0}, child_flags, ImGuiWindowFlags_MenuBar)) ||
 		(!child && ImGui::Begin(chat_label.c_str(), nullptr, ImGuiWindowFlags_MenuBar))
 	) {
 		// TODO: optimize
