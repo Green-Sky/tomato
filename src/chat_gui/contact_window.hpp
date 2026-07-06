@@ -58,8 +58,9 @@ struct ContactWindow {
 	float render(const bool window_focused, const float time_delta, const bool child = true, const bool sub_contact_list = false);
 
 	private:
+		void renderSubList(const std::vector<Contact4>* sub_contacts);
 		// true if shown
-		bool renderSubList(const std::vector<Contact4>* sub_contacts);
+		bool renderSubListChild(const std::vector<Contact4>* sub_contacts);
 		bool renderRequest(void);
 		void renderSubContactContext(ContactHandle4 sub_c, const Contact4 sub_cv);
 

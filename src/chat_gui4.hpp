@@ -85,7 +85,6 @@ class ChatGui4 : public ObjectStoreEventI {
 
 		void renderContactList(float width = 0.f);
 		bool renderContactListContactSmall(const Contact4 c, const bool selected) const;
-		//bool renderSubContactListContact(const Contact4 c, const bool selected) const;
 
 		void selectLayoutStrategy(float viewport_width);
 

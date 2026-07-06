@@ -100,6 +100,19 @@ float ChatGui4::render(float time_delta, bool window_hidden, bool window_focused
 			ImGui::EndMenuBar();
 		}
 
+		if (static_cast<bool>(_next_contact)) {
+			_contact_stack.push(std::make_unique<ContactWindow>(
+				_cs, _rmm, _os,
+				_theme, _contact_tc, _msg_tc, _b_tc,
+				_ciw, _fss, _ivp, _cb, _tu,
+				[this](ContactHandle4 new_c) {
+					_next_contact = new_c;
+				},
+				_next_contact
+			));
+			_next_contact = {};
+		}
+
 		if (_layout_strategy) {
 			_layout_strategy->render(*this, time_delta, window_focused);
 		}
@@ -139,24 +152,14 @@ void ChatGui4::renderContactList(float width) {
 	if (ImGui::BeginChild("contacts", {width, 0})) {
 		_contact_list_sortable = !ImGui::IsWindowHovered();
 
-		auto& cr = _cs.registry();
 		ContactHandle4 selected_contact{};
-		if (static_cast<bool>(_next_contact)) {
-			_contact_stack.push(std::make_unique<ContactWindow>(
-				_cs, _rmm, _os,
-				_theme, _contact_tc, _msg_tc, _b_tc,
-				_ciw, _fss, _ivp, _cb, _tu,
-				[this](ContactHandle4 new_c) {
-					_next_contact = new_c;
-				},
-				_next_contact
-			));
-			_next_contact = {};
-		}
 		if (!_contact_stack.empty()) {
 			// meh, probably makes more sense for bottom
 			selected_contact = _contact_stack.top()->c;
 		}
+
+		auto& cr = _cs.registry();
+
 		if (::renderContactList(
 			_cs,
 			cr,
@@ -212,7 +215,7 @@ void ChatGui4::selectLayoutStrategy(float viewport_font_units) {
 	_last_viewport_width = viewport_font_units;
 
 	// TODO: maybe move out of here?
-	if (viewport_font_units >= LAYOUT_THRESHOLD_MOBILE_FONT_UNITS) {
+	if (viewport_font_units >= LAYOUT_THRESHOLD_MOBILE) {
 		_layout_strategy = std::make_unique<DesktopLayout>();
 	} else {
 		_layout_strategy = std::make_unique<SinglePlaneLayout>();

@@ -52,6 +52,7 @@ ContactWindow::ContactWindow(
 	_sip(tu, theme)
 {
 }
+
 float ContactWindow::render(const bool window_focused, const float time_delta, const bool child, const bool sub_contact_list) {
 	ImGui::PushID(entt::to_integral(c.entity()));
 
@@ -107,7 +108,7 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 		renderContactBig(_theme, _contact_tc, c, 3, false, false, false);
 		ImGui::Separator();
 
-		if (!sub_contact_list && renderSubList(sub_contacts)) {
+		if (!sub_contact_list && renderSubListChild(sub_contacts)) {
 			ImGui::SameLine();
 		}
 
@@ -115,10 +116,14 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 
 		if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
 			const auto tab_cb_list = _cs.getImGuiChatTab(c);
-			const bool has_sub_contacts = (sub_contact_list && sub_contacts != nullptr && !sub_contacts->empty());
+			const bool show_sub_contacts =
+				sub_contact_list &&
+				sub_contacts != nullptr && !sub_contacts->empty() &&
+				!c.all_of<Contact::Components::TagPrivate>() && c.all_of<Contact::Components::TagGroup>()
+			;
 			const bool has_other_tabs = !tab_cb_list.empty();
 
-			if (has_sub_contacts || has_other_tabs) {
+			if (show_sub_contacts || has_other_tabs) {
 				if (ImGui::BeginTabBar("chat_tab_bar")) {
 					bool has_unread = false;
 					{ // has unread // TODO: extract?
@@ -139,19 +144,8 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 						ImGui::EndTabItem();
 					}
 
-					if (has_sub_contacts && ImGui::BeginTabItem("SubContacts")) {
-						auto& cr = _cs.registry();
-						ImGui::Text("subs: %zu", sub_contacts->size());
-						ImGui::Separator();
-						for (const auto& sub_cv : *sub_contacts) {
-							ImGui::PushID(entt::to_integral(sub_cv));
-							ContactHandle4 sub_c{cr, sub_cv};
-							if (renderContactBig(_theme, _contact_tc, sub_c, 1)) {
-								_text_input_buffer.insert(0, (sub_c.all_of<Contact::Components::Name>() ? sub_c.get<Contact::Components::Name>().name : "<unk>") + ": ");
-							}
-							renderSubContactContext(sub_c, sub_cv);
-							ImGui::PopID();
-						}
+					if (show_sub_contacts && ImGui::BeginTabItem("SubContacts")) {
+						renderSubList(sub_contacts);
 						ImGui::EndTabItem();
 					}
 
@@ -390,17 +384,7 @@ static std::deque<ContactWRole> sortSubsByRole(ContactStore4I& cs, const std::ve
 	return sorted_subs;
 }
 
-bool ContactWindow::renderSubList(const std::vector<Contact4>* sub_contacts) {
-	if (sub_contacts == nullptr || c.all_of<Contact::Components::TagPrivate>() || !c.all_of<Contact::Components::TagGroup>() || sub_contacts->empty()) {
-		// no list
-		return false;
-	}
-
-	if (!ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
-		ImGui::EndChild();
-		return true; // there is an empty child
-	}
-
+void ContactWindow::renderSubList(const std::vector<Contact4>* sub_contacts) {
 	auto& cr = _cs.registry();
 
 	ImGui::Text("subs: %zu", sub_contacts->size());
@@ -437,6 +421,20 @@ bool ContactWindow::renderSubList(const std::vector<Contact4>* sub_contacts) {
 
 		ImGui::PopID();
 	}
+}
+
+bool ContactWindow::renderSubListChild(const std::vector<Contact4>* sub_contacts) {
+	if (sub_contacts == nullptr || c.all_of<Contact::Components::TagPrivate>() || !c.all_of<Contact::Components::TagGroup>() || sub_contacts->empty()) {
+		// no list
+		return false;
+	}
+
+	if (!ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
+		ImGui::EndChild();
+		return true; // there is an empty child
+	}
+
+	renderSubList(sub_contacts);
 
 	ImGui::EndChild();
 	return true;

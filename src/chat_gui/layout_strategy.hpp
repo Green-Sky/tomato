@@ -1,8 +1,10 @@
 #pragma once
 
-class ChatGui4; // forward declaration
+// fwd
+class ChatGui4;
 
-constexpr float LAYOUT_THRESHOLD_MOBILE_FONT_UNITS = 100.f;
+// in default font char widths
+constexpr float LAYOUT_THRESHOLD_MOBILE = 100.f;
 
 class LayoutStrategy {
 	public:
