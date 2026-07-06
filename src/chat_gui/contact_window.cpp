@@ -114,7 +114,7 @@ float ContactWindow::render(const bool window_focused, const float time_delta, c
 
 		renderRequest();
 
-		if (ImGui::BeginChild("chat_main", {0, -100}, ImGuiChildFlags_None)) {
+		if (ImGui::BeginChild("chat_main", {0, -TEXT_BASE_HEIGHT*4.5f}, ImGuiChildFlags_None)) {
 			const auto tab_cb_list = _cs.getImGuiChatTab(c);
 			const bool show_sub_contacts =
 				sub_contact_list &&
@@ -429,7 +429,7 @@ bool ContactWindow::renderSubListChild(const std::vector<Contact4>* sub_contacts
 		return false;
 	}
 
-	if (!ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -100.f}, true)) {
+	if (!ImGui::BeginChild("subcontacts", {TEXT_BASE_WIDTH * 18.f, -TEXT_BASE_HEIGHT*4.5f}, true)) {
 		ImGui::EndChild();
 		return true; // there is an empty child
 	}
