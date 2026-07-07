@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cassert>
 #include <memory>
+#include <stdexcept>
 
 // https://youtu.be/71Iw4Q74OaE
 
@@ -37,7 +38,9 @@ struct SDLVideoFrame {
 				SDL_DuplicateSurface(other.surface.get()),
 				&SDL_DestroySurface
 			};
-			assert(surface);
+			if (surface == nullptr) {
+				throw std::runtime_error("failed to duplicate surface: " + std::string{SDL_GetError()});
+			}
 		}
 	}
 	SDLVideoFrame& operator=(const SDLVideoFrame& other) = delete;

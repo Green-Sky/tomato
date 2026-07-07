@@ -839,7 +839,7 @@ bool ToxAVVoIPModel::onEvent(const Events::FriendVideoFrame& e) {
 		// copy the data
 		// we know how the implementation works, its y u v consecutivly
 		// also remove any padding that might be in the planes
-		new_surf->pitch = 0;
+		new_surf->pitch = e.width * SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_IYUV);
 
 		// y
 		for (size_t y = 0; y < e.height; y++) {
