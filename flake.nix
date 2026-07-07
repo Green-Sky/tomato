@@ -15,7 +15,7 @@
       flake = false;
     };
     sdl3 = {
-      url = "github:libsdl-org/SDL/8e37db5e797b6167f3a00d697d816a684bd259c7"; # keep in sync with cmake
+      url = "github:libsdl-org/SDL/f87239e71e42da91ca317a12eefb82cfbf3393eb"; # keep in sync with cmake
       flake = false;
     };
     sdl3_image = {
