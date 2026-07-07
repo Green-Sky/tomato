@@ -5,8 +5,8 @@
 #include <SDL3/SDL.h>
 
 #include <cstdint>
-#include <cassert>
 #include <memory>
+#include <string>
 #include <stdexcept>
 
 // https://youtu.be/71Iw4Q74OaE
