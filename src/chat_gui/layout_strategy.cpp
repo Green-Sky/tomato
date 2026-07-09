@@ -6,7 +6,7 @@
 
 void DesktopLayout::render(ChatGui4& gui, const float time_delta, const bool window_focused) {
 	if (gui._contact_stack.empty()) {
-		gui.renderContactList();
+		gui.renderContactList(gui.TEXT_BASE_WIDTH*60);
 	} else {
 		gui.renderContactList(gui.TEXT_BASE_WIDTH*35);
 	}
