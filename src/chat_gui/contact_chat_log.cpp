@@ -296,7 +296,7 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 					ImGui::TextDisabled("---");
 					main_cell_visible = ImGui::IsItemVisible();
 				}
-				if (!main_cell_visible) {
+				if (!main_cell_visible && !_show_chat_extra_info) {
 					ImGui::PopID(); // ent
 					continue; // optimization
 				}
