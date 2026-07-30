@@ -616,7 +616,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 [&](const EventTypeByteRange& t) {
                     f << "    if (!tox_event_" << event_name_l << "_set_" << t.name_data << "(" << event_name_l << ", state->mem, ";
                     f << t.name_data << ", " << t.name_length_cb << ")) {\n";
+                    f << "        tox_event_" << event_name_l << "_free(" << event_name_l << ", state->mem);\n";
                     f << "        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;\n";
+                    f << "        return;\n";
                     f << "    }\n";
                 },
                 [&](const EventTypeByteArray& t) {
@@ -720,6 +722,9 @@ int main(int argc, char** argv) {
         {
             "Dht_Nodes_Response",
             {
+                EventTypeByteArray{"src_public_key", "TOX_PUBLIC_KEY_SIZE"},
+                EventTypeByteRange{"src_ip", "src_ip_length", "src_ip_length", "char", "uint32_t", true},
+                EventTypeTrivial{"uint16_t", "src_port"},
                 EventTypeByteArray{"public_key", "TOX_PUBLIC_KEY_SIZE"},
                 EventTypeByteRange{"ip", "ip_length", "ip_length", "char", "uint32_t", true},
                 EventTypeTrivial{"uint16_t", "port"},
