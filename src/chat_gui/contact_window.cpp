@@ -284,7 +284,9 @@ float ContactWindow::render(
 				_fss.requestFile(
 					[](const auto& path) -> bool { return std::filesystem::is_regular_file(path); },
 					[this](const auto& path){
-						_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
+						const auto file_name_u8 = path.filename().generic_u8string();
+						const auto path_u8 = path.generic_u8string();
+						_rmm.sendFilePath(c, reinterpret_cast<const char*>(file_name_u8.c_str()), reinterpret_cast<const char*>(path_u8.c_str()));
 					},
 					[](){}
 				);
@@ -585,7 +587,8 @@ void ContactWindow::pasteFile(const char* mime_type) {
 				std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
 					.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
 
-				_rmm.sendFilePath(c, tmp_file_name.str(), tmp_file_path.generic_u8string());
+				const auto tmp_file_path_u8 = tmp_file_path.generic_u8string();
+				_rmm.sendFilePath(c, tmp_file_name.str(), reinterpret_cast<const char*>(tmp_file_path_u8.c_str()));
 			},
 			[](){}
 		);
@@ -664,7 +667,9 @@ void ContactWindow::sendFilePath(std::string_view file_path) {
 		return;
 	}
 
-	_rmm.sendFilePath(c, path.filename().generic_u8string(), path.generic_u8string());
+	const auto file_name_u8 = path.filename().generic_u8string();
+	const auto path_u8 = path.generic_u8string();
+	_rmm.sendFilePath(c, reinterpret_cast<const char*>(file_name_u8.c_str()), reinterpret_cast<const char*>(path_u8.c_str()));
 }
 
 void ContactWindow::sendFileList(const std::vector<std::string_view>& list) {
@@ -704,7 +709,8 @@ void ContactWindow::sendFileList(const std::vector<std::string_view>& list) {
 					std::ofstream(tmp_file_path, std::ios_base::out | std::ios_base::binary)
 						.write(reinterpret_cast<const char*>(img_data.data()), img_data.size());
 
-					_rmm.sendFilePath(c, tmp_file_name.str(), tmp_file_path.generic_u8string());
+					const auto tmp_file_path_u8 = tmp_file_path.generic_u8string();
+					_rmm.sendFilePath(c, tmp_file_name.str(), reinterpret_cast<const char*>(tmp_file_path_u8.c_str()));
 				},
 				[](){}
 			)) {

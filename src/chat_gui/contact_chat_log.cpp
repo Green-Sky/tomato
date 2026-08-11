@@ -65,7 +65,8 @@ namespace Context {
 
 } // Context
 
-static constexpr float lerp(float a, float b, float t) {
+// TODO: remove when c++20
+static constexpr float my_lerp(float a, float b, float t) {
 	return a + t * (b - a);
 }
 
@@ -275,10 +276,10 @@ float ContactChatLog::render(bool window_focused, float time_delta, const std::v
 					const float fade_frac = msg_reg->get<Components::UnreadFade>(e).fade;
 
 					ImVec4 res_color{
-						lerp(orig_color.x, hi_color.x, fade_frac),
-						lerp(orig_color.y, hi_color.y, fade_frac),
-						lerp(orig_color.z, hi_color.z, fade_frac),
-						lerp(orig_color.w, hi_color.w, fade_frac),
+						my_lerp(orig_color.x, hi_color.x, fade_frac),
+						my_lerp(orig_color.y, hi_color.y, fade_frac),
+						my_lerp(orig_color.z, hi_color.z, fade_frac),
+						my_lerp(orig_color.w, hi_color.w, fade_frac),
 					};
 
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(res_color));
@@ -718,7 +719,7 @@ bool ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 				[this, o](const auto& path) {
 					if (static_cast<bool>(o)) { // still valid
 						// TODO: trim file?
-						o.emplace<ObjComp::Ephemeral::File::ActionTransferAccept>(path.generic_u8string());
+						o.emplace<ObjComp::Ephemeral::File::ActionTransferAccept>(reinterpret_cast<const char*>(path.generic_u8string().c_str()));
 						//_rmm.throwEventUpdate(reg, e);
 						// TODO: block recursion
 						_os.throwEventUpdate(o);
@@ -940,7 +941,7 @@ bool ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 					}
 					if (ImGui::MenuItem("copy filepath")) {
 						const auto file_path = std::filesystem::canonical(local_info.file_list.at(i).file_path).u8string(); //TODO: use generic over native?
-						ImGui::SetClipboardText(file_path.c_str());
+						ImGui::SetClipboardText(reinterpret_cast<const char*>(file_path.c_str()));
 					}
 					ImGui::EndPopup();
 				}
@@ -1019,7 +1020,9 @@ bool ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 						// TODO: try object interface first instead, then fall back to send with SingleInfoLocal
 						//_rmm.sendFileObj(fc, o);
 						std::filesystem::path path = o.get<ObjComp::F::SingleInfoLocal>().file_path;
-						_rmm.sendFilePath(fc, path.filename().generic_u8string(), path.generic_u8string());
+						const auto file_name_u8 = path.filename().generic_u8string();
+						const auto path_u8 = path.generic_u8string();
+						_rmm.sendFilePath(fc, reinterpret_cast<const char*>(file_name_u8.c_str()), reinterpret_cast<const char*>(path_u8.c_str()));
 					}
 				}
 				ImGui::EndMenu();
@@ -1033,7 +1036,7 @@ bool ContactChatLog::renderMessageBodyFile(Message3Registry& reg, const Message3
 			}
 			if (ImGui::MenuItem("copy filepath")) {
 				const auto file_path = std::filesystem::canonical(local_info.file_path).u8string(); //TODO: use generic over native?
-				ImGui::SetClipboardText(file_path.c_str());
+				ImGui::SetClipboardText(reinterpret_cast<const char*>(file_path.c_str()));
 			}
 			ImGui::EndPopup();
 		}
