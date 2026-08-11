@@ -22,6 +22,21 @@
 StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer* renderer, Theme& theme) : _renderer(renderer), _theme(theme), _fss(theme) {
 	bool config_loaded {false};
 	std::string config_path;
+	const auto load_config_file = [this](const std::string_view config_path_in) -> bool {
+		auto config_file = std::ifstream(static_cast<std::string>(config_path_in));
+		if (!config_file.is_open()) {
+			std::cerr << "TOMATO error: failed to open config file '" << config_path_in << "'\n";
+			return false;
+		}
+
+		auto config_json = nlohmann::ordered_json::parse(config_file);
+		if (!load_json_into_config(config_json, _conf)) {
+			std::cerr << "TOMATO error in config json, exiting...\n";
+			return false;
+		}
+
+		return true;
+	};
 	for (size_t ai = 1; ai < args.size(); ai++) {
 		if (args.at(ai) == "--config" || args.at(ai) == "-c") {
 			if (config_loaded) {
@@ -35,18 +50,11 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 			ai++;
 
 			config_path = args.at(ai);
-			auto config_file = std::ifstream(static_cast<std::string>(config_path));
-			if (!config_file.is_open()) {
-				std::cerr << "TOMATO error: failed to open config file '" << config_path << "'\n";
+			if (load_config_file(config_path)) {
+				config_loaded = true;
+			} else {
 				break;
 			}
-
-			auto config_json = nlohmann::ordered_json::parse(config_file);
-			if (!load_json_into_config(config_json, _conf)) {
-				std::cerr << "TOMATO error in config json, exiting...\n";
-				break;
-			}
-			config_loaded = true;
 		} else if (args.at(ai) == "--plugin" || args.at(ai) == "-p") {
 			if (args.size() == ai+1) {
 				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
@@ -64,6 +72,12 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		} else {
 			std::cerr << "TOMATO error: unknown cli arg: '" << args.at(ai) << "'\n";
 		}
+	}
+
+	// no config given, try to load config.json from the current directory
+	if (!config_loaded && std::filesystem::is_regular_file("config.json")) {
+		config_path = "config.json";
+		config_loaded = load_config_file(config_path);
 	}
 
 	// seed tox save path
