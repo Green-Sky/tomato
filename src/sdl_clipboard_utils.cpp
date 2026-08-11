@@ -98,7 +98,8 @@ std::string file_path_to_file_url(const std::filesystem::path& path) {
 	// special windows detection <.<
 	// we detect a drive letter here
 	if (can_path.has_root_name() && can_path.root_name().generic_u8string().back() == ':') {
-		const std::string root_name = can_path.root_name().generic_u8string();
+		const auto root_name_u8 = can_path.root_name().generic_u8string();
+		const std::string root_name = {root_name_u8.cbegin(), root_name_u8.cend()};
 		// drive letters have a colon, which needs skipping the url escaping
 		url += "/";
 		url += root_name;
@@ -108,9 +109,11 @@ std::string file_path_to_file_url(const std::filesystem::path& path) {
 		//url += file_path_url_escape(can_path.lexically_proximate(can_path.root_name()).generic_u8string());
 
 		// remove drive letter
-		url += file_path_url_escape(can_path.generic_u8string().substr(root_name.size()));
+		const auto can_sub_u8 = can_path.generic_u8string().substr(root_name.size());
+		url += file_path_url_escape({can_sub_u8.cbegin(), can_sub_u8.cend()});
 	} else {
-		url += file_path_url_escape(can_path.generic_u8string());
+		const auto can_u8 = can_path.generic_u8string();
+		url += file_path_url_escape({can_u8.cbegin(), can_u8.cend()});
 	}
 
 	return url;

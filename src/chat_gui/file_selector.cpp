@@ -61,7 +61,11 @@ void FileSelector::render(void) {
 		std::filesystem::path current_path = _current_file_path;
 		current_path.remove_filename();
 
-		ImGui::Text("path: %s", _current_file_path.generic_u8string().c_str());
+
+		{
+			const auto cf_path_u8 = _current_file_path.generic_u8string();
+			ImGui::Text("path: %s", reinterpret_cast<const char*>(cf_path_u8.c_str()));
+		}
 
 		// begin table with selectables
 		constexpr ImGuiTableFlags table_flags =
@@ -234,7 +238,9 @@ void FileSelector::render(void) {
 
 						if (ImGui::TableNextColumn()) {
 							try {
-								ImGui::TextUnformatted((dir_entry.path().filename().generic_u8string() + "/").c_str());
+								const auto filename_u8 = dir_entry.path().filename().generic_u8string();
+								const auto path_name = std::string{filename_u8.cbegin(), filename_u8.cend()} + "/";
+								ImGui::TextUnformatted(path_name.c_str());
 							} catch (...) {}
 						}
 
@@ -276,7 +282,8 @@ void FileSelector::render(void) {
 
 						if (ImGui::TableNextColumn()) {
 							try {
-								ImGui::TextUnformatted(file_entry.path().filename().generic_u8string().c_str());
+								const auto filename_u8 = file_entry.path().filename().generic_u8string();
+								ImGui::TextUnformatted(reinterpret_cast<const char*>(filename_u8.c_str()));
 							} catch(...) {}
 						}
 

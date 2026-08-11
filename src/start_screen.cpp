@@ -87,7 +87,8 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		if (real_tox_profile_path.is_relative()) {
 			real_tox_profile_path = config_path_base / real_tox_profile_path;
 		}
-		_tox_profile_path = real_tox_profile_path.u8string();
+		const auto tmp_path_u8 = real_tox_profile_path.generic_u8string();
+		_tox_profile_path = {tmp_path_u8.cbegin(), tmp_path_u8.cend()};
 	}
 
 	float display_scale = SDL_GetWindowDisplayScale(SDL_GetRenderWindow(renderer));
@@ -168,7 +169,8 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 				real_plugin_path = config_path_base / real_plugin_path;
 			}
 
-			_queued_plugin_paths.push_back(real_plugin_path.u8string());
+			const auto path_u8 = real_plugin_path.u8string();
+			_queued_plugin_paths.push_back({path_u8.cbegin(), path_u8.cend()});
 		}
 	}
 }

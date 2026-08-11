@@ -199,7 +199,8 @@ bool SendImagePopup::sendFilePath( // file2 instead?
 	}
 
 	if (path_o.has_extension()) {
-		original_file_ext = path_o.extension().u8string();
+		const auto tmp_path = path_o.extension().u8string();
+		original_file_ext = {tmp_path.cbegin(), tmp_path.cend()};
 	}
 
 	if (!load()) {

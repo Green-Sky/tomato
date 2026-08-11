@@ -241,7 +241,8 @@ void ToxClient::saveToxProfile(void) {
 	}
 
 	std::filesystem::path tmp_path = _tox_profile_path + ".tmp";
-	tmp_path.replace_filename("." + tmp_path.filename().generic_u8string());
+	const auto tmp_filename_u8 = tmp_path.filename().generic_u8string();
+	tmp_path.replace_filename("." + std::string{tmp_filename_u8.cbegin(), tmp_filename_u8.cend()});
 
 	try {
 		std::ofstream ofile{tmp_path, std::ios::binary};

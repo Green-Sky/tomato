@@ -101,7 +101,8 @@ void ToxAvatarManager::iterate(void) {
 std::string ToxAvatarManager::getAvatarPath(const ToxKey& key) const {
 	const std::string_view avatar_save_path {_conf.get_string("ToxAvatarManager", "save_path").value()};
 	const auto file_path = std::filesystem::path(avatar_save_path) / getAvatarFileName(key);
-	return file_path.generic_u8string();
+	const auto file_path_u8 = file_path.generic_u8string();
+	return {file_path_u8.cbegin(), file_path_u8.cend()};
 }
 
 std::string ToxAvatarManager::getAvatarFileName(const ToxKey& key) const {
