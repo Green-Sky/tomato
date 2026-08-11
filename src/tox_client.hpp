@@ -19,6 +19,7 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 		std::function<void(const Tox_Events*)> _subscriber_raw {[](const auto*) {}}; // only 1?
 
 		std::string _self_name;
+		std::string _self_status_message;
 
 		std::string _tox_profile_path;
 		std::string _tox_profile_password;
@@ -27,7 +28,7 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 
 	public:
 		//ToxClient(/*const CommandLine& cl*/);
-		ToxClient(ConfigModelI& conf, std::string_view save_path, std::string_view save_password);
+		ToxClient(ConfigModelI& conf, std::string_view save_path, std::string_view save_password, std::string_view new_username);
 		~ToxClient(void);
 
 	public: // tox stuff
@@ -41,6 +42,7 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 
 		void setToxProfilePath(const std::string& new_path) { _tox_profile_path = new_path; }
 		void setSelfName(std::string_view new_name) { _self_name = new_name; toxSelfSetName(new_name); }
+		void setSelfStatusMessage(std::string_view new_status_message) { _self_status_message = new_status_message; toxSelfSetStatusMessage(new_status_message); }
 
 		void runBootstrap(void);
 

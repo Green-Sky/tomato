@@ -20,7 +20,7 @@ static void eee(std::string& mod) {
 	}
 }
 
-ToxClient::ToxClient(ConfigModelI& conf, std::string_view save_path, std::string_view save_password) :
+ToxClient::ToxClient(ConfigModelI& conf, std::string_view save_path, std::string_view save_password, std::string_view new_username) :
 	_tox_profile_path(save_path), _tox_profile_password(save_password)
 {
 	TOX_ERR_OPTIONS_NEW err_opt_new;
@@ -123,6 +123,22 @@ ToxClient::ToxClient(ConfigModelI& conf, std::string_view save_path, std::string
 
 	// no callbacks, use events
 	tox_events_init(_tox);
+
+	{ // apply profile identity from config
+		if (conf.has_string("tox", "name")) {
+			setSelfName(conf.get_string("tox", "name").value());
+		} else {
+			auto name = toxSelfGetName();
+			if (name.empty()) {
+				name = new_username;
+				setSelfName(name);
+			}
+			conf.set("tox", "name", name);
+		}
+		if (conf.has_string("tox", "status_message")) {
+			setSelfStatusMessage(conf.get_string("tox", "status_message").value());
+		}
+	}
 
 	runBootstrap();
 }

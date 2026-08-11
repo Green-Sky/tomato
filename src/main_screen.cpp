@@ -51,7 +51,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	mts(rmm),
 	sdlvis(os),
 	sm(os),
-	tc(conf, save_path, save_password),
+	tc(conf, save_path, save_password, new_username),
 	tel(tc, std::cout),
 	tpi(tc.getTox()),
 	ad(tc),
@@ -96,16 +96,6 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	registerVoIPChatTab(cs);
 
 	conf.set("tox", "save_file_path", save_path);
-
-	{ // name stuff
-		// a new profile will not have this set
-		auto name = tc.toxSelfGetName();
-		if (name.empty()) {
-			name = new_username;
-		}
-		conf.set("tox", "name", name);
-		tc.setSelfName(name); // TODO: this is ugly
-	}
 
 	// TODO: remove
 	std::cout << "own address: " << tc.toxSelfGetAddressStr() << "\n";

@@ -1,6 +1,8 @@
 {
 	"tox": {
-		"save_file_path": "tomato.tox"
+		"save_file_path": "tomato.tox",
+		"name": "tomato",
+		"status_message": "Born to be ripe"
 	},
 	"tomato": {
 		"skip_setup_and_load": true,
