@@ -41,11 +41,11 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 		if (args.at(ai) == "--config" || args.at(ai) == "-c") {
 			if (config_loaded) {
 				std::cerr << "TOMATO error: config specified more than once!\n";
-				break;
+				throw std::runtime_error{"config specified more than once"};
 			}
 			if (args.size() == ai+1) {
 				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
-				break;
+				throw std::runtime_error{"config missing parameter"};
 			}
 			ai++;
 
@@ -53,12 +53,12 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 			if (load_config_file(config_path)) {
 				config_loaded = true;
 			} else {
-				break;
+				throw std::runtime_error{"config loading failed"};
 			}
 		} else if (args.at(ai) == "--plugin" || args.at(ai) == "-p") {
 			if (args.size() == ai+1) {
 				std::cerr << "TOMATO error: argument '" << args.at(ai) << "' missing parameter!\n";
-				break;
+				throw std::runtime_error{"plugin missing parameter"};
 			}
 			ai++;
 
@@ -71,6 +71,7 @@ StartScreen::StartScreen(const std::vector<std::string_view>& args, SDL_Renderer
 			*_p = 1337;
 		} else {
 			std::cerr << "TOMATO error: unknown cli arg: '" << args.at(ai) << "'\n";
+			throw std::runtime_error{"unknown cli arg"};
 		}
 	}
 
