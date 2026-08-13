@@ -37,6 +37,7 @@
 #include "./tox_ui_utils.hpp"
 #include "./tox_dht_cap_histo.hpp"
 #include "./tox_netprof_ui.hpp"
+#include "./tox_node_graph.hpp"
 #include "./tox_friend_faux_offline_messaging.hpp"
 #include "./frame_streams/sdl/sdl_video_input_service.hpp"
 #include "./stream_manager_ui.hpp"
@@ -107,6 +108,7 @@ struct MainScreen final : public Screen {
 	ToxUIUtils tuiu;
 	ToxDHTCapHisto tdch;
 	ToxNetprofUI tnui;
+	ToxNodeGraph tng;
 	StreamManagerUI smui;
 	DebugVideoTap dvt;
 

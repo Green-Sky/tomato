@@ -1519,13 +1519,17 @@ static int handle_nodes_response(void *_Nonnull object, const IP_Port *_Nonnull 
         return 0;
     }
 
+    Node_format src_node;
+    memcpy(src_node.public_key, packet + 1, CRYPTO_PUBLIC_KEY_SIZE);
+    src_node.ip_port = *source;
+
     for (uint32_t i = 0; i < num_nodes; ++i) {
         if (ipport_isset(&plain_nodes[i].ip_port)) {
             ping_node_from_nodes_response_ok(dht, plain_nodes[i].public_key, &plain_nodes[i].ip_port);
             returnedip_ports(dht, &plain_nodes[i].ip_port, plain_nodes[i].public_key, packet + 1);
 
             if (dht->nodes_response_callback != nullptr) {
-                dht->nodes_response_callback(dht, &plain_nodes[i], userdata);
+                dht->nodes_response_callback(dht, &src_node, &plain_nodes[i], userdata);
             }
         }
     }
@@ -1906,7 +1910,7 @@ int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packe
 
 /** @brief Puts all the different ips returned by the nodes for a friend_num into array ip_portlist.
  *
- * ip_portlist must be at least MAX_FRIEND_CLIENTS big.
+ * @param ip_portlist must be at least MAX_FRIEND_CLIENTS big.
  *
  * @return the number of ips returned.
  * @retval 0 if we are connected to friend or if no ips were found.
@@ -2051,9 +2055,9 @@ static bool send_packet_to_friend(const DHT *_Nonnull dht, const IP_Port *_Nonnu
 
 /**
  * Send the following packet to everyone who tells us they are connected to friend_id.
+ * Only works if more than (MAX_FRIEND_CLIENTS / 4) return an ip for friend.
  *
- * @return ip for friend.
- * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
+ * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *dht, const uint8_t *friend_id, const Net_Packet *packet)
 {
@@ -2795,27 +2799,24 @@ static State_Load_Status dht_load_state_callback(void *_Nonnull outer, const uin
                 break;
             }
 
-            mem_delete(dht->mem, dht->loaded_nodes_list);
-
-            // Copy to loaded_clients_list
+            // TODO(Green-Sky): This allocates 130KiB, might be worth reducing or retrying with smaller, partial allocations.
             Node_format *nodes = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
             if (nodes == nullptr) {
                 LOGGER_ERROR(dht->log, "could not allocate %u nodes", (unsigned int)MAX_SAVED_DHT_NODES);
-                dht->loaded_num_nodes = 0;
                 break;
             }
 
             const int num = unpack_nodes(nodes, MAX_SAVED_DHT_NODES, nullptr, data, length, false);
 
-            if (num < 0) {
-                // Unpack error happened, we ignore it.
-                dht->loaded_num_nodes = 0;
+            if (num <= 0) {
+                // Unpack error happened or list was empty, we ignore it.
+                mem_delete(dht->mem, nodes);
             } else {
+                mem_delete(dht->mem, dht->loaded_nodes_list);
                 dht->loaded_num_nodes = num;
+                dht->loaded_nodes_list = nodes;
             }
-
-            dht->loaded_nodes_list = nodes;
 
             break;
         }

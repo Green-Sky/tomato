@@ -244,7 +244,7 @@ bool dht_send_nodes_request(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, 
 
 typedef void dht_ip_cb(void *_Nullable object, int32_t number, const IP_Port *_Nonnull ip_port);
 
-typedef void dht_nodes_response_cb(const DHT *_Nonnull dht, const Node_format *_Nonnull node, void *_Nullable user_data);
+typedef void dht_nodes_response_cb(const DHT *_Nonnull dht, const Node_format *_Nonnull src_node, const Node_format *_Nonnull node, void *_Nullable user_data);
 
 /** Sets the callback to be triggered on a nodes response. */
 void dht_callback_nodes_response(DHT *_Nonnull dht, dht_nodes_response_cb *_Nullable function);
@@ -366,7 +366,7 @@ bool dht_bootstrap(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, const uin
  */
 bool dht_bootstrap_from_address(DHT *_Nonnull dht, const char *_Nonnull address, bool ipv6enabled, bool dns_enabled, uint16_t port, const uint8_t *_Nonnull public_key);
 
-/** @brief Start sending packets after DHT loaded_friends_list and loaded_clients_list are set.
+/** @brief Start sending packets after DHT loaded_nodes_list is set.
  *
  * @retval 0 if successful
  * @retval -1 otherwise
@@ -384,9 +384,9 @@ int route_packet(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, co
 
 /**
  * Send the following packet to everyone who tells us they are connected to friend_id.
+ * Only works if more than (MAX_FRIEND_CLIENTS / 4) return an ip for friend.
  *
- * @return ip for friend.
- * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
+ * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonnull friend_id, const Net_Packet *_Nonnull packet);
 
