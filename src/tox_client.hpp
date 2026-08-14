@@ -27,7 +27,6 @@ class ToxClient : public ToxDefaultImpl, public ToxEventProviderBase {
 		float _save_heat {0.f};
 
 	public:
-		//ToxClient(/*const CommandLine& cl*/);
 		ToxClient(ConfigModelI& conf, std::string_view save_path, std::string_view save_password, std::string_view new_username);
 		~ToxClient(void);
 
