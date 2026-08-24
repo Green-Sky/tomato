@@ -4,7 +4,7 @@
 class ChatGui4;
 
 // in default font char widths
-constexpr float LAYOUT_THRESHOLD_MOBILE = 100.f;
+constexpr float LAYOUT_THRESHOLD_MOBILE = 130.f;
 
 class LayoutStrategy {
 	public:
