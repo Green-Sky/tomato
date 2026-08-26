@@ -340,7 +340,7 @@ jobs:
 
     - name: Install dump_syms
       run: |
-        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mozilla/dump_syms/releases/download/v2.3.7/dump_syms-installer.sh | sh
+        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mozilla/dump_syms/releases/download/v2.3.9/dump_syms-installer.sh | sh
 
     - name: Download artifacts
       id: download-artifact
@@ -365,12 +365,17 @@ jobs:
         dump_syms -s tomato-dev-Windows-msvc-x86_64-sym ./artifacts/extract/tomato.pdb
         rm -rf ./artifacts/extract/*
 
+        echo $(unar -D -o ./artifacts/extract/ ./artifacts/${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-asan-x86_64/*)
+        dump_syms -s tomato-dev-Windows-msvc-asan-x86_64-sym ./artifacts/extract/tomato.pdb
+        rm -rf ./artifacts/extract/*
+
     - name: Compress symbol stores
       shell: bash
       run: |
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64-symbol_store.tar.gz -C ./tomato-dev-ubuntu24.04-x86_64-sym .
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-debian12-x86_64-symbol_store.tar.gz -C ./tomato-dev-debian12-x86_64-sym .
         tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz -C ./tomato-dev-Windows-msvc-x86_64-sym .
+        tar -czvf ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-asan-x86_64-symbol_store.tar.gz -C ./tomato-dev-Windows-msvc-asan-x86_64-sym .
 
     - uses: actions/upload-artifact@v6
       with:
@@ -379,6 +384,7 @@ jobs:
           ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-ubuntu24.04-x86_64-symbol_store.tar.gz
           ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Linux-debian12-x86_64-symbol_store.tar.gz
           ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-x86_64-symbol_store.tar.gz
+          ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}-Windows-msvc-asan-x86_64-symbol_store.tar.gz
 
   release:
     if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) }}
