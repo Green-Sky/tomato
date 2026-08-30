@@ -2,6 +2,7 @@
 
 #include "./locked_frame_stream.hpp"
 
+#include <vector>
 #include <cassert>
 
 // implements a stream that pushes to all sub streams

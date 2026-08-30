@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <vector>
 
 // Frames often consist of:
 // - seq id // incremental sequential id, gaps in ids can be used to detect loss

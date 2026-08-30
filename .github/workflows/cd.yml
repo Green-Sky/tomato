@@ -317,12 +317,9 @@ jobs:
     needs:
       - linux-ubuntu
       - linux-debian12
-      - android
+      #- android
       - windows
-      #- windows-asan
-
-    permissions:
-      contents: write
+      - windows-asan
 
     steps:
     - uses: actions/checkout@v6
@@ -393,9 +390,10 @@ jobs:
 
     needs:
       - linux-ubuntu
+      - linux-debian12
       - android
       - windows
-      #- windows-asan
+      - windows-asan
       - dumpsyms
 
     permissions:
