@@ -366,7 +366,7 @@ bool dht_bootstrap(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, const uin
  */
 bool dht_bootstrap_from_address(DHT *_Nonnull dht, const char *_Nonnull address, bool ipv6enabled, bool dns_enabled, uint16_t port, const uint8_t *_Nonnull public_key);
 
-/** @brief Start sending packets after DHT loaded_friends_list and loaded_clients_list are set.
+/** @brief Start sending packets after DHT loaded_nodes_list is set.
  *
  * @retval 0 if successful
  * @retval -1 otherwise
@@ -384,9 +384,9 @@ int route_packet(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, co
 
 /**
  * Send the following packet to everyone who tells us they are connected to friend_id.
+ * Only works if more than (MAX_FRIEND_CLIENTS / 4) return an ip for friend.
  *
- * @return ip for friend.
- * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
+ * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonnull friend_id, const Net_Packet *_Nonnull packet);
 

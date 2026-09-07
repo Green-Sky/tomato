@@ -429,6 +429,10 @@ int pack_nodes(const Logger *logger, uint8_t *data, uint16_t length, const Node_
 int unpack_nodes(Node_format *nodes, uint16_t max_num_nodes, uint16_t *processed_data_len, const uint8_t *data,
                  uint16_t length, bool tcp_enabled)
 {
+    if (nodes == nullptr && max_num_nodes > 0) {
+        return -1;
+    }
+
     uint32_t num = 0;
     uint32_t len_processed = 0;
 
@@ -1906,7 +1910,7 @@ int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packe
 
 /** @brief Puts all the different ips returned by the nodes for a friend_num into array ip_portlist.
  *
- * ip_portlist must be at least MAX_FRIEND_CLIENTS big.
+ * @param ip_portlist must be at least MAX_FRIEND_CLIENTS big.
  *
  * @return the number of ips returned.
  * @retval 0 if we are connected to friend or if no ips were found.
@@ -2051,9 +2055,9 @@ static bool send_packet_to_friend(const DHT *_Nonnull dht, const IP_Port *_Nonnu
 
 /**
  * Send the following packet to everyone who tells us they are connected to friend_id.
+ * Only works if more than (MAX_FRIEND_CLIENTS / 4) return an ip for friend.
  *
- * @return ip for friend.
- * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
+ * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *dht, const uint8_t *friend_id, const Net_Packet *packet)
 {
@@ -2795,27 +2799,24 @@ static State_Load_Status dht_load_state_callback(void *_Nonnull outer, const uin
                 break;
             }
 
-            mem_delete(dht->mem, dht->loaded_nodes_list);
-
-            // Copy to loaded_clients_list
+            // TODO(Green-Sky): This allocates 130KiB, might be worth reducing or retrying with smaller, partial allocations.
             Node_format *nodes = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
             if (nodes == nullptr) {
                 LOGGER_ERROR(dht->log, "could not allocate %u nodes", (unsigned int)MAX_SAVED_DHT_NODES);
-                dht->loaded_num_nodes = 0;
                 break;
             }
 
             const int num = unpack_nodes(nodes, MAX_SAVED_DHT_NODES, nullptr, data, length, false);
 
-            if (num < 0) {
-                // Unpack error happened, we ignore it.
-                dht->loaded_num_nodes = 0;
+            if (num <= 0) {
+                // Unpack error happened or list was empty, we ignore it.
+                mem_delete(dht->mem, nodes);
             } else {
+                mem_delete(dht->mem, dht->loaded_nodes_list);
                 dht->loaded_num_nodes = num;
+                dht->loaded_nodes_list = nodes;
             }
-
-            dht->loaded_nodes_list = nodes;
 
             break;
         }

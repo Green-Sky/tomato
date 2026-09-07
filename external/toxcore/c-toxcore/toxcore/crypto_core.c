@@ -78,6 +78,17 @@ void set_sig_pk(Extended_Public_Key *key, const uint8_t *sig_pk)
     memcpy(key->sig, sig_pk, SIG_PUBLIC_KEY_SIZE);
 }
 
+bool validate_sig_pk(const uint8_t *enc_pk, const uint8_t *sig_pk)
+{
+    uint8_t expected_enc_pk[ENC_PUBLIC_KEY_SIZE];
+
+    if (crypto_sign_ed25519_pk_to_curve25519(expected_enc_pk, sig_pk) != 0) {
+        return false;
+    }
+
+    return memcmp(expected_enc_pk, enc_pk, ENC_PUBLIC_KEY_SIZE) == 0;
+}
+
 const uint8_t *get_sig_sk(const Extended_Secret_Key *key)
 {
     return key->sig;
