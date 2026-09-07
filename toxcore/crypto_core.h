@@ -297,6 +297,18 @@ const uint8_t *_Nonnull get_sig_sk(const Extended_Secret_Key *_Nonnull key);
 const uint8_t *_Nonnull get_chat_id(const Extended_Public_Key *_Nonnull key);
 
 /**
+ * @brief Verifies that `sig_pk` corresponds to `enc_pk`.
+ *
+ * Note: This function assumes that `enc_pk` was generated via `create_extended_keypair()`.
+ *
+ * @param enc_pk The public encryption key that we want to validate the signature key against.
+ * @param sig_pk The public signature key that we want to validate.
+ *
+ * @retval true on success.
+ */
+bool validate_sig_pk(const uint8_t *_Nonnull enc_pk, const uint8_t *_Nonnull sig_pk);
+
+/**
  * @brief Generate a new random keypair.
  *
  * Every call to this function is likely to generate a different keypair.

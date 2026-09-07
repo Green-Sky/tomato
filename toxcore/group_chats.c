@@ -3013,7 +3013,7 @@ static int validate_unpack_mod_list(GC_Chat *_Nonnull chat, const uint8_t *_Nonn
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet has invalid size.
- * Return -2 if packet contained invalid data or validation failed.
+ * Return -2 if packet contained invalid data.
  */
 static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const uint8_t *_Nullable data, uint16_t length, void *_Nullable userdata)
 {
@@ -3042,10 +3042,11 @@ static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull ch
     }
 
     if (unpack_ret == 1) {
+        // ignore bad hash
         return 0;
     }
 
-    // unpack/validation failed: handle error
+    // unpack failed: handle error
 
     if (chat->shared_state.version == 0) {
         chat->connection_state = CS_CONNECTING;
@@ -5642,7 +5643,14 @@ static int handle_gc_handshake_response(const GC_Chat *_Nonnull chat, const IP_P
 
     gcc_make_session_shared_key(gconn, sender_session_pk);
 
-    set_sig_pk(&gconn->addr.public_key, data + ENC_PUBLIC_KEY_SIZE);
+    const uint8_t *sig_pk = data + ENC_PUBLIC_KEY_SIZE;
+
+    if (!validate_sig_pk(gconn->addr.public_key.enc, sig_pk)) {
+        LOGGER_ERROR(chat->log, "Signature key did not match encryption key.");
+        return -1;
+    }
+
+    set_sig_pk(&gconn->addr.public_key, sig_pk);
 
     gcc_set_recv_message_id(gconn, 2);  // handshake response is always second packet
 
@@ -5793,6 +5801,11 @@ static int handle_gc_handshake_request(GC_Chat *_Nonnull chat, const IP_Port *_N
     const uint8_t *sender_session_pk = data;
 
     gcc_make_session_shared_key(gconn, sender_session_pk);
+
+    if (!validate_sig_pk(gconn->addr.public_key.enc, public_sig_key)) {
+        LOGGER_ERROR(chat->log, "Signature key did not match encryption key.");
+        return -1;
+    }
 
     set_sig_pk(&gconn->addr.public_key, public_sig_key);
 
