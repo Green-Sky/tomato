@@ -319,7 +319,6 @@ jobs:
       - linux-debian12
       #- android
       - windows
-      - windows-asan
 
     steps:
     - uses: actions/checkout@v6
@@ -393,7 +392,6 @@ jobs:
       - linux-debian12
       - android
       - windows
-      - windows-asan
       - dumpsyms
 
     permissions:
