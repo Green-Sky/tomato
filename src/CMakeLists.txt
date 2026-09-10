@@ -136,6 +136,9 @@ target_sources(tomato PUBLIC
 	./tox_netprof_ui.hpp
 	./tox_netprof_ui.cpp
 
+	./tox_node_graph.hpp
+	./tox_node_graph.cpp
+
 	./tox_friend_faux_offline_messaging.hpp
 	./tox_friend_faux_offline_messaging.cpp
 

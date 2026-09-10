@@ -80,6 +80,7 @@ MainScreen::MainScreen(const SimpleConfigModel& conf_, SDL_Renderer* renderer_, 
 	tuiu(tc, cs, tcm, conf, &tpi),
 	tdch(tpi),
 	tnui(tpi),
+	tng(tc, &tpi),
 	smui(os, sm, theme),
 	dvt(os, sm, sdlrtu)
 {
@@ -370,6 +371,7 @@ Screen* MainScreen::render(float time_delta, bool&) {
 	tuiu.render(); // render
 	tdch.render(); // render
 	const float tnui_interval = tnui.render(time_delta);
+	/*const float tnui_interval = */tng.render(time_delta);
 	smui.render();
 	const float dvt_interval = dvt.render();
 
