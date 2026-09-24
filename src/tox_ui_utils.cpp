@@ -528,23 +528,33 @@ void ToxUIUtils::render(void) {
 			static std::string message = "Add me, I'm tomat";
 			ImGui::InputText("message", &message);
 
-			static Tox_Err_Friend_Add err = Tox_Err_Friend_Add::TOX_ERR_FRIEND_ADD_OK;
+			static std::string err_msg;
 			if (ImGui::Button("add")) {
-				auto [_, err_r] = _tcm.createContactFriend(
-					std::string_view{tox_id, std::size(tox_id)-1},
-					message
-				);
-				err = err_r;
+				err_msg.clear();
+				Tox_Err_Friend_Add err = Tox_Err_Friend_Add::TOX_ERR_FRIEND_ADD_OK;
 
-				{ // reset everything
-					for (size_t i = 0; i < sizeof(tox_id); i++) {
-						tox_id[i] = '\0';
+				try {
+					auto [_, err_r] = _tcm.createContactFriend(
+						std::string_view{tox_id, std::size(tox_id)-1},
+						message
+					);
+					err = err_r;
+					if (err != Tox_Err_Friend_Add::TOX_ERR_FRIEND_ADD_OK) {
+						err_msg = std::string{"toxcore: "} + tox_err_friend_add_to_string(err) + " (" + std::to_string(err) + ")";
+					} else {
+						{ // reset everything
+							for (size_t i = 0; i < sizeof(tox_id); i++) {
+								tox_id[i] = '\0';
+							}
+						}
 					}
+				} catch (const std::exception& e) {
+					err_msg = e.what();
 				}
 			}
-			if (err != Tox_Err_Friend_Add::TOX_ERR_FRIEND_ADD_OK) {
+			if (!err_msg.empty()) {
 				ImGui::SameLine();
-				ImGui::Text("error adding friend (code: %d)", err);
+				ImGui::Text("error: %s", err_msg.c_str());
 			}
 		}
 		ImGui::End();
