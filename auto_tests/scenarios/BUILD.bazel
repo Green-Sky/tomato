@@ -19,9 +19,18 @@ cc_library(
     ],
 )
 
+# Scenarios that occasionally exceed the 5s "small" timeout under contention.
+_MEDIUM_SCENARIOS = [
+    "scenario_conference_av_test.c",
+    "scenario_overflow_recvq_test.c",
+    "scenario_tox_many_tcp_test.c",
+    "scenario_tox_many_test.c",
+    "scenario_toxav_many_test.c",
+]
+
 [cc_test(
     name = src[len("scenario_"):-2],
-    size = "small",
+    size = "medium" if src in _MEDIUM_SCENARIOS else "small",
     srcs = [src],
     deps = [
         ":scenario_framework",

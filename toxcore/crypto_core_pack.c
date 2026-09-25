@@ -16,7 +16,7 @@ bool pack_extended_public_key(const Extended_Public_Key *key, Bin_Pack *bp)
 {
     uint8_t ext_key[EXT_PUBLIC_KEY_SIZE];
     static_assert(sizeof(ext_key) == sizeof(key->enc) + sizeof(key->sig),
-                  "extended secret key size is not the sum of the encryption and sign secret key sizes");
+                  "extended public key size is not the sum of the encryption and sign public key sizes");
     memcpy(ext_key, key->enc, sizeof(key->enc));
     memcpy(&ext_key[sizeof(key->enc)], key->sig, sizeof(key->sig));
 

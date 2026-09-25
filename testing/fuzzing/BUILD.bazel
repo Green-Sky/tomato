@@ -33,7 +33,7 @@ cc_fuzz_test(
 
 cc_fuzz_test(
     name = "toxsave_fuzz_test",
-    size = "small",
+    size = "medium",
     srcs = ["toxsave_fuzz_test.cc"],
     copts = ["-UNDEBUG"],
     corpus = ["//tools/toktok-fuzzer/corpus:toxsave_fuzz_test"],
