@@ -39,6 +39,12 @@ extra_data = {
     "proxy_test": ["//c-toxcore/other/proxy"],
 }
 
+# proxy_test binds fixed ports (7080 HTTP, 7081 SOCKS5, 7082 TCP relay). Don't
+# run it in parallel.
+exclusive_tests = {
+    "proxy_test": True,
+}
+
 [cc_test(
     name = src[:-2],
     srcs = [src],
@@ -54,6 +60,10 @@ extra_data = {
         src[:-2],
         False,
     ),
+    tags = ["exclusive"] if exclusive_tests.get(
+        src[:-2],
+        False,
+    ) else [],
     deps = [
         ":auto_test_support",
         ":check_compat",
