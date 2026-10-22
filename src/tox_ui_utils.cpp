@@ -101,6 +101,13 @@ static void renderContextGroup(ContactHandle4 c) {
 		}
 	}
 
+	if (ImGui::MenuItem("Copy password")) {
+		if (auto* tge_ptr = c.try_get<Contact::Components::ToxGroupEphemeral>(); tge_ptr != nullptr) {
+			const auto pw = t->toxGroupGetPassword(tge_ptr->group_number).value_or("");
+			ImGui::SetClipboardText(pw.c_str());
+		}
+	}
+
 	{ // peer limit
 		const uint16_t peer_limit = t->toxGroupGetPeerLimit(group_number).value_or(0);
 		ImGui::TextDisabled("PeerLimit: %d", peer_limit);
