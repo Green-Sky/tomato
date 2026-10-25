@@ -281,14 +281,14 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     config_destroy(&cfg);
 
     LOG_WRITE(LOG_LEVEL_INFO, "Successfully read:\n");
-    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_PID_FILE_PATH,        *pid_file_path);
-    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_KEYS_FILE_PATH,       *keys_file_path);
-    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %d\n", NAME_PORT,                 *port);
-    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV6,          *enable_ipv6          ? "true" : "false");
+    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_PID_FILE_PATH, *pid_file_path);
+    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_KEYS_FILE_PATH, *keys_file_path);
+    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %d\n", NAME_PORT, *port);
+    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV6, *enable_ipv6 ? "true" : "false");
     LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV4_FALLBACK, *enable_ipv4_fallback ? "true" : "false");
     LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_LAN_DISCOVERY, *enable_lan_discovery ? "true" : "false");
 
-    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_TCP_RELAY,     *enable_tcp_relay     ? "true" : "false");
+    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_TCP_RELAY, *enable_tcp_relay ? "true" : "false");
 
     // Show info about tcp ports only if tcp relay is enabled
     if (*enable_tcp_relay) {
@@ -303,7 +303,7 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
         }
     }
 
-    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_MOTD,          *enable_motd          ? "true" : "false");
+    LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_MOTD, *enable_motd ? "true" : "false");
 
     if (*enable_motd) {
         LOG_WRITE(LOG_LEVEL_INFO, "'%s': %s\n", NAME_MOTD, *motd);

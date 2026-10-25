@@ -7,21 +7,29 @@ exclude:
 
 restylers:
   - astyle:
-      image: restyled/restyler-astyle:d7967bcb8b622a98524b7df1da1b02652114cf9a
+      image: ghcr.io/toktok/restyler-astyle:v3.6.2
       arguments: ["--options=other/astyle/astylerc"]
       include:
         - "**/*.c"
         - "**/*.h"
-  - autopep8
-  - black
+  - autopep8:
+      image: ghcr.io/toktok/restyler-autopep8:v2.3.2
+  - black:
+      image: ghcr.io/toktok/restyler-black:v26.10.1
   - clang-format:
-      image: restyled/restyler-clang-format:v16.0.6
+      image: ghcr.io/toktok/restyler-clang-format:v16.0.6
       include:
         - "**/*.cc"
         - "**/*.hh"
-  - prettier-markdown
-  - prettier-yaml
-  - reorder-python-imports
-  - shellharden
-  - shfmt
-  - yapf
+  - prettier-markdown:
+      image: ghcr.io/toktok/restyler-prettier:v3.9.10-6
+  - prettier-yaml:
+      image: ghcr.io/toktok/restyler-prettier:v3.9.10-6
+  - reorder-python-imports:
+      image: ghcr.io/toktok/restyler-reorder-python-imports:v3.19.0
+  - shellharden:
+      image: ghcr.io/toktok/restyler-shellharden:v4.3.2
+  - shfmt:
+      image: ghcr.io/toktok/restyler-shfmt:v3.14.1
+  - yapf:
+      image: ghcr.io/toktok/restyler-yapf:v0.43.0-1
