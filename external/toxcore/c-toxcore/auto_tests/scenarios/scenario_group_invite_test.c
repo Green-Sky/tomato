@@ -277,12 +277,12 @@ int main(int argc, char *argv[])
 
     ToxNode *nodes[7];
     nodes[0] = tox_scenario_add_node(s, "Founder", founder_script, &states[0], sizeof(State));
-    nodes[1] = tox_scenario_add_node(s, "Peer1",   peer1_script,   &states[1], sizeof(State));
-    nodes[2] = tox_scenario_add_node(s, "Peer2",   peer2_script,   &states[2], sizeof(State));
-    nodes[3] = tox_scenario_add_node(s, "Peer3",   peer3_script,   &states[3], sizeof(State));
-    nodes[4] = tox_scenario_add_node(s, "Peer4",   peer4_script,   &states[4], sizeof(State));
-    nodes[5] = tox_scenario_add_node(s, "Peer5",   peer5_script,   &states[5], sizeof(State));
-    nodes[6] = tox_scenario_add_node(s, "Peer6",   peer6_script,   &states[6], sizeof(State));
+    nodes[1] = tox_scenario_add_node(s, "Peer1", peer1_script, &states[1], sizeof(State));
+    nodes[2] = tox_scenario_add_node(s, "Peer2", peer2_script, &states[2], sizeof(State));
+    nodes[3] = tox_scenario_add_node(s, "Peer3", peer3_script, &states[3], sizeof(State));
+    nodes[4] = tox_scenario_add_node(s, "Peer4", peer4_script, &states[4], sizeof(State));
+    nodes[5] = tox_scenario_add_node(s, "Peer5", peer5_script, &states[5], sizeof(State));
+    nodes[6] = tox_scenario_add_node(s, "Peer6", peer6_script, &states[6], sizeof(State));
 
     for (int i = 1; i < 7; ++i) {
         tox_node_bootstrap(nodes[i], nodes[0]);

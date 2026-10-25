@@ -1,3 +1,17 @@
+<a name="v0.2.24-rc.4"></a>
+
+## v0.2.24-rc.4 (2026-10-25)
+
+### Release notes
+
+fixes and fixes
+
+#### Bug Fixes
+
+- missing memzero on failure path ([968b33f7](https://github.com/TokTok/c-toxcore/commit/968b33f760ee444a9c50260f46f8a20ca2bc39a1))
+- Don't print strings that can lack `\0` without length. ([93bde3ea](https://github.com/TokTok/c-toxcore/commit/93bde3eaa37ea80b6cbeda47fb31665e8f030fd3))
+- **ngc:** don't log bad nicks ([82b7a5c4](https://github.com/TokTok/c-toxcore/commit/82b7a5c45a78578e55687f711cf5f89658077370))
+
 <a name="v0.2.24-rc.3"></a>
 
 ## v0.2.24-rc.3 (2026-10-16)
