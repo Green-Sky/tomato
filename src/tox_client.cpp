@@ -148,6 +148,7 @@ ToxClient::~ToxClient(void) {
 		saveToxProfile();
 	}
 	tox_kill(_tox);
+	std::fill(_tox_profile_password.begin(), _tox_profile_password.end(), '*');
 }
 
 bool ToxClient::iterate(float time_delta) {
