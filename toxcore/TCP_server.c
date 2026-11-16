@@ -203,6 +203,11 @@ static int add_accepted(TCP_Server *_Nonnull tcp_server, const Mono_Time *_Nonnu
         index = -1;
     }
 
+    if (tcp_server->num_accepted_connections >= MAX_ACCEPTED_CONNECTIONS) {
+        LOGGER_DEBUG(tcp_server->logger, "Not accepting connection: too many clients");
+        return -1;
+    }
+
     if (tcp_server->size_accepted_connections == tcp_server->num_accepted_connections) {
         if (alloc_new_connections(tcp_server, 4) == -1) {
             return -1;
@@ -599,6 +604,11 @@ static bool ip_port_to_con_id(const TCP_Server *_Nonnull tcp_server, const IP_Po
 static int handle_onion_recv_1(void *_Nonnull object, const IP_Port *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length)
 {
     TCP_Server *tcp_server = (TCP_Server *)object;
+
+    if (1 + length + CRYPTO_MAC_SIZE > MAX_PACKET_SIZE) {
+        return 1;
+    }
+
     uint32_t index;
 
     if (!ip_port_to_con_id(tcp_server, dest, &index)) {
@@ -622,6 +632,10 @@ static int handle_onion_recv_1(void *_Nonnull object, const IP_Port *_Nonnull de
 static bool handle_forward_reply_tcp(void *_Nonnull object, const uint8_t *_Nonnull sendback_data, uint16_t sendback_data_len, const uint8_t *_Nonnull data, uint16_t length)
 {
     TCP_Server *tcp_server = (TCP_Server *)object;
+
+    if (1 + length + CRYPTO_MAC_SIZE > MAX_PACKET_SIZE) {
+        return false;
+    }
 
     if (sendback_data_len != 1 + sizeof(uint32_t) + sizeof(uint64_t)) {
         return false;
@@ -1341,7 +1355,14 @@ static bool tcp_epoll_process(TCP_Server *_Nonnull tcp_server, const Mono_Time *
             }
 
             case TCP_SOCKET_CONFIRMED: {
-                do_confirmed_recv(tcp_server, index);
+                // The slot may have been evicted earlier in this batch.
+                if (index < (int)tcp_server->size_accepted_connections
+                        && tcp_server->accepted_connection_array[index].status == TCP_STATUS_CONFIRMED
+                        && net_socket_to_native(tcp_server->accepted_connection_array[index].con.sock)
+                        == net_socket_to_native(sock)) {
+                    do_confirmed_recv(tcp_server, index);
+                }
+
                 break;
             }
         }

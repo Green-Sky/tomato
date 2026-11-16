@@ -1,65 +1,69 @@
-<a name="v0.2.24-rc.4"></a>
+<a name="v0.2.25"></a>
 
-## v0.2.24-rc.4 (2026-10-25)
+## v0.2.25 (2026-11-15)
 
 ### Release notes
 
-fixes and fixes
+Even more fixes. We will soon have caught up with over a decade of technical debt.
+
+#### Bug Fixes
+
+- Ignore group sync responses we didn't request. ([66aaefab](https://github.com/TokTok/c-toxcore/commit/66aaefabea44204832d917733f596f08867f5bb5))
+- Only sync group state once per roles checksum. ([4ac25cf9](https://github.com/TokTok/c-toxcore/commit/4ac25cf99342ed254eb63e895dceecbcd6cfc72d))
+- Remove a group if loading its saved state fails. ([9920dd7f](https://github.com/TokTok/c-toxcore/commit/9920dd7f1a126e3ac55a6a93388a7c37948a2b61))
+- Limit how many peers and relay clients we keep. ([52e69aa6](https://github.com/TokTok/c-toxcore/commit/52e69aa69ae81eeb5c65fd2f90a82cb85968a8b9))
+- Only store group announces for up to 512 groups. ([4507df69](https://github.com/TokTok/c-toxcore/commit/4507df69b1e66dbf44045d65629e9402a578e382))
+- Only queue up to 1024 priority packets per TCP connection. ([d8c37e5e](https://github.com/TokTok/c-toxcore/commit/d8c37e5e0913762fb95e5a22eadf7f435230fb08))
+- Don't free memory that's still stored elsewhere. ([4f19dcd9](https://github.com/TokTok/c-toxcore/commit/4f19dcd9f5621ded7a4b42ac67708b5408ee2820))
+- Remove group peers added by requests that then fail. ([a2a95123](https://github.com/TokTok/c-toxcore/commit/a2a9512382da52bbca82bf2db14e3b23bf6cdf31))
+- Check the handshake rate limit before adding a group peer. ([ad4acf9b](https://github.com/TokTok/c-toxcore/commit/ad4acf9b2e5a6c794207d51ab2a1f48f71234775))
+- End call ringing for inactive calls. ([87728841](https://github.com/TokTok/c-toxcore/commit/8772884176525b94c7edc1c885637ef902f18448))
+- Try a friend's newest saved TCP relays first after 65536 of them. ([fe91ead3](https://github.com/TokTok/c-toxcore/commit/fe91ead3d785827799a88fcecb122e4acb338c66))
+- Compare wrapped counters and sequence numbers modulo their size. ([531dcde9](https://github.com/TokTok/c-toxcore/commit/531dcde99bbf1d3b60e961676fa4b56fb46e3f26))
+- Only allow the 2 known conference types. ([bcd035ab](https://github.com/TokTok/c-toxcore/commit/bcd035ab9f3d41717e7105ae79fbde47d71a2356))
+- Better handling of file or AV call cancelling. ([77a32198](https://github.com/TokTok/c-toxcore/commit/77a3219820a526f1e909fc021b0d1598bf169b6e))
+- Don't read from evicted epoll TCP connections. ([a276772c](https://github.com/TokTok/c-toxcore/commit/a276772ca54f1d2bec5e292ffe769d7601446930))
+- Clean up minor group chat issue for early joins. ([7b8b1470](https://github.com/TokTok/c-toxcore/commit/7b8b147057ac35dc968bb78aafc19c6ac7802cce))
+- Finish removals when array shrinking fails. ([03098cbc](https://github.com/TokTok/c-toxcore/commit/03098cbc6b93795f6222a1c049273950e05bed03))
+- Stop memcpy-ing internal data structures into packets. ([923e0487](https://github.com/TokTok/c-toxcore/commit/923e0487e7c184ff2af3b8e48248c1930cba9cec))
+- **events:** alloc failure leading to double free ([e8ec3357](https://github.com/TokTok/c-toxcore/commit/e8ec335772df9d6e8fbd33da171632a507992dce))
+
+<a name="v0.2.24"></a>
+
+## v0.2.24 (2026-11-01)
+
+### Release notes
+
+This release focuses on bug fixes and stability, with some usability sprinkled on top.
+
+We changed how long NGC announces are stored on nodes (x2) and the announce frequency now scales inversely proportional to number of group peers. This makes them more discoverable and at the same time reduces strain on the network.
+
+Bug fixes where applied all around, but love was given especially to the toxav subsystem.
+
+Digital sovereignty, here to stay.
 
 #### Bug Fixes
 
 - missing memzero on failure path ([968b33f7](https://github.com/TokTok/c-toxcore/commit/968b33f760ee444a9c50260f46f8a20ca2bc39a1))
 - Don't print strings that can lack `\0` without length. ([93bde3ea](https://github.com/TokTok/c-toxcore/commit/93bde3eaa37ea80b6cbeda47fb31665e8f030fd3))
-- **ngc:** don't log bad nicks ([82b7a5c4](https://github.com/TokTok/c-toxcore/commit/82b7a5c45a78578e55687f711cf5f89658077370))
-
-<a name="v0.2.24-rc.3"></a>
-
-## v0.2.24-rc.3 (2026-10-16)
-
-### Release notes
-
-fixes and fixes
-
-#### Bug Fixes
-
 - Improve conference teardown memory management. ([69e3e4f6](https://github.com/TokTok/c-toxcore/commit/69e3e4f61dbe64f2c0f9c3607fb8ee08ccd6185e))
 - e2e fuzzing was setup wrongly and no pkgs where consumed This is because toxcore creates it own new socket/node, not the one created for toxcore. ([89c30b01](https://github.com/TokTok/c-toxcore/commit/89c30b0175d03b29a5e05a624e9c88b9624105fb))
-- **ngc:** stale gconn ptr after realloc ([ea4bab5c](https://github.com/TokTok/c-toxcore/commit/ea4bab5ce88a129cc1ca0434112c86ae5c7b7508))
-- **toxav:**
-  - doubly linked list corruption in `call_new` when reusing friend numbers ([fc4d8629](https://github.com/TokTok/c-toxcore/commit/fc4d8629d7934db7053fd549ae73861c19993126))
-  - hold lock during queue destruction ([13f5dd88](https://github.com/TokTok/c-toxcore/commit/13f5dd88887d56a7856f3c754fe9c51e53c617ea))
-
-<a name="v0.2.24-rc.2"></a>
-
-## v0.2.24-rc.2 (2026-09-30)
-
-### Release notes
-
-fixes and fixes
-
-#### Bug Fixes
-
 - Align group announcement interval with cleanup interval. ([9696e90d](https://github.com/TokTok/c-toxcore/commit/9696e90df654829c7a4550229a87d7dabf3c7ce6))
-- **msi:** invoke error callback on init and push failure paths ([39bd5c6d](https://github.com/TokTok/c-toxcore/commit/39bd5c6d7905aaf7d020a15fb2420fe6e0e008de))
-- **rtp:** wrong slot used check could lead to oob Header only frames, with no payload can still occupy a slot. ([56a8d289](https://github.com/TokTok/c-toxcore/commit/56a8d2899ff368932c337e03357e866ef556d4b9))
-
-<a name="v0.2.24-rc.1"></a>
-
-## v0.2.24-rc.1 (2026-09-25)
-
-### Release notes
-
-fixes and fixes
-
-#### Bug Fixes
-
 - We now make sure to validate signature keys during handshake ([76b90299](https://github.com/TokTok/c-toxcore/commit/76b9029950f553f580f914509232522a05b06644))
 - disable nrvo clang warning for osx ci ([efb938b1](https://github.com/TokTok/c-toxcore/commit/efb938b1e6d802241eb77e109b5be282ee079541))
 - `handle_gc_mod_list()` return values in docs ([1d79022f](https://github.com/TokTok/c-toxcore/commit/1d79022fb4e56dffe0bbd075d47e00f7a0b62ab3))
 - **LAN_discovery:** use interface IP and bitwise masking on Windows ([b940c22a](https://github.com/TokTok/c-toxcore/commit/b940c22a8ab9381f180f879091bf7d60106be71d))
 - **crypto:** correct assertion message in `pack_extended_public_key` ([d07f10bf](https://github.com/TokTok/c-toxcore/commit/d07f10bf38fd3e8a7f81f5c6330b4d481fc33a56))
 - **events:** memory leak when event field alloc fails ([daddc7fb](https://github.com/TokTok/c-toxcore/commit/daddc7fb6be7247afe0c0f9e89bc8c54e0346f64))
+- **msi:** invoke error callback on init and push failure paths ([39bd5c6d](https://github.com/TokTok/c-toxcore/commit/39bd5c6d7905aaf7d020a15fb2420fe6e0e008de))
 - **network:** check buffer length before reading family in `unpack_ip_port` ([02daf255](https://github.com/TokTok/c-toxcore/commit/02daf25560e2b9978fa0666948614b286b71ca9b))
+- **ngc:**
+  - don't log bad nicks ([82b7a5c4](https://github.com/TokTok/c-toxcore/commit/82b7a5c45a78578e55687f711cf5f89658077370))
+  - stale gconn ptr after realloc ([ea4bab5c](https://github.com/TokTok/c-toxcore/commit/ea4bab5ce88a129cc1ca0434112c86ae5c7b7508))
+- **rtp:** wrong slot used check could lead to oob Header only frames, with no payload can still occupy a slot. ([56a8d289](https://github.com/TokTok/c-toxcore/commit/56a8d2899ff368932c337e03357e866ef556d4b9))
+- **toxav:**
+  - doubly linked list corruption in `call_new` when reusing friend numbers ([fc4d8629](https://github.com/TokTok/c-toxcore/commit/fc4d8629d7934db7053fd549ae73861c19993126))
+  - hold lock during queue destruction ([13f5dd88](https://github.com/TokTok/c-toxcore/commit/13f5dd88887d56a7856f3c754fe9c51e53c617ea))
 
 <a name="v0.2.23"></a>
 

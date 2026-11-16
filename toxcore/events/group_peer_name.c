@@ -159,23 +159,21 @@ void tox_event_group_peer_name_free(Tox_Event_Group_Peer_Name *group_peer_name, 
     mem_delete(mem, group_peer_name);
 }
 
-static Tox_Event_Group_Peer_Name *_Nullable tox_events_add_group_peer_name(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static void tox_events_add_group_peer_name(Tox_Events_State *_Nonnull state, Tox_Event_Group_Peer_Name *_Nonnull group_peer_name)
 {
-    Tox_Event_Group_Peer_Name *const group_peer_name = tox_event_group_peer_name_new(mem);
-
-    if (group_peer_name == nullptr) {
-        return nullptr;
+    if (state->events == nullptr) {
+        tox_event_group_peer_name_free(group_peer_name, state->mem);
+        return;
     }
 
     Tox_Event event;
     event.type = TOX_EVENT_GROUP_PEER_NAME;
     event.data.group_peer_name = group_peer_name;
 
-    if (!tox_events_add(events, &event)) {
-        tox_event_group_peer_name_free(group_peer_name, mem);
-        return nullptr;
+    if (!tox_events_add(state->events, &event)) {
+        tox_event_group_peer_name_free(group_peer_name, state->mem);
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
-    return group_peer_name;
 }
 
 bool tox_event_group_peer_name_unpack(
@@ -192,22 +190,6 @@ bool tox_event_group_peer_name_unpack(
     return tox_event_group_peer_name_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Peer_Name *_Nullable tox_event_group_peer_name_alloc(Tox_Events_State *_Nonnull state)
-{
-    if (state->events == nullptr) {
-        return nullptr;
-    }
-
-    Tox_Event_Group_Peer_Name *group_peer_name = tox_events_add_group_peer_name(state->events, state->mem);
-
-    if (group_peer_name == nullptr) {
-        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
-        return nullptr;
-    }
-
-    return group_peer_name;
-}
-
 /*****************************************************
  *
  * :: event handler
@@ -215,16 +197,15 @@ static Tox_Event_Group_Peer_Name *_Nullable tox_event_group_peer_name_alloc(Tox_
  *****************************************************/
 
 void tox_events_handle_group_peer_name(
-    Tox *_Nonnull tox,
     uint32_t group_number,
     uint32_t peer_id,
-    const uint8_t *_Nullable name, size_t name_length,
-    void *_Nullable user_data)
+    const uint8_t *name, size_t name_length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Peer_Name *group_peer_name = tox_event_group_peer_name_alloc(state);
+    Tox_Event_Group_Peer_Name *group_peer_name = tox_event_group_peer_name_new(state->mem);
 
     if (group_peer_name == nullptr) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
 
@@ -235,6 +216,8 @@ void tox_events_handle_group_peer_name(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
+
+    tox_events_add_group_peer_name(tox_events_alloc(state), group_peer_name);
 }
 
 void tox_events_handle_group_peer_name_dispatch(Tox *tox, const Tox_Event_Group_Peer_Name *event, void *user_data)

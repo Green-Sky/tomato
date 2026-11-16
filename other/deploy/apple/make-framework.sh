@@ -14,10 +14,7 @@ rm -rf toxcore-ios/Tox.framework
 mkdir -p toxcore-ios/Tox.framework
 cp Info.plist toxcore-ios/Tox.framework
 cp -r toxcore-ios-arm64/include/tox toxcore-ios/Tox.framework/Headers
-lipo -create -output toxcore-ios/Tox.framework/Tox \
-  toxcore-ios-arm64/lib/libtoxcore.dylib \
-  toxcore-ios-armv7/lib/libtoxcore.dylib \
-  toxcore-ios-armv7s/lib/libtoxcore.dylib
+cp toxcore-ios-arm64/lib/libtoxcore.dylib toxcore-ios/Tox.framework/Tox
 install_name_tool -id @rpath/Tox.framework/Tox toxcore-ios/Tox.framework/Tox
 
 # Make a Tox.framework for iPhone simulator.
@@ -30,15 +27,19 @@ lipo -create -output toxcore-iphonesimulator/Tox.framework/Tox \
   toxcore-iphonesimulator-x86_64/lib/libtoxcore.dylib
 install_name_tool -id @rpath/Tox.framework/Tox toxcore-iphonesimulator/Tox.framework/Tox
 
-# Make a Tox.framework for macOS.
+# Make a Tox.framework for macOS, which Xcode only accepts as a versioned bundle.
 rm -rf toxcore-macos/Tox.framework
-mkdir -p toxcore-macos/Tox.framework
-cp Info.plist toxcore-macos/Tox.framework
-cp -r toxcore-macos-arm64/include/tox toxcore-macos/Tox.framework/Headers
-lipo -create -output toxcore-macos/Tox.framework/Tox \
+mkdir -p toxcore-macos/Tox.framework/Versions/A/Resources
+cp Info.plist toxcore-macos/Tox.framework/Versions/A/Resources
+cp -r toxcore-macos-arm64/include/tox toxcore-macos/Tox.framework/Versions/A/Headers
+lipo -create -output toxcore-macos/Tox.framework/Versions/A/Tox \
   toxcore-macos-arm64/lib/libtoxcore.dylib \
   toxcore-macos-x86_64/lib/libtoxcore.dylib
-install_name_tool -id @rpath/Tox.framework/Tox toxcore-macos/Tox.framework/Tox
+install_name_tool -id @rpath/Tox.framework/Versions/A/Tox toxcore-macos/Tox.framework/Versions/A/Tox
+ln -s A toxcore-macos/Tox.framework/Versions/Current
+for f in Headers Resources Tox; do
+  ln -s "Versions/Current/$f" "toxcore-macos/Tox.framework/$f"
+done
 
 # Make a Tox.xcframework for iOS, iPhone simulator, and macOS.
 rm -rf Tox.xcframework

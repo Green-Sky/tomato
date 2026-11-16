@@ -159,23 +159,21 @@ void tox_event_group_custom_private_packet_free(Tox_Event_Group_Custom_Private_P
     mem_delete(mem, group_custom_private_packet);
 }
 
-static Tox_Event_Group_Custom_Private_Packet *_Nullable tox_events_add_group_custom_private_packet(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static void tox_events_add_group_custom_private_packet(Tox_Events_State *_Nonnull state, Tox_Event_Group_Custom_Private_Packet *_Nonnull group_custom_private_packet)
 {
-    Tox_Event_Group_Custom_Private_Packet *const group_custom_private_packet = tox_event_group_custom_private_packet_new(mem);
-
-    if (group_custom_private_packet == nullptr) {
-        return nullptr;
+    if (state->events == nullptr) {
+        tox_event_group_custom_private_packet_free(group_custom_private_packet, state->mem);
+        return;
     }
 
     Tox_Event event;
     event.type = TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET;
     event.data.group_custom_private_packet = group_custom_private_packet;
 
-    if (!tox_events_add(events, &event)) {
-        tox_event_group_custom_private_packet_free(group_custom_private_packet, mem);
-        return nullptr;
+    if (!tox_events_add(state->events, &event)) {
+        tox_event_group_custom_private_packet_free(group_custom_private_packet, state->mem);
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
-    return group_custom_private_packet;
 }
 
 bool tox_event_group_custom_private_packet_unpack(
@@ -192,22 +190,6 @@ bool tox_event_group_custom_private_packet_unpack(
     return tox_event_group_custom_private_packet_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Custom_Private_Packet *_Nullable tox_event_group_custom_private_packet_alloc(Tox_Events_State *_Nonnull state)
-{
-    if (state->events == nullptr) {
-        return nullptr;
-    }
-
-    Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = tox_events_add_group_custom_private_packet(state->events, state->mem);
-
-    if (group_custom_private_packet == nullptr) {
-        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
-        return nullptr;
-    }
-
-    return group_custom_private_packet;
-}
-
 /*****************************************************
  *
  * :: event handler
@@ -215,16 +197,15 @@ static Tox_Event_Group_Custom_Private_Packet *_Nullable tox_event_group_custom_p
  *****************************************************/
 
 void tox_events_handle_group_custom_private_packet(
-    Tox *_Nonnull tox,
     uint32_t group_number,
     uint32_t peer_id,
-    const uint8_t *_Nullable data, size_t data_length,
-    void *_Nullable user_data)
+    const uint8_t *data, size_t data_length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = tox_event_group_custom_private_packet_alloc(state);
+    Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = tox_event_group_custom_private_packet_new(state->mem);
 
     if (group_custom_private_packet == nullptr) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
 
@@ -235,6 +216,8 @@ void tox_events_handle_group_custom_private_packet(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
+
+    tox_events_add_group_custom_private_packet(tox_events_alloc(state), group_custom_private_packet);
 }
 
 void tox_events_handle_group_custom_private_packet_dispatch(Tox *tox, const Tox_Event_Group_Custom_Private_Packet *event, void *user_data)
