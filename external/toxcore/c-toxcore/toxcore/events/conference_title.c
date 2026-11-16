@@ -159,23 +159,21 @@ void tox_event_conference_title_free(Tox_Event_Conference_Title *conference_titl
     mem_delete(mem, conference_title);
 }
 
-static Tox_Event_Conference_Title *_Nullable tox_events_add_conference_title(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static void tox_events_add_conference_title(Tox_Events_State *_Nonnull state, Tox_Event_Conference_Title *_Nonnull conference_title)
 {
-    Tox_Event_Conference_Title *const conference_title = tox_event_conference_title_new(mem);
-
-    if (conference_title == nullptr) {
-        return nullptr;
+    if (state->events == nullptr) {
+        tox_event_conference_title_free(conference_title, state->mem);
+        return;
     }
 
     Tox_Event event;
     event.type = TOX_EVENT_CONFERENCE_TITLE;
     event.data.conference_title = conference_title;
 
-    if (!tox_events_add(events, &event)) {
-        tox_event_conference_title_free(conference_title, mem);
-        return nullptr;
+    if (!tox_events_add(state->events, &event)) {
+        tox_event_conference_title_free(conference_title, state->mem);
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
-    return conference_title;
 }
 
 bool tox_event_conference_title_unpack(
@@ -192,22 +190,6 @@ bool tox_event_conference_title_unpack(
     return tox_event_conference_title_unpack_into(*event, bu);
 }
 
-static Tox_Event_Conference_Title *_Nullable tox_event_conference_title_alloc(Tox_Events_State *_Nonnull state)
-{
-    if (state->events == nullptr) {
-        return nullptr;
-    }
-
-    Tox_Event_Conference_Title *conference_title = tox_events_add_conference_title(state->events, state->mem);
-
-    if (conference_title == nullptr) {
-        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
-        return nullptr;
-    }
-
-    return conference_title;
-}
-
 /*****************************************************
  *
  * :: event handler
@@ -215,16 +197,15 @@ static Tox_Event_Conference_Title *_Nullable tox_event_conference_title_alloc(To
  *****************************************************/
 
 void tox_events_handle_conference_title(
-    Tox *_Nonnull tox,
     uint32_t conference_number,
     uint32_t peer_number,
-    const uint8_t *_Nullable title, size_t length,
-    void *_Nullable user_data)
+    const uint8_t *title, size_t length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Title *conference_title = tox_event_conference_title_alloc(state);
+    Tox_Event_Conference_Title *conference_title = tox_event_conference_title_new(state->mem);
 
     if (conference_title == nullptr) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
 
@@ -235,6 +216,8 @@ void tox_events_handle_conference_title(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
+
+    tox_events_add_conference_title(tox_events_alloc(state), conference_title);
 }
 
 void tox_events_handle_conference_title_dispatch(Tox *tox, const Tox_Event_Conference_Title *event, void *user_data)

@@ -34,19 +34,19 @@ jobs:
             tcc,
             tokstyle,
           ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           driver: docker
       - name: Build toxchat/c-toxcore:sources
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           file: other/docker/sources/sources.Dockerfile
           tags: toxchat/c-toxcore:sources
       - name: Docker Build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           file: other/docker/${{ matrix.tool }}/${{ matrix.tool }}.Dockerfile
 
@@ -55,20 +55,23 @@ jobs:
       fail-fast: false
       matrix:
         sanitizer: [asan, tsan, ubsan]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           driver: docker
       - uses: actions/checkout@v6
         with:
           submodules: recursive
+      # TSan can't run with the high ASLR entropy of newer kernels.
+      - name: Lower ASLR entropy
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
       - name: Run sanitizer
         run: other/docker/circleci/run "${{ matrix.sanitizer }}"
 
   coverage-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
@@ -113,7 +116,7 @@ jobs:
           ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6 --build-config Debug
 
   build-netbsd:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
@@ -149,7 +152,7 @@ jobs:
             ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
 
   build-freebsd:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
@@ -187,7 +190,7 @@ jobs:
             ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
 
   mypy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:

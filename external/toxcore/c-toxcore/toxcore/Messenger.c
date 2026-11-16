@@ -1751,9 +1751,13 @@ static int handle_filecontrol(Messenger *_Nonnull m, int32_t friendnumber, bool 
     struct File_Transfers *ft = get_file_transfer(outbound, filenumber, &real_filenumber, &m->friendlist[friendnumber]);
 
     if (ft == nullptr) {
-        LOGGER_DEBUG(m->log, "file control (friend %d, file %d): file transfer does not exist; telling the other to kill it",
-                     friendnumber, filenumber);
-        send_file_control_packet(m, friendnumber, !outbound, filenumber, FILECONTROL_KILL, nullptr, 0);
+        /* A kill for a transfer we ended too needs no answer. */
+        if (control_type != FILECONTROL_KILL) {
+            LOGGER_DEBUG(m->log, "file control (friend %d, file %d): file transfer does not exist; telling the other to kill it",
+                         friendnumber, filenumber);
+            send_file_control_packet(m, friendnumber, !outbound, filenumber, FILECONTROL_KILL, nullptr, 0);
+        }
+
         return -1;
     }
 
@@ -1924,17 +1928,23 @@ void custom_lossless_packet_registerhandler(Messenger *m, m_friend_lossless_pack
 
 int send_custom_lossless_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint32_t length)
 {
+    if (m_friend_exists(m, friendnumber) && length > 0 && length <= MAX_CRYPTO_DATA_SIZE
+            && (data[0] < PACKET_ID_RANGE_LOSSLESS_CUSTOM_START || data[0] > PACKET_ID_RANGE_LOSSLESS_CUSTOM_END)
+            && data[0] != PACKET_ID_MSI) {
+        return -3;
+    }
+
+    return m_send_lossless_packet(m, friendnumber, data, length);
+}
+
+int m_send_lossless_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint32_t length)
+{
     if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
     if (length == 0 || length > MAX_CRYPTO_DATA_SIZE) {
         return -2;
-    }
-
-    if ((data[0] < PACKET_ID_RANGE_LOSSLESS_CUSTOM_START || data[0] > PACKET_ID_RANGE_LOSSLESS_CUSTOM_END)
-            && data[0] != PACKET_ID_MSI) {
-        return -3;
     }
 
     if (m->friendlist[friendnumber].status != FRIEND_ONLINE) {
@@ -2467,7 +2477,7 @@ static bool self_announce_group(const Messenger *_Nonnull m, GC_Chat *_Nonnull c
     announce.base_announce.ip_port_is_set = ip_port_is_set;
 
     if (ip_port_is_set) {
-        memcpy(&announce.base_announce.ip_port, &chat->self_ip_port, sizeof(IP_Port));
+        announce.base_announce.ip_port = chat->self_ip_port;
     }
 
     memcpy(announce.base_announce.peer_public_key, chat->self_public_key.enc, ENC_PUBLIC_KEY_SIZE);
@@ -2481,7 +2491,7 @@ static bool self_announce_group(const Messenger *_Nonnull m, GC_Chat *_Nonnull c
         return false;
     }
 
-    if (gca_add_announce(m->mem, m->mono_time, m->group_announce, &announce) == nullptr) {
+    if (gca_add_self_announce(m->mem, m->mono_time, m->group_announce, &announce) == nullptr) {
         onion_friend_set_gc_data(onion_friend, nullptr, 0);
         return false;
     }

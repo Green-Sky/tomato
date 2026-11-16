@@ -7,12 +7,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd "$SCRIPT_DIR"
 
-for arch in arm64 armv7 armv7s; do
-  if [ ! -d "toxcore-ios-$arch" ]; then
-    tar -zxf \
-      <(curl -L "https://github.com/TokTok/c-toxcore/releases/download/nightly/toxcore-nightly-ios-$arch.tar.gz")
-  fi
-done
+if [ ! -d "toxcore-ios-arm64" ]; then
+  tar -zxf \
+    <(curl -L "https://github.com/TokTok/c-toxcore/releases/download/nightly/toxcore-nightly-ios-arm64.tar.gz")
+fi
 
 for arch in arm64 x86_64; do
   if [ ! -d "toxcore-iphonesimulator-$arch" ]; then

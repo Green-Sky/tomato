@@ -1372,6 +1372,10 @@ static int send_dht_dhtpk(const Onion_Client *_Nonnull onion_c, int friend_num, 
         return -1;
     }
 
+    if (DATA_IN_RESPONSE_MIN_SIZE + CRYPTO_NONCE_SIZE + length > MAX_CRYPTO_REQUEST_SIZE) {
+        return -1;
+    }
+
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(onion_c->rng, nonce);
 
@@ -1562,6 +1566,14 @@ int onion_addfriend(Onion_Client *onion_c, const uint8_t *public_key)
 
         index = onion_c->num_friends;
         onion_c->friends_list[onion_c->num_friends] = empty_onion_friend;
+    }
+
+    if (!bs_list_add(&onion_c->friends_lookup, public_key, index)) {
+        LOGGER_ERROR(onion_c->logger, "Failed to add friend to lookup list (index: %u)", index);
+        return -1;
+    }
+
+    if (index == onion_c->num_friends) {
         ++onion_c->num_friends;
     }
 
@@ -1569,11 +1581,6 @@ int onion_addfriend(Onion_Client *onion_c, const uint8_t *public_key)
     memcpy(onion_c->friends_list[index].real_public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     crypto_new_keypair(onion_c->rng, onion_c->friends_list[index].temp_public_key,
                        onion_c->friends_list[index].temp_secret_key);
-
-    if (!bs_list_add(&onion_c->friends_lookup, public_key, index)) {
-        LOGGER_ERROR(onion_c->logger, "Failed to add friend to lookup list (index: %u)", index);
-        return -1;
-    }
 
     return index;
 }

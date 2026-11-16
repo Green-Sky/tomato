@@ -60,6 +60,9 @@ typedef enum Groupchat_Status {
 /** Maximum number of frozen peers to store; `group_set_max_frozen()` overrides. */
 #define MAX_FROZEN_DEFAULT 128
 
+/** Any member can introduce peers, so we only keep this many. */
+#define MAX_GROUP_PEERS 1024
+
 typedef struct Message_Info {
     uint32_t message_number;
     uint8_t  message_id;
@@ -658,11 +661,9 @@ static bool delete_frozen(const Memory *_Nonnull mem, Group_c *_Nonnull g, uint3
 
         Group_Peer *const frozen_temp = (Group_Peer *)mem_vrealloc(mem, g->frozen, g->numfrozen, sizeof(Group_Peer));
 
-        if (frozen_temp == nullptr) {
-            return false;
+        if (frozen_temp != nullptr) {
+            g->frozen = frozen_temp;
         }
-
-        g->frozen = frozen_temp;
     }
 
     return true;
@@ -802,6 +803,10 @@ static int addpeer(Group_Chats *_Nonnull g_c, uint32_t groupnumber, const uint8_
 
     delete_any_peer_with_pk(g_c, groupnumber, real_pk, userdata);
 
+    if (g->numpeers >= MAX_GROUP_PEERS) {
+        return -1;
+    }
+
     Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->mem, g->group, g->numpeers + 1, sizeof(Group_Peer));
 
     if (temp == nullptr) {
@@ -900,11 +905,9 @@ static bool delpeer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, void
 
         Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->mem, g->group, g->numpeers, sizeof(Group_Peer));
 
-        if (temp == nullptr) {
-            return false;
+        if (temp != nullptr) {
+            g->group = temp;
         }
-
-        g->group = temp;
     }
 
     if (g_c->peer_list_changed_callback != nullptr) {
@@ -2092,14 +2095,20 @@ static void handle_friend_invite_packet(Messenger *_Nonnull m, uint32_t friend_n
                 return;
             }
 
-            const int groupnumber = get_group_num(g_c, cookie[1 + sizeof(uint16_t)], cookie + 1 + sizeof(uint16_t) + 1);
+            const uint8_t type = cookie[1 + sizeof(uint16_t)];
+
+            if (type != GROUPCHAT_TYPE_TEXT && type != GROUPCHAT_TYPE_AV) {
+                return;
+            }
+
+            const int groupnumber = get_group_num(g_c, type, cookie + 1 + sizeof(uint16_t) + 1);
 
             const uint8_t *invite_data = cookie + 1;
             const uint16_t invite_length = length - 1;
 
             if (groupnumber == -1) {
                 if (g_c->invite_callback != nullptr) {
-                    g_c->invite_callback(m, friend_number, invite_data[sizeof(uint16_t)], invite_data, invite_length, user_data);
+                    g_c->invite_callback(m, friend_number, type, invite_data, invite_length, user_data);
                 }
 
                 return;
@@ -2709,7 +2718,10 @@ int group_action_send(const Group_Chats *g_c, uint32_t groupnumber, const uint8_
  */
 int send_group_lossy_packet(const Group_Chats *g_c, uint32_t groupnumber, const uint8_t *data, uint16_t length)
 {
-    // TODO(irungentoo): length check here?
+    if (1 + sizeof(uint16_t) + sizeof(uint16_t) * 2 + length > MAX_CRYPTO_DATA_SIZE) {
+        return -1;
+    }
+
     Group_c *g = get_group_c(g_c, groupnumber);
 
     if (g == nullptr) {

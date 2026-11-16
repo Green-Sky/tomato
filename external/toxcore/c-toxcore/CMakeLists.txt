@@ -45,7 +45,7 @@ set_source_files_properties(
 # versions in a synchronised way.
 set(PROJECT_VERSION_MAJOR "0")
 set(PROJECT_VERSION_MINOR "2")
-set(PROJECT_VERSION_PATCH "24")
+set(PROJECT_VERSION_PATCH "25")
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 # set .so library version / following libtool scheme
@@ -427,6 +427,8 @@ if(BUILD_TOXAV)
     toxav/audio.h
     toxav/bwcontroller.c
     toxav/bwcontroller.h
+    toxav/group_jitter_buffer.c
+    toxav/group_jitter_buffer.h
     toxav/groupav.c
     toxav/groupav.h
     toxav/msi.c
@@ -618,6 +620,7 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
     unit_test(toxav audio)
     target_link_libraries(unit_audio_test PRIVATE av_test_support)
     unit_test(toxav bwcontroller)
+    unit_test(toxav group_jitter_buffer)
     unit_test(toxav msi)
     unit_test(toxav ring_buffer)
     unit_test(toxav rtp)
@@ -629,12 +632,14 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore TCP_client)
   unit_test(toxcore TCP_common)
   unit_test(toxcore TCP_connection)
+  unit_test(toxcore TCP_server)
   unit_test(toxcore bin_pack)
   unit_test(toxcore crypto_core)
   unit_test(toxcore ev)
   unit_test(toxcore friend_connection)
   unit_test(toxcore group_announce)
   unit_test(toxcore group_chats)
+  unit_test(toxcore group_connection)
   unit_test(toxcore group_moderation)
   unit_test(toxcore list)
   unit_test(toxcore mem)

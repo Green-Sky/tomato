@@ -145,23 +145,21 @@ void tox_event_friend_lossy_packet_free(Tox_Event_Friend_Lossy_Packet *friend_lo
     mem_delete(mem, friend_lossy_packet);
 }
 
-static Tox_Event_Friend_Lossy_Packet *_Nullable tox_events_add_friend_lossy_packet(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static void tox_events_add_friend_lossy_packet(Tox_Events_State *_Nonnull state, Tox_Event_Friend_Lossy_Packet *_Nonnull friend_lossy_packet)
 {
-    Tox_Event_Friend_Lossy_Packet *const friend_lossy_packet = tox_event_friend_lossy_packet_new(mem);
-
-    if (friend_lossy_packet == nullptr) {
-        return nullptr;
+    if (state->events == nullptr) {
+        tox_event_friend_lossy_packet_free(friend_lossy_packet, state->mem);
+        return;
     }
 
     Tox_Event event;
     event.type = TOX_EVENT_FRIEND_LOSSY_PACKET;
     event.data.friend_lossy_packet = friend_lossy_packet;
 
-    if (!tox_events_add(events, &event)) {
-        tox_event_friend_lossy_packet_free(friend_lossy_packet, mem);
-        return nullptr;
+    if (!tox_events_add(state->events, &event)) {
+        tox_event_friend_lossy_packet_free(friend_lossy_packet, state->mem);
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
-    return friend_lossy_packet;
 }
 
 bool tox_event_friend_lossy_packet_unpack(
@@ -178,22 +176,6 @@ bool tox_event_friend_lossy_packet_unpack(
     return tox_event_friend_lossy_packet_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Lossy_Packet *_Nullable tox_event_friend_lossy_packet_alloc(Tox_Events_State *_Nonnull state)
-{
-    if (state->events == nullptr) {
-        return nullptr;
-    }
-
-    Tox_Event_Friend_Lossy_Packet *friend_lossy_packet = tox_events_add_friend_lossy_packet(state->events, state->mem);
-
-    if (friend_lossy_packet == nullptr) {
-        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
-        return nullptr;
-    }
-
-    return friend_lossy_packet;
-}
-
 /*****************************************************
  *
  * :: event handler
@@ -201,15 +183,14 @@ static Tox_Event_Friend_Lossy_Packet *_Nullable tox_event_friend_lossy_packet_al
  *****************************************************/
 
 void tox_events_handle_friend_lossy_packet(
-    Tox *_Nonnull tox,
     uint32_t friend_number,
-    const uint8_t *_Nullable data, size_t length,
-    void *_Nullable user_data)
+    const uint8_t *data, size_t length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Friend_Lossy_Packet *friend_lossy_packet = tox_event_friend_lossy_packet_alloc(state);
+    Tox_Event_Friend_Lossy_Packet *friend_lossy_packet = tox_event_friend_lossy_packet_new(state->mem);
 
     if (friend_lossy_packet == nullptr) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
 
@@ -219,6 +200,8 @@ void tox_events_handle_friend_lossy_packet(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
+
+    tox_events_add_friend_lossy_packet(tox_events_alloc(state), friend_lossy_packet);
 }
 
 void tox_events_handle_friend_lossy_packet_dispatch(Tox *tox, const Tox_Event_Friend_Lossy_Packet *event, void *user_data)
